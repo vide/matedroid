@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.drives
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.DriveData
+import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
@@ -25,6 +26,26 @@ enum class DriveChartGranularity {
     DAILY, WEEKLY, MONTHLY
 }
 
+enum class DriveDistanceFilter(
+    val maxDistanceKm: Double?,
+    val minDistanceKm: Double?
+) {
+    ALL(null, null),
+    COMMUTE(10.0, null),           // < 10 km / 6 mi
+    DAY_TRIP(100.0, 10.0),         // 10-100 km / 6-60 mi
+    ROAD_TRIP(null, 100.0);        // > 100 km / 60 mi
+
+    fun getLabel(units: Units?): String {
+        val isImperial = units?.isImperial == true
+        return when (this) {
+            ALL -> "All"
+            COMMUTE -> if (isImperial) "Commute (< 6 mi)" else "Commute (< 10 km)"
+            DAY_TRIP -> if (isImperial) "Day trip (6-60 mi)" else "Day trip (10-100 km)"
+            ROAD_TRIP -> if (isImperial) "Road trip (> 60 mi)" else "Road trip (> 100 km)"
+        }
+    }
+}
+
 data class DriveChartData(
     val label: String,
     val count: Int,
@@ -41,7 +62,9 @@ data class DrivesUiState(
     val error: String? = null,
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
-    val summary: DrivesSummary = DrivesSummary()
+    val summary: DrivesSummary = DrivesSummary(),
+    val units: Units? = null,
+    val distanceFilter: DriveDistanceFilter = DriveDistanceFilter.ALL
 )
 
 data class DrivesSummary(
@@ -64,6 +87,7 @@ class DrivesViewModel @Inject constructor(
 
     private var carId: Int? = null
     private var showShortDrivesCharges: Boolean = false
+    private var allDrives: List<DriveData> = emptyList()
 
     companion object {
         private const val MIN_DURATION_MINUTES = 1
@@ -72,6 +96,7 @@ class DrivesViewModel @Inject constructor(
 
     fun setCarId(id: Int) {
         carId = id
+        loadUnits(id)
     }
 
     fun setDateFilter(startDate: LocalDate?, endDate: LocalDate?) {
@@ -84,6 +109,11 @@ class DrivesViewModel @Inject constructor(
         loadDrives(null, null)
     }
 
+    fun setDistanceFilter(filter: DriveDistanceFilter) {
+        _uiState.update { it.copy(distanceFilter = filter) }
+        applyFiltersAndUpdateState()
+    }
+
     fun refresh() {
         carId?.let {
             _uiState.update { it.copy(isRefreshing = true) }
@@ -94,6 +124,17 @@ class DrivesViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    private fun loadUnits(carId: Int) {
+        viewModelScope.launch {
+            when (val result = repository.getCarStatus(carId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(units = result.data.units) }
+                }
+                is ApiResult.Error -> { /* ignore, units will default to metric */ }
+            }
+        }
     }
 
     private fun loadDrives(startDate: LocalDate? = null, endDate: LocalDate? = null) {
@@ -114,32 +155,22 @@ class DrivesViewModel @Inject constructor(
 
             when (val result = repository.getDrives(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
-                    val allDrives = result.data
+                    allDrives = result.data
                     // Calculate summary and chart from ALL drives (including short ones)
                     val summary = calculateSummary(allDrives)
                     val granularity = determineGranularity(startDate, endDate)
                     val chartData = calculateChartData(allDrives, granularity)
-                    // Filter drives for display based on setting
-                    // Hide drives under 1 minute OR with distance < 0.1 km
-                    val displayedDrives = if (showShortDrivesCharges) {
-                        allDrives
-                    } else {
-                        allDrives.filter { drive ->
-                            (drive.durationMin ?: 0) >= MIN_DURATION_MINUTES &&
-                                (drive.distance ?: 0.0) >= MIN_DISTANCE_KM
-                        }
-                    }
+
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            drives = displayedDrives,
                             chartData = chartData,
                             chartGranularity = granularity,
                             summary = summary,
                             error = null
                         )
                     }
+
+                    applyFiltersAndUpdateState()
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
@@ -151,6 +182,37 @@ class DrivesViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun applyFiltersAndUpdateState() {
+        val state = _uiState.value
+        val distanceFilter = state.distanceFilter
+
+        // First apply short drives filter
+        var filteredDrives = if (showShortDrivesCharges) {
+            allDrives
+        } else {
+            allDrives.filter { drive ->
+                (drive.durationMin ?: 0) >= MIN_DURATION_MINUTES &&
+                    (drive.distance ?: 0.0) >= MIN_DISTANCE_KM
+            }
+        }
+
+        // Then apply distance filter
+        filteredDrives = filteredDrives.filter { drive ->
+            val distance = drive.distance ?: 0.0
+            val minOk = distanceFilter.minDistanceKm?.let { distance >= it } ?: true
+            val maxOk = distanceFilter.maxDistanceKm?.let { distance < it } ?: true
+            minOk && maxOk
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isRefreshing = false,
+                drives = filteredDrives
+            )
         }
     }
 

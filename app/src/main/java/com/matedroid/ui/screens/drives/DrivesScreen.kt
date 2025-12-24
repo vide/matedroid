@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.data.api.models.DriveData
+import com.matedroid.data.api.models.Units
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.theme.CarColorPalette
@@ -154,9 +155,12 @@ fun DrivesScreen(
                     chartData = uiState.chartData,
                     chartGranularity = uiState.chartGranularity,
                     summary = uiState.summary,
-                    selectedFilter = selectedFilter,
+                    selectedDateFilter = selectedFilter,
+                    selectedDistanceFilter = uiState.distanceFilter,
+                    units = uiState.units,
                     palette = palette,
-                    onFilterSelected = { applyDateFilter(it) },
+                    onDateFilterSelected = { applyDateFilter(it) },
+                    onDistanceFilterSelected = { viewModel.setDistanceFilter(it) },
                     onDriveClick = onNavigateToDriveDetail
                 )
             }
@@ -171,9 +175,12 @@ private fun DrivesContent(
     chartData: List<DriveChartData>,
     chartGranularity: DriveChartGranularity,
     summary: DrivesSummary,
-    selectedFilter: DriveDateFilter,
+    selectedDateFilter: DriveDateFilter,
+    selectedDistanceFilter: DriveDistanceFilter,
+    units: Units?,
     palette: CarColorPalette,
-    onFilterSelected: (DriveDateFilter) -> Unit,
+    onDateFilterSelected: (DriveDateFilter) -> Unit,
+    onDistanceFilterSelected: (DriveDistanceFilter) -> Unit,
     onDriveClick: (driveId: Int) -> Unit
 ) {
     LazyColumn(
@@ -183,9 +190,18 @@ private fun DrivesContent(
     ) {
         item {
             DateFilterChips(
-                selectedFilter = selectedFilter,
+                selectedFilter = selectedDateFilter,
                 palette = palette,
-                onFilterSelected = onFilterSelected
+                onFilterSelected = onDateFilterSelected
+            )
+        }
+
+        item {
+            DistanceFilterChips(
+                selectedFilter = selectedDistanceFilter,
+                units = units,
+                palette = palette,
+                onFilterSelected = onDistanceFilterSelected
             )
         }
 
@@ -257,6 +273,31 @@ private fun DateFilterChips(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
                 label = { Text(filter.label) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DistanceFilterChips(
+    selectedFilter: DriveDistanceFilter,
+    units: Units?,
+    palette: CarColorPalette,
+    onFilterSelected: (DriveDistanceFilter) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(DriveDistanceFilter.entries.toList()) { filter ->
+            FilterChip(
+                selected = filter == selectedFilter,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(filter.getLabel(units)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
