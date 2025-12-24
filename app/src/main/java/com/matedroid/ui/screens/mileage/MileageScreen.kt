@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
@@ -320,7 +321,7 @@ private fun YearRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "%.1f km".format(yearData.totalDistance),
+                        text = "%.0f km".format(yearData.totalDistance),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -338,6 +339,13 @@ private fun YearRow(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "View details",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
@@ -517,7 +525,7 @@ private fun MonthRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "%.1f km".format(monthData.totalDistance),
+                        text = "%.0f km".format(monthData.totalDistance),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -535,6 +543,13 @@ private fun MonthRow(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "View details",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }

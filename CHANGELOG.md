@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Software Versions**: Tap the external link icon next to any version to view release notes on NotATeslaApp
 
 ### Changed
-- **Mileage**: Round Total and Avg/Year values to whole numbers for cleaner display
+- **Mileage**: Round all distance values to whole numbers for cleaner display (Total, Avg/Year, year cards, month cards)
+- **Mileage**: Add arrow icon to year and month cards to indicate they are navigable
 
 ### Fixed
 - **Software Versions**: Show all software updates instead of only the first 100
