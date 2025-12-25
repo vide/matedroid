@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dashboard**: Use pre-computed drive/charge counts from API instead of fetching all records
+
 ## [0.7.0] - 2025-12-24
 
 ### Added

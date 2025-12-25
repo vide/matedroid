@@ -170,23 +170,13 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadCounts(carId: Int) {
-        viewModelScope.launch {
-            // Load charges count
-            when (val result = repository.getCharges(carId, null, null)) {
-                is ApiResult.Success -> {
-                    _uiState.update { it.copy(totalCharges = result.data.size) }
-                }
-                is ApiResult.Error -> { /* ignore */ }
-            }
-        }
-        viewModelScope.launch {
-            // Load drives count
-            when (val result = repository.getDrives(carId, null, null)) {
-                is ApiResult.Success -> {
-                    _uiState.update { it.copy(totalDrives = result.data.size) }
-                }
-                is ApiResult.Error -> { /* ignore */ }
-            }
+        // Use counts from the cars API response instead of fetching all drives/charges
+        val selectedCar = _uiState.value.cars.find { it.carId == carId }
+        _uiState.update {
+            it.copy(
+                totalCharges = selectedCar?.teslamateStats?.totalCharges,
+                totalDrives = selectedCar?.teslamateStats?.totalDrives
+            )
         }
     }
 
