@@ -59,7 +59,7 @@ object CarImageResolver {
     private val HIGHLAND_M3_WHEEL_TYPES = setOf("photon18", "glider18", "nova18", "nova19", "helix19", "w38a")
 
     // Wheel types only available on Juniper Model Y (normalized, lowercase)
-    private val JUNIPER_MY_WHEEL_TYPES = setOf("photon18", "wy18p", "crossflow19", "wy19p")
+    private val JUNIPER_MY_WHEEL_TYPES = setOf("photon18", "wy18p", "crossflow19", "wy19p", "helix20", "wy20a")
 
     // Legacy Model 3 valid colors
     private val LEGACY_M3_COLORS = setOf("PBSB", "PMNG", "PMSS", "PPSW", "PPSB", "PPMR", "PMBL")
@@ -71,7 +71,8 @@ object CarImageResolver {
     private val LEGACY_MY_COLORS = setOf("PBSB", "PMNG", "PPSW", "PPSB", "PPMR")
 
     // Juniper Model Y valid colors (Standard/Premium)
-    private val JUNIPER_MY_COLORS = setOf("PPSW", "PN01", "PX02")
+    // Note: PN00/PR01 only available with 20" wheels (WY20A)
+    private val JUNIPER_MY_COLORS = setOf("PPSW", "PN01", "PX02", "PN00", "PR01")
 
     // Juniper Model Y Performance valid colors (all 6 colors)
     private val JUNIPER_MY_PERF_COLORS = setOf("PPSW", "PN01", "PX02", "PB02", "PN00", "PR01")
@@ -130,8 +131,10 @@ object CarImageResolver {
 
     // Juniper Model Y wheels (Standard/Premium)
     private val WHEEL_PATTERNS_MYJ = listOf(
+        "helix20" to "WY20A",
         "crossflow19" to "WY19P",
         "photon18" to "WY18P",
+        "20" to "WY20A",
         "19" to "WY19P",
         "18" to "WY18P"
     )

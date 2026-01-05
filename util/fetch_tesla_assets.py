@@ -91,8 +91,8 @@ LEGACY_MY = {
 }
 
 # Juniper Model Y (2025+)
-# MTY68 = Standard/Long Range configuration
-# Note: Premium (74/74D trim) uses same MTY68 code - compositor only differentiates by wheels
+# MTY68 = Standard/Long Range configuration (18"/19" wheels)
+# MTY60 = Premium configuration with 20" Helix wheels
 JUNIPER_MY = {
     "model_code": "my",
     "file_prefix": "myj",  # j = juniper
@@ -101,6 +101,19 @@ JUNIPER_MY = {
     "interior_code": "IBB3",
     "colors": ["PPSW", "PN01", "PX02"],
     "wheels": ["WY18P", "WY19P"],  # WY18P = Photon 18" (Standard), WY19P = Crossflow 19" (Premium)
+    "compositor": "new",
+}
+
+# Juniper Model Y Premium with 20" Helix wheels (2025+)
+# MTY60 supports more colors than MTY68
+JUNIPER_MY_20 = {
+    "model_code": "my",
+    "file_prefix": "myj",  # Same prefix, different wheel
+    "name": "Model Y Juniper Premium 20\"",
+    "trim_code": "MTY60",
+    "interior_code": "IPB8",
+    "colors": ["PPSW", "PN01", "PX02", "PN00", "PR01"],  # 5 colors (PB02 doesn't work)
+    "wheels": ["WY20A"],  # 20" Helix 2.0 wheels
     "compositor": "new",
 }
 
@@ -138,7 +151,7 @@ MODEL_X = {
 }
 
 # All model configurations
-ALL_MODELS = [LEGACY_M3, HIGHLAND_M3, HIGHLAND_M3_PERF, LEGACY_MY, JUNIPER_MY, JUNIPER_MY_PERF, MODEL_S, MODEL_X]
+ALL_MODELS = [LEGACY_M3, HIGHLAND_M3, HIGHLAND_M3_PERF, LEGACY_MY, JUNIPER_MY, JUNIPER_MY_20, JUNIPER_MY_PERF, MODEL_S, MODEL_X]
 
 # Color name mapping for display
 COLOR_NAMES = {

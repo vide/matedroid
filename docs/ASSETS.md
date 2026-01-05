@@ -89,13 +89,15 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 | `MT370` | Model 3 Highland | Premium | `IPB3` |
 | `MT371` | Model 3 Highland | Performance | `IPB4` |
 | `MTY68` | Model Y Juniper | Standard/Long Range | `IBB3` |
-| `MTY52` | Model Y Juniper | Premium | `IPB7` |
+| `MTY52` | Model Y Juniper | Premium (19") | `IPB7` |
+| `MTY60` | Model Y Juniper | Premium (20") | `IPB8` |
 | `MTY53` | Model Y Juniper | Performance | `IPB10` |
 
 **Note on Model Y Juniper compositor support:**
-- `MTY68` works with `STUD_3QTR` view for all colors (PPSW, PN01, PX02)
-- `MTY52` has limited support on `STUD_3QTR` - we use `MTY68` with Premium wheels instead
-- `MTY53` works with `STUD_3QTR` view for all 6 colors
+- `MTY68` works with `STUD_3QTR` view for 3 colors (PPSW, PN01, PX02) with 18"/19" wheels
+- `MTY52` has limited support on `STUD_3QTR` - we use `MTY68` with 19" wheels instead
+- `MTY60` works with `STUD_3QTR` view for 5 colors (PPSW, PN01, PX02, PN00, PR01) with 20" wheels
+- `MTY53` works with `STUD_3QTR` view for all 6 colors with 21" wheels
 
 ### Model Y Juniper Trim Badging (from TeslamateAPI)
 
@@ -161,6 +163,7 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 | `Photon18*` | `W38A` | `WY18P` | 18" Photon (Highland/Juniper) |
 | `Nova19*`, `Helix19*` | `W38A`* | - | 19" Nova (Highland M3) - *fallback, not in compositor |
 | `Crossflow19*` | - | `WY19P` | 19" Crossflow (Juniper MY) |
+| `Helix20*` | - | `WY20A` | 20" Helix 2.0 (Juniper MY Premium) |
 | `Glider18*`, `Nova18*` | `W38A` | - | 18" Glider/Nova (Highland M3) |
 
 **Note**: TeslamateAPI may append suffixes like `CapKit`, `Cover`, etc. The mapping strips these.
@@ -181,6 +184,7 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 | `WY1S` | - | - | - | ✅ | ❌ | ❌ |
 | `WY18P` | - | - | - | ❌ | ✅ | ❌ |
 | `WY19P` | - | - | - | ❌ | ✅ | ❌ |
+| `WY20A` | - | - | - | ❌ | ✅ | ❌ |
 | `WY21A` | - | - | - | ❌ | ❌ | ✅ |
 
 ---
@@ -259,11 +263,11 @@ Format: `{model_variant}_{color_code}_{wheel_code}.png`
 | Highland Model 3 | 7 | 1 | 7 | PNG |
 | Highland M3 Performance | 7 | 1 | 7 | PNG |
 | Legacy Model Y | 5 | 5 | 25 | PNG |
-| Juniper Model Y | 3 | 2 | 6 | PNG |
+| Juniper Model Y | 5 | 3 | 11 | PNG |
 | Juniper MY Performance | 6 | 1 | 6 | PNG |
 | Model S | 5 | 1 | 5 | PNG |
 | Model X | 5 | 1 | 5 | PNG |
-| **Total** | | | **82** | **~7.5 MB** |
+| **Total** | | | **87** | **~8 MB** |
 
 ---
 
