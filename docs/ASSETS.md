@@ -263,11 +263,11 @@ Format: `{model_variant}_{color_code}_{wheel_code}.png`
 | Highland Model 3 | 7 | 1 | 7 | PNG |
 | Highland M3 Performance | 7 | 1 | 7 | PNG |
 | Legacy Model Y | 5 | 5 | 25 | PNG |
-| Juniper Model Y | 5 | 3 | 11 | PNG |
+| Juniper Model Y | 6 | 3 | 15 | PNG |
 | Juniper MY Performance | 6 | 1 | 6 | PNG |
 | Model S | 5 | 1 | 5 | PNG |
 | Model X | 5 | 1 | 5 | PNG |
-| **Total** | | | **87** | **~8 MB** |
+| **Total** | | | **91** | **~9 MB** |
 
 ---
 

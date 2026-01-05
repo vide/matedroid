@@ -71,8 +71,8 @@ object CarImageResolver {
     private val LEGACY_MY_COLORS = setOf("PBSB", "PMNG", "PPSW", "PPSB", "PPMR")
 
     // Juniper Model Y valid colors (Standard/Premium)
-    // Note: PN00/PR01 only available with 20" wheels (WY20A)
-    private val JUNIPER_MY_COLORS = setOf("PPSW", "PN01", "PX02", "PN00", "PR01")
+    // Note: PN00/PR01/PPSB only available with Premium (MTY60) 19"/20" wheels
+    private val JUNIPER_MY_COLORS = setOf("PPSW", "PN01", "PX02", "PN00", "PR01", "PPSB")
 
     // Juniper Model Y Performance valid colors (all 6 colors)
     private val JUNIPER_MY_PERF_COLORS = setOf("PPSW", "PN01", "PX02", "PB02", "PN00", "PR01")
