@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Model Y Juniper Performance**: Support for P74D trim with 21" Überturbine wheels and red brake calipers
-- **Model Y Juniper Premium 20"**: Support for Premium with 20" Helix 2.0 wheels in 5 colors (PPSW, PN01, PX02, PN00, PR01)
+- **Model Y Juniper Premium**: Support for Premium (74/74D trim) with 19" Crossflow and 20" Helix 2.0 wheels in 6 colors (PPSW, PN01, PX02, PN00, PR01, PPSB)
 - **Model Y Juniper Trim Detection**: Proper variant detection based on trim_badging (50=Standard, 74/74D=Premium, P74D=Performance)
 - **Stats for Nerds**: Tap the car image on Dashboard to access advanced statistics
   - Quick Stats: Total drives/charges, distance, energy, efficiency, top speed
