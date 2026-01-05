@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Model Y Juniper Performance**: Support for P74D trim with 21" Überturbine wheels and red brake calipers
+- **Model Y Juniper Trim Detection**: Proper variant detection based on trim_badging (50=Standard, 74/74D=Premium, P74D=Performance)
 - **Stats for Nerds**: Tap the car image on Dashboard to access advanced statistics
   - Quick Stats: Total drives/charges, distance, energy, efficiency, top speed
   - Records: Longest drive, fastest drive, most efficient drive, biggest charge, busiest day

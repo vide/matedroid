@@ -76,7 +76,8 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 | Highland Model 3 | 2024+ | New | `m3h` |
 | Highland Model 3 Performance | 2024+ Perf | New | `m3hp` |
 | Legacy Model Y | Pre-2025 | Old | `my` |
-| Juniper Model Y | 2025+ | New | `myj` |
+| Juniper Model Y | 2025+ Standard/Premium | New | `myj` |
+| Juniper Model Y Performance | 2025+ Performance | New | `myjp` |
 | Model S | All | Old | `ms` |
 | Model X | All | Old | `mx` |
 
@@ -87,7 +88,22 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 | `MT369` | Model 3 Highland | Standard | `IPB2` |
 | `MT370` | Model 3 Highland | Premium | `IPB3` |
 | `MT371` | Model 3 Highland | Performance | `IPB4` |
-| `MTY68` | Model Y Juniper | Standard | `IBB3` |
+| `MTY68` | Model Y Juniper | Standard/Long Range | `IBB3` |
+| `MTY52` | Model Y Juniper | Premium | `IPB7` |
+| `MTY53` | Model Y Juniper | Performance | `IPB10` |
+
+**Note on Model Y Juniper compositor support:**
+- `MTY68` works with `STUD_3QTR` view for all colors (PPSW, PN01, PX02)
+- `MTY52` has limited support on `STUD_3QTR` - we use `MTY68` with Premium wheels instead
+- `MTY53` works with `STUD_3QTR` view for all 6 colors
+
+### Model Y Juniper Trim Badging (from TeslamateAPI)
+
+| Trim Badge | Variant | Default Wheels | Notes |
+|------------|---------|----------------|-------|
+| `50` | Standard Range | 18" Photon (WY18P) | |
+| `74`, `74D` | Long Range/Premium | 19" Crossflow (WY19P) | |
+| `P74D` | Performance | 21" Überturbine (WY21A) | Red brake calipers |
 
 ---
 
@@ -112,19 +128,20 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 
 ### Color Availability by Model Variant
 
-| Color Code | Legacy M3 | Highland M3 | Legacy MY | Juniper MY |
-|------------|-----------|-------------|-----------|------------|
-| `PBSB` | ✅ | ✅ | ✅ | ❌ |
-| `PMBL` | ✅ | ❌ | ❌ | ❌ |
-| `PMNG` | ✅ | ❌ | ✅ | ❌ |
-| `PMSS` | ✅ | ❌ | ❌ | ❌ |
-| `PPSW` | ✅ | ✅ | ✅ | ✅ |
-| `PPSB` | ✅ | ✅ | ✅ | ❌ |
-| `PPMR` | ✅ | ❌ | ✅ | ❌ |
-| `PN00` | ❌ | ✅ | ❌ | ❌ |
-| `PN01` | ❌ | ✅ | ❌ | ✅ |
-| `PR01` | ❌ | ✅ | ❌ | ❌ |
-| `PX02` | ❌ | ✅ | ❌ | ✅ |
+| Color Code | Legacy M3 | Highland M3 | Legacy MY | Juniper MY | Juniper MY Perf |
+|------------|-----------|-------------|-----------|------------|-----------------|
+| `PBSB` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `PMBL` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `PMNG` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `PMSS` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `PPSW` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `PPSB` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `PPMR` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `PN00` | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `PN01` | ❌ | ✅ | ❌ | ✅ | ✅ |
+| `PR01` | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `PX02` | ❌ | ✅ | ❌ | ✅ | ✅ |
+| `PB02` | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -150,20 +167,21 @@ https://static-assets.tesla.com/configurator/compositor?context=design_studio_2&
 
 ### Wheel Availability by Model Variant
 
-| Wheel Code | Legacy M3 | Highland M3 | Highland M3P | Legacy MY | Juniper MY |
-|------------|-----------|-------------|--------------|-----------|------------|
-| `W38B` | ✅ | ❌ | ❌ | - | - |
-| `W39B` | ✅ | ❌ | ❌ | - | - |
-| `W32P` | ✅ | ❌ | ❌ | - | - |
-| `W38A` | ❌ | ✅ | ❌ | - | - |
-| `W30P` | ❌ | ❌ | ✅ | - | - |
-| `WY18B` | - | - | - | ✅ | ❌ |
-| `WY19B` | - | - | - | ✅ | ❌ |
-| `WY20P` | - | - | - | ✅ | ❌ |
-| `WY0S` | - | - | - | ✅ | ❌ |
-| `WY1S` | - | - | - | ✅ | ❌ |
-| `WY18P` | - | - | - | ❌ | ✅ |
-| `WY19P` | - | - | - | ❌ | ✅ |
+| Wheel Code | Legacy M3 | Highland M3 | Highland M3P | Legacy MY | Juniper MY | Juniper MY Perf |
+|------------|-----------|-------------|--------------|-----------|------------|-----------------|
+| `W38B` | ✅ | ❌ | ❌ | - | - | - |
+| `W39B` | ✅ | ❌ | ❌ | - | - | - |
+| `W32P` | ✅ | ❌ | ❌ | - | - | - |
+| `W38A` | ❌ | ✅ | ❌ | - | - | - |
+| `W30P` | ❌ | ❌ | ✅ | - | - | - |
+| `WY18B` | - | - | - | ✅ | ❌ | ❌ |
+| `WY19B` | - | - | - | ✅ | ❌ | ❌ |
+| `WY20P` | - | - | - | ✅ | ❌ | ❌ |
+| `WY0S` | - | - | - | ✅ | ❌ | ❌ |
+| `WY1S` | - | - | - | ✅ | ❌ | ❌ |
+| `WY18P` | - | - | - | ❌ | ✅ | ❌ |
+| `WY19P` | - | - | - | ❌ | ✅ | ❌ |
+| `WY21A` | - | - | - | ❌ | ❌ | ✅ |
 
 ---
 
@@ -227,6 +245,7 @@ Format: `{model_variant}_{color_code}_{wheel_code}.png`
 | Highland M3 Performance | `m3hp_PR01_W30P.png` |
 | Legacy Model Y | `my_PPSW_WY19B.png` |
 | Juniper Model Y | `myj_PX02_WY18P.png` |
+| Juniper MY Performance | `myjp_PN01_WY21A.png` |
 | Model S | `ms_PPSW_WT19.png` |
 | Model X | `mx_PPSB_WX20.png` |
 
@@ -241,9 +260,10 @@ Format: `{model_variant}_{color_code}_{wheel_code}.png`
 | Highland M3 Performance | 7 | 1 | 7 | PNG |
 | Legacy Model Y | 5 | 5 | 25 | PNG |
 | Juniper Model Y | 3 | 2 | 6 | PNG |
+| Juniper MY Performance | 6 | 1 | 6 | PNG |
 | Model S | 5 | 1 | 5 | PNG |
 | Model X | 5 | 1 | 5 | PNG |
-| **Total** | | | **76** | **~7 MB** |
+| **Total** | | | **82** | **~7.5 MB** |
 
 ---
 
