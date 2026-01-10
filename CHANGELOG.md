@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Charges**: AC/DC filter to show only AC or DC charging sessions (fixes #22)
+  - Tap AC or DC to filter, tap again to reset to show all
+  - Filter chips match the AC (green) and DC (orange) badge colors
 - **Dashboard**: Charging power gauge with AC/DC badge next to battery percentage while charging
   - Circular gauge shows charging rate relative to max capacity
   - AC (green): gauge fills based on current vs max requested amps

@@ -35,6 +35,12 @@ enum class DateFilter(val label: String, val days: Long?) {
     ALL_TIME("All time", null)
 }
 
+enum class ChargeTypeFilter(val label: String) {
+    ALL("All"),
+    AC("AC"),
+    DC("DC")
+}
+
 data class ChargeChartData(
     val label: String,
     val count: Int,
@@ -54,6 +60,7 @@ data class ChargesUiState(
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val selectedFilter: DateFilter = DateFilter.LAST_7_DAYS,  // Preserve filter in ViewModel
+    val chargeTypeFilter: ChargeTypeFilter = ChargeTypeFilter.ALL,
     val scrollPosition: Int = 0,  // First visible item index
     val scrollOffset: Int = 0,    // Scroll offset within first item
     val summary: ChargesSummary = ChargesSummary(),
@@ -81,6 +88,7 @@ class ChargesViewModel @Inject constructor(
 
     private var carId: Int? = null
     private var showShortDrivesCharges: Boolean = false
+    private var allCharges: List<ChargeData> = emptyList()
 
     companion object {
         private const val MIN_ENERGY_KWH = 0.1
@@ -131,6 +139,18 @@ class ChargesViewModel @Inject constructor(
         }
     }
 
+    fun setChargeTypeFilter(filter: ChargeTypeFilter) {
+        val currentFilter = _uiState.value.chargeTypeFilter
+        // Toggle: if same filter is selected, reset to ALL
+        val newFilter = if (filter == currentFilter && filter != ChargeTypeFilter.ALL) {
+            ChargeTypeFilter.ALL
+        } else {
+            filter
+        }
+        _uiState.update { it.copy(chargeTypeFilter = newFilter) }
+        applyFiltersAndUpdateState()
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -169,24 +189,14 @@ class ChargesViewModel @Inject constructor(
 
             when (val result = repository.getCharges(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
-                    val allCharges = result.data
+                    allCharges = result.data
                     // Calculate summary and chart from ALL charges (including minimal ones)
                     val summary = calculateSummary(allCharges)
                     val granularity = determineGranularity(startDate, endDate)
                     val chartData = calculateChartData(allCharges, granularity)
-                    // Filter charges for display based on setting
-                    val displayedCharges = if (showShortDrivesCharges) {
-                        allCharges
-                    } else {
-                        allCharges.filter { charge ->
-                            (charge.chargeEnergyAdded ?: 0.0) > MIN_ENERGY_KWH
-                        }
-                    }
+
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            charges = displayedCharges,
                             dcChargeIds = dcChargeIds,
                             processedChargeIds = processedChargeIds,
                             chartData = chartData,
@@ -195,6 +205,8 @@ class ChargesViewModel @Inject constructor(
                             error = null
                         )
                     }
+
+                    applyFiltersAndUpdateState()
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
@@ -206,6 +218,36 @@ class ChargesViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun applyFiltersAndUpdateState() {
+        val state = _uiState.value
+        val chargeTypeFilter = state.chargeTypeFilter
+        val dcChargeIds = state.dcChargeIds
+
+        // First apply short charges filter
+        var filteredCharges = if (showShortDrivesCharges) {
+            allCharges
+        } else {
+            allCharges.filter { charge ->
+                (charge.chargeEnergyAdded ?: 0.0) > MIN_ENERGY_KWH
+            }
+        }
+
+        // Then apply charge type filter (AC/DC)
+        filteredCharges = when (chargeTypeFilter) {
+            ChargeTypeFilter.ALL -> filteredCharges
+            ChargeTypeFilter.DC -> filteredCharges.filter { it.chargeId in dcChargeIds }
+            ChargeTypeFilter.AC -> filteredCharges.filter { it.chargeId !in dcChargeIds }
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isRefreshing = false,
+                charges = filteredCharges
+            )
         }
     }
 

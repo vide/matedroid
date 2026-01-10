@@ -138,11 +138,13 @@ fun ChargesScreen(
                     summary = uiState.summary,
                     currencySymbol = uiState.currencySymbol,
                     teslamateBaseUrl = uiState.teslamateBaseUrl,
-                    selectedFilter = uiState.selectedFilter,
+                    selectedDateFilter = uiState.selectedFilter,
+                    selectedChargeTypeFilter = uiState.chargeTypeFilter,
                     initialScrollPosition = uiState.scrollPosition,
                     initialScrollOffset = uiState.scrollOffset,
                     palette = palette,
-                    onFilterSelected = { viewModel.setDateFilter(it) },
+                    onDateFilterSelected = { viewModel.setDateFilter(it) },
+                    onChargeTypeFilterSelected = { viewModel.setChargeTypeFilter(it) },
                     onChargeClick = { chargeId, scrollIndex, scrollOffset ->
                         viewModel.saveScrollPosition(scrollIndex, scrollOffset)
                         onNavigateToChargeDetail(chargeId)
@@ -163,11 +165,13 @@ private fun ChargesContent(
     summary: ChargesSummary,
     currencySymbol: String,
     teslamateBaseUrl: String,
-    selectedFilter: DateFilter,
+    selectedDateFilter: DateFilter,
+    selectedChargeTypeFilter: ChargeTypeFilter,
     initialScrollPosition: Int,
     initialScrollOffset: Int,
     palette: CarColorPalette,
-    onFilterSelected: (DateFilter) -> Unit,
+    onDateFilterSelected: (DateFilter) -> Unit,
+    onChargeTypeFilterSelected: (ChargeTypeFilter) -> Unit,
     onChargeClick: (chargeId: Int, scrollIndex: Int, scrollOffset: Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -184,9 +188,17 @@ private fun ChargesContent(
     ) {
         item {
             DateFilterChips(
-                selectedFilter = selectedFilter,
+                selectedFilter = selectedDateFilter,
                 palette = palette,
-                onFilterSelected = onFilterSelected
+                onFilterSelected = onDateFilterSelected
+            )
+        }
+
+        item {
+            ChargeTypeFilterChips(
+                selectedFilter = selectedChargeTypeFilter,
+                palette = palette,
+                onFilterSelected = onChargeTypeFilterSelected
             )
         }
 
@@ -279,6 +291,42 @@ private fun DateFilterChips(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
                 )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChargeTypeFilterChips(
+    selectedFilter: ChargeTypeFilter,
+    palette: CarColorPalette,
+    onFilterSelected: (ChargeTypeFilter) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(ChargeTypeFilter.entries.toList()) { filter ->
+            val isSelected = filter == selectedFilter
+            val chipColors = when (filter) {
+                ChargeTypeFilter.ALL -> FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
+                )
+                ChargeTypeFilter.AC -> FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFF4CAF50),
+                    selectedLabelColor = Color.White
+                )
+                ChargeTypeFilter.DC -> FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Color(0xFFFF9800),
+                    selectedLabelColor = Color.White
+                )
+            }
+            FilterChip(
+                selected = isSelected,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(filter.label) },
+                colors = chipColors
             )
         }
     }
