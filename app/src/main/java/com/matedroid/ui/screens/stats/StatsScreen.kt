@@ -825,17 +825,8 @@ private fun RecordCategoryPage(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Category title (with page indicator for multi-page categories)
-        val titleSuffix = if (page.totalPagesInCategory > 1) " (${page.pageIndex + 1}/${page.totalPagesInCategory})" else ""
-        Text(
-            text = "${page.categoryEmoji} ${page.categoryTitle}$titleSuffix",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = palette.onSurface,
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-
         // Records in 2-column grid - always 3 rows for fixed height
+        // Note: Category title removed - the swipe indicator at the bottom shows current category
         rows.forEach { rowRecords ->
             Row(
                 modifier = Modifier
