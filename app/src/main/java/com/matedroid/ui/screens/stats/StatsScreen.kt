@@ -109,6 +109,10 @@ fun StatsScreen(
     var rangeRecordDrives by remember { mutableStateOf<List<DriveSummary>>(emptyList()) }
     var isLoadingRangeRecordDrives by remember { mutableStateOf(false) }
 
+    // State for gap record dialog
+    data class GapRecordInfo(val gapDays: Double, val fromDate: String, val toDate: String, val title: String)
+    var gapRecordToShow by remember { mutableStateOf<GapRecordInfo?>(null) }
+
     // Load drives when range record dialog is opened
     LaunchedEffect(rangeRecordToShow) {
         rangeRecordToShow?.let { record ->
@@ -157,6 +161,18 @@ fun StatsScreen(
                 onNavigateToDriveDetail(driveId)
             },
             onDismiss = { rangeRecordToShow = null }
+        )
+    }
+
+    // Gap record details dialog
+    gapRecordToShow?.let { gap ->
+        GapRecordDialog(
+            gapDays = gap.gapDays,
+            fromDate = gap.fromDate,
+            toDate = gap.toDate,
+            title = gap.title,
+            palette = palette,
+            onDismiss = { gapRecordToShow = null }
         )
     }
 
@@ -213,6 +229,9 @@ fun StatsScreen(
                     onNavigateToChargeDetail = onNavigateToChargeDetail,
                     onNavigateToDayDetail = onNavigateToDayDetail,
                     onRangeRecordClick = { rangeRecordToShow = it },
+                    onGapRecordClick = { gapDays, fromDate, toDate, title ->
+                        gapRecordToShow = GapRecordInfo(gapDays, fromDate, toDate, title)
+                    },
                     onSyncProgressClick = if (BuildConfig.DEBUG) {
                         { showSyncLogsDialog = true }
                     } else null
@@ -308,6 +327,7 @@ private fun StatsContent(
     onNavigateToChargeDetail: (Int) -> Unit,
     onNavigateToDayDetail: (String) -> Unit,
     onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit,
+    onGapRecordClick: (Double, String, String, String) -> Unit,
     onSyncProgressClick: (() -> Unit)? = null
 ) {
     LazyColumn(
@@ -346,7 +366,8 @@ private fun StatsContent(
                 onDriveClick = onNavigateToDriveDetail,
                 onChargeClick = onNavigateToChargeDetail,
                 onDayClick = onNavigateToDayDetail,
-                onRangeRecordClick = onRangeRecordClick
+                onRangeRecordClick = onRangeRecordClick,
+                onGapRecordClick = onGapRecordClick
             )
         }
 
@@ -591,7 +612,8 @@ private fun RecordsCard(
     onDriveClick: (Int) -> Unit,
     onChargeClick: (Int) -> Unit,
     onDayClick: (String) -> Unit,
-    onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit
+    onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit,
+    onGapRecordClick: (Double, String, String, String) -> Unit // gapDays, fromDate, toDate, title
 ) {
     // Category 1: Drives
     val driveRecords = mutableListOf<RecordData>()
@@ -606,9 +628,6 @@ private fun RecordsCard(
     }
     quickStats.longestDrivingStreak?.let { streak ->
         driveRecords.add(RecordData("🔥", "Longest Streak", "${streak.streakDays} days", "${streak.startDate} → ${streak.endDate}", null))
-    }
-    quickStats.mostDistanceDay?.let { day ->
-        driveRecords.add(RecordData("🛣️", "Most Distance Day", "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
     }
     quickStats.busiestDay?.let { day ->
         driveRecords.add(RecordData("📅", "Busiest Day", "${day.count} drives", day.day) { onDayClick(day.day) })
@@ -668,11 +687,15 @@ private fun RecordsCard(
         distanceRecords.add(RecordData("🔋", "Longest Range", "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
     quickStats.longestGapWithoutCharging?.let { gap ->
-        distanceRecords.add(RecordData("⏰", "Longest w/o Charging", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}", null))
+        distanceRecords.add(RecordData("⏰", "Longest w/o Charging", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, "Without Charging") })
     }
     quickStats.longestGapWithoutDriving?.let { gap ->
-        distanceRecords.add(RecordData("🅿️", "Longest w/o Driving", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}", null))
+        distanceRecords.add(RecordData("🅿️", "Longest w/o Driving", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, "Without Driving") })
     }
+    quickStats.mostDistanceDay?.let { day ->
+        distanceRecords.add(RecordData("🛣️", "Most Distance Day", "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
+    }
+
     // Build list of all categories with their records
     data class CategoryData(val title: String, val emoji: String, val records: List<RecordData>)
     val allCategories = mutableListOf<CategoryData>()
@@ -1208,6 +1231,94 @@ private fun SyncLogsDialog(
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             modifier = Modifier.padding(vertical = 2.dp)
                         )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+/**
+ * Dialog showing details of a gap record (longest period without charging/driving).
+ */
+@Composable
+private fun GapRecordDialog(
+    gapDays: Double,
+    fromDate: String,
+    toDate: String,
+    title: String,
+    palette: CarColorPalette,
+    onDismiss: () -> Unit
+) {
+    val emoji = if (title.contains("Charging")) "⏰" else "🅿️"
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(emoji, style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Longest $title")
+            }
+        },
+        text = {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = palette.surface
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Duration
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "%.1f days".format(gapDays),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accent
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Date range
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Started",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = palette.onSurfaceVariant
+                            )
+                            Text(
+                                text = fromDate.take(10),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = palette.onSurface
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Ended",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = palette.onSurfaceVariant
+                            )
+                            Text(
+                                text = toDate.take(10),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = palette.onSurface
+                            )
+                        }
                     }
                 }
             }
