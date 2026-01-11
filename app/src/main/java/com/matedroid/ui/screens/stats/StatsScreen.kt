@@ -566,11 +566,20 @@ private data class RecordData(
     val onClick: (() -> Unit)?
 )
 
-/** Category of records for swipeable display */
-private data class RecordCategory(
-    val title: String,
-    val emoji: String,
-    val records: List<RecordData>
+/**
+ * HARD CONSTRAINT: Each page displays exactly 6 record slots (3 rows × 2 columns).
+ * If a category has more than 6 records, it MUST be split into multiple pages.
+ * This ensures consistent page height and smooth swiping experience.
+ */
+private const val RECORDS_PER_PAGE = 6
+
+/** A page of records to display in the pager */
+private data class RecordPage(
+    val categoryTitle: String,
+    val categoryEmoji: String,
+    val records: List<RecordData>, // Max RECORDS_PER_PAGE items
+    val pageIndex: Int, // 0-based index within the category (for multi-page categories)
+    val totalPagesInCategory: Int // Total pages for this category
 )
 
 @Composable
@@ -584,9 +593,6 @@ private fun RecordsCard(
     onDayClick: (String) -> Unit,
     onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit
 ) {
-    // Build categories of records
-    val categories = mutableListOf<RecordCategory>()
-
     // Category 1: Drives
     val driveRecords = mutableListOf<RecordData>()
     quickStats.longestDrive?.let { drive ->
@@ -607,7 +613,6 @@ private fun RecordsCard(
     quickStats.busiestDay?.let { day ->
         driveRecords.add(RecordData("📅", "Busiest Day", "${day.count} drives", day.day) { onDayClick(day.day) })
     }
-    if (driveRecords.isNotEmpty()) categories.add(RecordCategory("Drives", "🚗", driveRecords))
 
     // Category 2: Battery
     val batteryRecords = mutableListOf<RecordData>()
@@ -635,7 +640,6 @@ private fun RecordsCard(
             }
         }
     }
-    if (batteryRecords.isNotEmpty()) categories.add(RecordCategory("Battery", "🔋", batteryRecords))
 
     // Category 3: Weather & Altitude
     val weatherRecords = mutableListOf<RecordData>()
@@ -657,7 +661,6 @@ private fun RecordsCard(
     deepStats?.coldestCharge?.let { record ->
         weatherRecords.add(RecordData("❄️", "Coldest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
-    if (weatherRecords.isNotEmpty()) categories.add(RecordCategory("Weather & Altitude", "🌡️", weatherRecords))
 
     // Category 4: Distances & Gaps
     val distanceRecords = mutableListOf<RecordData>()
@@ -670,12 +673,33 @@ private fun RecordsCard(
     quickStats.longestGapWithoutDriving?.let { gap ->
         distanceRecords.add(RecordData("🅿️", "Longest w/o Driving", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}", null))
     }
-    if (distanceRecords.isNotEmpty()) categories.add(RecordCategory("Distances", "📍", distanceRecords))
+    // Build list of all categories with their records
+    data class CategoryData(val title: String, val emoji: String, val records: List<RecordData>)
+    val allCategories = mutableListOf<CategoryData>()
+    if (driveRecords.isNotEmpty()) allCategories.add(CategoryData("Drives", "🚗", driveRecords))
+    if (batteryRecords.isNotEmpty()) allCategories.add(CategoryData("Battery", "🔋", batteryRecords))
+    if (weatherRecords.isNotEmpty()) allCategories.add(CategoryData("Weather & Altitude", "🌡️", weatherRecords))
+    if (distanceRecords.isNotEmpty()) allCategories.add(CategoryData("Distances", "📍", distanceRecords))
 
     // Don't render anything if no categories
-    if (categories.isEmpty()) return
+    if (allCategories.isEmpty()) return
 
-    val pagerState = rememberPagerState(pageCount = { categories.size })
+    // Split categories into pages of max RECORDS_PER_PAGE records each
+    val pages = mutableListOf<RecordPage>()
+    allCategories.forEach { category ->
+        val chunks = category.records.chunked(RECORDS_PER_PAGE)
+        chunks.forEachIndexed { index, chunk ->
+            pages.add(RecordPage(
+                categoryTitle = category.title,
+                categoryEmoji = category.emoji,
+                records = chunk,
+                pageIndex = index,
+                totalPagesInCategory = chunks.size
+            ))
+        }
+    }
+
+    val pagerState = rememberPagerState(pageCount = { pages.size })
 
     Column {
         // Section header
@@ -703,34 +727,39 @@ private fun RecordsCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                // Pager with categories
+                // Pager with pages (fixed height for 6 records = 3 rows)
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxWidth()
-                ) { page ->
-                    val category = categories[page]
+                ) { pageIndex ->
+                    val page = pages[pageIndex]
                     RecordCategoryPage(
-                        category = category,
+                        page = page,
                         palette = palette
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Page indicators with category labels
+                // Page indicators - group by category with sub-dots for multi-page categories
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    categories.forEachIndexed { index, category ->
-                        val isSelected = pagerState.currentPage == index
+                    var pageOffset = 0
+                    allCategories.forEach { category ->
+                        val categoryPageCount = (category.records.size + RECORDS_PER_PAGE - 1) / RECORDS_PER_PAGE
+                        val isCurrentCategory = pagerState.currentPage >= pageOffset &&
+                                pagerState.currentPage < pageOffset + categoryPageCount
+                        val currentPageInCategory = if (isCurrentCategory) pagerState.currentPage - pageOffset else -1
+
                         Row(
                             modifier = Modifier
                                 .padding(horizontal = 6.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(
-                                    if (isSelected) palette.accent.copy(alpha = 0.2f)
+                                    if (isCurrentCategory) palette.accent.copy(alpha = 0.2f)
                                     else Color.Transparent
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -740,7 +769,7 @@ private fun RecordsCard(
                                 text = category.emoji,
                                 style = MaterialTheme.typography.bodySmall
                             )
-                            if (isSelected) {
+                            if (isCurrentCategory) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = category.title,
@@ -748,8 +777,25 @@ private fun RecordsCard(
                                     color = palette.accent,
                                     fontWeight = FontWeight.Bold
                                 )
+                                // Show page dots for multi-page categories
+                                if (categoryPageCount > 1) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    repeat(categoryPageCount) { dotIndex ->
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(horizontal = 2.dp)
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (dotIndex == currentPageInCategory) palette.accent
+                                                    else palette.accent.copy(alpha = 0.3f)
+                                                )
+                                        )
+                                    }
+                                }
                             }
                         }
+                        pageOffset += categoryPageCount
                     }
                 }
             }
@@ -759,44 +805,51 @@ private fun RecordsCard(
 
 /**
  * A single page showing records for one category.
+ * HARD CONSTRAINT: Always renders exactly 3 rows (space for 6 records) to maintain fixed height.
  */
 @Composable
 private fun RecordCategoryPage(
-    category: RecordCategory,
+    page: RecordPage,
     palette: CarColorPalette
 ) {
+    // Pad records to exactly RECORDS_PER_PAGE (6) slots for consistent height
+    val paddedRecords = page.records + List(RECORDS_PER_PAGE - page.records.size) { null }
+    val rows = paddedRecords.chunked(2) // Always 3 rows of 2
+
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Category title
+        // Category title (with page indicator for multi-page categories)
+        val titleSuffix = if (page.totalPagesInCategory > 1) " (${page.pageIndex + 1}/${page.totalPagesInCategory})" else ""
         Text(
-            text = "${category.emoji} ${category.title}",
+            text = "${page.categoryEmoji} ${page.categoryTitle}$titleSuffix",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = palette.onSurface,
             modifier = Modifier.padding(bottom = 4.dp)
         )
 
-        // Records in 2-column grid
-        category.records.chunked(2).forEach { rowRecords ->
+        // Records in 2-column grid - always 3 rows for fixed height
+        rows.forEach { rowRecords ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 rowRecords.forEach { record ->
-                    RecordCard(
-                        emoji = record.emoji,
-                        label = record.label,
-                        value = record.value,
-                        subtext = record.subtext,
-                        palette = palette,
-                        onClick = record.onClick,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                // Fill remaining space if odd number of records
-                if (rowRecords.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
+                    if (record != null) {
+                        RecordCard(
+                            emoji = record.emoji,
+                            label = record.label,
+                            value = record.value,
+                            subtext = record.subtext,
+                            palette = palette,
+                            onClick = record.onClick,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        // Empty placeholder to maintain grid layout
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
