@@ -804,6 +804,12 @@ private fun RecordsCard(
 }
 
 /**
+ * Fixed height for each record card row.
+ * This ensures consistent page height regardless of content.
+ */
+private val RECORD_CARD_HEIGHT = 72.dp
+
+/**
  * A single page showing records for one category.
  * HARD CONSTRAINT: Always renders exactly 3 rows (space for 6 records) to maintain fixed height.
  */
@@ -832,7 +838,9 @@ private fun RecordCategoryPage(
         // Records in 2-column grid - always 3 rows for fixed height
         rows.forEach { rowRecords ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(RECORD_CARD_HEIGHT),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 rowRecords.forEach { record ->
@@ -844,11 +852,13 @@ private fun RecordCategoryPage(
                             subtext = record.subtext,
                             palette = palette,
                             onClick = record.onClick,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
                     } else {
-                        // Empty placeholder to maintain grid layout
-                        Spacer(modifier = Modifier.weight(1f))
+                        // Empty placeholder to maintain grid layout - same size as RecordCard
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight())
                     }
                 }
             }
