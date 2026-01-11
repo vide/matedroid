@@ -12,7 +12,10 @@ import com.matedroid.domain.model.DeepStats
 import com.matedroid.domain.model.DriveElevationRecord
 import com.matedroid.domain.model.DriveTempRecord
 import com.matedroid.domain.model.QuickStats
+import com.matedroid.domain.model.BatteryChangeRecord
+import com.matedroid.domain.model.GapRecord
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
+import com.matedroid.domain.model.StreakRecord
 import com.matedroid.domain.model.YearFilter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -92,6 +95,38 @@ class StatsRepository @Inject constructor(
                     fromDate = it.fromDate,
                     toDate = it.toDate
                 )
+            },
+
+            longestGapWithoutCharging = chargeSummaryDao.longestGapBetweenCharges(carId)?.let {
+                GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
+            },
+            longestGapWithoutDriving = driveSummaryDao.longestGapBetweenDrives(carId)?.let {
+                GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
+            },
+
+            longestDrivingStreak = computeLongestStreak(
+                driveSummaryDao.getDistinctDrivingDays(carId)
+            ),
+
+            biggestBatteryGainCharge = chargeSummaryDao.biggestBatteryGainCharge(carId)?.let {
+                BatteryChangeRecord(
+                    percentChange = it.endBatteryLevel - it.startBatteryLevel,
+                    startLevel = it.startBatteryLevel,
+                    endLevel = it.endBatteryLevel,
+                    recordId = it.chargeId,
+                    date = it.startDate,
+                    isCharge = true
+                )
+            },
+            biggestBatteryDrainDrive = driveSummaryDao.biggestBatteryDrainDrive(carId)?.let {
+                BatteryChangeRecord(
+                    percentChange = it.startBatteryLevel - it.endBatteryLevel,
+                    startLevel = it.startBatteryLevel,
+                    endLevel = it.endBatteryLevel,
+                    recordId = it.driveId,
+                    date = it.startDate,
+                    isCharge = false
+                )
             }
         )
     }
@@ -135,6 +170,38 @@ class StatsRepository @Inject constructor(
                     toChargeId = it.toChargeId,
                     fromDate = it.fromDate,
                     toDate = it.toDate
+                )
+            },
+
+            longestGapWithoutCharging = chargeSummaryDao.longestGapBetweenChargesInRange(carId, startDate, endDate)?.let {
+                GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
+            },
+            longestGapWithoutDriving = driveSummaryDao.longestGapBetweenDrivesInRange(carId, startDate, endDate)?.let {
+                GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
+            },
+
+            longestDrivingStreak = computeLongestStreak(
+                driveSummaryDao.getDistinctDrivingDaysInRange(carId, startDate, endDate)
+            ),
+
+            biggestBatteryGainCharge = chargeSummaryDao.biggestBatteryGainChargeInRange(carId, startDate, endDate)?.let {
+                BatteryChangeRecord(
+                    percentChange = it.endBatteryLevel - it.startBatteryLevel,
+                    startLevel = it.startBatteryLevel,
+                    endLevel = it.endBatteryLevel,
+                    recordId = it.chargeId,
+                    date = it.startDate,
+                    isCharge = true
+                )
+            },
+            biggestBatteryDrainDrive = driveSummaryDao.biggestBatteryDrainDriveInRange(carId, startDate, endDate)?.let {
+                BatteryChangeRecord(
+                    percentChange = it.startBatteryLevel - it.endBatteryLevel,
+                    startLevel = it.startBatteryLevel,
+                    endLevel = it.endBatteryLevel,
+                    recordId = it.driveId,
+                    date = it.startDate,
+                    isCharge = false
                 )
             }
         )
@@ -430,4 +497,59 @@ private fun com.matedroid.domain.model.SyncPhase.isProcessing(): Boolean {
     return this == com.matedroid.domain.model.SyncPhase.SYNCING_SUMMARIES ||
             this == com.matedroid.domain.model.SyncPhase.SYNCING_DRIVE_DETAILS ||
             this == com.matedroid.domain.model.SyncPhase.SYNCING_CHARGE_DETAILS
+}
+
+/**
+ * Compute the longest consecutive driving streak from a sorted list of date strings.
+ * Each date string should be in "YYYY-MM-DD" format.
+ */
+private fun computeLongestStreak(sortedDays: List<String>): StreakRecord? {
+    if (sortedDays.isEmpty()) return null
+    if (sortedDays.size == 1) {
+        return StreakRecord(
+            streakDays = 1,
+            startDate = sortedDays.first(),
+            endDate = sortedDays.first()
+        )
+    }
+
+    var maxStreak = 1
+    var maxStreakStart = sortedDays.first()
+    var maxStreakEnd = sortedDays.first()
+
+    var currentStreak = 1
+    var currentStreakStart = sortedDays.first()
+
+    for (i in 1 until sortedDays.size) {
+        val prevDate = java.time.LocalDate.parse(sortedDays[i - 1])
+        val currDate = java.time.LocalDate.parse(sortedDays[i])
+
+        if (currDate == prevDate.plusDays(1)) {
+            // Consecutive day
+            currentStreak++
+        } else {
+            // Gap found - check if previous streak was longest
+            if (currentStreak > maxStreak) {
+                maxStreak = currentStreak
+                maxStreakStart = currentStreakStart
+                maxStreakEnd = sortedDays[i - 1]
+            }
+            // Start new streak
+            currentStreak = 1
+            currentStreakStart = sortedDays[i]
+        }
+    }
+
+    // Check final streak
+    if (currentStreak > maxStreak) {
+        maxStreak = currentStreak
+        maxStreakStart = currentStreakStart
+        maxStreakEnd = sortedDays.last()
+    }
+
+    return StreakRecord(
+        streakDays = maxStreak,
+        startDate = maxStreakStart,
+        endDate = maxStreakEnd
+    )
 }

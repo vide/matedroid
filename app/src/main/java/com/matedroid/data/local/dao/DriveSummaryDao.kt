@@ -251,6 +251,99 @@ interface DriveSummaryDao {
         ORDER BY startDate ASC
     """)
     suspend fun getDrivesBetweenDates(carId: Int, afterDate: String, beforeDate: String): List<DriveSummary>
+
+    /**
+     * Find the longest gap (in days) between two consecutive drives.
+     */
+    @Query("""
+        SELECT
+            prev.driveId as fromDriveId,
+            curr.driveId as toDriveId,
+            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
+            prev.startDate as fromDate,
+            curr.startDate as toDate
+        FROM drives_summary curr
+        INNER JOIN drives_summary prev ON prev.carId = curr.carId
+            AND prev.startDate = (
+                SELECT MAX(p.startDate)
+                FROM drives_summary p
+                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
+            )
+        WHERE curr.carId = :carId
+        ORDER BY gapDays DESC
+        LIMIT 1
+    """)
+    suspend fun longestGapBetweenDrives(carId: Int): GapBetweenDrivesResult?
+
+    @Query("""
+        SELECT
+            prev.driveId as fromDriveId,
+            curr.driveId as toDriveId,
+            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
+            prev.startDate as fromDate,
+            curr.startDate as toDate
+        FROM drives_summary curr
+        INNER JOIN drives_summary prev ON prev.carId = curr.carId
+            AND prev.startDate = (
+                SELECT MAX(p.startDate)
+                FROM drives_summary p
+                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
+            )
+        WHERE curr.carId = :carId
+            AND prev.startDate >= :startDate
+            AND curr.startDate < :endDate
+        ORDER BY gapDays DESC
+        LIMIT 1
+    """)
+    suspend fun longestGapBetweenDrivesInRange(
+        carId: Int,
+        startDate: String,
+        endDate: String
+    ): GapBetweenDrivesResult?
+
+    /**
+     * Find the drive with the biggest battery drain (startBatteryLevel - endBatteryLevel).
+     */
+    @Query("""
+        SELECT * FROM drives_summary
+        WHERE carId = :carId
+        ORDER BY (startBatteryLevel - endBatteryLevel) DESC
+        LIMIT 1
+    """)
+    suspend fun biggestBatteryDrainDrive(carId: Int): DriveSummary?
+
+    @Query("""
+        SELECT * FROM drives_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        ORDER BY (startBatteryLevel - endBatteryLevel) DESC
+        LIMIT 1
+    """)
+    suspend fun biggestBatteryDrainDriveInRange(
+        carId: Int,
+        startDate: String,
+        endDate: String
+    ): DriveSummary?
+
+    /**
+     * Get all distinct driving days (for computing streak in Kotlin).
+     */
+    @Query("""
+        SELECT DISTINCT DATE(startDate) as day
+        FROM drives_summary
+        WHERE carId = :carId
+        ORDER BY day ASC
+    """)
+    suspend fun getDistinctDrivingDays(carId: Int): List<String>
+
+    @Query("""
+        SELECT DISTINCT DATE(startDate) as day
+        FROM drives_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        ORDER BY day ASC
+    """)
+    suspend fun getDistinctDrivingDaysInRange(carId: Int, startDate: String, endDate: String): List<String>
 }
 
 data class BusiestDayResult(
@@ -261,4 +354,24 @@ data class BusiestDayResult(
 data class MostDistanceDayResult(
     val day: String,
     val totalDistance: Double
+)
+
+/**
+ * Result of longest gap between drives query.
+ */
+data class GapBetweenDrivesResult(
+    val fromDriveId: Int,
+    val toDriveId: Int,
+    val gapDays: Double,
+    val fromDate: String,
+    val toDate: String
+)
+
+/**
+ * Result of longest driving streak query.
+ */
+data class DrivingStreakResult(
+    val streakDays: Int,
+    val startDate: String,
+    val endDate: String
 )

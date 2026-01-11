@@ -65,7 +65,18 @@ data class QuickStats(
     val mostDistanceDay: MostDistanceDayResult?,
 
     // === Range Records ===
-    val maxDistanceBetweenCharges: MaxDistanceBetweenChargesRecord?
+    val maxDistanceBetweenCharges: MaxDistanceBetweenChargesRecord?,
+
+    // === Gap Records ===
+    val longestGapWithoutCharging: GapRecord?,
+    val longestGapWithoutDriving: GapRecord?,
+
+    // === Streak Records ===
+    val longestDrivingStreak: StreakRecord?,
+
+    // === Battery Records ===
+    val biggestBatteryGainCharge: BatteryChangeRecord?,
+    val biggestBatteryDrainDrive: BatteryChangeRecord?
 )
 
 /**
@@ -167,4 +178,34 @@ data class MaxDistanceBetweenChargesRecord(
     val toChargeId: Int,
     val fromDate: String,
     val toDate: String
+)
+
+/**
+ * Record for a gap (time without driving or charging).
+ */
+data class GapRecord(
+    val gapDays: Double,
+    val fromDate: String,
+    val toDate: String
+)
+
+/**
+ * Record for a driving streak (consecutive days with driving).
+ */
+data class StreakRecord(
+    val streakDays: Int,
+    val startDate: String,
+    val endDate: String
+)
+
+/**
+ * Record for battery change (gain from charging or drain from driving).
+ */
+data class BatteryChangeRecord(
+    val percentChange: Int,         // % gained or drained
+    val startLevel: Int,            // starting battery %
+    val endLevel: Int,              // ending battery %
+    val recordId: Int,              // chargeId or driveId
+    val date: String,
+    val isCharge: Boolean           // true for charge, false for drive
 )

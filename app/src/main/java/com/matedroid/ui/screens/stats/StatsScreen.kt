@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -563,8 +566,10 @@ private data class RecordData(
     val onClick: (() -> Unit)?
 )
 
-/** Group of related records */
-private data class RecordGroup(
+/** Category of records for swipeable display */
+private data class RecordCategory(
+    val title: String,
+    val emoji: String,
     val records: List<RecordData>
 )
 
@@ -579,16 +584,13 @@ private fun RecordsCard(
     onDayClick: (String) -> Unit,
     onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit
 ) {
-    // Build list of record groups - each group starts on left column
-    val groups = mutableListOf<RecordGroup>()
+    // Build categories of records
+    val categories = mutableListOf<RecordCategory>()
 
-    // Group 1: Drive performance records
+    // Category 1: Drives
     val driveRecords = mutableListOf<RecordData>()
     quickStats.longestDrive?.let { drive ->
         driveRecords.add(RecordData("📏", "Longest Drive", "%.1f km".format(drive.distance), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
-    }
-    quickStats.maxDistanceBetweenCharges?.let { record ->
-        driveRecords.add(RecordData("🔋", "Longest Range", "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
     quickStats.fastestDrive?.let { drive ->
         driveRecords.add(RecordData("🏎️", "Top Speed", "${drive.speedMax} km/h", drive.startDate.take(10)) { onDriveClick(drive.driveId) })
@@ -596,73 +598,86 @@ private fun RecordsCard(
     quickStats.mostEfficientDrive?.let { drive ->
         driveRecords.add(RecordData("🌱", "Most Efficient", "%.0f Wh/km".format(drive.efficiency ?: 0.0), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
     }
-    if (driveRecords.isNotEmpty()) groups.add(RecordGroup(driveRecords))
+    quickStats.longestDrivingStreak?.let { streak ->
+        driveRecords.add(RecordData("🔥", "Longest Streak", "${streak.streakDays} days", "${streak.startDate} → ${streak.endDate}", null))
+    }
+    quickStats.mostDistanceDay?.let { day ->
+        driveRecords.add(RecordData("🛣️", "Most Distance Day", "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
+    }
+    quickStats.busiestDay?.let { day ->
+        driveRecords.add(RecordData("📅", "Busiest Day", "${day.count} drives", day.day) { onDayClick(day.day) })
+    }
+    if (driveRecords.isNotEmpty()) categories.add(RecordCategory("Drives", "🚗", driveRecords))
 
-    // Group 2: Elevation records
-    val elevationRecords = mutableListOf<RecordData>()
-    deepStats?.driveWithMaxElevation?.let { record ->
-        elevationRecords.add(RecordData("🏔️", "Highest Point", "${record.elevationM} m", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    // Category 2: Battery
+    val batteryRecords = mutableListOf<RecordData>()
+    quickStats.biggestBatteryGainCharge?.let { record ->
+        batteryRecords.add(RecordData("🔋", "Biggest Gain", "+${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onChargeClick(record.recordId) })
     }
-    deepStats?.driveWithMostClimbing?.let { record ->
-        elevationRecords.add(RecordData("⛰️", "Most Climbing", record.elevationGainM?.let { "+$it m" } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    quickStats.biggestBatteryDrainDrive?.let { record ->
+        batteryRecords.add(RecordData("📉", "Biggest Drain", "-${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onDriveClick(record.recordId) })
     }
-    if (elevationRecords.isNotEmpty()) groups.add(RecordGroup(elevationRecords))
-
-    // Group 3: Driving temperature records
-    val driveTempRecords = mutableListOf<RecordData>()
-    deepStats?.hottestDrive?.let { record ->
-        driveTempRecords.add(RecordData("🌡️", "Hottest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    deepStats?.coldestDrive?.let { record ->
-        driveTempRecords.add(RecordData("🧊", "Coldest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    if (driveTempRecords.isNotEmpty()) groups.add(RecordGroup(driveTempRecords))
-
-    // Group 4: Charge records
-    val chargeRecords = mutableListOf<RecordData>()
     quickStats.biggestCharge?.let { charge ->
-        chargeRecords.add(RecordData("⚡", "Biggest Charge", "%.0f kWh".format(charge.energyAdded), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+        batteryRecords.add(RecordData("⚡", "Biggest Charge", "%.0f kWh".format(charge.energyAdded), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
     }
     deepStats?.chargeWithMaxPower?.let { record ->
-        chargeRecords.add(RecordData("⚡", "Peak Power", "${record.powerKw} kW", record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        batteryRecords.add(RecordData("⚡", "Peak Power", "${record.powerKw} kW", record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
     quickStats.mostExpensiveCharge?.let { charge ->
         charge.cost?.let { cost ->
-            chargeRecords.add(RecordData("💸", "Most Expensive", "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+            batteryRecords.add(RecordData("💸", "Most Expensive", "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
         }
     }
     quickStats.mostExpensivePerKwhCharge?.let { charge ->
         charge.cost?.let { cost ->
             if (charge.energyAdded > 0) {
-                chargeRecords.add(RecordData("📈", "Priciest/kWh", "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+                batteryRecords.add(RecordData("📈", "Priciest/kWh", "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
             }
         }
     }
-    if (chargeRecords.isNotEmpty()) groups.add(RecordGroup(chargeRecords))
+    if (batteryRecords.isNotEmpty()) categories.add(RecordCategory("Battery", "🔋", batteryRecords))
 
-    // Group 5: Charging temperature records
-    val chargeTempRecords = mutableListOf<RecordData>()
+    // Category 3: Weather & Altitude
+    val weatherRecords = mutableListOf<RecordData>()
+    deepStats?.driveWithMaxElevation?.let { record ->
+        weatherRecords.add(RecordData("🏔️", "Highest Point", "${record.elevationM} m", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    }
+    deepStats?.driveWithMostClimbing?.let { record ->
+        weatherRecords.add(RecordData("⛰️", "Most Climbing", record.elevationGainM?.let { "+$it m" } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    }
+    deepStats?.hottestDrive?.let { record ->
+        weatherRecords.add(RecordData("🌡️", "Hottest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    }
+    deepStats?.coldestDrive?.let { record ->
+        weatherRecords.add(RecordData("🧊", "Coldest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+    }
     deepStats?.hottestCharge?.let { record ->
-        chargeTempRecords.add(RecordData("☀️", "Hottest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        weatherRecords.add(RecordData("☀️", "Hottest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
     deepStats?.coldestCharge?.let { record ->
-        chargeTempRecords.add(RecordData("❄️", "Coldest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        weatherRecords.add(RecordData("❄️", "Coldest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
-    if (chargeTempRecords.isNotEmpty()) groups.add(RecordGroup(chargeTempRecords))
+    if (weatherRecords.isNotEmpty()) categories.add(RecordCategory("Weather & Altitude", "🌡️", weatherRecords))
 
-    // Group 6: Day records
-    val dayRecords = mutableListOf<RecordData>()
-    quickStats.mostDistanceDay?.let { day ->
-        dayRecords.add(RecordData("🛣️", "Most Distance Day", "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
+    // Category 4: Distances & Gaps
+    val distanceRecords = mutableListOf<RecordData>()
+    quickStats.maxDistanceBetweenCharges?.let { record ->
+        distanceRecords.add(RecordData("🔋", "Longest Range", "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
-    quickStats.busiestDay?.let { day ->
-        dayRecords.add(RecordData("📅", "Busiest Day", "${day.count} drives", day.day) { onDayClick(day.day) })
+    quickStats.longestGapWithoutCharging?.let { gap ->
+        distanceRecords.add(RecordData("⏰", "Longest w/o Charging", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}", null))
     }
-    if (dayRecords.isNotEmpty()) groups.add(RecordGroup(dayRecords))
+    quickStats.longestGapWithoutDriving?.let { gap ->
+        distanceRecords.add(RecordData("🅿️", "Longest w/o Driving", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}", null))
+    }
+    if (distanceRecords.isNotEmpty()) categories.add(RecordCategory("Distances", "📍", distanceRecords))
 
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    // Don't render anything if no categories
+    if (categories.isEmpty()) return
+
+    val pagerState = rememberPagerState(pageCount = { categories.size })
+
+    Column {
         // Section header
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -683,29 +698,105 @@ private fun RecordsCard(
             )
         }
 
-        // Display records in 2-column grid, grouped by theme
-        // Each group starts on the left column (leaves blank space if previous group had odd count)
-        groups.forEach { group ->
-            group.records.chunked(2).forEach { rowRecords ->
+        Card(
+            colors = CardDefaults.cardColors(containerColor = palette.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Pager with categories
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    val category = categories[page]
+                    RecordCategoryPage(
+                        category = category,
+                        palette = palette
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Page indicators with category labels
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    rowRecords.forEach { record ->
-                        RecordCard(
-                            emoji = record.emoji,
-                            label = record.label,
-                            value = record.value,
-                            subtext = record.subtext,
-                            palette = palette,
-                            onClick = record.onClick,
-                            modifier = Modifier.weight(1f)
-                        )
+                    categories.forEachIndexed { index, category ->
+                        val isSelected = pagerState.currentPage == index
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) palette.accent.copy(alpha = 0.2f)
+                                    else Color.Transparent
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = category.emoji,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = category.title,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = palette.accent,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
-                    // Fill remaining space if odd number of records
-                    if (rowRecords.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A single page showing records for one category.
+ */
+@Composable
+private fun RecordCategoryPage(
+    category: RecordCategory,
+    palette: CarColorPalette
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Category title
+        Text(
+            text = "${category.emoji} ${category.title}",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = palette.onSurface,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+
+        // Records in 2-column grid
+        category.records.chunked(2).forEach { rowRecords ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowRecords.forEach { record ->
+                    RecordCard(
+                        emoji = record.emoji,
+                        label = record.label,
+                        value = record.value,
+                        subtext = record.subtext,
+                        palette = palette,
+                        onClick = record.onClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Fill remaining space if odd number of records
+                if (rowRecords.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }

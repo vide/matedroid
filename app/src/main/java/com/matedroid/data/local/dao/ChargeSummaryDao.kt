@@ -226,6 +226,79 @@ interface ChargeSummaryDao {
         startDate: String,
         endDate: String
     ): MaxDistanceBetweenChargesResult?
+
+    /**
+     * Find the longest gap (in days) between two consecutive charges.
+     */
+    @Query("""
+        SELECT
+            prev.chargeId as fromChargeId,
+            curr.chargeId as toChargeId,
+            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
+            prev.startDate as fromDate,
+            curr.startDate as toDate
+        FROM charges_summary curr
+        INNER JOIN charges_summary prev ON prev.carId = curr.carId
+            AND prev.startDate = (
+                SELECT MAX(p.startDate)
+                FROM charges_summary p
+                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
+            )
+        WHERE curr.carId = :carId
+        ORDER BY gapDays DESC
+        LIMIT 1
+    """)
+    suspend fun longestGapBetweenCharges(carId: Int): GapBetweenChargesResult?
+
+    @Query("""
+        SELECT
+            prev.chargeId as fromChargeId,
+            curr.chargeId as toChargeId,
+            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
+            prev.startDate as fromDate,
+            curr.startDate as toDate
+        FROM charges_summary curr
+        INNER JOIN charges_summary prev ON prev.carId = curr.carId
+            AND prev.startDate = (
+                SELECT MAX(p.startDate)
+                FROM charges_summary p
+                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
+            )
+        WHERE curr.carId = :carId
+            AND prev.startDate >= :startDate
+            AND curr.startDate < :endDate
+        ORDER BY gapDays DESC
+        LIMIT 1
+    """)
+    suspend fun longestGapBetweenChargesInRange(
+        carId: Int,
+        startDate: String,
+        endDate: String
+    ): GapBetweenChargesResult?
+
+    /**
+     * Find the charge with the biggest battery gain (endBatteryLevel - startBatteryLevel).
+     */
+    @Query("""
+        SELECT * FROM charges_summary
+        WHERE carId = :carId
+        ORDER BY (endBatteryLevel - startBatteryLevel) DESC
+        LIMIT 1
+    """)
+    suspend fun biggestBatteryGainCharge(carId: Int): ChargeSummary?
+
+    @Query("""
+        SELECT * FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        ORDER BY (endBatteryLevel - startBatteryLevel) DESC
+        LIMIT 1
+    """)
+    suspend fun biggestBatteryGainChargeInRange(
+        carId: Int,
+        startDate: String,
+        endDate: String
+    ): ChargeSummary?
 }
 
 /**
@@ -235,6 +308,17 @@ data class MaxDistanceBetweenChargesResult(
     val fromChargeId: Int,
     val toChargeId: Int,
     val distance: Double,
+    val fromDate: String,
+    val toDate: String
+)
+
+/**
+ * Result of longest gap between charges query.
+ */
+data class GapBetweenChargesResult(
+    val fromChargeId: Int,
+    val toChargeId: Int,
+    val gapDays: Double,
     val fromDate: String,
     val toDate: String
 )
