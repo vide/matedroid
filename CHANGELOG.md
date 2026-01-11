@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Stats for Nerds**: New records organized into swipeable categories
+  - Swipe left/right between Drives, Battery, Weather & Altitude, and Distances categories
+  - Drives: Longest drive, Top speed, Most efficient, Longest driving streak, Most distance day, Busiest day
+  - Battery: Biggest gain, Biggest drain, Biggest charge, Peak power, Most expensive, Priciest per kWh
+  - Weather & Altitude: Highest point, Most climbing, Hottest/coldest drives and charges
+  - Distances: Longest range (tap to see drives), Longest gap without charging/driving
 - **Stats for Nerds**: New "Longest Range" record showing maximum distance traveled between charges (fixes #24)
   - Tap to see all drives that made up the record
 - **Dashboard**: Breathing glow effect around car image when charging
