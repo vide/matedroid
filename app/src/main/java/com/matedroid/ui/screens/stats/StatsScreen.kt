@@ -69,10 +69,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.matedroid.BuildConfig
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.data.local.entity.DriveSummary
@@ -827,10 +829,10 @@ private fun RecordsCard(
 }
 
 /**
- * Fixed height for each record card row.
- * This ensures consistent page height regardless of content.
+ * Base height for each record card row.
+ * Scales with system font size to prevent vertical text clipping.
  */
-private val RECORD_CARD_HEIGHT = 72.dp
+private const val RECORD_CARD_HEIGHT_BASE = 72
 
 /**
  * A single page showing records for one category.
@@ -845,6 +847,10 @@ private fun RecordCategoryPage(
     val paddedRecords = page.records + List(RECORDS_PER_PAGE - page.records.size) { null }
     val rows = paddedRecords.chunked(2) // Always 3 rows of 2
 
+    // Scale card height with system font size to prevent vertical text clipping
+    val fontScale = LocalDensity.current.fontScale
+    val scaledCardHeight = (RECORD_CARD_HEIGHT_BASE * fontScale).dp
+
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -854,7 +860,7 @@ private fun RecordCategoryPage(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(RECORD_CARD_HEIGHT),
+                    .height(scaledCardHeight),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 rowRecords.forEach { record ->
@@ -1131,21 +1137,24 @@ private fun RecordCard(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = value,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (subtext.isNotEmpty()) {
                     Text(
                         text = subtext,
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
