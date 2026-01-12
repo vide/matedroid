@@ -1233,7 +1233,9 @@ private fun LocationCard(status: CarStatus, units: Units?, resolvedAddress: Stri
                         Text(
                             text = elevationText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = palette.onSurface
+                            color = palette.onSurface,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
