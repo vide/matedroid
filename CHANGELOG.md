@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-01-12
+
+### Fixed
+- **Stats for Nerds**: Record cards now scale with system font size to prevent vertical text clipping (fixes #47)
+- **Dashboard**: Elevation label no longer wraps "m" unit to next line with larger fonts
+
 ## [0.9.0] - 2026-01-11
 
 ### Added
@@ -175,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/vide/matedroid/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/vide/matedroid/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/vide/matedroid/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/vide/matedroid/compare/v0.8.1...v0.8.2

@@ -1,0 +1,3 @@
+Fixed:
+- Stats for Nerds: Record cards now scale with system font size to prevent vertical text clipping
+- Dashboard: Elevation label no longer wraps "m" unit to next line with larger fonts
