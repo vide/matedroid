@@ -11,7 +11,6 @@ object UnitFormatter {
     // Conversion constants
     private const val KM_TO_MI = 0.621371
     private const val MI_TO_KM = 1.60934
-    private const val BAR_TO_PSI = 14.5038
     private const val WH_PER_KM_TO_WH_PER_MI = 1.60934
 
     /**
@@ -75,15 +74,13 @@ object UnitFormatter {
     }
 
     /**
-     * Format pressure value with appropriate unit label
+     * Format pressure value with appropriate unit label.
+     * Note: TeslamateAPI returns pressure already in the user's preferred unit,
+     * so no conversion is needed - just format and add the label.
      */
-    fun formatPressure(bar: Double, units: Units?, decimals: Int = 1): String {
-        return if (units?.unitOfPressure == "psi") {
-            val psi = bar * BAR_TO_PSI
-            "%.${decimals}f psi".format(psi)
-        } else {
-            "%.${decimals}f bar".format(bar)
-        }
+    fun formatPressure(value: Double, units: Units?, decimals: Int = 1): String {
+        val unit = if (units?.unitOfPressure == "psi") "psi" else "bar"
+        return "%.${decimals}f %s".format(value, unit)
     }
 
     /**
