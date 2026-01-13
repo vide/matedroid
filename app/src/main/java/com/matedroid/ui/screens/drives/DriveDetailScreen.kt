@@ -50,6 +50,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -70,7 +71,7 @@ import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
-import com.matedroid.ui.theme.MapRouteColor
+import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -93,6 +94,8 @@ fun DriveDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isDarkTheme = isSystemInDarkTheme()
+    val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
     LaunchedEffect(carId, driveId) {
         viewModel.loadDriveDetail(carId, driveId)
@@ -139,6 +142,7 @@ fun DriveDetailScreen(
                     detail = detail,
                     stats = uiState.stats,
                     units = uiState.units,
+                    routeColor = palette.accent,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -151,6 +155,7 @@ private fun DriveDetailContent(
     detail: DriveDetail,
     stats: DriveDetailStats?,
     units: Units?,
+    routeColor: Color,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -167,7 +172,7 @@ private fun DriveDetailContent(
 
         // Map showing the route
         if (!detail.positions.isNullOrEmpty()) {
-            DriveMapCard(positions = detail.positions)
+            DriveMapCard(positions = detail.positions, routeColor = routeColor)
         }
 
         // Stats grid
@@ -385,8 +390,9 @@ private fun RouteHeaderCard(detail: DriveDetail) {
 }
 
 @Composable
-private fun DriveMapCard(positions: List<DrivePosition>) {
+private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
     val context = LocalContext.current
+    val routeColorArgb = routeColor.toArgb()
     val validPositions = positions.filter { it.latitude != null && it.longitude != null }
 
     if (validPositions.isEmpty()) return
@@ -432,8 +438,6 @@ private fun DriveMapCard(positions: List<DrivePosition>) {
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                val routeColor = MapRouteColor.toArgb()
-
                 DisposableEffect(Unit) {
                     Configuration.getInstance().userAgentValue = "MateDroid/1.0"
                     onDispose { }
@@ -452,7 +456,7 @@ private fun DriveMapCard(positions: List<DrivePosition>) {
 
                             val polyline = Polyline().apply {
                                 setPoints(geoPoints)
-                                outlinePaint.color = routeColor
+                                outlinePaint.color = routeColorArgb
                                 outlinePaint.strokeWidth = 8f
                                 outlinePaint.strokeCap = Paint.Cap.ROUND
                                 outlinePaint.strokeJoin = Paint.Join.ROUND
