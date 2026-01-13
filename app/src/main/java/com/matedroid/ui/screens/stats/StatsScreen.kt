@@ -510,7 +510,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = "Driving Days",
-                value = quickStats.totalDrivingDays.toString(),
+                value = quickStats.totalDrivingDays?.toString() ?: "-",
                 modifier = Modifier.weight(1f)
             )
         }

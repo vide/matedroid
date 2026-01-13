@@ -142,7 +142,7 @@ class StatsRepository @Inject constructor(
             avgEfficiencyWhKm = driveSummaryDao.avgEfficiencyInRange(carId, startDate, endDate),
             maxSpeedKmh = driveSummaryDao.maxSpeedInRange(carId, startDate, endDate),
             avgDriveMinutes = null, // Not critical for year view
-            totalDrivingDays = null, // Not critical for year view
+            totalDrivingDays = driveSummaryDao.countDrivingDaysInRange(carId, startDate, endDate),
 
             totalCharges = chargeSummaryDao.countInRange(carId, startDate, endDate),
             totalEnergyAddedKwh = chargeSummaryDao.sumEnergyAddedInRange(carId, startDate, endDate),

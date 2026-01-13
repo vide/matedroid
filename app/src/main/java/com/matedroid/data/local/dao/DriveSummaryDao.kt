@@ -186,6 +186,9 @@ interface DriveSummaryDao {
     @Query("SELECT COUNT(DISTINCT DATE(startDate)) FROM drives_summary WHERE carId = :carId")
     suspend fun countDrivingDays(carId: Int): Int
 
+    @Query("SELECT COUNT(DISTINCT DATE(startDate)) FROM drives_summary WHERE carId = :carId AND startDate >= :startDate AND startDate < :endDate")
+    suspend fun countDrivingDaysInRange(carId: Int, startDate: String, endDate: String): Int
+
     // Most distance in a single day
     @Query("""
         SELECT DATE(startDate) as day, SUM(distance) as totalDistance
