@@ -52,9 +52,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -456,11 +460,25 @@ private fun SettingsContent(
         if (showResyncConfirmDialog) {
             AlertDialog(
                 onDismissRequest = { showResyncConfirmDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = StatusWarning,
+                        modifier = Modifier.size(32.dp)
+                    )
+                },
                 title = { Text("Force Full Resync?") },
                 text = {
                     Text(
-                        "This will reset the sync progress and re-download all drive and charge details from the server.\n\n" +
-                        "The process may take several minutes depending on how much data you have."
+                        buildAnnotatedString {
+                            append("This will ")
+                            withStyle(SpanStyle(color = StatusError, fontWeight = FontWeight.Bold)) {
+                                append("DELETE")
+                            }
+                            append(" all cached drives, charges, and statistics, then re-download everything from the server.\n\n")
+                            append("The process may take several minutes depending on how much data you have.")
+                        }
                     )
                 },
                 confirmButton = {

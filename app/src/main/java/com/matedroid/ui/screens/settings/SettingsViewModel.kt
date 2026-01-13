@@ -208,17 +208,17 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isResyncing = true, error = null)
             try {
-                // Get all cars and reset sync for each
+                // Get all cars and do a full reset (delete all cached data) for each
                 when (val result = repository.getCars()) {
                     is ApiResult.Success -> {
                         for (car in result.data) {
-                            syncManager.resetSync(car.carId)
+                            syncManager.fullResetSync(car.carId)
                         }
                         // Trigger immediate sync via WorkManager
                         triggerImmediateSync()
                         _uiState.value = _uiState.value.copy(
                             isResyncing = false,
-                            successMessage = "Resync started. Check the Stats screen for progress."
+                            successMessage = "Full resync started. All cached data cleared. Check the Stats screen for progress."
                         )
                     }
                     is ApiResult.Error -> {

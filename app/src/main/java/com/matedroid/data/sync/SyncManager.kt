@@ -1,5 +1,6 @@
 package com.matedroid.data.sync
 
+import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.SyncStateDao
@@ -23,7 +24,8 @@ import javax.inject.Singleton
 class SyncManager @Inject constructor(
     private val syncStateDao: SyncStateDao,
     private val driveSummaryDao: DriveSummaryDao,
-    private val chargeSummaryDao: ChargeSummaryDao
+    private val chargeSummaryDao: ChargeSummaryDao,
+    private val aggregateDao: AggregateDao
 ) {
     private val _syncStatus = MutableStateFlow(OverallSyncStatus.IDLE)
     val syncStatus: StateFlow<OverallSyncStatus> = _syncStatus.asStateFlow()
@@ -163,10 +165,28 @@ class SyncManager @Inject constructor(
     }
 
     /**
-     * Reset sync for a car (for manual resync).
+     * Reset sync state for a car (keeps cached data, only retries unprocessed items).
      */
     suspend fun resetSync(carId: Int) {
         syncStateDao.resetForResync(carId)
+        updateProgress(carId, SyncPhase.IDLE, 0, 0)
+        updateOverallStatus()
+    }
+
+    /**
+     * Full reset for a car: deletes ALL cached data (drives, charges, aggregates)
+     * and resets sync state. This forces a complete resync from the API.
+     */
+    suspend fun fullResetSync(carId: Int) {
+        // Delete all cached data
+        driveSummaryDao.deleteAllForCar(carId)
+        chargeSummaryDao.deleteAllForCar(carId)
+        aggregateDao.deleteDriveAggregatesForCar(carId)
+        aggregateDao.deleteChargeAggregatesForCar(carId)
+
+        // Reset sync state
+        syncStateDao.resetForResync(carId)
+
         updateProgress(carId, SyncPhase.IDLE, 0, 0)
         updateOverallStatus()
     }
