@@ -11,6 +11,9 @@ val StatusSuccess = Color(0xFF4CAF50)
 val StatusWarning = Color(0xFFFF9800)
 val StatusError = Color(0xFFF44336)
 
+// Map route color (dark blue like Tesla navigator - fixed for visibility on map tiles)
+val MapRouteColor = Color(0xFF2962FF)
+
 // Light theme colors - neutral cool grey
 val PrimaryLight = Color(0xFF5C6670)
 val OnPrimaryLight = Color.White

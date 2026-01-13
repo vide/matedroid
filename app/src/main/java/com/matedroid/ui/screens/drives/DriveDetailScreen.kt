@@ -70,6 +70,7 @@ import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.theme.MapRouteColor
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -431,7 +432,7 @@ private fun DriveMapCard(positions: List<DrivePosition>) {
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+                val routeColor = MapRouteColor.toArgb()
 
                 DisposableEffect(Unit) {
                     Configuration.getInstance().userAgentValue = "MateDroid/1.0"
@@ -451,7 +452,7 @@ private fun DriveMapCard(positions: List<DrivePosition>) {
 
                             val polyline = Polyline().apply {
                                 setPoints(geoPoints)
-                                outlinePaint.color = primaryColor
+                                outlinePaint.color = routeColor
                                 outlinePaint.strokeWidth = 8f
                                 outlinePaint.strokeCap = Paint.Cap.ROUND
                                 outlinePaint.strokeJoin = Paint.Join.ROUND
