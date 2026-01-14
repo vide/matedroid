@@ -1,0 +1,2 @@
+Fixed:
+- "Driving Days" stat now shows correct count when filtering by year instead of "Null"
