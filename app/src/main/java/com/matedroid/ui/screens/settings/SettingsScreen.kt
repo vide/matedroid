@@ -659,41 +659,75 @@ private fun SettingsContent(
 
 @Composable
 private fun TestResultCard(result: TestResult) {
-    val (icon, color, text) = when (result) {
-        is TestResult.Success -> Triple(
-            Icons.Filled.CheckCircle,
-            StatusSuccess,
-            "Connection successful!"
-        )
-        is TestResult.Failure -> Triple(
-            Icons.Filled.Error,
-            StatusError,
-            "Connection failed: ${result.message}"
-        )
-    }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color
+            // Primary server result
+            ServerTestResultRow(
+                label = "Primary server",
+                result = result.primaryResult
             )
-            Spacer(modifier = Modifier.width(12.dp))
+
+            // Secondary server result (if tested)
+            result.secondaryResult?.let { secondaryResult ->
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                ServerTestResultRow(
+                    label = "Secondary server",
+                    result = secondaryResult
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ServerTestResultRow(
+    label: String,
+    result: ServerTestResult
+) {
+    val (icon, color, statusText) = when (result) {
+        is ServerTestResult.Success -> Triple(
+            Icons.Filled.CheckCircle,
+            StatusSuccess,
+            "Connected"
+        )
+        is ServerTestResult.Failure -> Triple(
+            Icons.Filled.Error,
+            StatusError,
+            result.message
+        )
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = text,
-                color = color,
-                style = MaterialTheme.typography.bodyMedium
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = color
             )
         }
     }
@@ -726,7 +760,36 @@ private fun SettingsScreenWithResultPreview() {
             uiState = SettingsUiState(
                 isLoading = false,
                 serverUrl = "https://teslamate.example.com",
-                testResult = TestResult.Success
+                testResult = TestResult(
+                    primaryResult = ServerTestResult.Success
+                )
+            ),
+            onServerUrlChange = {},
+            onSecondaryServerUrlChange = {},
+            onApiTokenChange = {},
+            onAcceptInvalidCertsChange = {},
+            onCurrencyChange = {},
+            onShowShortDrivesChargesChange = {},
+            onTeslamateBaseUrlChange = {},
+            onTestConnection = {},
+            onSave = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SettingsScreenWithBothResultsPreview() {
+    MateDroidTheme {
+        SettingsContent(
+            uiState = SettingsUiState(
+                isLoading = false,
+                serverUrl = "https://teslamate.example.com",
+                secondaryServerUrl = "https://teslamate.local",
+                testResult = TestResult(
+                    primaryResult = ServerTestResult.Failure("Connection timed out"),
+                    secondaryResult = ServerTestResult.Success
+                )
             ),
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},

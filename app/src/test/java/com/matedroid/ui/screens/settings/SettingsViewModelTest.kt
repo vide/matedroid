@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -123,8 +124,9 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val result = viewModel.uiState.value.testResult
-        assertTrue(result is TestResult.Failure)
-        assertEquals("Server URL is required", (result as TestResult.Failure).message)
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Failure)
+        assertEquals("Server URL is required", (result.primaryResult as ServerTestResult.Failure).message)
     }
 
     @Test
@@ -137,8 +139,9 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val result = viewModel.uiState.value.testResult
-        assertTrue(result is TestResult.Failure)
-        assertEquals("URL must start with http:// or https://", (result as TestResult.Failure).message)
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Failure)
+        assertEquals("URL must start with http:// or https://", (result.primaryResult as ServerTestResult.Failure).message)
     }
 
     @Test
@@ -153,7 +156,52 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val result = viewModel.uiState.value.testResult
-        assertTrue(result is TestResult.Success)
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Success)
+        assertNull(result.secondaryResult) // No secondary URL configured
+    }
+
+    @Test
+    fun `testConnection tests both servers when secondary is configured`() = runTest {
+        coEvery { repository.testConnection("https://primary.com", any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection("https://secondary.com", any()) } returns ApiResult.Success(Unit)
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateServerUrl("https://primary.com")
+        viewModel.updateSecondaryServerUrl("https://secondary.com")
+        viewModel.testConnection()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = viewModel.uiState.value.testResult
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Success)
+        assertNotNull(result.secondaryResult)
+        assertTrue(result.secondaryResult is ServerTestResult.Success)
+    }
+
+    @Test
+    fun `testConnection shows both results when primary fails and secondary succeeds`() = runTest {
+        coEvery { repository.testConnection("https://primary.com", any()) } returns ApiResult.Error("Connection refused")
+        coEvery { repository.testConnection("https://secondary.com", any()) } returns ApiResult.Success(Unit)
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateServerUrl("https://primary.com")
+        viewModel.updateSecondaryServerUrl("https://secondary.com")
+        viewModel.testConnection()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = viewModel.uiState.value.testResult
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Failure)
+        assertEquals("Connection refused", (result.primaryResult as ServerTestResult.Failure).message)
+        assertNotNull(result.secondaryResult)
+        assertTrue(result.secondaryResult is ServerTestResult.Success)
+        assertTrue(result.hasAnySuccess)
+        assertFalse(result.isFullySuccessful)
     }
 
     @Test
@@ -168,8 +216,9 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val result = viewModel.uiState.value.testResult
-        assertTrue(result is TestResult.Failure)
-        assertEquals("Connection refused", (result as TestResult.Failure).message)
+        assertNotNull(result)
+        assertTrue(result!!.primaryResult is ServerTestResult.Failure)
+        assertEquals("Connection refused", (result.primaryResult as ServerTestResult.Failure).message)
     }
 
     @Test
@@ -238,7 +287,8 @@ class SettingsViewModelTest {
         viewModel.testConnection()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.testResult is TestResult.Success)
+        assertNotNull(viewModel.uiState.value.testResult)
+        assertTrue(viewModel.uiState.value.testResult!!.primaryResult is ServerTestResult.Success)
 
         viewModel.clearTestResult()
 
