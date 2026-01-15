@@ -60,44 +60,74 @@ object NetworkModule {
     }
 }
 
+/**
+ * Cache key for API instances, combining URL and security settings.
+ */
+private data class ApiCacheKey(
+    val baseUrl: String,
+    val acceptInvalidCerts: Boolean,
+    val apiToken: String
+)
+
+/**
+ * Factory for creating TeslamateApi instances with caching support.
+ *
+ * Supports caching multiple API instances (e.g., for primary and secondary servers)
+ * to avoid recreating clients when switching between servers during fallback.
+ */
 class TeslamateApiFactory(
     private val settingsDataStore: SettingsDataStore,
     private val moshi: Moshi
 ) {
-    private var currentBaseUrl: String? = null
-    private var currentAcceptInvalidCerts: Boolean? = null
-    private var currentApi: TeslamateApi? = null
+    // Cache multiple API instances keyed by their configuration
+    private val apiCache = mutableMapOf<ApiCacheKey, TeslamateApi>()
 
+    /**
+     * Creates or returns a cached TeslamateApi instance for the given URL.
+     *
+     * @param baseUrl The base URL for the API
+     * @param acceptInvalidCerts Override for accepting invalid certificates. If null, uses the setting from DataStore.
+     * @return A TeslamateApi instance configured for the given URL
+     */
     fun create(baseUrl: String, acceptInvalidCerts: Boolean? = null): TeslamateApi {
         val normalizedUrl = baseUrl.trimEnd('/') + "/"
         val settings = runBlocking { settingsDataStore.settings.first() }
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
+        val apiToken = settings.apiToken
 
-        // Return cached API if settings haven't changed
-        if (currentBaseUrl == normalizedUrl &&
-            currentAcceptInvalidCerts == useInsecure &&
-            currentApi != null) {
-            return currentApi!!
-        }
+        val cacheKey = ApiCacheKey(normalizedUrl, useInsecure, apiToken)
 
-        val okHttpClient = createOkHttpClient(settings.apiToken, useInsecure)
+        // Return cached API if available
+        apiCache[cacheKey]?.let { return it }
 
-        currentBaseUrl = normalizedUrl
-        currentAcceptInvalidCerts = useInsecure
-        currentApi = Retrofit.Builder()
+        // Create new API instance
+        val okHttpClient = createOkHttpClient(apiToken, useInsecure)
+
+        val api = Retrofit.Builder()
             .baseUrl(normalizedUrl)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(TeslamateApi::class.java)
 
-        return currentApi!!
+        // Cache the API instance
+        apiCache[cacheKey] = api
+
+        // Limit cache size to prevent memory leaks (keep last 4 configurations)
+        if (apiCache.size > 4) {
+            val oldestKey = apiCache.keys.first()
+            apiCache.remove(oldestKey)
+        }
+
+        return api
     }
 
+    /**
+     * Invalidates all cached API instances.
+     * Call this when settings change that require recreating the API clients.
+     */
     fun invalidateCache() {
-        currentBaseUrl = null
-        currentAcceptInvalidCerts = null
-        currentApi = null
+        apiCache.clear()
     }
 
     private fun createOkHttpClient(apiToken: String, acceptInvalidCerts: Boolean): OkHttpClient {

@@ -1,5 +1,9 @@
 package com.matedroid.ui.screens.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Info
@@ -30,6 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,6 +115,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(paddingValues),
                 uiState = uiState,
                 onServerUrlChange = viewModel::updateServerUrl,
+                onSecondaryServerUrlChange = viewModel::updateSecondaryServerUrl,
                 onApiTokenChange = viewModel::updateApiToken,
                 onAcceptInvalidCertsChange = viewModel::updateAcceptInvalidCerts,
                 onCurrencyChange = viewModel::updateCurrency,
@@ -135,10 +144,52 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun CollapsibleSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsContent(
     modifier: Modifier = Modifier,
     uiState: SettingsUiState,
     onServerUrlChange: (String) -> Unit,
+    onSecondaryServerUrlChange: (String) -> Unit,
     onApiTokenChange: (String) -> Unit,
     onAcceptInvalidCertsChange: (Boolean) -> Unit,
     onCurrencyChange: (String) -> Unit,
@@ -153,6 +204,8 @@ private fun SettingsContent(
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
     var showShortDrivesChargesInfoDialog by remember { mutableStateOf(false) }
     var showResyncConfirmDialog by remember { mutableStateOf(false) }
+    var advancedNetworkExpanded by rememberSaveable { mutableStateOf(false) }
+    var extraSettingsExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -160,6 +213,7 @@ private fun SettingsContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+        // === Server Connection Section ===
         Text(
             text = "Connect to TeslamateApi",
             style = MaterialTheme.typography.titleMedium
@@ -168,18 +222,18 @@ private fun SettingsContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter your TeslamateApi server URL and optional API token to connect.",
+            text = "Enter your TeslamateApi server URL to connect.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
             value = uiState.serverUrl,
             onValueChange = onServerUrlChange,
             label = { Text("Server URL") },
-            placeholder = { Text("https://teslamate.example.com") },
+            placeholder = { Text("https://teslamate-api.example.com") },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("urlInput"),
@@ -190,134 +244,141 @@ private fun SettingsContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
-            value = uiState.apiToken,
-            onValueChange = onApiTokenChange,
-            label = { Text("API Token (optional)") },
-            placeholder = { Text("Your API token") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("tokenInput"),
-            singleLine = true,
-            visualTransformation = if (passwordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) {
-                            Icons.Filled.VisibilityOff
-                        } else {
-                            Icons.Filled.Visibility
-                        },
-                        contentDescription = if (passwordVisible) {
-                            "Hide token"
-                        } else {
-                            "Show token"
-                        }
+        // === Advanced Network Settings (Collapsed by default) ===
+        HorizontalDivider()
+
+        CollapsibleSection(
+            title = "Advanced network settings",
+            expanded = advancedNetworkExpanded,
+            onToggle = { advancedNetworkExpanded = !advancedNetworkExpanded }
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Secondary Server URL
+            OutlinedTextField(
+                value = uiState.secondaryServerUrl,
+                onValueChange = onSecondaryServerUrlChange,
+                label = { Text("Secondary Server URL (optional)") },
+                placeholder = { Text("https://teslamate-api-internal.local") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                enabled = !uiState.isTesting && !uiState.isSaving
+            )
+
+            Text(
+                text = "Fallback URL used when the primary server is unreachable. Useful for LAN/VPN access.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // API Token
+            OutlinedTextField(
+                value = uiState.apiToken,
+                onValueChange = onApiTokenChange,
+                label = { Text("API Token (optional)") },
+                placeholder = { Text("Your API token") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("tokenInput"),
+                singleLine = true,
+                visualTransformation = if (passwordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) {
+                                Icons.Filled.VisibilityOff
+                            } else {
+                                Icons.Filled.Visibility
+                            },
+                            contentDescription = if (passwordVisible) {
+                                "Hide token"
+                            } else {
+                                "Show token"
+                            }
+                        )
+                    }
+                },
+                enabled = !uiState.isTesting && !uiState.isSaving
+            )
+
+            Text(
+                text = "Leave empty if your TeslamateApi doesn't require authentication.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Accept invalid certificates toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Accept invalid certificates",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Enable for self-signed certificates",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            },
-            enabled = !uiState.isTesting && !uiState.isSaving
-        )
+                Switch(
+                    checked = uiState.acceptInvalidCerts,
+                    onCheckedChange = onAcceptInvalidCertsChange,
+                    enabled = !uiState.isTesting && !uiState.isSaving
+                )
+            }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            if (uiState.acceptInvalidCerts) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = StatusWarning.copy(alpha = 0.1f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = StatusWarning,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Disabling certificate validation makes connections vulnerable to man-in-the-middle attacks. Only use on trusted networks.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = StatusWarning
+                        )
+                    }
+                }
+            }
 
-        Text(
-            text = "Leave empty if your TeslamateApi doesn't require authentication.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Accept invalid certificates toggle
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Accept invalid certificates",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "Enable for self-signed certificates",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = uiState.acceptInvalidCerts,
-                onCheckedChange = onAcceptInvalidCertsChange,
-                enabled = !uiState.isTesting && !uiState.isSaving
-            )
-        }
-
-        if (uiState.acceptInvalidCerts) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = StatusWarning.copy(alpha = 0.1f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Warning,
-                        contentDescription = null,
-                        tint = StatusWarning,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Disabling certificate validation makes connections vulnerable to man-in-the-middle attacks. Only use on trusted networks.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = StatusWarning
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Teslamate Settings
-        Text(
-            text = "Teslamate Settings",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = uiState.teslamateBaseUrl,
-            onValueChange = onTeslamateBaseUrlChange,
-            label = { Text("Teslamate Base URL") },
-            placeholder = { Text("https://teslamate.example.com") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
-        )
-
-        Text(
-            text = "Used for editing charge costs directly in Teslamate.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Currency selection
+        // === Display Settings Section ===
         Text(
             text = "Display Settings",
             style = MaterialTheme.typography.titleMedium
@@ -325,6 +386,7 @@ private fun SettingsContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Currency selection
         val selectedCurrency = Currency.findByCode(uiState.currencyCode)
 
         Box {
@@ -365,138 +427,164 @@ private fun SettingsContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Show short drives / charges toggle
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Show short drives / charges",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    IconButton(
-                        onClick = { showShortDrivesChargesInfoDialog = true },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Info,
-                            contentDescription = "More information",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-                Text(
-                    text = "Display very short drives and minimal charges in lists",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = uiState.showShortDrivesCharges,
-                onCheckedChange = onShowShortDrivesChargesChange
-            )
-        }
-
-        // Info dialog for short drives / charges
-        if (showShortDrivesChargesInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showShortDrivesChargesInfoDialog = false },
-                title = { Text("Short drives & charges") },
-                text = {
-                    Text(
-                        "When disabled (default), the following are hidden from the lists:\n\n" +
-                        "• Drives under 1 minute or less than 0.1 km\n" +
-                        "• Charges of 0.1 kWh or less\n\n" +
-                        "These entries are still included in totals, averages, and statistics. " +
-                        "Enable this setting to see all entries in the lists."
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = { showShortDrivesChargesInfoDialog = false }) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Data Management section
-        Text(
-            text = "Data Management",
-            style = MaterialTheme.typography.titleMedium
+        // Teslamate Base URL
+        OutlinedTextField(
+            value = uiState.teslamateBaseUrl,
+            onValueChange = onTeslamateBaseUrlChange,
+            label = { Text("Teslamate Base URL (optional)") },
+            placeholder = { Text("https://teslamate.example.com") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedButton(
-            onClick = { showResyncConfirmDialog = true },
-            enabled = !uiState.isResyncing,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (uiState.isResyncing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(if (uiState.isResyncing) "Resyncing..." else "Force Full Resync")
-        }
-
         Text(
-            text = "Re-downloads all drive and charge details. Use if stats seem incorrect.",
+            text = "Used for editing charge costs directly in Teslamate.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        // Resync confirmation dialog
-        if (showResyncConfirmDialog) {
-            AlertDialog(
-                onDismissRequest = { showResyncConfirmDialog = false },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Filled.Warning,
-                        contentDescription = null,
-                        tint = StatusWarning,
-                        modifier = Modifier.size(32.dp)
-                    )
-                },
-                title = { Text("Force Full Resync?") },
-                text = {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // === Extra Settings (Collapsed by default) ===
+        HorizontalDivider()
+
+        CollapsibleSection(
+            title = "Extra settings",
+            expanded = extraSettingsExpanded,
+            onToggle = { extraSettingsExpanded = !extraSettingsExpanded }
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Show short drives / charges toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Show short drives / charges",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(
+                            onClick = { showShortDrivesChargesInfoDialog = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Info,
+                                contentDescription = "More information",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                     Text(
-                        buildAnnotatedString {
-                            append("This will ")
-                            withStyle(SpanStyle(color = StatusError, fontWeight = FontWeight.Bold)) {
-                                append("DELETE")
-                            }
-                            append(" all cached drives, charges, and statistics, then re-download everything from the server.\n\n")
-                            append("The process may take several minutes depending on how much data you have.")
-                        }
+                        text = "Display very short drives and minimal charges in lists",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showResyncConfirmDialog = false
-                            onForceResync()
-                        }
-                    ) {
-                        Text("Resync")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showResyncConfirmDialog = false }) {
-                        Text("Cancel")
-                    }
                 }
+                Switch(
+                    checked = uiState.showShortDrivesCharges,
+                    onCheckedChange = onShowShortDrivesChargesChange
+                )
+            }
+
+            // Info dialog for short drives / charges
+            if (showShortDrivesChargesInfoDialog) {
+                AlertDialog(
+                    onDismissRequest = { showShortDrivesChargesInfoDialog = false },
+                    title = { Text("Short drives & charges") },
+                    text = {
+                        Text(
+                            "When disabled (default), the following are hidden from the lists:\n\n" +
+                                    "• Drives under 1 minute or less than 0.1 km\n" +
+                                    "• Charges of 0.1 kWh or less\n\n" +
+                                    "These entries are still included in totals, averages, and statistics. " +
+                                    "Enable this setting to see all entries in the lists."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showShortDrivesChargesInfoDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Force Full Resync button
+            OutlinedButton(
+                onClick = { showResyncConfirmDialog = true },
+                enabled = !uiState.isResyncing,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isResyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(if (uiState.isResyncing) "Resyncing..." else "Force Full Resync")
+            }
+
+            Text(
+                text = "Re-downloads all drive and charge details. Use if stats seem incorrect.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
             )
+
+            // Resync confirmation dialog
+            if (showResyncConfirmDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResyncConfirmDialog = false },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = StatusWarning,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    },
+                    title = { Text("Force Full Resync?") },
+                    text = {
+                        Text(
+                            buildAnnotatedString {
+                                append("This will ")
+                                withStyle(SpanStyle(color = StatusError, fontWeight = FontWeight.Bold)) {
+                                    append("DELETE")
+                                }
+                                append(" all cached drives, charges, and statistics, then re-download everything from the server.\n\n")
+                                append("The process may take several minutes depending on how much data you have.")
+                            }
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showResyncConfirmDialog = false
+                                onForceResync()
+                            }
+                        ) {
+                            Text("Resync")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showResyncConfirmDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -618,6 +706,7 @@ private fun SettingsScreenPreview() {
         SettingsContent(
             uiState = SettingsUiState(isLoading = false),
             onServerUrlChange = {},
+            onSecondaryServerUrlChange = {},
             onApiTokenChange = {},
             onAcceptInvalidCertsChange = {},
             onCurrencyChange = {},
@@ -640,6 +729,7 @@ private fun SettingsScreenWithResultPreview() {
                 testResult = TestResult.Success
             ),
             onServerUrlChange = {},
+            onSecondaryServerUrlChange = {},
             onApiTokenChange = {},
             onAcceptInvalidCertsChange = {},
             onCurrencyChange = {},
@@ -662,6 +752,7 @@ private fun SettingsScreenWithWarningPreview() {
                 acceptInvalidCerts = true
             ),
             onServerUrlChange = {},
+            onSecondaryServerUrlChange = {},
             onApiTokenChange = {},
             onAcceptInvalidCertsChange = {},
             onCurrencyChange = {},

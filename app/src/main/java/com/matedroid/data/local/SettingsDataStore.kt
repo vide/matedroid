@@ -17,6 +17,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 data class AppSettings(
     val serverUrl: String = "",
+    val secondaryServerUrl: String = "",
     val apiToken: String = "",
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
@@ -25,6 +26,9 @@ data class AppSettings(
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
+
+    val hasSecondaryServer: Boolean
+        get() = secondaryServerUrl.isNotBlank()
 }
 
 @Singleton
@@ -32,6 +36,7 @@ class SettingsDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val serverUrlKey = stringPreferencesKey("server_url")
+    private val secondaryServerUrlKey = stringPreferencesKey("secondary_server_url")
     private val apiTokenKey = stringPreferencesKey("api_token")
     private val acceptInvalidCertsKey = booleanPreferencesKey("accept_invalid_certs")
     private val currencyCodeKey = stringPreferencesKey("currency_code")
@@ -41,6 +46,7 @@ class SettingsDataStore @Inject constructor(
     val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
         AppSettings(
             serverUrl = preferences[serverUrlKey] ?: "",
+            secondaryServerUrl = preferences[secondaryServerUrlKey] ?: "",
             apiToken = preferences[apiTokenKey] ?: "",
             acceptInvalidCerts = preferences[acceptInvalidCertsKey] ?: false,
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
@@ -55,12 +61,14 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun saveSettings(
         serverUrl: String,
+        secondaryServerUrl: String,
         apiToken: String,
         acceptInvalidCerts: Boolean,
         currencyCode: String
     ) {
         context.dataStore.edit { preferences ->
             preferences[serverUrlKey] = serverUrl
+            preferences[secondaryServerUrlKey] = secondaryServerUrl
             preferences[apiTokenKey] = apiToken
             preferences[acceptInvalidCertsKey] = acceptInvalidCerts
             preferences[currencyCodeKey] = currencyCode

@@ -25,6 +25,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val serverUrl: String = "",
+    val secondaryServerUrl: String = "",
     val apiToken: String = "",
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
@@ -64,6 +65,7 @@ class SettingsViewModel @Inject constructor(
             val settings = settingsDataStore.settings.first()
             _uiState.value = _uiState.value.copy(
                 serverUrl = settings.serverUrl,
+                secondaryServerUrl = settings.secondaryServerUrl,
                 apiToken = settings.apiToken,
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
@@ -77,6 +79,14 @@ class SettingsViewModel @Inject constructor(
     fun updateServerUrl(url: String) {
         _uiState.value = _uiState.value.copy(
             serverUrl = url,
+            testResult = null,
+            error = null
+        )
+    }
+
+    fun updateSecondaryServerUrl(url: String) {
+        _uiState.value = _uiState.value.copy(
+            secondaryServerUrl = url,
             testResult = null,
             error = null
         )
@@ -171,8 +181,11 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
+                val secondaryUrl = _uiState.value.secondaryServerUrl.trimEnd('/')
+
                 settingsDataStore.saveSettings(
                     serverUrl = url,
+                    secondaryServerUrl = secondaryUrl,
                     apiToken = _uiState.value.apiToken,
                     acceptInvalidCerts = _uiState.value.acceptInvalidCerts,
                     currencyCode = _uiState.value.currencyCode
