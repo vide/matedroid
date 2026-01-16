@@ -7,6 +7,8 @@ import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.repository.WeatherPoint
+import com.matedroid.data.repository.WeatherRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +22,9 @@ data class DriveDetailUiState(
     val error: String? = null,
     val driveDetail: DriveDetail? = null,
     val units: Units? = null,
-    val stats: DriveDetailStats? = null
+    val stats: DriveDetailStats? = null,
+    val weatherPoints: List<WeatherPoint> = emptyList(),
+    val isLoadingWeather: Boolean = false
 )
 
 data class DriveDetailStats(
@@ -48,7 +52,8 @@ data class DriveDetailStats(
 
 @HiltViewModel
 class DriveDetailViewModel @Inject constructor(
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val weatherRepository: WeatherRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveDetailUiState())
@@ -90,6 +95,9 @@ class DriveDetailViewModel @Inject constructor(
                             error = null
                         )
                     }
+
+                    // Fetch weather data in the background
+                    loadWeatherData(detail)
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
@@ -99,6 +107,40 @@ class DriveDetailViewModel @Inject constructor(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Loads weather data for the drive positions.
+     * This runs in the background after the main drive detail is loaded.
+     */
+    private fun loadWeatherData(detail: DriveDetail) {
+        val positions = detail.positions
+        val distance = detail.distance
+
+        if (positions.isNullOrEmpty() || distance == null || distance <= 0) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingWeather = true) }
+
+            try {
+                val weatherPoints = weatherRepository.getWeatherAlongDrive(
+                    positions = positions,
+                    totalDistanceKm = distance
+                )
+
+                _uiState.update {
+                    it.copy(
+                        weatherPoints = weatherPoints,
+                        isLoadingWeather = false
+                    )
+                }
+            } catch (e: Exception) {
+                // Weather loading failed silently - it's optional data
+                _uiState.update { it.copy(isLoadingWeather = false) }
             }
         }
     }

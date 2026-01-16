@@ -197,4 +197,376 @@ object CustomIcons {
             }
         }.build()
     }
+
+    // Weather icons from Material Symbols Outlined
+    // Source: https://fonts.google.com/icons
+
+    /**
+     * Clear/Sunny weather icon.
+     * Material Symbol: sunny (light_mode)
+     */
+    val WeatherSunny: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherSunny",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280Z
+                // Sun circle
+                moveTo(480f, 680f)
+                quadToRelative(-83f, 0f, -141.5f, -58.5f)
+                reflectiveQuadTo(280f, 480f)
+                quadToRelative(0f, -83f, 58.5f, -141.5f)
+                reflectiveQuadTo(480f, 280f)
+                quadToRelative(83f, 0f, 141.5f, 58.5f)
+                reflectiveQuadTo(680f, 480f)
+                quadToRelative(0f, 83f, -58.5f, 141.5f)
+                reflectiveQuadTo(480f, 680f)
+                close()
+
+                // M440-760v-160h80v160h-80Z (top ray)
+                moveTo(440f, 200f)
+                verticalLineToRelative(-120f)
+                horizontalLineToRelative(80f)
+                verticalLineToRelative(120f)
+                close()
+
+                // m0 720v-160h80v160h-80Z (bottom ray)
+                moveTo(440f, 880f)
+                verticalLineToRelative(-120f)
+                horizontalLineToRelative(80f)
+                verticalLineToRelative(120f)
+                close()
+
+                // M760-440h160v-80H760v80Z (right ray)
+                moveTo(760f, 520f)
+                horizontalLineToRelative(120f)
+                verticalLineToRelative(-80f)
+                horizontalLineTo(760f)
+                close()
+
+                // M40-440h160v-80H40v80Z (left ray)
+                moveTo(80f, 520f)
+                horizontalLineToRelative(-120f)
+                verticalLineToRelative(-80f)
+                horizontalLineToRelative(120f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Partly cloudy weather icon.
+     * Material Symbol: partly_cloudy_day
+     */
+    val WeatherPartlyCloudy: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherPartlyCloudy",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Cloud shape with partial sun
+                // M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Z
+                moveTo(260f, 800f)
+                quadToRelative(-91f, 0f, -155.5f, -63f)
+                reflectiveQuadTo(40f, 583f)
+                quadToRelative(0f, -78f, 47f, -139f)
+                reflectiveQuadToRelative(123f, -78f)
+                quadToRelative(25f, -92f, 100f, -149f)
+                reflectiveQuadToRelative(170f, -57f)
+                quadToRelative(117f, 0f, 198.5f, 81.5f)
+                reflectiveQuadTo(760f, 440f)
+                quadToRelative(69f, 8f, 114.5f, 59.5f)
+                reflectiveQuadTo(920f, 620f)
+                quadToRelative(0f, 75f, -52.5f, 127.5f)
+                reflectiveQuadTo(740f, 800f)
+                horizontalLineTo(260f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Foggy weather icon.
+     * Material Symbol: foggy
+     */
+    val WeatherFog: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherFog",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Fog lines
+                // M160-200v-80h640v80H160Z (bottom line)
+                moveTo(160f, 760f)
+                verticalLineToRelative(-80f)
+                horizontalLineToRelative(640f)
+                verticalLineToRelative(80f)
+                horizontalLineTo(160f)
+                close()
+
+                // m0-160v-80h640v80H160Z (middle line)
+                moveTo(160f, 600f)
+                verticalLineToRelative(-80f)
+                horizontalLineToRelative(640f)
+                verticalLineToRelative(80f)
+                horizontalLineTo(160f)
+                close()
+
+                // m0-160v-80h640v80H160Z (top line)
+                moveTo(160f, 440f)
+                verticalLineToRelative(-80f)
+                horizontalLineToRelative(640f)
+                verticalLineToRelative(80f)
+                horizontalLineTo(160f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Rainy weather icon.
+     * Material Symbol: rainy
+     */
+    val WeatherRain: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherRain",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Cloud with rain drops
+                // M558-82 398-242l56-56 160 160-56 56Z (rain drop 1)
+                moveTo(558f, 878f)
+                lineToRelative(-160f, -160f)
+                lineToRelative(56f, -56f)
+                lineToRelative(160f, 160f)
+                close()
+
+                // M368-82 208-242l56-56 160 160-56 56Z (rain drop 2)
+                moveTo(368f, 878f)
+                lineToRelative(-160f, -160f)
+                lineToRelative(56f, -56f)
+                lineToRelative(160f, 160f)
+                close()
+
+                // M748-82 588-242l56-56 160 160-56 56Z (rain drop 3)
+                moveTo(748f, 878f)
+                lineToRelative(-160f, -160f)
+                lineToRelative(56f, -56f)
+                lineToRelative(160f, 160f)
+                close()
+
+                // Cloud shape
+                // M260-360q-91 0-155.5-63T40-577q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-720q69 8 114.5 59.5T920-540q0 75-52.5 127.5T740-360H260Z
+                moveTo(260f, 600f)
+                quadToRelative(-91f, 0f, -155.5f, -63f)
+                reflectiveQuadTo(40f, 383f)
+                quadToRelative(0f, -78f, 47f, -139f)
+                reflectiveQuadToRelative(123f, -78f)
+                quadToRelative(25f, -92f, 100f, -149f)
+                reflectiveQuadToRelative(170f, -57f)
+                quadToRelative(117f, 0f, 198.5f, 81.5f)
+                reflectiveQuadTo(760f, 240f)
+                quadToRelative(69f, 8f, 114.5f, 59.5f)
+                reflectiveQuadTo(920f, 420f)
+                quadToRelative(0f, 75f, -52.5f, 127.5f)
+                reflectiveQuadTo(740f, 600f)
+                horizontalLineTo(260f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Snowy weather icon.
+     * Material Symbol: ac_unit (snowflake)
+     */
+    val WeatherSnow: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherSnow",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Snowflake shape
+                // M440-80v-166L310-116l-56-56 186-186v-82h-82L172-254l-56-56 130-130H80v-80h166L116-650l56-56 186 186h82v-82L254-788l56-56 130 130V-880h80v166l130-130 56 56-186 186v82h82l186-186 56 56-130 130h166v80H714l130 130-56 56-186-186h-82v82l186 186-56 56-130-130v166h-80Z
+                moveTo(440f, 880f)
+                verticalLineToRelative(-166f)
+                lineTo(310f, 844f)
+                lineToRelative(-56f, -56f)
+                lineToRelative(186f, -186f)
+                verticalLineToRelative(-82f)
+                horizontalLineToRelative(-82f)
+                lineTo(172f, 706f)
+                lineToRelative(-56f, -56f)
+                lineToRelative(130f, -130f)
+                horizontalLineTo(80f)
+                verticalLineToRelative(-80f)
+                horizontalLineToRelative(166f)
+                lineTo(116f, 310f)
+                lineToRelative(56f, -56f)
+                lineToRelative(186f, 186f)
+                horizontalLineToRelative(82f)
+                verticalLineToRelative(-82f)
+                lineTo(254f, 172f)
+                lineToRelative(56f, -56f)
+                lineToRelative(130f, 130f)
+                verticalLineTo(80f)
+                horizontalLineToRelative(80f)
+                verticalLineToRelative(166f)
+                lineToRelative(130f, -130f)
+                lineToRelative(56f, 56f)
+                lineToRelative(-186f, 186f)
+                verticalLineToRelative(82f)
+                horizontalLineToRelative(82f)
+                lineToRelative(186f, -186f)
+                lineToRelative(56f, 56f)
+                lineToRelative(-130f, 130f)
+                horizontalLineToRelative(166f)
+                verticalLineToRelative(80f)
+                horizontalLineTo(714f)
+                lineToRelative(130f, 130f)
+                lineToRelative(-56f, 56f)
+                lineToRelative(-186f, -186f)
+                horizontalLineToRelative(-82f)
+                verticalLineToRelative(82f)
+                lineToRelative(186f, 186f)
+                lineToRelative(-56f, 56f)
+                lineToRelative(-130f, -130f)
+                verticalLineToRelative(166f)
+                horizontalLineToRelative(-80f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Thunderstorm weather icon.
+     * Material Symbol: thunderstorm
+     */
+    val WeatherThunderstorm: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherThunderstorm",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Lightning bolt with cloud
+                // M480-80 360-280h120v-200h120L500-280H380l100-200H360L480-80Z (lightning bolt)
+                moveTo(480f, 880f)
+                lineTo(320f, 600f)
+                horizontalLineToRelative(100f)
+                verticalLineToRelative(-120f)
+                horizontalLineToRelative(120f)
+                lineTo(420f, 680f)
+                horizontalLineToRelative(100f)
+                close()
+
+                // Cloud shape above
+                // M260-440q-91 0-155.5-63T40-657q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-800q69 8 114.5 59.5T920-620q0 75-52.5 127.5T740-440H260Z
+                moveTo(260f, 520f)
+                quadToRelative(-91f, 0f, -155.5f, -63f)
+                reflectiveQuadTo(40f, 303f)
+                quadToRelative(0f, -78f, 47f, -139f)
+                reflectiveQuadToRelative(123f, -78f)
+                quadToRelative(25f, -92f, 100f, -149f)
+                reflectiveQuadToRelative(170f, -57f)
+                quadToRelative(117f, 0f, 198.5f, 81.5f)
+                reflectiveQuadTo(760f, 160f)
+                quadToRelative(69f, 8f, 114.5f, 59.5f)
+                reflectiveQuadTo(920f, 340f)
+                quadToRelative(0f, 75f, -52.5f, 127.5f)
+                reflectiveQuadTo(740f, 520f)
+                horizontalLineTo(260f)
+                close()
+            }
+        }.build()
+    }
+
+    /**
+     * Drizzle weather icon (light rain).
+     * Material Symbol: grain (representing light precipitation)
+     */
+    val WeatherDrizzle: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "WeatherDrizzle",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 960f,
+            viewportHeight = 960f
+        ).apply {
+            path(fill = SolidColor(Color.Black)) {
+                // Cloud with light rain drops (simplified)
+                // Cloud shape
+                moveTo(260f, 600f)
+                quadToRelative(-91f, 0f, -155.5f, -63f)
+                reflectiveQuadTo(40f, 383f)
+                quadToRelative(0f, -78f, 47f, -139f)
+                reflectiveQuadToRelative(123f, -78f)
+                quadToRelative(25f, -92f, 100f, -149f)
+                reflectiveQuadToRelative(170f, -57f)
+                quadToRelative(117f, 0f, 198.5f, 81.5f)
+                reflectiveQuadTo(760f, 240f)
+                quadToRelative(69f, 8f, 114.5f, 59.5f)
+                reflectiveQuadTo(920f, 420f)
+                quadToRelative(0f, 75f, -52.5f, 127.5f)
+                reflectiveQuadTo(740f, 600f)
+                horizontalLineTo(260f)
+                close()
+
+                // Rain drops (dots)
+                // Drop 1
+                moveTo(300f, 720f)
+                quadToRelative(-17f, 0f, -28.5f, -11.5f)
+                reflectiveQuadTo(260f, 680f)
+                quadToRelative(0f, -17f, 11.5f, -28.5f)
+                reflectiveQuadTo(300f, 640f)
+                quadToRelative(17f, 0f, 28.5f, 11.5f)
+                reflectiveQuadTo(340f, 680f)
+                quadToRelative(0f, 17f, -11.5f, 28.5f)
+                reflectiveQuadTo(300f, 720f)
+                close()
+
+                // Drop 2
+                moveTo(480f, 800f)
+                quadToRelative(-17f, 0f, -28.5f, -11.5f)
+                reflectiveQuadTo(440f, 760f)
+                quadToRelative(0f, -17f, 11.5f, -28.5f)
+                reflectiveQuadTo(480f, 720f)
+                quadToRelative(17f, 0f, 28.5f, 11.5f)
+                reflectiveQuadTo(520f, 760f)
+                quadToRelative(0f, 17f, -11.5f, 28.5f)
+                reflectiveQuadTo(480f, 800f)
+                close()
+
+                // Drop 3
+                moveTo(660f, 720f)
+                quadToRelative(-17f, 0f, -28.5f, -11.5f)
+                reflectiveQuadTo(620f, 680f)
+                quadToRelative(0f, -17f, 11.5f, -28.5f)
+                reflectiveQuadTo(660f, 640f)
+                quadToRelative(17f, 0f, 28.5f, 11.5f)
+                reflectiveQuadTo(700f, 680f)
+                quadToRelative(0f, 17f, -11.5f, 28.5f)
+                reflectiveQuadTo(660f, 720f)
+                close()
+            }
+        }.build()
+    }
 }

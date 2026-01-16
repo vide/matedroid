@@ -2,6 +2,7 @@ package com.matedroid.di
 
 import android.annotation.SuppressLint
 import com.matedroid.data.api.NominatimApi
+import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.TeslamateApi
 import com.matedroid.data.local.SettingsDataStore
 import com.squareup.moshi.Moshi
@@ -57,6 +58,22 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(NominatimApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOpenMeteoApi(moshi: Moshi): OpenMeteoApi {
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl("https://archive-api.open-meteo.com/")
+            .client(okHttpClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(OpenMeteoApi::class.java)
     }
 }
 

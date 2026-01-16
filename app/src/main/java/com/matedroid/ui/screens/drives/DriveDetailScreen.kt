@@ -70,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.config.Configuration
@@ -143,6 +144,8 @@ fun DriveDetailScreen(
                     stats = uiState.stats,
                     units = uiState.units,
                     routeColor = palette.accent,
+                    weatherPoints = uiState.weatherPoints,
+                    isLoadingWeather = uiState.isLoadingWeather,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -156,6 +159,8 @@ private fun DriveDetailContent(
     stats: DriveDetailStats?,
     units: Units?,
     routeColor: Color,
+    weatherPoints: List<WeatherPoint>,
+    isLoadingWeather: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -257,6 +262,15 @@ private fun DriveDetailContent(
                     ElevationChartCard(positions = detail.positions)
                 }
             }
+        }
+
+        // Weather along the way - shown when loading or has data
+        if (isLoadingWeather || weatherPoints.isNotEmpty()) {
+            WeatherAlongTheWayCard(
+                weatherPoints = weatherPoints,
+                units = units,
+                isLoading = isLoadingWeather
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Drive Details**: Weather Along the Way - shows historical weather conditions along your drive route
+  - Uses Open-Meteo API to fetch historical weather data for points along the route
+  - Displays time, distance from start, weather icon, and temperature in a table
+  - Weather point frequency adapts to drive length:
+    - Under 10 km: shows weather at destination only
+    - Under 30 km: shows weather at start and end
+    - Under 150 km: shows weather every 25 km
+    - Over 150 km: shows weather every 35 km
+  - Weather icons for: Clear, Partly Cloudy, Fog, Drizzle, Rain, Snow, Thunderstorm
+
 ## [0.9.4] - 2026-01-14
 
 ### Fixed
