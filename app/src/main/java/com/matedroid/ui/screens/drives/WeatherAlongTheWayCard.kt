@@ -127,12 +127,14 @@ fun WeatherAlongTheWayCard(
 
                 // Weather data rows
                 weatherPoints.forEachIndexed { index, weatherPoint ->
+                    val isLastPoint = index == weatherPoints.size - 1
                     WeatherTableRow(
                         weatherPoint = weatherPoint,
-                        units = units
+                        units = units,
+                        isLastPoint = isLastPoint
                     )
 
-                    if (index < weatherPoints.size - 1) {
+                    if (!isLastPoint) {
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 6.dp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
@@ -179,7 +181,8 @@ private fun WeatherTableHeader() {
 @Composable
 private fun WeatherTableRow(
     weatherPoint: WeatherPoint,
-    units: Units?
+    units: Units?,
+    isLastPoint: Boolean
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -196,7 +199,7 @@ private fun WeatherTableRow(
 
         // Distance column
         Text(
-            text = formatWeatherDistance(weatherPoint.distanceKm, units),
+            text = formatWeatherDistance(weatherPoint.distanceKm, units, isLastPoint),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center
@@ -272,9 +275,13 @@ private fun getWeatherDescription(condition: WeatherCondition): String {
 
 /**
  * Formats distance for the weather table.
- * Shows "Start" for 0km and formats with appropriate units.
+ * Shows "Start" for 0km, "End" for the last point, and formats with appropriate units otherwise.
  */
-private fun formatWeatherDistance(distanceKm: Double, units: Units?): String {
+private fun formatWeatherDistance(distanceKm: Double, units: Units?, isLastPoint: Boolean): String {
+    if (isLastPoint) {
+        return "End"
+    }
+
     if (distanceKm < 0.1) {
         return "Start"
     }
