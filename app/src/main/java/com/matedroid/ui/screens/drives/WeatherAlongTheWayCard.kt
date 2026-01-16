@@ -205,23 +205,23 @@ private fun WeatherTableRow(
             textAlign = TextAlign.Center
         )
 
-        // Weather column (icon + temperature)
+        // Weather column (temperature + icon)
         Row(
             modifier = Modifier.weight(1.5f),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = UnitFormatter.formatTemperature(weatherPoint.temperatureCelsius, units),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = getWeatherIcon(weatherPoint.weatherCondition),
                 contentDescription = getWeatherDescription(weatherPoint.weatherCondition),
                 modifier = Modifier.size(24.dp),
                 tint = getWeatherIconColor(weatherPoint.weatherCondition)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = UnitFormatter.formatTemperature(weatherPoint.temperatureCelsius, units),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
             )
         }
     }
