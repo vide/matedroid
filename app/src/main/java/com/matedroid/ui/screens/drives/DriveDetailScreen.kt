@@ -1,10 +1,8 @@
 package com.matedroid.ui.screens.drives
 
 import android.content.Intent
-import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import android.net.Uri
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -57,9 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -72,6 +68,7 @@ import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.OptimizedLineChart
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -690,87 +687,15 @@ private fun ChartCard(
                 )
             }
 
-            val convertedData = data.map { convertValue(it) }
-            val minValue = fixedMinMax?.first ?: convertedData.minOrNull() ?: 0f
-            val maxValue = fixedMinMax?.second ?: convertedData.maxOrNull() ?: 1f
-            val range = (maxValue - minValue).coerceAtLeast(1f)
-
-            val surfaceColor = MaterialTheme.colorScheme.onSurface
-            val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            ) {
-                val width = size.width
-                val height = size.height
-                val stepX = width / (convertedData.size - 1).coerceAtLeast(1)
-
-                // Draw grid lines
-                val gridLineCount = 4
-                for (i in 0..gridLineCount) {
-                    val y = height * i / gridLineCount
-                    drawLine(
-                        color = gridColor,
-                        start = Offset(0f, y),
-                        end = Offset(width, y),
-                        strokeWidth = 1f
-                    )
-                }
-
-                // Draw zero line if needed (for power chart)
-                if (showZeroLine && minValue < 0 && maxValue > 0) {
-                    val zeroY = height * (1 - (0f - minValue) / range)
-                    drawLine(
-                        color = surfaceColor.copy(alpha = 0.5f),
-                        start = Offset(0f, zeroY),
-                        end = Offset(width, zeroY),
-                        strokeWidth = 2f
-                    )
-                }
-
-                // Draw the line chart
-                if (convertedData.size >= 2) {
-                    for (i in 0 until convertedData.size - 1) {
-                        val x1 = i * stepX
-                        val x2 = (i + 1) * stepX
-                        val y1 = height * (1 - (convertedData[i] - minValue) / range)
-                        val y2 = height * (1 - (convertedData[i + 1] - minValue) / range)
-
-                        drawLine(
-                            color = color,
-                            start = Offset(x1, y1),
-                            end = Offset(x2, y2),
-                            strokeWidth = 2.5f
-                        )
-                    }
-                }
-
-                // Draw Y-axis labels for all grid lines
-                drawContext.canvas.nativeCanvas.apply {
-                    val textPaint = Paint().apply {
-                        this.color = surfaceColor.copy(alpha = 0.7f).toArgb()
-                        textSize = 26f
-                        isAntiAlias = true
-                    }
-
-                    for (i in 0..gridLineCount) {
-                        val y = height * i / gridLineCount
-                        val value = maxValue - (range * i / gridLineCount)
-                        val label = "%.0f".format(value) + " $unit"
-
-                        // Position the label: top labels below line, bottom labels above line
-                        val textY = when (i) {
-                            0 -> y + textPaint.textSize + 2f
-                            gridLineCount -> y - 4f
-                            else -> y + textPaint.textSize / 3
-                        }
-
-                        drawText(label, 8f, textY, textPaint)
-                    }
-                }
-            }
+            OptimizedLineChart(
+                data = data,
+                color = color,
+                unit = unit,
+                showZeroLine = showZeroLine,
+                fixedMinMax = fixedMinMax,
+                convertValue = convertValue,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

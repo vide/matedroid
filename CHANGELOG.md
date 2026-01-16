@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Drive Details**: Charts now use optimized rendering with data downsampling (LTTB algorithm) for smooth scrolling on long trips
+- **Charge Details**: Charts now use optimized rendering with data downsampling (LTTB algorithm) for smooth scrolling on long charging sessions
+
 ### Added
 - **Drive Details**: Weather Along the Way - shows historical weather conditions along your drive route
   - Uses Open-Meteo API to fetch historical weather data for points along the route

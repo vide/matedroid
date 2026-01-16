@@ -1,9 +1,7 @@
 package com.matedroid.ui.screens.charges
 
 import android.content.Intent
-import android.graphics.Paint
 import android.net.Uri
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,9 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -68,6 +64,7 @@ import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.OptimizedLineChart
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -716,109 +713,16 @@ private fun ChartCard(
                 )
             }
 
-            val convertedData = data.map { convertValue(it) }
-            val minValue = fixedMinMax?.first ?: convertedData.minOrNull() ?: 0f
-            val maxValue = fixedMinMax?.second ?: convertedData.maxOrNull() ?: 1f
-            val range = (maxValue - minValue).coerceAtLeast(1f)
-
-            val surfaceColor = MaterialTheme.colorScheme.onSurface
-            val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-
-            // Chart area height (leaves room for time labels)
-            val chartHeight = 120.dp
-            val timeLabelHeight = if (timeLabels.isNotEmpty()) 20.dp else 0.dp
-
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(chartHeight + timeLabelHeight)
-            ) {
-                val width = size.width
-                val chartHeightPx = chartHeight.toPx()
-                val stepX = width / (convertedData.size - 1).coerceAtLeast(1)
-
-                // Draw grid lines
-                val gridLineCount = 4
-                for (i in 0..gridLineCount) {
-                    val y = chartHeightPx * i / gridLineCount
-                    drawLine(
-                        color = gridColor,
-                        start = Offset(0f, y),
-                        end = Offset(width, y),
-                        strokeWidth = 1f
-                    )
-                }
-
-                // Draw zero line if needed
-                if (showZeroLine && minValue < 0 && maxValue > 0) {
-                    val zeroY = chartHeightPx * (1 - (0f - minValue) / range)
-                    drawLine(
-                        color = surfaceColor.copy(alpha = 0.5f),
-                        start = Offset(0f, zeroY),
-                        end = Offset(width, zeroY),
-                        strokeWidth = 2f
-                    )
-                }
-
-                // Draw the line chart
-                if (convertedData.size >= 2) {
-                    for (i in 0 until convertedData.size - 1) {
-                        val x1 = i * stepX
-                        val x2 = (i + 1) * stepX
-                        val y1 = chartHeightPx * (1 - (convertedData[i] - minValue) / range)
-                        val y2 = chartHeightPx * (1 - (convertedData[i + 1] - minValue) / range)
-
-                        drawLine(
-                            color = color,
-                            start = Offset(x1, y1),
-                            end = Offset(x2, y2),
-                            strokeWidth = 2.5f
-                        )
-                    }
-                }
-
-                // Draw Y-axis labels for all grid lines and time labels
-                drawContext.canvas.nativeCanvas.apply {
-                    val textPaint = Paint().apply {
-                        this.color = surfaceColor.copy(alpha = 0.7f).toArgb()
-                        textSize = 26f
-                        isAntiAlias = true
-                    }
-
-                    for (i in 0..gridLineCount) {
-                        val y = chartHeightPx * i / gridLineCount
-                        val value = maxValue - (range * i / gridLineCount)
-                        val label = "%.0f".format(value) + " $unit"
-
-                        // Position the label: top labels below line, bottom labels above line
-                        val textY = when (i) {
-                            0 -> y + textPaint.textSize + 2f
-                            gridLineCount -> y - 4f
-                            else -> y + textPaint.textSize / 3
-                        }
-
-                        drawText(label, 8f, textY, textPaint)
-                    }
-
-                    // Draw time labels on X axis (4 labels)
-                    if (timeLabels.size == 4) {
-                        val timeY = chartHeightPx + timeLabelHeight.toPx() - 4f
-                        val positions = listOf(0f, width / 3f, width * 2f / 3f, width)
-
-                        timeLabels.forEachIndexed { index, label ->
-                            if (label.isNotEmpty()) {
-                                val textWidth = textPaint.measureText(label)
-                                val x = when (index) {
-                                    0 -> 0f  // Left aligned
-                                    3 -> positions[index] - textWidth  // Right aligned
-                                    else -> positions[index] - textWidth / 2  // Center aligned
-                                }
-                                drawText(label, x.coerceAtLeast(0f), timeY, textPaint)
-                            }
-                        }
-                    }
-                }
-            }
+            OptimizedLineChart(
+                data = data,
+                color = color,
+                unit = unit,
+                showZeroLine = showZeroLine,
+                fixedMinMax = fixedMinMax,
+                timeLabels = timeLabels,
+                convertValue = convertValue,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
