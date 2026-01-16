@@ -252,11 +252,14 @@ private fun DriveDetailContent(
 
             // Charts
             if (!detail.positions.isNullOrEmpty() && detail.positions.size > 2) {
-                SpeedChartCard(positions = detail.positions, units = units)
-                PowerChartCard(positions = detail.positions)
-                BatteryChartCard(positions = detail.positions)
+                // Extract time labels for X axis (5 labels: start, 1st quarter, half, 3rd quarter, end)
+                val timeLabels = extractTimeLabels(detail.positions)
+
+                SpeedChartCard(positions = detail.positions, units = units, timeLabels = timeLabels)
+                PowerChartCard(positions = detail.positions, timeLabels = timeLabels)
+                BatteryChartCard(positions = detail.positions, timeLabels = timeLabels)
                 if (detail.positions.any { it.elevation != null && it.elevation != 0 }) {
-                    ElevationChartCard(positions = detail.positions)
+                    ElevationChartCard(positions = detail.positions, timeLabels = timeLabels)
                 }
             }
         }
@@ -589,7 +592,7 @@ private fun StatItemView(
 }
 
 @Composable
-private fun SpeedChartCard(positions: List<DrivePosition>, units: Units?) {
+private fun SpeedChartCard(positions: List<DrivePosition>, units: Units?, timeLabels: List<String>) {
     val speeds = positions.mapNotNull { it.speed?.toFloat() }
     if (speeds.size < 2) return
 
@@ -599,6 +602,7 @@ private fun SpeedChartCard(positions: List<DrivePosition>, units: Units?) {
         data = speeds,
         color = MaterialTheme.colorScheme.primary,
         unit = UnitFormatter.getSpeedUnit(units),
+        timeLabels = timeLabels,
         convertValue = { value ->
             if (units?.isImperial == true) (value * 0.621371f) else value
         }
@@ -606,7 +610,7 @@ private fun SpeedChartCard(positions: List<DrivePosition>, units: Units?) {
 }
 
 @Composable
-private fun PowerChartCard(positions: List<DrivePosition>) {
+private fun PowerChartCard(positions: List<DrivePosition>, timeLabels: List<String>) {
     val powers = positions.mapNotNull { it.power?.toFloat() }
     if (powers.size < 2) return
 
@@ -616,12 +620,13 @@ private fun PowerChartCard(positions: List<DrivePosition>) {
         data = powers,
         color = MaterialTheme.colorScheme.tertiary,
         unit = "kW",
-        showZeroLine = true
+        showZeroLine = true,
+        timeLabels = timeLabels
     )
 }
 
 @Composable
-private fun BatteryChartCard(positions: List<DrivePosition>) {
+private fun BatteryChartCard(positions: List<DrivePosition>, timeLabels: List<String>) {
     val batteryLevels = positions.mapNotNull { it.batteryLevel?.toFloat() }
     if (batteryLevels.size < 2) return
 
@@ -631,12 +636,13 @@ private fun BatteryChartCard(positions: List<DrivePosition>) {
         data = batteryLevels,
         color = MaterialTheme.colorScheme.secondary,
         unit = "%",
-        fixedMinMax = Pair(0f, 100f)
+        fixedMinMax = Pair(0f, 100f),
+        timeLabels = timeLabels
     )
 }
 
 @Composable
-private fun ElevationChartCard(positions: List<DrivePosition>) {
+private fun ElevationChartCard(positions: List<DrivePosition>, timeLabels: List<String>) {
     val elevations = positions.mapNotNull { it.elevation?.toFloat() }
     if (elevations.size < 2) return
 
@@ -645,7 +651,8 @@ private fun ElevationChartCard(positions: List<DrivePosition>) {
         icon = Icons.Default.Landscape,
         data = elevations,
         color = Color(0xFF8B4513), // Brown color for terrain
-        unit = "m"
+        unit = "m",
+        timeLabels = timeLabels
     )
 }
 
@@ -658,6 +665,7 @@ private fun ChartCard(
     unit: String,
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
+    timeLabels: List<String> = emptyList(),
     convertValue: (Float) -> Float = { it }
 ) {
     Card(
@@ -693,10 +701,44 @@ private fun ChartCard(
                 unit = unit,
                 showZeroLine = showZeroLine,
                 fixedMinMax = fixedMinMax,
+                timeLabels = timeLabels,
                 convertValue = convertValue,
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+/**
+ * Extract 5 time labels from drive positions for X axis display.
+ * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
+ * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
+ */
+private fun extractTimeLabels(positions: List<DrivePosition>): List<String> {
+    if (positions.isEmpty()) return listOf("", "", "", "", "")
+
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val times = positions.mapNotNull { position ->
+        position.date?.let { dateStr ->
+            try {
+                val dateTime = try {
+                    OffsetDateTime.parse(dateStr).toLocalDateTime()
+                } catch (e: DateTimeParseException) {
+                    LocalDateTime.parse(dateStr.replace("Z", ""))
+                }
+                dateTime
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    if (times.isEmpty()) return listOf("", "", "", "", "")
+
+    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
+    return indices.map { idx ->
+        times.getOrNull(idx.coerceIn(0, times.size - 1))?.format(timeFormatter) ?: ""
     }
 }
 

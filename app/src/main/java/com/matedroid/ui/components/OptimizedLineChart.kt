@@ -125,8 +125,8 @@ fun OptimizedLineChart(
             // Draw Y-axis labels
             drawYAxisLabels(surfaceColor, chartData, unit, chartHeightPx)
 
-            // Draw time labels if provided
-            if (timeLabels.size == 4) {
+            // Draw time labels if provided (5 labels: start, 1st quarter, half, 3rd quarter, end)
+            if (timeLabels.size == 5) {
                 drawTimeLabels(surfaceColor, timeLabels, width, chartHeightPx, timeLabelHeightPx)
             }
 
@@ -328,14 +328,16 @@ private fun DrawScope.drawZeroLine(surfaceColor: Color, chartData: ChartData, wi
     )
 }
 
+/**
+ * Draws Y-axis labels at 4 positions: 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+ * Following the chart guidelines from CLAUDE.md
+ */
 private fun DrawScope.drawYAxisLabels(
     surfaceColor: Color,
     chartData: ChartData,
     unit: String,
     height: Float
 ) {
-    val gridLineCount = 4
-
     drawContext.canvas.nativeCanvas.apply {
         val textPaint = Paint().apply {
             color = surfaceColor.copy(alpha = 0.7f).toArgb()
@@ -343,16 +345,20 @@ private fun DrawScope.drawYAxisLabels(
             isAntiAlias = true
         }
 
-        for (i in 0..gridLineCount) {
+        // 4 labels at: 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+        // These correspond to grid lines 1, 2, 3, 4 (skipping 0 which is the top/max)
+        val labelPositions = listOf(1, 2, 3, 4) // Skip position 0 (top)
+        val gridLineCount = 4
+
+        for (i in labelPositions) {
             val y = height * i / gridLineCount
             val value = chartData.maxValue - (chartData.range * i / gridLineCount)
             val label = "%.0f".format(value) + " $unit"
 
-            // Position the label: top labels below line, bottom labels above line
+            // Position the label: bottom label above line, others centered on line
             val textY = when (i) {
-                0 -> y + textPaint.textSize + 2f
-                gridLineCount -> y - 4f
-                else -> y + textPaint.textSize / 3
+                gridLineCount -> y - 4f  // Bottom label above line
+                else -> y + textPaint.textSize / 3  // Others centered
             }
 
             drawText(label, 8f, textY, textPaint)
@@ -360,6 +366,10 @@ private fun DrawScope.drawYAxisLabels(
     }
 }
 
+/**
+ * Draws X-axis time labels at 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+ * Following the chart guidelines from CLAUDE.md
+ */
 private fun DrawScope.drawTimeLabels(
     surfaceColor: Color,
     timeLabels: List<String>,
@@ -375,15 +385,16 @@ private fun DrawScope.drawTimeLabels(
         }
 
         val timeY = chartHeight + timeLabelHeight - 4f
-        val positions = listOf(0f, width / 3f, width * 2f / 3f, width)
+        // 5 positions at 0%, 25%, 50%, 75%, 100%
+        val positions = listOf(0f, width * 0.25f, width * 0.5f, width * 0.75f, width)
 
         timeLabels.forEachIndexed { index, label ->
             if (label.isNotEmpty()) {
                 val textWidth = textPaint.measureText(label)
                 val x = when (index) {
-                    0 -> 0f  // Left aligned
-                    3 -> positions[index] - textWidth  // Right aligned
-                    else -> positions[index] - textWidth / 2  // Center aligned
+                    0 -> 0f  // Left aligned (start)
+                    4 -> positions[index] - textWidth  // Right aligned (end)
+                    else -> positions[index] - textWidth / 2  // Center aligned (quarters)
                 }
                 drawText(label, x.coerceAtLeast(0f), timeY, textPaint)
             }

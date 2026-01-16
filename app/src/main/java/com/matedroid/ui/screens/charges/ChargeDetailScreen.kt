@@ -749,11 +749,12 @@ private fun ChargeTypeBadge(isDcCharge: Boolean) {
 }
 
 /**
- * Extract 4 time labels from charge points for X axis display.
- * Returns list of 4 time strings at 0%, 33%, 67%, and 100% positions.
+ * Extract 5 time labels from charge points for X axis display.
+ * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
+ * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
  */
 private fun extractTimeLabels(chargePoints: List<ChargePoint>): List<String> {
-    if (chargePoints.isEmpty()) return listOf("", "", "", "")
+    if (chargePoints.isEmpty()) return listOf("", "", "", "", "")
 
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val times = chargePoints.mapNotNull { point ->
@@ -771,9 +772,10 @@ private fun extractTimeLabels(chargePoints: List<ChargePoint>): List<String> {
         }
     }
 
-    if (times.isEmpty()) return listOf("", "", "", "")
+    if (times.isEmpty()) return listOf("", "", "", "", "")
 
-    val indices = listOf(0, times.size / 3, times.size * 2 / 3, times.size - 1)
+    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
     return indices.map { idx ->
         times.getOrNull(idx.coerceIn(0, times.size - 1))?.format(timeFormatter) ?: ""
     }
