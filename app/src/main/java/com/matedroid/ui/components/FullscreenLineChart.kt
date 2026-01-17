@@ -24,15 +24,21 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 /**
  * A line chart component with fullscreen capability.
@@ -53,7 +59,7 @@ fun FullscreenLineChart(
 ) {
     if (data.size < 2) return
 
-    var isFullscreen by remember { mutableStateOf(false) }
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val activity = context as? Activity
 
@@ -95,9 +101,9 @@ fun FullscreenLineChart(
         }
     }
 
-    // Fullscreen dialog
+    // Fullscreen overlay
     if (isFullscreen) {
-        FullscreenChartDialog(
+        FullscreenChartOverlay(
             data = data,
             color = color,
             unit = unit,
@@ -112,7 +118,7 @@ fun FullscreenLineChart(
 }
 
 @Composable
-private fun FullscreenChartDialog(
+private fun FullscreenChartOverlay(
     data: List<Float>,
     color: Color,
     unit: String,
@@ -123,15 +129,29 @@ private fun FullscreenChartDialog(
     activity: Activity?,
     onDismiss: () -> Unit
 ) {
-    // Lock orientation to landscape when entering fullscreen
+    val view = LocalView.current
+
+    // Lock orientation to landscape and hide system bars
     DisposableEffect(Unit) {
-        val originalOrientation = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+
+        // Hide system bars on the activity window
+        activity?.window?.let { window ->
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            val controller = WindowInsetsControllerCompat(window, view)
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         onDispose {
-            // Restore original orientation when exiting fullscreen
-            activity?.requestedOrientation = originalOrientation
-                ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            // Restore portrait mode and show system bars
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            activity?.window?.let { window ->
+                WindowCompat.setDecorFitsSystemWindows(window, true)
+                val controller = WindowInsetsControllerCompat(window, view)
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
         }
     }
 
@@ -145,9 +165,33 @@ private fun FullscreenChartDialog(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+            securePolicy = SecureFlagPolicy.Inherit
         )
     ) {
+        // Get the dialog's window and make it truly fullscreen
+        val dialogWindowProvider = LocalView.current.parent as? android.view.ViewGroup
+        DisposableEffect(dialogWindowProvider) {
+            val dialogWindow = dialogWindowProvider?.context as? android.app.Dialog
+            dialogWindow?.window?.let { window ->
+                // Make dialog fullscreen
+                window.setLayout(
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT
+                )
+                window.setBackgroundDrawableResource(android.R.color.transparent)
+
+                // Hide system bars in dialog window too
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                val controller = WindowInsetsControllerCompat(window, window.decorView)
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+            onDispose { }
+        }
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
