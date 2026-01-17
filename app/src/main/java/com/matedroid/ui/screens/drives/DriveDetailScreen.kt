@@ -68,7 +68,7 @@ import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.domain.model.UnitFormatter
-import com.matedroid.ui.components.OptimizedLineChart
+import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -695,7 +695,7 @@ private fun ChartCard(
                 )
             }
 
-            OptimizedLineChart(
+            FullscreenLineChart(
                 data = data,
                 color = color,
                 unit = unit,

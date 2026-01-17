@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Charge Details**: Charts Y-axis now shows 4 labels at quarter intervals (25%, 50%, 75%, 100%)
 
 ### Added
+- **Drive Details & Charge Details**: Fullscreen mode for line charts
+  - Small fullscreen icon in the lower-right corner of each chart
+  - Tap to expand chart to fullscreen in landscape orientation
+  - Back arrow button in top-left corner to exit fullscreen
+  - Chart automatically scales to fill available screen space
 - **Drive Details**: Weather Along the Way - shows historical weather conditions along your drive route
   - Uses Open-Meteo API to fetch historical weather data for points along the route
   - Displays time, distance from start, weather icon, and temperature in a table

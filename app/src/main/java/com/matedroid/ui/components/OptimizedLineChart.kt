@@ -51,7 +51,8 @@ fun OptimizedLineChart(
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
-    convertValue: (Float) -> Float = { it }
+    convertValue: (Float) -> Float = { it },
+    chartHeight: androidx.compose.ui.unit.Dp = 120.dp
 ) {
     if (data.size < 2) return
 
@@ -67,7 +68,7 @@ fun OptimizedLineChart(
     var selectedPoint by remember { mutableStateOf<SelectedPoint?>(null) }
 
     // Calculate heights
-    val chartHeightDp = 120.dp
+    val chartHeightDp = chartHeight
     val timeLabelHeightDp = if (timeLabels.isNotEmpty()) 20.dp else 0.dp
     val totalHeightDp = chartHeightDp + timeLabelHeightDp
 
