@@ -100,13 +100,13 @@ Without secrets, the APK is signed with a debug keystore (fine for sideloading, 
 
 #### Makefile Targets
 
-| Target | Description |
-|--------|-------------|
-| `make build` | Build debug APK |
+| Target         | Description                                     |
+|----------------|-------------------------------------------------|
+| `make build`   | Build debug APK                                 |
 | `make install` | Build and install debug APK on connected device |
-| `make run` | Build, install, and launch the app |
-| `make clean` | Clean build artifacts |
-| `make test` | Run unit tests |
+| `make run`     | Build, install, and launch the app              |
+| `make clean`   | Clean build artifacts                           |
+| `make test`    | Run unit tests                                  |
 
 Or use Android Studio:
 1. Open the project folder

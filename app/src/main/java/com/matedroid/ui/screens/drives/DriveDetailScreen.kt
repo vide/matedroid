@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -517,6 +518,16 @@ private fun StatsSectionCard(
     icon: ImageVector,
     stats: List<StatItem>
 ) {
+    // 1. Calculamos el ancho de la pantalla para determinar las columnas
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+
+    val columnCount = when {
+        screenWidth > 600 -> 4 // Tablets o modo horizontal
+        screenWidth > 340 -> 3 // Móviles estándar
+        else -> 2              // Móviles muy estrechos
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -544,8 +555,8 @@ private fun StatsSectionCard(
                 )
             }
 
-            // Stats grid - 2 or more columns
-            val chunked = stats.chunked(2)
+            // 2. Usamos el nuevo columnCount para agrupar los elementos
+            val chunked = stats.chunked(columnCount)
             chunked.forEachIndexed { index, row ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -558,9 +569,13 @@ private fun StatsSectionCard(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    // Fill empty space if odd number
-                    if (row.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
+
+                    // 3. Rellenamos huecos vacíos para mantener el alineado
+                    val emptySlots = columnCount - row.size
+                    if (emptySlots > 0) {
+                        repeat(emptySlots) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
                 if (index < chunked.size - 1) {
