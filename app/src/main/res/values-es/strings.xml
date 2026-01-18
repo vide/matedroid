@@ -686,4 +686,65 @@
 
     <!-- Content description for info button explaining calculation -->
     <string name="info_about_calculation">Info sobre el cálculo</string>
+
+    <!-- ==================== Software Versions Screen ==================== -->
+    <!-- Top bar title for software updates screen -->
+    <string name="software_title">Versiones de Software</string>
+
+    <!-- Date filter: last 6 months -->
+    <string name="filter_last_6_months">Últimos 6 meses</string>
+
+    <!-- Section header for update history list -->
+    <string name="software_update_history">Historial de Actualizaciones</string>
+
+    <!-- Empty state when no software updates found -->
+    <string name="software_no_updates">No se encontraron actualizaciones de software</string>
+
+    <!-- Overview card title -->
+    <string name="software_overview">Resumen</string>
+
+    <!-- Label for total number of updates -->
+    <string name="software_total_updates">Actualizaciones Totales</string>
+
+    <!-- Label for average interval between updates -->
+    <string name="software_avg_interval">Intervalo Medio</string>
+
+    <!-- Format for average interval in days. %d is the number of days -->
+    <string name="format_interval_days">%d días</string>
+
+    <!-- Label for newest software version -->
+    <string name="software_newest">Más Reciente</string>
+
+    <!-- Label for oldest software version -->
+    <string name="software_oldest">Más Antiguo</string>
+
+    <!-- Chart title: updates grouped by month -->
+    <string name="software_updates_per_month">Actualizaciones por Mes</string>
+
+    <!-- Tooltip format for chart. %d is the count -->
+    <string name="format_updates_count">%d actualizaciones</string>
+
+    <!-- Format for single update in chart -->
+    <string name="format_updates_decimal">%.0f actualizaciones</string>
+
+    <!-- Content description for release notes link -->
+    <string name="software_view_release_notes">Ver notas de la versión</string>
+
+    <!-- Badge label for current installed version -->
+    <string name="software_current_version">Versión actual</string>
+
+    <!-- Content description for longest installed badge icon -->
+    <string name="software_longest_installed">Instalado más tiempo</string>
+
+    <!-- Badge label for version installed for longest time -->
+    <string name="software_longest">Más largo</string>
+
+    <!-- Label for installation date of software -->
+    <string name="software_installed">Instalado</string>
+
+    <!-- Label for number of days a version was installed -->
+    <string name="software_days">Días</string>
+
+    <!-- Label for update installation duration -->
+    <string name="software_duration">Duración</string>
 </resources>

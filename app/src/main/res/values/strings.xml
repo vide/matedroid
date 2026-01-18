@@ -686,4 +686,65 @@
 
     <!-- Content description for info button explaining calculation -->
     <string name="info_about_calculation">Info about calculation</string>
+
+    <!-- ==================== Software Versions Screen ==================== -->
+    <!-- Top bar title for software updates screen -->
+    <string name="software_title">Software Versions</string>
+
+    <!-- Date filter: last 6 months -->
+    <string name="filter_last_6_months">Last 6 months</string>
+
+    <!-- Section header for update history list -->
+    <string name="software_update_history">Update History</string>
+
+    <!-- Empty state when no software updates found -->
+    <string name="software_no_updates">No software updates found</string>
+
+    <!-- Overview card title -->
+    <string name="software_overview">Overview</string>
+
+    <!-- Label for total number of updates -->
+    <string name="software_total_updates">Total Updates</string>
+
+    <!-- Label for average interval between updates -->
+    <string name="software_avg_interval">Avg. Interval</string>
+
+    <!-- Format for average interval in days. %d is the number of days -->
+    <string name="format_interval_days">%d days</string>
+
+    <!-- Label for newest software version -->
+    <string name="software_newest">Newest</string>
+
+    <!-- Label for oldest software version -->
+    <string name="software_oldest">Oldest</string>
+
+    <!-- Chart title: updates grouped by month -->
+    <string name="software_updates_per_month">Updates per Month</string>
+
+    <!-- Tooltip format for chart. %d is the count -->
+    <string name="format_updates_count">%d updates</string>
+
+    <!-- Format for single update in chart -->
+    <string name="format_updates_decimal">%.0f updates</string>
+
+    <!-- Content description for release notes link -->
+    <string name="software_view_release_notes">View release notes</string>
+
+    <!-- Badge label for current installed version -->
+    <string name="software_current_version">Current version</string>
+
+    <!-- Content description for longest installed badge icon -->
+    <string name="software_longest_installed">Longest installed</string>
+
+    <!-- Badge label for version installed for longest time -->
+    <string name="software_longest">Longest</string>
+
+    <!-- Label for installation date of software -->
+    <string name="software_installed">Installed</string>
+
+    <!-- Label for number of days a version was installed -->
+    <string name="software_days">Days</string>
+
+    <!-- Label for update installation duration -->
+    <string name="software_duration">Duration</string>
 </resources>

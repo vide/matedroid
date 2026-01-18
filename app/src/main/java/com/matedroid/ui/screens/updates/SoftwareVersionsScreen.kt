@@ -51,9 +51,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.theme.CarColorPalette
@@ -61,10 +63,19 @@ import com.matedroid.ui.theme.CarColorPalettes
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
-enum class UpdatesDateFilter(val label: String, val months: Int?) {
-    LAST_6_MONTHS("Last 6 months", 6),
-    LAST_YEAR("Last year", 12),
-    ALL_TIME("All time", null)
+enum class UpdatesDateFilter(val months: Int?) {
+    LAST_6_MONTHS(6),
+    LAST_YEAR(12),
+    ALL_TIME(null)
+}
+
+@Composable
+private fun getFilterLabel(filter: UpdatesDateFilter): String {
+    return when (filter) {
+        UpdatesDateFilter.LAST_6_MONTHS -> stringResource(R.string.filter_last_6_months)
+        UpdatesDateFilter.LAST_YEAR -> stringResource(R.string.filter_last_year)
+        UpdatesDateFilter.ALL_TIME -> stringResource(R.string.filter_all_time)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,12 +111,12 @@ fun SoftwareVersionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Software Versions") },
+                title = { Text(stringResource(R.string.software_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -183,7 +194,7 @@ private fun SoftwareVersionsContent(
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Update History",
+                text = stringResource(R.string.software_update_history),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -204,7 +215,7 @@ private fun SoftwareVersionsContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No software updates found",
+                            text = stringResource(R.string.software_no_updates),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -247,7 +258,7 @@ private fun OverviewCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Overview",
+                    text = stringResource(R.string.software_overview),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -261,13 +272,13 @@ private fun OverviewCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 StatItem(
-                    label = "Total Updates",
+                    label = stringResource(R.string.software_total_updates),
                     value = stats.totalUpdates.toString(),
                     palette = palette
                 )
                 StatItem(
-                    label = "Avg. Interval",
-                    value = "${stats.meanDaysBetweenUpdates.roundToInt()} days",
+                    label = stringResource(R.string.software_avg_interval),
+                    value = stringResource(R.string.format_interval_days, stats.meanDaysBetweenUpdates.roundToInt()),
                     palette = palette
                 )
             }
@@ -282,7 +293,7 @@ private fun OverviewCard(
             ) {
                 Column {
                     Text(
-                        text = "Newest",
+                        text = stringResource(R.string.software_newest),
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant
                     )
@@ -295,7 +306,7 @@ private fun OverviewCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Oldest",
+                        text = stringResource(R.string.software_oldest),
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant
                     )
@@ -337,6 +348,10 @@ private fun MonthlyUpdatesChart(
     monthlyData: List<MonthlyUpdateCount>,
     palette: CarColorPalette
 ) {
+    // Pre-compute localized format strings
+    val updatesFormat = stringResource(R.string.format_updates_count)
+    val updatesDecimalFormat = stringResource(R.string.format_updates_decimal)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -357,7 +372,7 @@ private fun MonthlyUpdatesChart(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Updates per Month",
+                    text = stringResource(R.string.software_updates_per_month),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -369,7 +384,7 @@ private fun MonthlyUpdatesChart(
                 BarChartData(
                     label = data.yearMonth.format(DateTimeFormatter.ofPattern("MMM")),
                     value = data.count.toDouble(),
-                    displayValue = "${data.count} updates"
+                    displayValue = updatesFormat.format(data.count)
                 )
             }
 
@@ -379,7 +394,7 @@ private fun MonthlyUpdatesChart(
                 barColor = palette.accent,
                 labelColor = palette.onSurfaceVariant,
                 showEveryNthLabel = if (chartData.size > 6) 3 else 1,
-                valueFormatter = { "%.0f updates".format(it) }
+                valueFormatter = { updatesDecimalFormat.format(it) }
             )
         }
     }
@@ -398,7 +413,7 @@ private fun DateFilterChips(
             FilterChip(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label) },
+                label = { Text(getFilterLabel(filter)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
@@ -417,6 +432,7 @@ private fun SoftwareVersionCard(
     val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
     val uriHandler = LocalUriHandler.current
     val releaseNotesUrl = "https://www.notateslaapp.com/software-updates/version/${update.version}/release-notes"
+    val unknownLabel = stringResource(R.string.unknown)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -464,7 +480,7 @@ private fun SoftwareVersionCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = "View release notes",
+                                    contentDescription = stringResource(R.string.software_view_release_notes),
                                     modifier = Modifier.size(16.dp),
                                     tint = if (update.isCurrent) palette.accent.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                 )
@@ -472,7 +488,7 @@ private fun SoftwareVersionCard(
                         }
                         if (update.isCurrent) {
                             Text(
-                                text = "Current version",
+                                text = stringResource(R.string.software_current_version),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = palette.accent
                             )
@@ -492,13 +508,13 @@ private fun SoftwareVersionCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = "Longest installed",
+                                contentDescription = stringResource(R.string.software_longest_installed),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Longest",
+                                text = stringResource(R.string.software_longest),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -517,12 +533,12 @@ private fun SoftwareVersionCard(
                 // Install date
                 Column {
                     Text(
-                        text = "Installed",
+                        text = stringResource(R.string.software_installed),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (update.isCurrent) palette.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = update.installDate?.format(dateFormatter) ?: "Unknown",
+                        text = update.installDate?.format(dateFormatter) ?: unknownLabel,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = if (update.isCurrent) palette.onSurface else MaterialTheme.colorScheme.onSurface
@@ -540,7 +556,7 @@ private fun SoftwareVersionCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Days",
+                            text = stringResource(R.string.software_days),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (update.isCurrent) palette.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -564,7 +580,7 @@ private fun SoftwareVersionCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Duration",
+                            text = stringResource(R.string.software_duration),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (update.isCurrent) palette.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                         )

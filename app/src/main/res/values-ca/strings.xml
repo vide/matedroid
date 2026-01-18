@@ -686,4 +686,65 @@
 
     <!-- Content description for info button explaining calculation -->
     <string name="info_about_calculation">Info sobre el càlcul</string>
+
+    <!-- ==================== Software Versions Screen ==================== -->
+    <!-- Top bar title for software updates screen -->
+    <string name="software_title">Versions de Programari</string>
+
+    <!-- Date filter: last 6 months -->
+    <string name="filter_last_6_months">Últims 6 mesos</string>
+
+    <!-- Section header for update history list -->
+    <string name="software_update_history">Historial d\'Actualitzacions</string>
+
+    <!-- Empty state when no software updates found -->
+    <string name="software_no_updates">No s\'han trobat actualitzacions de programari</string>
+
+    <!-- Overview card title -->
+    <string name="software_overview">Resum</string>
+
+    <!-- Label for total number of updates -->
+    <string name="software_total_updates">Actualitzacions Totals</string>
+
+    <!-- Label for average interval between updates -->
+    <string name="software_avg_interval">Interval Mitjà</string>
+
+    <!-- Format for average interval in days. %d is the number of days -->
+    <string name="format_interval_days">%d dies</string>
+
+    <!-- Label for newest software version -->
+    <string name="software_newest">Més Recent</string>
+
+    <!-- Label for oldest software version -->
+    <string name="software_oldest">Més Antic</string>
+
+    <!-- Chart title: updates grouped by month -->
+    <string name="software_updates_per_month">Actualitzacions per Mes</string>
+
+    <!-- Tooltip format for chart. %d is the count -->
+    <string name="format_updates_count">%d actualitzacions</string>
+
+    <!-- Format for single update in chart -->
+    <string name="format_updates_decimal">%.0f actualitzacions</string>
+
+    <!-- Content description for release notes link -->
+    <string name="software_view_release_notes">Veure notes de la versió</string>
+
+    <!-- Badge label for current installed version -->
+    <string name="software_current_version">Versió actual</string>
+
+    <!-- Content description for longest installed badge icon -->
+    <string name="software_longest_installed">Instal·lat més temps</string>
+
+    <!-- Badge label for version installed for longest time -->
+    <string name="software_longest">Més llarg</string>
+
+    <!-- Label for installation date of software -->
+    <string name="software_installed">Instal·lat</string>
+
+    <!-- Label for number of days a version was installed -->
+    <string name="software_days">Dies</string>
+
+    <!-- Label for update installation duration -->
+    <string name="software_duration">Durada</string>
 </resources>
