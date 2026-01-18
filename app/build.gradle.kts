@@ -96,6 +96,12 @@ android {
         htmlReport = true
         xmlReport = true
     }
+
+    testOptions {
+        unitTests.all {
+            it.jvmArgs("-Xmx1024m")
+        }
+    }
 }
 
 dependencies {
