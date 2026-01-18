@@ -637,4 +637,53 @@
 
     <!-- Content description for arrow to view drive details -->
     <string name="view_drive">Vedi viaggio</string>
+
+    <!-- ==================== Mileage Screen ==================== -->
+    <!-- Top bar title for mileage screen -->
+    <string name="mileage_title">Chilometraggio</string>
+
+    <!-- Empty state when no drive data is available -->
+    <string name="mileage_no_data">Nessun dato di viaggio disponibile</string>
+
+    <!-- Empty state when no drive data for a specific year. %d is the year -->
+    <string name="mileage_no_data_year">Nessun dato di viaggio per il %d</string>
+
+    <!-- Chart title: mileage grouped by year -->
+    <string name="mileage_by_year">Chilometraggio per Anno</string>
+
+    <!-- Chart title: mileage grouped by month -->
+    <string name="mileage_by_month">Chilometraggio per Mese</string>
+
+    <!-- Chart title: mileage grouped by day -->
+    <string name="mileage_by_day">Chilometraggio per Giorno</string>
+
+    <!-- Format for number of days with data. %d is the count -->
+    <string name="format_days_count">%d giorni</string>
+
+    <!-- Section header for recent trips list -->
+    <string name="mileage_recent_trips">Viaggi recenti</string>
+
+    <!-- Section header for drives list in day detail -->
+    <string name="mileage_drives">Viaggi</string>
+
+    <!-- Summary label: Total distance -->
+    <string name="mileage_total">Totale</string>
+
+    <!-- Summary label: average per year -->
+    <string name="mileage_avg_year">Media/Anno</string>
+
+    <!-- Summary label: average per month -->
+    <string name="mileage_avg_month">Media/Mese</string>
+
+    <!-- Summary label: number of drives -->
+    <string name="mileage_drive_count">N° di viaggi</string>
+
+    <!-- Info dialog title for average per year calculation -->
+    <string name="mileage_avg_year_title">Media Annuale</string>
+
+    <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
+    <string name="mileage_avg_year_message">Basato sulla tua media giornaliera dal primo viaggio registrato il %1$s (%2$d giorni fa).\n\nCalcolo: distanza totale ÷ giorni × 365</string>
+
+    <!-- Content description for info button explaining calculation -->
+    <string name="info_about_calculation">Info sul calcolo</string>
 </resources>

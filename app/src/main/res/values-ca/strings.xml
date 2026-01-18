@@ -637,4 +637,53 @@
 
     <!-- Content description for arrow to view drive details -->
     <string name="view_drive">Veure viatge</string>
+
+    <!-- ==================== Mileage Screen ==================== -->
+    <!-- Top bar title for mileage screen -->
+    <string name="mileage_title">Quilometratge</string>
+
+    <!-- Empty state when no drive data is available -->
+    <string name="mileage_no_data">No hi ha dades de viatges disponibles</string>
+
+    <!-- Empty state when no drive data for a specific year. %d is the year -->
+    <string name="mileage_no_data_year">No hi ha dades de viatges per al %d</string>
+
+    <!-- Chart title: mileage grouped by year -->
+    <string name="mileage_by_year">Quilometratge per Any</string>
+
+    <!-- Chart title: mileage grouped by month -->
+    <string name="mileage_by_month">Quilometratge per Mes</string>
+
+    <!-- Chart title: mileage grouped by day -->
+    <string name="mileage_by_day">Quilometratge per Dia</string>
+
+    <!-- Format for number of days with data. %d is the count -->
+    <string name="format_days_count">%d dies</string>
+
+    <!-- Section header for recent trips list -->
+    <string name="mileage_recent_trips">Viatges recents</string>
+
+    <!-- Section header for drives list in day detail -->
+    <string name="mileage_drives">Viatges</string>
+
+    <!-- Summary label: Total distance -->
+    <string name="mileage_total">Total</string>
+
+    <!-- Summary label: average per year -->
+    <string name="mileage_avg_year">Mitjana/Any</string>
+
+    <!-- Summary label: average per month -->
+    <string name="mileage_avg_month">Mitjana/Mes</string>
+
+    <!-- Summary label: number of drives -->
+    <string name="mileage_drive_count">N° de viatges</string>
+
+    <!-- Info dialog title for average per year calculation -->
+    <string name="mileage_avg_year_title">Mitjana Anual</string>
+
+    <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
+    <string name="mileage_avg_year_message">Basat en la teva mitjana diària des del primer viatge registrat el %1$s (fa %2$d dies).\n\nCàlcul: distància total ÷ dies × 365</string>
+
+    <!-- Content description for info button explaining calculation -->
+    <string name="info_about_calculation">Info sobre el càlcul</string>
 </resources>

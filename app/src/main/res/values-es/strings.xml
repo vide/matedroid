@@ -637,4 +637,53 @@
 
     <!-- Content description for arrow to view drive details -->
     <string name="view_drive">Ver viaje</string>
+
+    <!-- ==================== Mileage Screen ==================== -->
+    <!-- Top bar title for mileage screen -->
+    <string name="mileage_title">Kilometraje</string>
+
+    <!-- Empty state when no drive data is available -->
+    <string name="mileage_no_data">No hay datos de viajes disponibles</string>
+
+    <!-- Empty state when no drive data for a specific year. %d is the year -->
+    <string name="mileage_no_data_year">No hay datos de viajes para %d</string>
+
+    <!-- Chart title: mileage grouped by year -->
+    <string name="mileage_by_year">Kilometraje por Año</string>
+
+    <!-- Chart title: mileage grouped by month -->
+    <string name="mileage_by_month">Kilometraje por Mes</string>
+
+    <!-- Chart title: mileage grouped by day -->
+    <string name="mileage_by_day">Kilometraje por Día</string>
+
+    <!-- Format for number of days with data. %d is the count -->
+    <string name="format_days_count">%d días</string>
+
+    <!-- Section header for recent trips list -->
+    <string name="mileage_recent_trips">Viajes recientes</string>
+
+    <!-- Section header for drives list in day detail -->
+    <string name="mileage_drives">Viajes</string>
+
+    <!-- Summary label: Total distance -->
+    <string name="mileage_total">Total</string>
+
+    <!-- Summary label: average per year -->
+    <string name="mileage_avg_year">Media/Año</string>
+
+    <!-- Summary label: average per month -->
+    <string name="mileage_avg_month">Media/Mes</string>
+
+    <!-- Summary label: number of drives -->
+    <string name="mileage_drive_count">N° de viajes</string>
+
+    <!-- Info dialog title for average per year calculation -->
+    <string name="mileage_avg_year_title">Media Anual</string>
+
+    <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
+    <string name="mileage_avg_year_message">Basado en tu media diaria desde tu primer viaje registrado el %1$s (hace %2$d días).\n\nCálculo: distancia total ÷ días × 365</string>
+
+    <!-- Content description for info button explaining calculation -->
+    <string name="info_about_calculation">Info sobre el cálculo</string>
 </resources>

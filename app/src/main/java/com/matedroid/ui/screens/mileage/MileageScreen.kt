@@ -57,10 +57,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.theme.CarColorPalette
@@ -116,10 +118,10 @@ fun MileageScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Mileage") },
+                    title = { Text(stringResource(R.string.mileage_title)) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -232,7 +234,7 @@ private fun YearOverviewContent(
             SummaryRow(
                 totalDistance = uiState.totalLifetimeDistance,
                 avgDistance = uiState.avgYearlyDistance,
-                avgLabel = "Avg/Year",
+                avgLabel = stringResource(R.string.mileage_avg_year),
                 driveCount = uiState.totalLifetimeDriveCount,
                 palette = palette,
                 firstDriveDate = uiState.firstDriveDate
@@ -264,7 +266,7 @@ private fun YearOverviewContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No drive data available",
+                        text = stringResource(R.string.mileage_no_data),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -292,7 +294,7 @@ private fun YearlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarColo
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mileage by Year",
+                    text = stringResource(R.string.mileage_by_year),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -381,7 +383,7 @@ private fun YearRow(
 
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "View details",
+                    contentDescription = stringResource(R.string.view_details),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
@@ -410,7 +412,7 @@ private fun YearDetailScreen(
                 title = { Text(year.toString()) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -431,7 +433,7 @@ private fun YearDetailScreen(
                 SummaryRow(
                     totalDistance = uiState.yearTotalDistance,
                     avgDistance = uiState.avgMonthlyDistance,
-                    avgLabel = "Avg/Month",
+                    avgLabel = stringResource(R.string.mileage_avg_month),
                     driveCount = uiState.yearDriveCount,
                     palette = palette
                 )
@@ -460,7 +462,7 @@ private fun YearDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No drive data for $year",
+                            text = stringResource(R.string.mileage_no_data_year, year),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -489,7 +491,7 @@ private fun MonthlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarCol
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Mileage by Month",
+                    text = stringResource(R.string.mileage_by_month),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -585,7 +587,7 @@ private fun MonthRow(
 
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "View details",
+                    contentDescription = stringResource(R.string.view_details),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
@@ -617,7 +619,7 @@ private fun MonthDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -657,7 +659,7 @@ private fun MonthDetailScreen(
             if (dailyData.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Recent trips",
+                        text = stringResource(R.string.mileage_recent_trips),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -793,24 +795,26 @@ private fun SummaryRow(
 
     var showAvgInfoDialog by remember { mutableStateOf(false) }
 
+    // Pre-compute localized strings for dialog
+    val avgYearTitle = stringResource(R.string.mileage_avg_year_title)
+    val okText = stringResource(R.string.ok)
+
     // Info dialog explaining the avg/year calculation
     if (showAvgInfoDialog && firstDriveDate != null) {
         val dateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
         val formattedDate = firstDriveDate.format(dateFormatter)
-        val daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now())
+        val daysSinceFirst = java.time.temporal.ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now()).toInt()
+        val dialogMessage = stringResource(R.string.mileage_avg_year_message, formattedDate, daysSinceFirst)
 
         AlertDialog(
             onDismissRequest = { showAvgInfoDialog = false },
-            title = { Text("Average per Year") },
+            title = { Text(avgYearTitle) },
             text = {
-                Text(
-                    "Based on your average daily driving since your first recorded drive on $formattedDate ($daysSinceFirst days ago).\n\n" +
-                    "Calculation: total distance ÷ days × 365"
-                )
+                Text(dialogMessage)
             },
             confirmButton = {
                 TextButton(onClick = { showAvgInfoDialog = false }) {
-                    Text("OK")
+                    Text(okText)
                 }
             }
         )
@@ -829,7 +833,7 @@ private fun SummaryRow(
             SummaryItem(
                 icon = Icons.Outlined.AllInclusive,
                 value = "%.0f km".format(totalDistance),
-                label = "Total",
+                label = stringResource(R.string.mileage_total),
                 iconColor = iconColor,
                 valueColor = valueColor,
                 labelColor = labelColor
@@ -847,7 +851,7 @@ private fun SummaryRow(
             SummaryItem(
                 icon = Icons.Filled.DirectionsCar,
                 value = driveCount.toString(),
-                label = "# of drives",
+                label = stringResource(R.string.mileage_drive_count),
                 iconColor = iconColor,
                 valueColor = valueColor,
                 labelColor = labelColor
@@ -925,7 +929,7 @@ private fun SummaryItemWithInfo(
                 Spacer(modifier = Modifier.width(2.dp))
                 Icon(
                     imageVector = Icons.Outlined.Info,
-                    contentDescription = "Info about calculation",
+                    contentDescription = stringResource(R.string.info_about_calculation),
                     tint = labelColor,
                     modifier = Modifier.size(12.dp)
                 )
@@ -1016,14 +1020,14 @@ private fun DailyChartCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Mileage by Day",
+                        text = stringResource(R.string.mileage_by_day),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = palette.onSurface
                     )
                 }
                 Text(
-                    text = "$daysWithData days",
+                    text = stringResource(R.string.format_days_count, daysWithData),
                     style = MaterialTheme.typography.labelMedium,
                     color = palette.onSurfaceVariant
                 )
@@ -1160,7 +1164,7 @@ private fun DayTripRow(
             // Arrow indicator
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "View details",
+                contentDescription = stringResource(R.string.view_details),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
@@ -1193,7 +1197,7 @@ private fun DayDetailScreen(
                 title = { Text(dayOfWeek) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1222,7 +1226,7 @@ private fun DayDetailScreen(
             if (dayData.drives.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Drives",
+                        text = stringResource(R.string.mileage_drives),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -1423,7 +1427,7 @@ private fun DriveRow(
             // Arrow indicator
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "View details",
+                contentDescription = stringResource(R.string.view_details),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
