@@ -841,24 +841,11 @@ private fun StatusIndicatorsRow(
         if (isAsleep) {
             val sleepDuration = formatDurationSince(status.stateSince)
             if (sleepDuration != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Bedtime,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = palette.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = sleepDuration,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = sleepDuration,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant
+                )
             }
         }
     }
