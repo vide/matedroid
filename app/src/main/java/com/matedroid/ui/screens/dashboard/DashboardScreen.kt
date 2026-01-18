@@ -87,7 +87,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
@@ -642,7 +644,8 @@ private fun StatusIcon(
     modifier: Modifier = Modifier,
     iconSize: Int = 18
 ) {
-    val tooltipState = rememberTooltipState()
+    val tooltipState = rememberTooltipState(isPersistent = true)
+    val scope = rememberCoroutineScope()
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         tooltip = {
@@ -655,7 +658,9 @@ private fun StatusIcon(
         Icon(
             imageVector = icon,
             contentDescription = tooltipText,
-            modifier = modifier.size(iconSize.dp),
+            modifier = modifier
+                .size(iconSize.dp)
+                .clickable { scope.launch { tooltipState.show() } },
             tint = tint
         )
     }
@@ -700,7 +705,8 @@ private fun StatusIndicatorsRow(
 
             // Sentry mode red dot (if active)
             if (isSentryModeActive) {
-                val sentryTooltipState = rememberTooltipState()
+                val sentryTooltipState = rememberTooltipState(isPersistent = true)
+                val scope = rememberCoroutineScope()
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                     tooltip = {
@@ -714,6 +720,7 @@ private fun StatusIndicatorsRow(
                         modifier = Modifier
                             .size(12.dp)
                             .background(StatusError, RoundedCornerShape(6.dp))
+                            .clickable { scope.launch { sentryTooltipState.show() } }
                     )
                 }
             }
