@@ -253,4 +253,52 @@
     <string name="chart_speed_per_day">Velocidad máx por día</string>
     <string name="chart_speed_per_week">Velocidad máx por semana</string>
     <string name="chart_speed_per_month">Velocidad máx por mes</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Detalles del viaje</string>
+
+    <!-- Route card labels -->
+    <string name="from">Desde</string>
+    <string name="to">Hasta</string>
+    <string name="unknown_location">Ubicación desconocida</string>
+    <string name="started">Inicio</string>
+    <string name="ended">Fin</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Duración: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Mapa de ruta</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Velocidad</string>
+    <string name="trip">Viaje</string>
+    <string name="power">Potencia</string>
+    <string name="temperature">Temperatura</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Máxima</string>
+    <string name="minimum">Mínima</string>
+    <string name="average">Media</string>
+    <string name="avg_distance">Media (distancia)</string>
+    <string name="efficiency">Eficiencia</string>
+    <string name="start">Inicio</string>
+    <string name="end">Fin</string>
+    <string name="used">Usada</string>
+    <string name="energy">Energía</string>
+    <string name="max_accel">Máx (accel)</string>
+    <string name="min_regen">Mín (regen)</string>
+    <string name="gain">Ganancia</string>
+    <string name="loss">Pérdida</string>
+    <string name="outside">Exterior</string>
+    <string name="inside">Interior</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Perfil de velocidad</string>
+    <string name="power_profile">Perfil de potencia</string>
+    <string name="battery_level">Nivel de batería</string>
+    <string name="elevation_profile">Perfil de altitud</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Clima en el trayecto</string>
 </resources>

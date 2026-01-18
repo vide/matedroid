@@ -253,4 +253,52 @@
     <string name="chart_speed_per_day">Velocità max al giorno</string>
     <string name="chart_speed_per_week">Velocità max a settimana</string>
     <string name="chart_speed_per_month">Velocità max al mese</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Dettagli viaggio</string>
+
+    <!-- Route card labels -->
+    <string name="from">Da</string>
+    <string name="to">A</string>
+    <string name="unknown_location">Posizione sconosciuta</string>
+    <string name="started">Inizio</string>
+    <string name="ended">Fine</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Durata: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Mappa percorso</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Velocità</string>
+    <string name="trip">Viaggio</string>
+    <string name="power">Potenza</string>
+    <string name="temperature">Temperatura</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Massima</string>
+    <string name="minimum">Minima</string>
+    <string name="average">Media</string>
+    <string name="avg_distance">Media (distanza)</string>
+    <string name="efficiency">Efficienza</string>
+    <string name="start">Inizio</string>
+    <string name="end">Fine</string>
+    <string name="used">Usata</string>
+    <string name="energy">Energia</string>
+    <string name="max_accel">Max (accel)</string>
+    <string name="min_regen">Min (regen)</string>
+    <string name="gain">Guadagno</string>
+    <string name="loss">Perdita</string>
+    <string name="outside">Esterna</string>
+    <string name="inside">Interna</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Profilo velocità</string>
+    <string name="power_profile">Profilo potenza</string>
+    <string name="battery_level">Livello batteria</string>
+    <string name="elevation_profile">Profilo altitudine</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Meteo lungo il percorso</string>
 </resources>

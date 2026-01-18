@@ -253,4 +253,52 @@
     <string name="chart_speed_per_day">Velocitat màx per dia</string>
     <string name="chart_speed_per_week">Velocitat màx per setmana</string>
     <string name="chart_speed_per_month">Velocitat màx per mes</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Detalls del viatge</string>
+
+    <!-- Route card labels -->
+    <string name="from">Des de</string>
+    <string name="to">Fins a</string>
+    <string name="unknown_location">Ubicació desconeguda</string>
+    <string name="started">Inici</string>
+    <string name="ended">Fi</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Durada: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Mapa de ruta</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Velocitat</string>
+    <string name="trip">Viatge</string>
+    <string name="power">Potència</string>
+    <string name="temperature">Temperatura</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Màxima</string>
+    <string name="minimum">Mínima</string>
+    <string name="average">Mitjana</string>
+    <string name="avg_distance">Mitjana (distància)</string>
+    <string name="efficiency">Eficiència</string>
+    <string name="start">Inici</string>
+    <string name="end">Fi</string>
+    <string name="used">Usada</string>
+    <string name="energy">Energia</string>
+    <string name="max_accel">Màx (accel)</string>
+    <string name="min_regen">Mín (regen)</string>
+    <string name="gain">Guany</string>
+    <string name="loss">Pèrdua</string>
+    <string name="outside">Exterior</string>
+    <string name="inside">Interior</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Perfil de velocitat</string>
+    <string name="power_profile">Perfil de potència</string>
+    <string name="battery_level">Nivell de bateria</string>
+    <string name="elevation_profile">Perfil d\'altitud</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Temps al llarg del trajecte</string>
 </resources>

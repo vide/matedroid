@@ -253,4 +253,52 @@
     <string name="chart_speed_per_day">Top speed per Day</string>
     <string name="chart_speed_per_week">Top speed per Week</string>
     <string name="chart_speed_per_month">Top speed per Month</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Drive Details</string>
+
+    <!-- Route card labels -->
+    <string name="from">From</string>
+    <string name="to">To</string>
+    <string name="unknown_location">Unknown location</string>
+    <string name="started">Started</string>
+    <string name="ended">Ended</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Duration: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Route Map</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Speed</string>
+    <string name="trip">Trip</string>
+    <string name="power">Power</string>
+    <string name="temperature">Temperature</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Maximum</string>
+    <string name="minimum">Minimum</string>
+    <string name="average">Average</string>
+    <string name="avg_distance">Avg (distance)</string>
+    <string name="efficiency">Efficiency</string>
+    <string name="start">Start</string>
+    <string name="end">End</string>
+    <string name="used">Used</string>
+    <string name="energy">Energy</string>
+    <string name="max_accel">Max (accel)</string>
+    <string name="min_regen">Min (regen)</string>
+    <string name="gain">Gain</string>
+    <string name="loss">Loss</string>
+    <string name="outside">Outside</string>
+    <string name="inside">Inside</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Speed Profile</string>
+    <string name="power_profile">Power Profile</string>
+    <string name="battery_level">Battery Level</string>
+    <string name="elevation_profile">Elevation Profile</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Weather along the way</string>
 </resources>

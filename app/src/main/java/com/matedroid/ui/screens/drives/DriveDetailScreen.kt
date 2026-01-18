@@ -60,10 +60,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
@@ -110,12 +112,12 @@ fun DriveDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Drive Details") },
+                title = { Text(stringResource(R.string.drive_details_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -182,59 +184,59 @@ private fun DriveDetailContent(
         stats?.let { s ->
             // Speed section
             StatsSectionCard(
-                title = "Speed",
+                title = stringResource(R.string.speed),
                 icon = Icons.Default.Speed,
                 stats = listOf(
-                    StatItem("Maximum", UnitFormatter.formatSpeed(s.speedMax.toDouble(), units)),
-                    StatItem("Average", UnitFormatter.formatSpeed(s.speedAvg, units)),
-                    StatItem("Avg (distance)", UnitFormatter.formatSpeed(s.avgSpeedFromDistance, units))
+                    StatItem(stringResource(R.string.maximum), UnitFormatter.formatSpeed(s.speedMax.toDouble(), units)),
+                    StatItem(stringResource(R.string.average), UnitFormatter.formatSpeed(s.speedAvg, units)),
+                    StatItem(stringResource(R.string.avg_distance), UnitFormatter.formatSpeed(s.avgSpeedFromDistance, units))
                 )
             )
 
             // Distance & Duration section
             StatsSectionCard(
-                title = "Trip",
+                title = stringResource(R.string.trip),
                 icon = CustomIcons.SteeringWheel,
                 stats = listOf(
-                    StatItem("Distance", UnitFormatter.formatDistance(s.distance, units)),
-                    StatItem("Duration", formatDuration(s.durationMin)),
-                    StatItem("Efficiency", UnitFormatter.formatEfficiency(s.efficiency, units))
+                    StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(s.distance, units)),
+                    StatItem(stringResource(R.string.duration), formatDuration(s.durationMin)),
+                    StatItem(stringResource(R.string.efficiency), UnitFormatter.formatEfficiency(s.efficiency, units))
                 )
             )
 
             // Battery section
             StatsSectionCard(
-                title = "Battery",
+                title = stringResource(R.string.battery),
                 icon = Icons.Default.BatteryChargingFull,
                 stats = listOf(
-                    StatItem("Start", "${s.batteryStart}%"),
-                    StatItem("End", "${s.batteryEnd}%"),
-                    StatItem("Used", "${s.batteryUsed}%"),
-                    StatItem("Energy", "%.2f kWh".format(s.energyUsed))
+                    StatItem(stringResource(R.string.start), "${s.batteryStart}%"),
+                    StatItem(stringResource(R.string.end), "${s.batteryEnd}%"),
+                    StatItem(stringResource(R.string.used), "${s.batteryUsed}%"),
+                    StatItem(stringResource(R.string.energy), "%.2f kWh".format(s.energyUsed))
                 )
             )
 
             // Power section
             StatsSectionCard(
-                title = "Power",
+                title = stringResource(R.string.power),
                 icon = Icons.Default.Bolt,
                 stats = listOf(
-                    StatItem("Max (accel)", "${s.powerMax} kW"),
-                    StatItem("Min (regen)", "${s.powerMin} kW"),
-                    StatItem("Average", "%.1f kW".format(s.powerAvg))
+                    StatItem(stringResource(R.string.max_accel), "${s.powerMax} kW"),
+                    StatItem(stringResource(R.string.min_regen), "${s.powerMin} kW"),
+                    StatItem(stringResource(R.string.average), "%.1f kW".format(s.powerAvg))
                 )
             )
 
             // Elevation section
             if (s.elevationMax > 0 || s.elevationMin > 0) {
                 StatsSectionCard(
-                    title = "Elevation",
+                    title = stringResource(R.string.elevation),
                     icon = Icons.Default.Landscape,
                     stats = listOf(
-                        StatItem("Maximum", "${s.elevationMax} m"),
-                        StatItem("Minimum", "${s.elevationMin} m"),
-                        StatItem("Gain", "+${s.elevationGain} m"),
-                        StatItem("Loss", "-${s.elevationLoss} m")
+                        StatItem(stringResource(R.string.maximum), "${s.elevationMax} m"),
+                        StatItem(stringResource(R.string.minimum), "${s.elevationMin} m"),
+                        StatItem(stringResource(R.string.gain), "+${s.elevationGain} m"),
+                        StatItem(stringResource(R.string.loss), "-${s.elevationLoss} m")
                     )
                 )
             }
@@ -242,11 +244,11 @@ private fun DriveDetailContent(
             // Temperature section
             if (s.outsideTempAvg != null || s.insideTempAvg != null) {
                 StatsSectionCard(
-                    title = "Temperature",
+                    title = stringResource(R.string.temperature),
                     icon = Icons.Default.DeviceThermostat,
                     stats = listOfNotNull(
-                        s.outsideTempAvg?.let { StatItem("Outside", UnitFormatter.formatTemperature(it, units)) },
-                        s.insideTempAvg?.let { StatItem("Inside", UnitFormatter.formatTemperature(it, units)) }
+                        s.outsideTempAvg?.let { StatItem(stringResource(R.string.outside), UnitFormatter.formatTemperature(it, units)) },
+                        s.insideTempAvg?.let { StatItem(stringResource(R.string.inside), UnitFormatter.formatTemperature(it, units)) }
                     )
                 )
             }
@@ -301,12 +303,12 @@ private fun RouteHeaderCard(detail: DriveDetail) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "From",
+                        text = stringResource(R.string.from),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = detail.startAddress ?: "Unknown location",
+                        text = detail.startAddress ?: stringResource(R.string.unknown_location),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -330,12 +332,12 @@ private fun RouteHeaderCard(detail: DriveDetail) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "To",
+                        text = stringResource(R.string.to),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = detail.endAddress ?: "Unknown location",
+                        text = detail.endAddress ?: stringResource(R.string.unknown_location),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -359,7 +361,7 @@ private fun RouteHeaderCard(detail: DriveDetail) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Started",
+                        text = stringResource(R.string.started),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -382,7 +384,7 @@ private fun RouteHeaderCard(detail: DriveDetail) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Ended",
+                        text = stringResource(R.string.ended),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
@@ -393,7 +395,7 @@ private fun RouteHeaderCard(detail: DriveDetail) {
                     )
                     detail.durationStr?.let { duration ->
                         Text(
-                            text = "Duration: $duration",
+                            text = stringResource(R.string.duration_label, duration),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
@@ -441,7 +443,7 @@ private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Route Map",
+                text = stringResource(R.string.route_map),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 12.dp)
@@ -614,7 +616,7 @@ private fun SpeedChartCard(positions: List<DrivePosition>, units: Units?, timeLa
     if (speeds.size < 2) return
 
     ChartCard(
-        title = "Speed Profile",
+        title = stringResource(R.string.speed_profile),
         icon = Icons.Default.Speed,
         data = speeds,
         color = MaterialTheme.colorScheme.primary,
@@ -632,7 +634,7 @@ private fun PowerChartCard(positions: List<DrivePosition>, timeLabels: List<Stri
     if (powers.size < 2) return
 
     ChartCard(
-        title = "Power Profile",
+        title = stringResource(R.string.power_profile),
         icon = Icons.Default.Bolt,
         data = powers,
         color = MaterialTheme.colorScheme.tertiary,
@@ -648,7 +650,7 @@ private fun BatteryChartCard(positions: List<DrivePosition>, timeLabels: List<St
     if (batteryLevels.size < 2) return
 
     ChartCard(
-        title = "Battery Level",
+        title = stringResource(R.string.battery_level),
         icon = Icons.Default.BatteryChargingFull,
         data = batteryLevels,
         color = MaterialTheme.colorScheme.secondary,
@@ -664,7 +666,7 @@ private fun ElevationChartCard(positions: List<DrivePosition>, timeLabels: List<
     if (elevations.size < 2) return
 
     ChartCard(
-        title = "Elevation Profile",
+        title = stringResource(R.string.elevation_profile),
         icon = Icons.Default.Landscape,
         data = elevations,
         color = Color(0xFF8B4513), // Brown color for terrain
