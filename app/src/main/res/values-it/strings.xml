@@ -60,6 +60,12 @@
     <!-- Content description for outside temperature indicator -->
     <string name="outside_temp">Temperatura esterna</string>
 
+    <!-- Label for external/outside temperature -->
+    <string name="temp_ext_label">Est:</string>
+
+    <!-- Label for internal/inside temperature -->
+    <string name="temp_int_label">Int:</string>
+
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Immagine auto - tocca per statistiche</string>
 
