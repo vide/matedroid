@@ -747,4 +747,57 @@
 
     <!-- Label for update installation duration -->
     <string name="software_duration">Duración</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <!-- Content description for fullscreen mode button in charts -->
+    <string name="fullscreen">Pantalla completa</string>
+
+    <!-- Content description for exit fullscreen button -->
+    <string name="exit_fullscreen">Salir de pantalla completa</string>
+
+    <!-- ==================== Weather Card ==================== -->
+    <!-- Title for weather along the way card -->
+    <string name="weather_card_title">Clima en el Trayecto</string>
+
+    <!-- Loading state while fetching weather data -->
+    <string name="weather_loading">Cargando datos del clima…</string>
+
+    <!-- Empty state when weather data is unavailable -->
+    <string name="weather_unavailable">Datos del clima no disponibles</string>
+
+    <!-- Table header: time column -->
+    <string name="weather_time">Hora</string>
+
+    <!-- Table header: distance column -->
+    <string name="weather_distance">Distancia</string>
+
+    <!-- Table header: weather column -->
+    <string name="weather_weather">Clima</string>
+
+    <!-- Distance marker for route start point -->
+    <string name="weather_start">Inicio</string>
+
+    <!-- Distance marker for route end point -->
+    <string name="weather_end">Fin</string>
+
+    <!-- Weather condition: clear sky -->
+    <string name="weather_clear">Cielo despejado</string>
+
+    <!-- Weather condition: partly cloudy -->
+    <string name="weather_partly_cloudy">Parcialmente nublado</string>
+
+    <!-- Weather condition: foggy -->
+    <string name="weather_fog">Niebla</string>
+
+    <!-- Weather condition: light rain/drizzle -->
+    <string name="weather_drizzle">Llovizna</string>
+
+    <!-- Weather condition: rain -->
+    <string name="weather_rain">Lluvia</string>
+
+    <!-- Weather condition: snow -->
+    <string name="weather_snow">Nieve</string>
+
+    <!-- Weather condition: thunderstorm -->
+    <string name="weather_thunderstorm">Tormenta</string>
 </resources>

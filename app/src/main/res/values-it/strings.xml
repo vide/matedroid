@@ -747,4 +747,57 @@
 
     <!-- Label for update installation duration -->
     <string name="software_duration">Durata</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <!-- Content description for fullscreen mode button in charts -->
+    <string name="fullscreen">Schermo intero</string>
+
+    <!-- Content description for exit fullscreen button -->
+    <string name="exit_fullscreen">Esci da schermo intero</string>
+
+    <!-- ==================== Weather Card ==================== -->
+    <!-- Title for weather along the way card -->
+    <string name="weather_card_title">Meteo Lungo il Percorso</string>
+
+    <!-- Loading state while fetching weather data -->
+    <string name="weather_loading">Caricamento dati meteo…</string>
+
+    <!-- Empty state when weather data is unavailable -->
+    <string name="weather_unavailable">Dati meteo non disponibili</string>
+
+    <!-- Table header: time column -->
+    <string name="weather_time">Ora</string>
+
+    <!-- Table header: distance column -->
+    <string name="weather_distance">Distanza</string>
+
+    <!-- Table header: weather column -->
+    <string name="weather_weather">Meteo</string>
+
+    <!-- Distance marker for route start point -->
+    <string name="weather_start">Partenza</string>
+
+    <!-- Distance marker for route end point -->
+    <string name="weather_end">Arrivo</string>
+
+    <!-- Weather condition: clear sky -->
+    <string name="weather_clear">Cielo sereno</string>
+
+    <!-- Weather condition: partly cloudy -->
+    <string name="weather_partly_cloudy">Parzialmente nuvoloso</string>
+
+    <!-- Weather condition: foggy -->
+    <string name="weather_fog">Nebbioso</string>
+
+    <!-- Weather condition: light rain/drizzle -->
+    <string name="weather_drizzle">Pioggia leggera</string>
+
+    <!-- Weather condition: rain -->
+    <string name="weather_rain">Pioggia</string>
+
+    <!-- Weather condition: snow -->
+    <string name="weather_snow">Neve</string>
+
+    <!-- Weather condition: thunderstorm -->
+    <string name="weather_thunderstorm">Temporale</string>
 </resources>

@@ -747,4 +747,57 @@
 
     <!-- Label for update installation duration -->
     <string name="software_duration">Duration</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <!-- Content description for fullscreen mode button in charts -->
+    <string name="fullscreen">Fullscreen</string>
+
+    <!-- Content description for exit fullscreen button -->
+    <string name="exit_fullscreen">Exit fullscreen</string>
+
+    <!-- ==================== Weather Card ==================== -->
+    <!-- Title for weather along the way card -->
+    <string name="weather_card_title">Weather Along the Way</string>
+
+    <!-- Loading state while fetching weather data -->
+    <string name="weather_loading">Loading weather data…</string>
+
+    <!-- Empty state when weather data is unavailable -->
+    <string name="weather_unavailable">Weather data unavailable</string>
+
+    <!-- Table header: time column -->
+    <string name="weather_time">Time</string>
+
+    <!-- Table header: distance column -->
+    <string name="weather_distance">Distance</string>
+
+    <!-- Table header: weather column -->
+    <string name="weather_weather">Weather</string>
+
+    <!-- Distance marker for route start point -->
+    <string name="weather_start">Start</string>
+
+    <!-- Distance marker for route end point -->
+    <string name="weather_end">End</string>
+
+    <!-- Weather condition: clear sky -->
+    <string name="weather_clear">Clear sky</string>
+
+    <!-- Weather condition: partly cloudy -->
+    <string name="weather_partly_cloudy">Partly cloudy</string>
+
+    <!-- Weather condition: foggy -->
+    <string name="weather_fog">Foggy</string>
+
+    <!-- Weather condition: light rain/drizzle -->
+    <string name="weather_drizzle">Light rain</string>
+
+    <!-- Weather condition: rain -->
+    <string name="weather_rain">Rain</string>
+
+    <!-- Weather condition: snow -->
+    <string name="weather_snow">Snow</string>
+
+    <!-- Weather condition: thunderstorm -->
+    <string name="weather_thunderstorm">Thunderstorm</string>
 </resources>
