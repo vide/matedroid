@@ -188,4 +188,69 @@
     <string name="settings_primary_server">Primary server</string>
     <string name="settings_secondary_server">Secondary server</string>
     <string name="settings_connected">Connected</string>
+
+    <!-- ==================== Drives Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drives_title">Drives</string>
+
+    <!-- Content description for back button -->
+    <string name="back">Back</string>
+
+    <!-- Section title for drive history list -->
+    <string name="drive_history">Drive History</string>
+
+    <!-- Empty state when no drives match filters -->
+    <string name="no_drives_found">No drives found for selected period</string>
+
+    <!-- Summary card title -->
+    <string name="summary">Summary</string>
+
+    <!-- Summary card labels -->
+    <string name="total_trips">Total Trips</string>
+    <string name="total_distance">Total Distance</string>
+    <string name="total_time">Total Time</string>
+    <string name="max_speed">Max Speed</string>
+
+    <!-- Drive item stat labels -->
+    <string name="distance">Distance</string>
+    <string name="duration">Duration</string>
+    <string name="battery">Battery</string>
+
+    <!-- Date filter chips -->
+    <string name="filter_last_7_days">Last 7 days</string>
+    <string name="filter_last_30_days">Last 30 days</string>
+    <string name="filter_last_90_days">Last 90 days</string>
+    <string name="filter_last_year">Last year</string>
+    <string name="filter_all_time">All time</string>
+
+    <!-- Distance filter chips (metric) -->
+    <string name="filter_all">All</string>
+    <string name="filter_commute_km">Commute (&lt; 10 km)</string>
+    <string name="filter_day_trip_km">Day trip (10–100 km)</string>
+    <string name="filter_road_trip_km">Road trip (&gt; 100 km)</string>
+
+    <!-- Distance filter chips (imperial) -->
+    <string name="filter_commute_mi">Commute (&lt; 6 mi)</string>
+    <string name="filter_day_trip_mi">Day trip (6–60 mi)</string>
+    <string name="filter_road_trip_mi">Road trip (&gt; 60 mi)</string>
+
+    <!-- Chart titles - drives per period -->
+    <string name="chart_drives_per_day">Drives per Day</string>
+    <string name="chart_drives_per_week">Drives per Week</string>
+    <string name="chart_drives_per_month">Drives per Month</string>
+
+    <!-- Chart titles - driving time per period -->
+    <string name="chart_time_per_day">Driving time per Day</string>
+    <string name="chart_time_per_week">Driving time per Week</string>
+    <string name="chart_time_per_month">Driving time per Month</string>
+
+    <!-- Chart titles - distance per period -->
+    <string name="chart_distance_per_day">Distance per Day</string>
+    <string name="chart_distance_per_week">Distance per Week</string>
+    <string name="chart_distance_per_month">Distance per Month</string>
+
+    <!-- Chart titles - top speed per period -->
+    <string name="chart_speed_per_day">Top speed per Day</string>
+    <string name="chart_speed_per_week">Top speed per Week</string>
+    <string name="chart_speed_per_month">Top speed per Month</string>
 </resources>

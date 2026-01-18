@@ -188,4 +188,69 @@
     <string name="settings_primary_server">Server primario</string>
     <string name="settings_secondary_server">Server secondario</string>
     <string name="settings_connected">Connesso</string>
+
+    <!-- ==================== Drives Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drives_title">Viaggi</string>
+
+    <!-- Content description for back button -->
+    <string name="back">Indietro</string>
+
+    <!-- Section title for drive history list -->
+    <string name="drive_history">Cronologia viaggi</string>
+
+    <!-- Empty state when no drives match filters -->
+    <string name="no_drives_found">Nessun viaggio trovato per il periodo selezionato</string>
+
+    <!-- Summary card title -->
+    <string name="summary">Riepilogo</string>
+
+    <!-- Summary card labels -->
+    <string name="total_trips">Viaggi totali</string>
+    <string name="total_distance">Distanza totale</string>
+    <string name="total_time">Tempo totale</string>
+    <string name="max_speed">Velocità max</string>
+
+    <!-- Drive item stat labels -->
+    <string name="distance">Distanza</string>
+    <string name="duration">Durata</string>
+    <string name="battery">Batteria</string>
+
+    <!-- Date filter chips -->
+    <string name="filter_last_7_days">Ultimi 7 giorni</string>
+    <string name="filter_last_30_days">Ultimi 30 giorni</string>
+    <string name="filter_last_90_days">Ultimi 90 giorni</string>
+    <string name="filter_last_year">Ultimo anno</string>
+    <string name="filter_all_time">Tutto</string>
+
+    <!-- Distance filter chips (metric) -->
+    <string name="filter_all">Tutti</string>
+    <string name="filter_commute_km">Brevi (&lt; 10 km)</string>
+    <string name="filter_day_trip_km">Gita giornaliera (10–100 km)</string>
+    <string name="filter_road_trip_km">Viaggio lungo (&gt; 100 km)</string>
+
+    <!-- Distance filter chips (imperial) -->
+    <string name="filter_commute_mi">Brevi (&lt; 6 mi)</string>
+    <string name="filter_day_trip_mi">Gita giornaliera (6–60 mi)</string>
+    <string name="filter_road_trip_mi">Viaggio lungo (&gt; 60 mi)</string>
+
+    <!-- Chart titles - drives per period -->
+    <string name="chart_drives_per_day">Viaggi al giorno</string>
+    <string name="chart_drives_per_week">Viaggi a settimana</string>
+    <string name="chart_drives_per_month">Viaggi al mese</string>
+
+    <!-- Chart titles - driving time per period -->
+    <string name="chart_time_per_day">Tempo di guida al giorno</string>
+    <string name="chart_time_per_week">Tempo di guida a settimana</string>
+    <string name="chart_time_per_month">Tempo di guida al mese</string>
+
+    <!-- Chart titles - distance per period -->
+    <string name="chart_distance_per_day">Distanza al giorno</string>
+    <string name="chart_distance_per_week">Distanza a settimana</string>
+    <string name="chart_distance_per_month">Distanza al mese</string>
+
+    <!-- Chart titles - top speed per period -->
+    <string name="chart_speed_per_day">Velocità max al giorno</string>
+    <string name="chart_speed_per_week">Velocità max a settimana</string>
+    <string name="chart_speed_per_month">Velocità max al mese</string>
 </resources>

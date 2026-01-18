@@ -188,4 +188,69 @@
     <string name="settings_primary_server">Servidor principal</string>
     <string name="settings_secondary_server">Servidor secundari</string>
     <string name="settings_connected">Connectat</string>
+
+    <!-- ==================== Drives Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drives_title">Viatges</string>
+
+    <!-- Content description for back button -->
+    <string name="back">Enrere</string>
+
+    <!-- Section title for drive history list -->
+    <string name="drive_history">Historial de viatges</string>
+
+    <!-- Empty state when no drives match filters -->
+    <string name="no_drives_found">No s\'han trobat viatges per al període seleccionat</string>
+
+    <!-- Summary card title -->
+    <string name="summary">Resum</string>
+
+    <!-- Summary card labels -->
+    <string name="total_trips">Viatges totals</string>
+    <string name="total_distance">Distància total</string>
+    <string name="total_time">Temps total</string>
+    <string name="max_speed">Velocitat màx</string>
+
+    <!-- Drive item stat labels -->
+    <string name="distance">Distància</string>
+    <string name="duration">Durada</string>
+    <string name="battery">Bateria</string>
+
+    <!-- Date filter chips -->
+    <string name="filter_last_7_days">Últims 7 dies</string>
+    <string name="filter_last_30_days">Últims 30 dies</string>
+    <string name="filter_last_90_days">Últims 90 dies</string>
+    <string name="filter_last_year">Últim any</string>
+    <string name="filter_all_time">Tot</string>
+
+    <!-- Distance filter chips (metric) -->
+    <string name="filter_all">Tots</string>
+    <string name="filter_commute_km">Curts (&lt; 10 km)</string>
+    <string name="filter_day_trip_km">Excursió (10–100 km)</string>
+    <string name="filter_road_trip_km">Viatge llarg (&gt; 100 km)</string>
+
+    <!-- Distance filter chips (imperial) -->
+    <string name="filter_commute_mi">Curts (&lt; 6 mi)</string>
+    <string name="filter_day_trip_mi">Excursió (6–60 mi)</string>
+    <string name="filter_road_trip_mi">Viatge llarg (&gt; 60 mi)</string>
+
+    <!-- Chart titles - drives per period -->
+    <string name="chart_drives_per_day">Viatges per dia</string>
+    <string name="chart_drives_per_week">Viatges per setmana</string>
+    <string name="chart_drives_per_month">Viatges per mes</string>
+
+    <!-- Chart titles - driving time per period -->
+    <string name="chart_time_per_day">Temps de conducció per dia</string>
+    <string name="chart_time_per_week">Temps de conducció per setmana</string>
+    <string name="chart_time_per_month">Temps de conducció per mes</string>
+
+    <!-- Chart titles - distance per period -->
+    <string name="chart_distance_per_day">Distància per dia</string>
+    <string name="chart_distance_per_week">Distància per setmana</string>
+    <string name="chart_distance_per_month">Distància per mes</string>
+
+    <!-- Chart titles - top speed per period -->
+    <string name="chart_speed_per_day">Velocitat màx per dia</string>
+    <string name="chart_speed_per_week">Velocitat màx per setmana</string>
+    <string name="chart_speed_per_month">Velocitat màx per mes</string>
 </resources>
