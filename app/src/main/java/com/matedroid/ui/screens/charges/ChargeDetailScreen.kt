@@ -522,15 +522,15 @@ private fun StatsSectionCard(
     icon: ImageVector,
     stats: List<StatItem>
 ) {
-    // 1. Obtenemos la configuración de la pantalla
+    // Get the current screen settings
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
 
-    // 2. Definimos cuántas columnas queremos según el ancho disponible
+    // Define how many columns we want according to the available screen width
     val columnCount = when {
-        screenWidth > 600 -> 4 // Tablets o horizontal
-        screenWidth > 340 -> 3 // Móviles estándar (aquí entran tus 3 columnas)
-        else -> 2              // Móviles muy pequeños
+        screenWidth > 600 -> 4 // Big screen or landscape orientation
+        screenWidth > 340 -> 3 // Standard screen
+        else -> 2              // Small screen
     }
 
     Card(
@@ -560,7 +560,7 @@ private fun StatsSectionCard(
                 )
             }
 
-            // 3. Dividimos la lista de estadísticas según el número de columnas calculado
+            // Divide the list of statistics according to the calculated number of columns
             val chunked = stats.chunked(columnCount)
             chunked.forEachIndexed { index, row ->
                 Row(
@@ -575,8 +575,8 @@ private fun StatsSectionCard(
                         )
                     }
 
-                    // 4. Rellenamos el espacio sobrante si la última fila no está completa
-                    // Esto evita que un solo ítem se estire demasiado
+                    // Fill the leftover space if the last row is not complete.
+                    // This prevents a single item from stretching too much
                     val emptySlots = columnCount - row.size
                     if (emptySlots > 0) {
                         repeat(emptySlots) {
