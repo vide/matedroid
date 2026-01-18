@@ -207,7 +207,7 @@ private fun ChargeDetailContent(
             }
 
             // Voltage & Current section
-            if (s.voltageMax > 0) {
+            if (s.currentMax > 0) {
                 StatsSectionCard(
                     title = "Charger",
                     icon = Icons.Default.ElectricalServices,
@@ -258,12 +258,14 @@ private fun ChargeDetailContent(
                 if (chargePoints.any { (it.chargerPower ?: 0) > 0 }) {
                     PowerChartCard(chargePoints = chargePoints, timeLabels = timeLabels)
                 }
-                // Only show voltage chart for AC charges
-                if (!isDcCharge && chargePoints.any { (it.chargerVoltage ?: 0) > 0 }) {
-                    VoltageChartCard(chargePoints = chargePoints, timeLabels = timeLabels)
-                }
-                if (chargePoints.any { (it.chargerCurrent ?: 0) > 0 }) {
-                    CurrentChartCard(chargePoints = chargePoints, timeLabels = timeLabels)
+                // Only show voltage and current charts for AC charges
+                if (!isDcCharge) {
+                    if (chargePoints.any { (it.chargerVoltage ?: 0) > 0 }) {
+                        VoltageChartCard(chargePoints = chargePoints, timeLabels = timeLabels)
+                    }
+                    if (chargePoints.any { (it.chargerCurrent ?: 0) > 0 }) {
+                        CurrentChartCard(chargePoints = chargePoints, timeLabels = timeLabels)
+                    }
                 }
                 if (chargePoints.any { it.outsideTemp != null }) {
                     TemperatureChartCard(chargePoints = chargePoints, units = units, timeLabels = timeLabels)
