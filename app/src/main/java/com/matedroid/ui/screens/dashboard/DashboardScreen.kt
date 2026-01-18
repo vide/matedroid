@@ -762,27 +762,28 @@ private fun StatusIndicatorsRow(
                 )
             }
 
-            // Inside temp: "Int:" (bold if climate is on)
+            // Inside temp: "Int:" (bold and green if climate is on)
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
                 Text(
                     text = stringResource(R.string.temp_int_label),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                    color = palette.onSurfaceVariant
+                    color = intColor
                 )
                 Spacer(modifier = Modifier.width(2.dp))
                 Icon(
                     imageVector = Icons.Filled.Thermostat,
                     contentDescription = stringResource(R.string.inside_temp),
                     modifier = Modifier.size(14.dp),
-                    tint = palette.onSurfaceVariant
+                    tint = intColor
                 )
                 Spacer(modifier = Modifier.width(2.dp))
                 Text(
                     text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                    color = palette.onSurfaceVariant
+                    color = intColor
                 )
             }
         }
