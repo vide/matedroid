@@ -339,4 +339,33 @@
     <string name="chart_charges_per_day">Charges per Day</string>
     <string name="chart_charges_per_week">Charges per Week</string>
     <string name="chart_charges_per_month">Charges per Month</string>
+
+    <!-- ==================== Charge Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charge_details_title">Charge Details</string>
+
+    <!-- Header labels -->
+    <string name="energy_added_header">Energy Added</string>
+
+    <!-- Map marker title -->
+    <string name="charge_location">Charge Location</string>
+
+    <!-- Stats section titles -->
+    <string name="charger">Charger</string>
+
+    <!-- Charger stats labels -->
+    <string name="voltage_max">Voltage (max)</string>
+    <string name="voltage_min">Voltage (min)</string>
+    <string name="voltage_avg">Voltage (avg)</string>
+    <string name="current_max">Current (max)</string>
+    <string name="current_min">Current (min)</string>
+    <string name="current_avg">Current (avg)</string>
+
+    <!-- Cost stats labels -->
+    <string name="total">Total</string>
+    <string name="per_kwh">Per kWh</string>
+
+    <!-- Chart card titles -->
+    <string name="voltage_profile">Voltage Profile</string>
+    <string name="current_profile">Current Profile</string>
 </resources>

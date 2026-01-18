@@ -339,4 +339,33 @@
     <string name="chart_charges_per_day">Cargas por día</string>
     <string name="chart_charges_per_week">Cargas por semana</string>
     <string name="chart_charges_per_month">Cargas por mes</string>
+
+    <!-- ==================== Charge Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charge_details_title">Detalles de carga</string>
+
+    <!-- Header labels -->
+    <string name="energy_added_header">Energía añadida</string>
+
+    <!-- Map marker title -->
+    <string name="charge_location">Lugar de carga</string>
+
+    <!-- Stats section titles -->
+    <string name="charger">Cargador</string>
+
+    <!-- Charger stats labels -->
+    <string name="voltage_max">Voltaje (máx)</string>
+    <string name="voltage_min">Voltaje (mín)</string>
+    <string name="voltage_avg">Voltaje (media)</string>
+    <string name="current_max">Corriente (máx)</string>
+    <string name="current_min">Corriente (mín)</string>
+    <string name="current_avg">Corriente (media)</string>
+
+    <!-- Cost stats labels -->
+    <string name="total">Total</string>
+    <string name="per_kwh">Por kWh</string>
+
+    <!-- Chart card titles -->
+    <string name="voltage_profile">Perfil de voltaje</string>
+    <string name="current_profile">Perfil de corriente</string>
 </resources>
