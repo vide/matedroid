@@ -67,10 +67,10 @@
     <string name="unit_kw">kW</string>
 
     <!-- DC (Direct Current) charging indicator badge -->
-    <string name="charging_dc">CC</string>
+    <string name="charging_dc">DC</string>
 
     <!-- AC (Alternating Current) charging indicator badge -->
-    <string name="charging_ac">CA</string>
+    <string name="charging_ac">AC</string>
 
     <!-- Content description for warning icon when battery is above 90% -->
     <string name="high_charge_level">Nivel de carga alto</string>
@@ -603,10 +603,10 @@
     <string name="stats_ac_dc_ratio">Ratio CA/CC</string>
 
     <!-- Label for energy charged via AC -->
-    <string name="stats_ac_energy">Energía CA</string>
+    <string name="stats_ac_energy">Energía AC</string>
 
     <!-- Label for energy charged via DC -->
-    <string name="stats_dc_energy">Energía CC</string>
+    <string name="stats_dc_energy">Energía DC</string>
 
     <!-- Format for number of charge sessions. %d is the count -->
     <string name="format_charges_count">%d cargas</string>
