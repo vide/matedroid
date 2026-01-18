@@ -63,9 +63,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
@@ -102,12 +104,12 @@ fun ChargesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Charges") },
+                title = { Text(stringResource(R.string.charges_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -224,7 +226,7 @@ private fun ChargesContent(
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Charge History",
+                text = stringResource(R.string.charge_history),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -245,7 +247,7 @@ private fun ChargesContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No charges found for selected period",
+                            text = stringResource(R.string.no_charges_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -294,13 +296,24 @@ private fun DateFilterChips(
             FilterChip(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label) },
+                label = { Text(getDateFilterLabel(filter)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun getDateFilterLabel(filter: DateFilter): String {
+    return when (filter) {
+        DateFilter.LAST_7_DAYS -> stringResource(R.string.filter_last_7_days)
+        DateFilter.LAST_30_DAYS -> stringResource(R.string.filter_last_30_days)
+        DateFilter.LAST_90_DAYS -> stringResource(R.string.filter_last_90_days)
+        DateFilter.LAST_YEAR -> stringResource(R.string.filter_last_year)
+        DateFilter.ALL_TIME -> stringResource(R.string.filter_all_time)
     }
 }
 
@@ -333,10 +346,19 @@ private fun ChargeTypeFilterChips(
             FilterChip(
                 selected = isSelected,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label) },
+                label = { Text(getChargeTypeFilterLabel(filter)) },
                 colors = chipColors
             )
         }
+    }
+}
+
+@Composable
+private fun getChargeTypeFilterLabel(filter: ChargeTypeFilter): String {
+    return when (filter) {
+        ChargeTypeFilter.ALL -> stringResource(R.string.filter_all)
+        ChargeTypeFilter.AC -> stringResource(R.string.charging_ac)
+        ChargeTypeFilter.DC -> stringResource(R.string.charging_dc)
     }
 }
 
@@ -352,7 +374,7 @@ private fun SummaryCard(summary: ChargesSummary, currencySymbol: String, palette
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Summary",
+                text = stringResource(R.string.summary),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = palette.onSurface
@@ -365,14 +387,14 @@ private fun SummaryCard(summary: ChargesSummary, currencySymbol: String, palette
             ) {
                 SummaryItem(
                     icon = Icons.Default.ElectricBolt,
-                    label = "Total Sessions",
+                    label = stringResource(R.string.total_sessions),
                     value = summary.totalCharges.toString(),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
                     icon = Icons.Default.BatteryChargingFull,
-                    label = "Total Energy",
+                    label = stringResource(R.string.total_energy),
                     value = "%.1f kWh".format(summary.totalEnergyAdded),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
@@ -386,14 +408,14 @@ private fun SummaryCard(summary: ChargesSummary, currencySymbol: String, palette
             ) {
                 SummaryItem(
                     icon = Icons.Default.Paid,
-                    label = "Total Cost",
+                    label = stringResource(R.string.total_cost),
                     value = "$currencySymbol%.2f".format(summary.totalCost),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
                     icon = Icons.Default.Paid,
-                    label = "Avg Cost/Session",
+                    label = stringResource(R.string.avg_cost_per_session),
                     value = "$currencySymbol%.2f".format(summary.avgCostPerCharge),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
@@ -446,6 +468,13 @@ private fun ChargeItem(
     onEditCost: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
+    val unknownLocation = stringResource(R.string.unknown_location)
+    val energyAddedLabel = stringResource(R.string.energy_added)
+    val durationLabel = stringResource(R.string.duration)
+    val costLabel = stringResource(R.string.cost)
+    val batteryLabel = stringResource(R.string.battery)
+    val editLabel = stringResource(R.string.edit)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -480,7 +509,7 @@ private fun ChargeItem(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = charge.address ?: "Unknown location",
+                            text = charge.address ?: unknownLocation,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -508,7 +537,7 @@ private fun ChargeItem(
                     icon = Icons.Default.BatteryChargingFull,
                     value = "%.1f".format(charge.chargeEnergyAdded ?: 0.0),
                     unit = "kWh",
-                    label = "Added",
+                    label = energyAddedLabel,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -517,7 +546,7 @@ private fun ChargeItem(
                     icon = Icons.Default.Schedule,
                     value = charge.durationStr ?: "${charge.durationMin ?: 0}m",
                     unit = "",
-                    label = "Duration",
+                    label = durationLabel,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -531,9 +560,10 @@ private fun ChargeItem(
                     icon = Icons.Default.Paid,
                     value = "$currencySymbol%.2f".format(charge.cost ?: 0.0),
                     unit = "",
-                    label = "Cost",
+                    label = costLabel,
                     modifier = Modifier.weight(1f),
                     trailingIcon = if (onEditCost != null) Icons.AutoMirrored.Filled.OpenInNew else null,
+                    trailingContentDescription = editLabel,
                     onClick = onEditCost
                 )
 
@@ -544,7 +574,7 @@ private fun ChargeItem(
                     icon = Icons.Default.ElectricBolt,
                     value = if (startLevel != null && endLevel != null) "$startLevel% → $endLevel%" else "--",
                     unit = "",
-                    label = "Battery",
+                    label = batteryLabel,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -560,6 +590,7 @@ private fun ChargeStatCard(
     label: String,
     modifier: Modifier = Modifier,
     trailingIcon: ImageVector? = null,
+    trailingContentDescription: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     Card(
@@ -611,7 +642,7 @@ private fun ChargeStatCard(
             if (trailingIcon != null) {
                 Icon(
                     imageVector = trailingIcon,
-                    contentDescription = "Edit",
+                    contentDescription = trailingContentDescription,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
@@ -626,7 +657,7 @@ private fun ChargeStatCard(
 @Composable
 private fun ChargeTypeBadge(isDcCharge: Boolean) {
     val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
-    val text = if (isDcCharge) "DC" else "AC"
+    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
 
     Box(
         modifier = Modifier
@@ -734,22 +765,27 @@ private fun ChargesChartPage(
     currencySymbol: String,
     palette: CarColorPalette
 ) {
-    val (title, icon) = when (chartType) {
+    val title = when (chartType) {
         ChargesChartType.ENERGY -> when (granularity) {
-            ChartGranularity.DAILY -> "Energy per Day"
-            ChartGranularity.WEEKLY -> "Energy per Week"
-            ChartGranularity.MONTHLY -> "Energy per Month"
-        } to Icons.Default.BatteryChargingFull
+            ChartGranularity.DAILY -> stringResource(R.string.chart_energy_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_energy_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_energy_per_month)
+        }
         ChargesChartType.COST -> when (granularity) {
-            ChartGranularity.DAILY -> "Cost per Day"
-            ChartGranularity.WEEKLY -> "Cost per Week"
-            ChartGranularity.MONTHLY -> "Cost per Month"
-        } to Icons.Default.Paid
+            ChartGranularity.DAILY -> stringResource(R.string.chart_cost_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_cost_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_cost_per_month)
+        }
         ChargesChartType.COUNT -> when (granularity) {
-            ChartGranularity.DAILY -> "Charges per Day"
-            ChartGranularity.WEEKLY -> "Charges per Week"
-            ChartGranularity.MONTHLY -> "Charges per Month"
-        } to Icons.Default.ElectricBolt
+            ChartGranularity.DAILY -> stringResource(R.string.chart_charges_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_charges_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_charges_per_month)
+        }
+    }
+    val icon = when (chartType) {
+        ChargesChartType.ENERGY -> Icons.Default.BatteryChargingFull
+        ChargesChartType.COST -> Icons.Default.Paid
+        ChargesChartType.COUNT -> Icons.Default.ElectricBolt
     }
 
     Column {

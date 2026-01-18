@@ -301,4 +301,42 @@
 
     <!-- Weather section -->
     <string name="weather_along_way">Meteo lungo il percorso</string>
+
+    <!-- ==================== Charges Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charges_title">Ricariche</string>
+
+    <!-- Section title for charge history list -->
+    <string name="charge_history">Cronologia ricariche</string>
+
+    <!-- Empty state when no charges match filters -->
+    <string name="no_charges_found">Nessuna ricarica trovata per il periodo selezionato</string>
+
+    <!-- Summary card labels -->
+    <string name="total_sessions">Sessioni totali</string>
+    <string name="total_energy">Energia totale</string>
+    <string name="total_cost">Costo totale</string>
+    <string name="avg_cost_per_session">Costo medio/sessione</string>
+
+    <!-- Charge item stat labels -->
+    <string name="energy_added">Aggiunta</string>
+    <string name="cost">Costo</string>
+
+    <!-- Content description for edit cost button -->
+    <string name="edit">Modifica</string>
+
+    <!-- Chart titles - energy per period -->
+    <string name="chart_energy_per_day">Energia al giorno</string>
+    <string name="chart_energy_per_week">Energia a settimana</string>
+    <string name="chart_energy_per_month">Energia al mese</string>
+
+    <!-- Chart titles - cost per period -->
+    <string name="chart_cost_per_day">Costo al giorno</string>
+    <string name="chart_cost_per_week">Costo a settimana</string>
+    <string name="chart_cost_per_month">Costo al mese</string>
+
+    <!-- Chart titles - charges count per period -->
+    <string name="chart_charges_per_day">Ricariche al giorno</string>
+    <string name="chart_charges_per_week">Ricariche a settimana</string>
+    <string name="chart_charges_per_month">Ricariche al mese</string>
 </resources>

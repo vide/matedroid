@@ -301,4 +301,42 @@
 
     <!-- Weather section -->
     <string name="weather_along_way">Clima en el trayecto</string>
+
+    <!-- ==================== Charges Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charges_title">Cargas</string>
+
+    <!-- Section title for charge history list -->
+    <string name="charge_history">Historial de cargas</string>
+
+    <!-- Empty state when no charges match filters -->
+    <string name="no_charges_found">No se encontraron cargas para el período seleccionado</string>
+
+    <!-- Summary card labels -->
+    <string name="total_sessions">Sesiones totales</string>
+    <string name="total_energy">Energía total</string>
+    <string name="total_cost">Coste total</string>
+    <string name="avg_cost_per_session">Coste medio/sesión</string>
+
+    <!-- Charge item stat labels -->
+    <string name="energy_added">Añadida</string>
+    <string name="cost">Coste</string>
+
+    <!-- Content description for edit cost button -->
+    <string name="edit">Editar</string>
+
+    <!-- Chart titles - energy per period -->
+    <string name="chart_energy_per_day">Energía por día</string>
+    <string name="chart_energy_per_week">Energía por semana</string>
+    <string name="chart_energy_per_month">Energía por mes</string>
+
+    <!-- Chart titles - cost per period -->
+    <string name="chart_cost_per_day">Coste por día</string>
+    <string name="chart_cost_per_week">Coste por semana</string>
+    <string name="chart_cost_per_month">Coste por mes</string>
+
+    <!-- Chart titles - charges count per period -->
+    <string name="chart_charges_per_day">Cargas por día</string>
+    <string name="chart_charges_per_week">Cargas por semana</string>
+    <string name="chart_charges_per_month">Cargas por mes</string>
 </resources>
