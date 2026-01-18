@@ -48,6 +48,18 @@
     <!-- Content description when car is plugged in but not charging -->
     <string name="plugged_in">Plugged in</string>
 
+    <!-- Vehicle state shown when driving -->
+    <string name="driving">Driving</string>
+
+    <!-- Content description when sentry mode is active -->
+    <string name="sentry_mode_active">Sentry mode active</string>
+
+    <!-- Content description for inside temperature indicator -->
+    <string name="inside_temp">Inside temperature</string>
+
+    <!-- Content description for outside temperature indicator -->
+    <string name="outside_temp">Outside temperature</string>
+
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Car image - tap for stats</string>
 

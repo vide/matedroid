@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.DriveEta
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import com.matedroid.ui.icons.CustomIcons
@@ -625,6 +626,48 @@ private fun CarImage(
     }
 }
 
+/**
+ * A small chip/pill component for status indicators
+ */
+@Composable
+private fun StatusChip(
+    icon: ImageVector,
+    text: String,
+    color: Color,
+    palette: CarColorPalette,
+    modifier: Modifier = Modifier,
+    iconSize: Int = 14,
+    contentDescription: String? = null,
+    trailingContent: @Composable (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .background(
+                color = palette.surface.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(iconSize.dp),
+            tint = color
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = color
+        )
+        if (trailingContent != null) {
+            Spacer(modifier = Modifier.width(4.dp))
+            trailingContent()
+        }
+    }
+}
+
 @Composable
 private fun StatusIndicatorsRow(
     status: CarStatus,
@@ -632,98 +675,99 @@ private fun StatusIndicatorsRow(
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
+    val isDriving = status.state?.lowercase() == "driving"
+    val isSentryModeActive = status.sentryMode == true
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left side: State and Lock
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // State indicator - icon changes based on state
+        // Left side: State and Lock indicators
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // State indicator chip
             val stateIcon = when {
+                isDriving -> Icons.Filled.DriveEta
                 status.isCharging || status.pluggedIn == true -> Icons.Filled.PowerSettingsNew
                 status.state?.lowercase() == "online" -> Icons.Filled.Circle
                 status.state?.lowercase() in listOf("asleep", "offline", "suspended") -> Icons.Filled.Bedtime
                 else -> Icons.Filled.Circle
             }
             val stateColor = when {
+                isDriving -> palette.accent
                 status.isCharging -> StatusSuccess
                 status.pluggedIn == true -> palette.accent
                 status.state?.lowercase() == "online" -> StatusSuccess
                 else -> palette.onSurfaceVariant
             }
-            Icon(
-                imageVector = stateIcon,
-                contentDescription = null,
-                modifier = Modifier.size(if (stateIcon == Icons.Filled.Circle) 10.dp else 16.dp),
-                tint = stateColor
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown),
-                style = MaterialTheme.typography.labelMedium,
-                color = stateColor
+            val stateText = when {
+                isDriving -> stringResource(R.string.driving)
+                else -> status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+            }
+
+            StatusChip(
+                icon = stateIcon,
+                text = stateText,
+                color = stateColor,
+                palette = palette,
+                iconSize = if (stateIcon == Icons.Filled.Circle) 10 else 14
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Locked indicator
+            // Locked indicator chip with optional sentry mode dot
             val isLocked = status.locked == true
-            Icon(
-                imageVector = if (isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = if (isLocked) StatusSuccess else StatusWarning
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
+            StatusChip(
+                icon = if (isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
                 text = stringResource(if (isLocked) R.string.locked else R.string.unlocked),
-                style = MaterialTheme.typography.labelMedium,
-                color = if (isLocked) StatusSuccess else StatusWarning
+                color = if (isLocked) StatusSuccess else StatusWarning,
+                palette = palette,
+                trailingContent = if (isSentryModeActive) {
+                    {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(StatusError, RoundedCornerShape(4.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {}
+                    }
+                } else null
             )
 
-            // Plug indicator (only when plugged in but not charging - charging already shows state)
+            // Plug indicator chip (only when plugged in but not charging)
             if (status.pluggedIn == true && !status.isCharging) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Filled.Power,
-                    contentDescription = stringResource(R.string.plugged_in),
-                    modifier = Modifier.size(16.dp),
-                    tint = palette.accent
+                StatusChip(
+                    icon = Icons.Filled.Power,
+                    text = stringResource(R.string.plugged_in),
+                    color = palette.accent,
+                    palette = palette,
+                    contentDescription = stringResource(R.string.plugged_in)
                 )
             }
         }
 
-        // Right side: Temperatures
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Inside temp
-            Icon(
-                imageVector = Icons.Filled.Thermostat,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = palette.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
+        // Right side: Temperature indicators
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Inside temp - car icon represents cabin
+            StatusChip(
+                icon = Icons.Filled.DirectionsCar,
                 text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.onSurfaceVariant
+                color = palette.onSurfaceVariant,
+                palette = palette,
+                contentDescription = stringResource(R.string.inside_temp)
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Outside temp
-            Icon(
-                imageVector = Icons.Filled.Thermostat,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = palette.accent
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
+            // Outside temp - sun icon represents exterior
+            StatusChip(
+                icon = Icons.Filled.WbSunny,
                 text = status.outsideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                style = MaterialTheme.typography.labelMedium,
-                color = palette.accent
+                color = palette.accent,
+                palette = palette,
+                contentDescription = stringResource(R.string.outside_temp)
             )
         }
     }
