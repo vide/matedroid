@@ -740,51 +740,74 @@ private fun StatusIndicatorsRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val climateTooltip = stringResource(if (isClimateOn) R.string.climate_active else R.string.climate_inactive)
+            val scope = rememberCoroutineScope()
+
             // Outside temp: "Ext:"
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.temp_ext_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = palette.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Icon(
-                    imageVector = Icons.Filled.Thermostat,
-                    contentDescription = stringResource(R.string.outside_temp),
-                    modifier = Modifier.size(14.dp),
-                    tint = palette.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    text = status.outsideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = palette.onSurfaceVariant
-                )
+            val extTooltipState = rememberTooltipState(isPersistent = true)
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(climateTooltip) } },
+                state = extTooltipState
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { scope.launch { extTooltipState.show() } }
+                ) {
+                    Text(
+                        text = stringResource(R.string.temp_ext_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Thermostat,
+                        contentDescription = stringResource(R.string.outside_temp),
+                        modifier = Modifier.size(14.dp),
+                        tint = palette.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = status.outsideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.onSurfaceVariant
+                    )
+                }
             }
 
             // Inside temp: "Int:" (bold and green if climate is on)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
-                Text(
-                    text = stringResource(R.string.temp_int_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                    color = intColor
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Icon(
-                    imageVector = Icons.Filled.Thermostat,
-                    contentDescription = stringResource(R.string.inside_temp),
-                    modifier = Modifier.size(14.dp),
-                    tint = intColor
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                    color = intColor
-                )
+            val intTooltipState = rememberTooltipState(isPersistent = true)
+            val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(climateTooltip) } },
+                state = intTooltipState
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { scope.launch { intTooltipState.show() } }
+                ) {
+                    Text(
+                        text = stringResource(R.string.temp_int_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
+                        color = intColor
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Thermostat,
+                        contentDescription = stringResource(R.string.inside_temp),
+                        modifier = Modifier.size(14.dp),
+                        tint = intColor
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
+                        color = intColor
+                    )
+                }
             }
         }
     }

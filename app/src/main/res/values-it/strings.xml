@@ -66,6 +66,12 @@
     <!-- Label for internal/inside temperature -->
     <string name="temp_int_label">Int:</string>
 
+    <!-- Tooltip shown when climate control is active -->
+    <string name="climate_active">Clima attivo</string>
+
+    <!-- Tooltip shown when climate control is inactive -->
+    <string name="climate_inactive">Clima inattivo</string>
+
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Immagine auto - tocca per statistiche</string>
 
