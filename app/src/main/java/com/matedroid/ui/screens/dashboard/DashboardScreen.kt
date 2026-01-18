@@ -689,6 +689,20 @@ private fun formatDurationSince(isoTimestamp: String?): String? {
     }
 }
 
+/**
+ * Formats an ISO timestamp to local time as "HH:mm"
+ */
+private fun formatTimeFromTimestamp(isoTimestamp: String?): String? {
+    if (isoTimestamp == null) return null
+    return try {
+        val dateTime = java.time.OffsetDateTime.parse(isoTimestamp)
+        val localTime = dateTime.toLocalTime()
+        String.format("%02d:%02d", localTime.hour, localTime.minute)
+    } catch (e: Exception) {
+        null
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusIndicatorsRow(
@@ -715,9 +729,19 @@ private fun StatusIndicatorsRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // State icon - bedtime when asleep, power icon otherwise
+                val stateTooltip = if (isAsleep) {
+                    val sleepTime = formatTimeFromTimestamp(status.stateSince)
+                    if (sleepTime != null) {
+                        stringResource(R.string.asleep_since, sleepTime)
+                    } else {
+                        status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+                    }
+                } else {
+                    status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+                }
                 StatusIcon(
                     icon = if (isAsleep) Icons.Filled.Bedtime else Icons.Filled.PowerSettingsNew,
-                    tooltipText = status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown),
+                    tooltipText = stateTooltip,
                     tint = if (isOnline) StatusSuccess else palette.onSurfaceVariant
                 )
 

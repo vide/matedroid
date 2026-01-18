@@ -72,6 +72,9 @@
     <!-- Tooltip shown when climate control is inactive -->
     <string name="climate_inactive">Clima inactiu</string>
 
+    <!-- Tooltip shown when car is asleep, %s is the time when it went to sleep -->
+    <string name="asleep_since">Adormit des de %s</string>
+
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Imatge del cotxe - toca per estadístiques</string>
 
