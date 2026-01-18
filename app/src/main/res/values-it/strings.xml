@@ -441,4 +441,200 @@
 
     <!-- Content description for info icon -->
     <string name="info">Info</string>
+
+    <!-- Close button used in dialogs -->
+    <string name="close">Chiudi</string>
+
+    <!-- ==================== Stats Screen ==================== -->
+    <!-- Top bar title - playful name for the detailed statistics screen -->
+    <string name="stats_title">Statistiche Avanzate</string>
+
+    <!-- Empty state when syncing data from server -->
+    <string name="stats_syncing">Sincronizzazione dati…</string>
+
+    <!-- Empty state when no stats are available, with instruction to pull to refresh -->
+    <string name="stats_empty">Nessuna statistica disponibile.\nScorri verso il basso per sincronizzare.</string>
+
+    <!-- Sync phase: fetching summary data from server -->
+    <string name="sync_phase_summaries">Recupero viaggi e ricariche…</string>
+
+    <!-- Sync phase: processing individual drive details -->
+    <string name="sync_phase_drives">Elaborazione dettagli viaggi…</string>
+
+    <!-- Sync phase: processing individual charge details -->
+    <string name="sync_phase_charges">Elaborazione dettagli ricariche…</string>
+
+    <!-- Sync progress percentage. %d is the percentage (e.g., "42% synced") -->
+    <string name="stats_sync_percent">%d%% sincronizzato</string>
+
+    <!-- Sync progress card title when deep sync is running -->
+    <string name="stats_deep_sync_title">Sincronizzazione approfondita in corso</string>
+
+    <!-- Sync progress completion percentage. %d is the percentage -->
+    <string name="stats_sync_complete">%d%% completato</string>
+
+    <!-- Section: Drives Overview - summary statistics about all drives -->
+    <string name="stats_drives_overview">Panoramica Viaggi</string>
+
+    <!-- Label for total number of drives -->
+    <string name="stats_total_drives">Viaggi Totali</string>
+
+    <!-- Label for number of days with at least one drive -->
+    <string name="stats_driving_days">Giorni di Guida</string>
+
+    <!-- Label for total energy consumed while driving -->
+    <string name="stats_energy_used">Energia Usata</string>
+
+    <!-- Label for average energy efficiency (Wh/km) -->
+    <string name="stats_avg_efficiency">Efficienza Media</string>
+
+    <!-- Label for maximum speed recorded -->
+    <string name="stats_top_speed">Velocità Max</string>
+
+    <!-- Section: Charges Overview - summary statistics about all charges -->
+    <string name="stats_charges_overview">Panoramica Ricariche</string>
+
+    <!-- Label for total number of charge sessions -->
+    <string name="stats_total_charges">Ricariche Totali</string>
+
+    <!-- Label for average cost per kWh of energy -->
+    <string name="stats_avg_cost_kwh">Costo Medio/kWh</string>
+
+    <!-- Section: Records - personal bests and extremes -->
+    <string name="stats_records">Record</string>
+
+    <!-- Record category: driving-related records -->
+    <string name="stats_category_drives">Viaggi</string>
+
+    <!-- Record category: battery and charging records -->
+    <string name="stats_category_battery">Batteria</string>
+
+    <!-- Record category: weather and altitude records -->
+    <string name="stats_category_weather">Meteo e Altitudine</string>
+
+    <!-- Record category: distance and gap records -->
+    <string name="stats_category_distances">Distanze</string>
+
+    <!-- Record: longest single drive by distance -->
+    <string name="record_longest_drive">Viaggio più lungo</string>
+
+    <!-- Record: fastest speed ever recorded -->
+    <string name="record_top_speed">Velocità Max</string>
+
+    <!-- Record: most efficient drive (lowest Wh/km) -->
+    <string name="record_most_efficient">Più Efficiente</string>
+
+    <!-- Record: longest consecutive days of driving -->
+    <string name="record_longest_streak">Serie più lunga</string>
+
+    <!-- Record: day with most number of drives -->
+    <string name="record_busiest_day">Giorno più intenso</string>
+
+    <!-- Record: charge session with biggest battery percentage gain -->
+    <string name="record_biggest_gain">Guadagno maggiore</string>
+
+    <!-- Record: drive with biggest battery percentage loss -->
+    <string name="record_biggest_drain">Consumo maggiore</string>
+
+    <!-- Record: charge session with most energy added -->
+    <string name="record_biggest_charge">Ricarica maggiore</string>
+
+    <!-- Record: highest charging power achieved -->
+    <string name="record_peak_power">Potenza massima</string>
+
+    <!-- Record: most expensive single charge session -->
+    <string name="record_most_expensive">Più costoso</string>
+
+    <!-- Record: highest cost per kWh for a charge -->
+    <string name="record_priciest_kwh">Prezzo max/kWh</string>
+
+    <!-- Record: highest elevation reached while driving -->
+    <string name="record_highest_point">Punto più alto</string>
+
+    <!-- Record: most elevation gain in a single drive -->
+    <string name="record_most_climbing">Maggior dislivello</string>
+
+    <!-- Record: drive with highest outside temperature -->
+    <string name="record_hottest_drive">Viaggio più caldo</string>
+
+    <!-- Record: drive with lowest outside temperature -->
+    <string name="record_coldest_drive">Viaggio più freddo</string>
+
+    <!-- Record: charge session with highest outside temperature -->
+    <string name="record_hottest_charge">Ricarica più calda</string>
+
+    <!-- Record: charge session with lowest outside temperature -->
+    <string name="record_coldest_charge">Ricarica più fredda</string>
+
+    <!-- Record: longest distance traveled between two charges -->
+    <string name="record_longest_range">Autonomia max</string>
+
+    <!-- Record: longest period without charging the vehicle -->
+    <string name="record_longest_no_charging">Max senza ricaricare</string>
+
+    <!-- Record: longest period without driving the vehicle -->
+    <string name="record_longest_no_driving">Max senza guidare</string>
+
+    <!-- Record: day with most distance traveled -->
+    <string name="record_most_distance_day">Giorno più km</string>
+
+    <!-- Format for streak duration. %d is number of days -->
+    <string name="format_days">%d giorni</string>
+
+    <!-- Format for number of drives. %d is the count -->
+    <string name="format_drives_count">%d viaggi</string>
+
+    <!-- Section: Temperature extremes recorded while driving and charging -->
+    <string name="stats_temperature_extremes">Temperature Estreme</string>
+
+    <!-- Sub-section: temperatures recorded while driving -->
+    <string name="stats_while_driving">Durante la Guida</string>
+
+    <!-- Label for highest temperature -->
+    <string name="stats_hottest">Più caldo</string>
+
+    <!-- Label for lowest temperature -->
+    <string name="stats_coldest">Più freddo</string>
+
+    <!-- Sub-section: cabin (interior) temperatures -->
+    <string name="stats_cabin_temperature">Temperatura Abitacolo</string>
+
+    <!-- Section: ratio between AC and DC charging -->
+    <string name="stats_ac_dc_ratio">Rapporto CA/CC</string>
+
+    <!-- Label for energy charged via AC -->
+    <string name="stats_ac_energy">Energia CA</string>
+
+    <!-- Label for energy charged via DC -->
+    <string name="stats_dc_energy">Energia CC</string>
+
+    <!-- Format for number of charge sessions. %d is the count -->
+    <string name="format_charges_count">%d ricariche</string>
+
+    <!-- Debug dialog title for viewing sync logs -->
+    <string name="stats_sync_logs_title">Log Sincronizzazione</string>
+
+    <!-- Dialog title for gap record (period without activity). %s is "Charging" or "Driving" -->
+    <string name="stats_gap_dialog_title">Max Senza %s</string>
+
+    <!-- Gap type: charging -->
+    <string name="gap_type_charging">Ricaricare</string>
+
+    <!-- Gap type: driving -->
+    <string name="gap_type_driving">Guidare</string>
+
+    <!-- Dialog title for range record details -->
+    <string name="stats_range_record_title">Autonomia Massima</string>
+
+    <!-- Label for number of drives in range record. %d is the count -->
+    <string name="stats_drives_count">Viaggi (%d)</string>
+
+    <!-- Empty state when no drives found in range record dialog -->
+    <string name="stats_no_drives_found">Nessun viaggio trovato</string>
+
+    <!-- Content description for arrow indicating tappable record -->
+    <string name="view_details">Vedi dettagli</string>
+
+    <!-- Content description for arrow to view drive details -->
+    <string name="view_drive">Vedi viaggio</string>
 </resources>

@@ -441,4 +441,200 @@
 
     <!-- Content description for info icon -->
     <string name="info">Info</string>
+
+    <!-- Close button used in dialogs -->
+    <string name="close">Close</string>
+
+    <!-- ==================== Stats Screen ==================== -->
+    <!-- Top bar title - playful name for the detailed statistics screen -->
+    <string name="stats_title">Stats for Nerds</string>
+
+    <!-- Empty state when syncing data from server -->
+    <string name="stats_syncing">Syncing data…</string>
+
+    <!-- Empty state when no stats are available, with instruction to pull to refresh -->
+    <string name="stats_empty">No stats available yet.\nPull down to sync.</string>
+
+    <!-- Sync phase: fetching summary data from server -->
+    <string name="sync_phase_summaries">Fetching drives and charges…</string>
+
+    <!-- Sync phase: processing individual drive details -->
+    <string name="sync_phase_drives">Processing drive details…</string>
+
+    <!-- Sync phase: processing individual charge details -->
+    <string name="sync_phase_charges">Processing charge details…</string>
+
+    <!-- Sync progress percentage. %d is the percentage (e.g., "42% synced") -->
+    <string name="stats_sync_percent">%d%% synced</string>
+
+    <!-- Sync progress card title when deep sync is running -->
+    <string name="stats_deep_sync_title">Deep Stats Sync in Progress</string>
+
+    <!-- Sync progress completion percentage. %d is the percentage -->
+    <string name="stats_sync_complete">%d%% complete</string>
+
+    <!-- Section: Drives Overview - summary statistics about all drives -->
+    <string name="stats_drives_overview">Drives Overview</string>
+
+    <!-- Label for total number of drives -->
+    <string name="stats_total_drives">Total Drives</string>
+
+    <!-- Label for number of days with at least one drive -->
+    <string name="stats_driving_days">Driving Days</string>
+
+    <!-- Label for total energy consumed while driving -->
+    <string name="stats_energy_used">Energy Used</string>
+
+    <!-- Label for average energy efficiency (Wh/km) -->
+    <string name="stats_avg_efficiency">Avg Efficiency</string>
+
+    <!-- Label for maximum speed recorded -->
+    <string name="stats_top_speed">Top Speed</string>
+
+    <!-- Section: Charges Overview - summary statistics about all charges -->
+    <string name="stats_charges_overview">Charges Overview</string>
+
+    <!-- Label for total number of charge sessions -->
+    <string name="stats_total_charges">Total Charges</string>
+
+    <!-- Label for average cost per kWh of energy -->
+    <string name="stats_avg_cost_kwh">Avg Cost/kWh</string>
+
+    <!-- Section: Records - personal bests and extremes -->
+    <string name="stats_records">Records</string>
+
+    <!-- Record category: driving-related records -->
+    <string name="stats_category_drives">Drives</string>
+
+    <!-- Record category: battery and charging records -->
+    <string name="stats_category_battery">Battery</string>
+
+    <!-- Record category: weather and altitude records -->
+    <string name="stats_category_weather">Weather &amp; Altitude</string>
+
+    <!-- Record category: distance and gap records -->
+    <string name="stats_category_distances">Distances</string>
+
+    <!-- Record: longest single drive by distance -->
+    <string name="record_longest_drive">Longest Drive</string>
+
+    <!-- Record: fastest speed ever recorded -->
+    <string name="record_top_speed">Top Speed</string>
+
+    <!-- Record: most efficient drive (lowest Wh/km) -->
+    <string name="record_most_efficient">Most Efficient</string>
+
+    <!-- Record: longest consecutive days of driving -->
+    <string name="record_longest_streak">Longest Streak</string>
+
+    <!-- Record: day with most number of drives -->
+    <string name="record_busiest_day">Busiest Day</string>
+
+    <!-- Record: charge session with biggest battery percentage gain -->
+    <string name="record_biggest_gain">Biggest Gain</string>
+
+    <!-- Record: drive with biggest battery percentage loss -->
+    <string name="record_biggest_drain">Biggest Drain</string>
+
+    <!-- Record: charge session with most energy added -->
+    <string name="record_biggest_charge">Biggest Charge</string>
+
+    <!-- Record: highest charging power achieved -->
+    <string name="record_peak_power">Peak Power</string>
+
+    <!-- Record: most expensive single charge session -->
+    <string name="record_most_expensive">Most Expensive</string>
+
+    <!-- Record: highest cost per kWh for a charge -->
+    <string name="record_priciest_kwh">Priciest/kWh</string>
+
+    <!-- Record: highest elevation reached while driving -->
+    <string name="record_highest_point">Highest Point</string>
+
+    <!-- Record: most elevation gain in a single drive -->
+    <string name="record_most_climbing">Most Climbing</string>
+
+    <!-- Record: drive with highest outside temperature -->
+    <string name="record_hottest_drive">Hottest Drive</string>
+
+    <!-- Record: drive with lowest outside temperature -->
+    <string name="record_coldest_drive">Coldest Drive</string>
+
+    <!-- Record: charge session with highest outside temperature -->
+    <string name="record_hottest_charge">Hottest Charge</string>
+
+    <!-- Record: charge session with lowest outside temperature -->
+    <string name="record_coldest_charge">Coldest Charge</string>
+
+    <!-- Record: longest distance traveled between two charges -->
+    <string name="record_longest_range">Longest Range</string>
+
+    <!-- Record: longest period without charging the vehicle -->
+    <string name="record_longest_no_charging">Longest w/o Charging</string>
+
+    <!-- Record: longest period without driving the vehicle -->
+    <string name="record_longest_no_driving">Longest w/o Driving</string>
+
+    <!-- Record: day with most distance traveled -->
+    <string name="record_most_distance_day">Most Distance Day</string>
+
+    <!-- Format for streak duration. %d is number of days -->
+    <string name="format_days">%d days</string>
+
+    <!-- Format for number of drives. %d is the count -->
+    <string name="format_drives_count">%d drives</string>
+
+    <!-- Section: Temperature extremes recorded while driving and charging -->
+    <string name="stats_temperature_extremes">Temperature Extremes</string>
+
+    <!-- Sub-section: temperatures recorded while driving -->
+    <string name="stats_while_driving">While Driving</string>
+
+    <!-- Label for highest temperature -->
+    <string name="stats_hottest">Hottest</string>
+
+    <!-- Label for lowest temperature -->
+    <string name="stats_coldest">Coldest</string>
+
+    <!-- Sub-section: cabin (interior) temperatures -->
+    <string name="stats_cabin_temperature">Cabin Temperature</string>
+
+    <!-- Section: ratio between AC and DC charging -->
+    <string name="stats_ac_dc_ratio">AC/DC Charging Ratio</string>
+
+    <!-- Label for energy charged via AC -->
+    <string name="stats_ac_energy">AC Energy</string>
+
+    <!-- Label for energy charged via DC -->
+    <string name="stats_dc_energy">DC Energy</string>
+
+    <!-- Format for number of charge sessions. %d is the count -->
+    <string name="format_charges_count">%d charges</string>
+
+    <!-- Debug dialog title for viewing sync logs -->
+    <string name="stats_sync_logs_title">Sync Logs</string>
+
+    <!-- Dialog title for gap record (period without activity). %s is "Charging" or "Driving" -->
+    <string name="stats_gap_dialog_title">Longest Without %s</string>
+
+    <!-- Gap type: charging -->
+    <string name="gap_type_charging">Charging</string>
+
+    <!-- Gap type: driving -->
+    <string name="gap_type_driving">Driving</string>
+
+    <!-- Dialog title for range record details -->
+    <string name="stats_range_record_title">Longest Range</string>
+
+    <!-- Label for number of drives in range record. %d is the count -->
+    <string name="stats_drives_count">Drives (%d)</string>
+
+    <!-- Empty state when no drives found in range record dialog -->
+    <string name="stats_no_drives_found">No drives found</string>
+
+    <!-- Content description for arrow indicating tappable record -->
+    <string name="view_details">View details</string>
+
+    <!-- Content description for arrow to view drive details -->
+    <string name="view_drive">View drive</string>
 </resources>
