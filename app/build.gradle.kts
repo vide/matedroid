@@ -83,6 +83,25 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+
+    lint {
+        // Treat hardcoded text as an error to enforce localization
+        error += "HardcodedText"
+        error += "SetTextI18n"
+
+        // Fail the build on errors
+        abortOnError = true
+
+        // Generate reports
+        htmlReport = true
+        xmlReport = true
+    }
+
+    testOptions {
+        unitTests.all {
+            it.jvmArgs("-Xmx1024m")
+        }
+    }
 }
 
 dependencies {

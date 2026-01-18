@@ -22,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.data.repository.WeatherPoint
@@ -72,7 +74,7 @@ fun WeatherAlongTheWayCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Weather Along the Way",
+                    text = stringResource(R.string.weather_card_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -96,7 +98,7 @@ fun WeatherAlongTheWayCard(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Loading weather data...",
+                            text = stringResource(R.string.weather_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -111,7 +113,7 @@ fun WeatherAlongTheWayCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Weather data unavailable",
+                        text = stringResource(R.string.weather_unavailable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -153,14 +155,14 @@ private fun WeatherTableHeader() {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Time",
+            text = stringResource(R.string.weather_time),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "Distance",
+            text = stringResource(R.string.weather_distance),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -168,7 +170,7 @@ private fun WeatherTableHeader() {
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Weather",
+            text = stringResource(R.string.weather_weather),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
@@ -261,15 +263,16 @@ private fun getWeatherIconColor(condition: WeatherCondition): Color {
 /**
  * Returns a human-readable description for a weather condition.
  */
+@Composable
 private fun getWeatherDescription(condition: WeatherCondition): String {
     return when (condition) {
-        WeatherCondition.CLEAR -> "Clear sky"
-        WeatherCondition.PARTLY_CLOUDY -> "Partly cloudy"
-        WeatherCondition.FOG -> "Foggy"
-        WeatherCondition.DRIZZLE -> "Light rain"
-        WeatherCondition.RAIN -> "Rain"
-        WeatherCondition.SNOW -> "Snow"
-        WeatherCondition.THUNDERSTORM -> "Thunderstorm"
+        WeatherCondition.CLEAR -> stringResource(R.string.weather_clear)
+        WeatherCondition.PARTLY_CLOUDY -> stringResource(R.string.weather_partly_cloudy)
+        WeatherCondition.FOG -> stringResource(R.string.weather_fog)
+        WeatherCondition.DRIZZLE -> stringResource(R.string.weather_drizzle)
+        WeatherCondition.RAIN -> stringResource(R.string.weather_rain)
+        WeatherCondition.SNOW -> stringResource(R.string.weather_snow)
+        WeatherCondition.THUNDERSTORM -> stringResource(R.string.weather_thunderstorm)
     }
 }
 
@@ -277,13 +280,14 @@ private fun getWeatherDescription(condition: WeatherCondition): String {
  * Formats distance for the weather table.
  * Shows "Start" for 0km, "End" for the last point, and formats with appropriate units otherwise.
  */
+@Composable
 private fun formatWeatherDistance(distanceKm: Double, units: Units?, isLastPoint: Boolean): String {
     if (isLastPoint) {
-        return "End"
+        return stringResource(R.string.weather_end)
     }
 
     if (distanceKm < 0.1) {
-        return "Start"
+        return stringResource(R.string.weather_start)
     }
 
     val isImperial = units?.isImperial == true

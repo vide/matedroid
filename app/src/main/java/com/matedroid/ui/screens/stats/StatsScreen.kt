@@ -75,8 +75,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.domain.model.CarStats
 import com.matedroid.domain.model.DeepStats
@@ -181,12 +183,12 @@ fun StatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Stats for Nerds") },
+                title = { Text(stringResource(R.string.stats_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -212,8 +214,13 @@ fun StatsScreen(
                     CircularProgressIndicator()
                 }
             } else if (uiState.carStats == null) {
+                val emptyMessage = if (uiState.isSyncing) {
+                    stringResource(R.string.stats_syncing)
+                } else {
+                    stringResource(R.string.stats_empty)
+                }
                 EmptyState(
-                    message = if (uiState.isSyncing) "Syncing data..." else "No stats available yet.\nPull down to sync.",
+                    message = emptyMessage,
                     syncProgress = uiState.deepSyncProgress,
                     syncPhase = uiState.syncProgress?.phase,
                     isSyncing = uiState.isSyncing
@@ -279,17 +286,20 @@ private fun EmptyState(
             )
             // Show sync phase info
             if (isSyncing && syncPhase != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = when (syncPhase) {
-                        SyncPhase.SYNCING_SUMMARIES -> "Fetching drives and charges..."
-                        SyncPhase.SYNCING_DRIVE_DETAILS -> "Processing drive details..."
-                        SyncPhase.SYNCING_CHARGE_DETAILS -> "Processing charge details..."
-                        else -> ""
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                val phaseText = when (syncPhase) {
+                    SyncPhase.SYNCING_SUMMARIES -> stringResource(R.string.sync_phase_summaries)
+                    SyncPhase.SYNCING_DRIVE_DETAILS -> stringResource(R.string.sync_phase_drives)
+                    SyncPhase.SYNCING_CHARGE_DETAILS -> stringResource(R.string.sync_phase_charges)
+                    else -> ""
+                }
+                if (phaseText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = phaseText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             // Show progress bar if we have progress
             if (syncProgress > 0 || isSyncing) {
@@ -300,7 +310,7 @@ private fun EmptyState(
                         modifier = Modifier.fillMaxWidth(0.6f)
                     )
                     Text(
-                        text = "${(syncProgress * 100).toInt()}% synced",
+                        text = stringResource(R.string.stats_sync_percent, (syncProgress * 100).toInt()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -416,7 +426,7 @@ private fun YearFilterChips(
             FilterChip(
                 selected = selectedFilter is YearFilter.AllTime,
                 onClick = { onFilterSelected(YearFilter.AllTime) },
-                label = { Text("All Time") },
+                label = { Text(stringResource(R.string.filter_all_time)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
@@ -474,7 +484,7 @@ private fun SyncProgressCard(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Deep Stats Sync in Progress",
+                    text = stringResource(R.string.stats_deep_sync_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -484,7 +494,7 @@ private fun SyncProgressCard(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "${(progress * 100).toInt()}% complete",
+                    text = stringResource(R.string.stats_sync_complete, (progress * 100).toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -498,18 +508,18 @@ private fun SyncProgressCard(
 @Composable
 private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalette) {
     StatsCard(
-        title = "Drives Overview",
+        title = stringResource(R.string.stats_drives_overview),
         icon = Icons.Default.DirectionsCar,
         palette = palette
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "Total Drives",
+                label = stringResource(R.string.stats_total_drives),
                 value = quickStats.totalDrives.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "Driving Days",
+                label = stringResource(R.string.stats_driving_days),
                 value = quickStats.totalDrivingDays?.toString() ?: "-",
                 modifier = Modifier.weight(1f)
             )
@@ -517,12 +527,12 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "Total Distance",
+                label = stringResource(R.string.total_distance),
                 value = "%.0f km".format(quickStats.totalDistanceKm),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "Energy Used",
+                label = stringResource(R.string.stats_energy_used),
                 value = formatEnergy(quickStats.totalEnergyConsumedKwh),
                 modifier = Modifier.weight(1f)
             )
@@ -530,12 +540,12 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "Avg Efficiency",
+                label = stringResource(R.string.stats_avg_efficiency),
                 value = "%.0f Wh/km".format(quickStats.avgEfficiencyWhKm),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "Top Speed",
+                label = stringResource(R.string.stats_top_speed),
                 value = quickStats.maxSpeedKmh?.let { "$it km/h" } ?: "N/A",
                 modifier = Modifier.weight(1f)
             )
@@ -546,18 +556,18 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
 @Composable
 private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalette, currencySymbol: String) {
     StatsCard(
-        title = "Charges Overview",
+        title = stringResource(R.string.stats_charges_overview),
         icon = Icons.Default.BatteryChargingFull,
         palette = palette
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "Total Charges",
+                label = stringResource(R.string.stats_total_charges),
                 value = quickStats.totalCharges.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "Energy Added",
+                label = stringResource(R.string.energy_added),
                 value = formatEnergy(quickStats.totalEnergyAddedKwh),
                 modifier = Modifier.weight(1f)
             )
@@ -566,12 +576,12 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
-                    label = "Total Cost",
+                    label = stringResource(R.string.total_cost),
                     value = "%.2f %s".format(quickStats.totalCost, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
-                    label = "Avg Cost/kWh",
+                    label = stringResource(R.string.stats_avg_cost_kwh),
                     value = quickStats.avgCostPerKwh?.let { "%.3f %s".format(it, currencySymbol) } ?: "N/A",
                     modifier = Modifier.weight(1f)
                 )
@@ -617,47 +627,76 @@ private fun RecordsCard(
     onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit,
     onGapRecordClick: (Double, String, String, String) -> Unit // gapDays, fromDate, toDate, title
 ) {
+    // Pre-compute localized strings for use in lambdas
+    val labelLongestDrive = stringResource(R.string.record_longest_drive)
+    val labelTopSpeed = stringResource(R.string.record_top_speed)
+    val labelMostEfficient = stringResource(R.string.record_most_efficient)
+    val labelLongestStreak = stringResource(R.string.record_longest_streak)
+    val labelBusiestDay = stringResource(R.string.record_busiest_day)
+    val labelBiggestGain = stringResource(R.string.record_biggest_gain)
+    val labelBiggestDrain = stringResource(R.string.record_biggest_drain)
+    val labelBiggestCharge = stringResource(R.string.record_biggest_charge)
+    val labelPeakPower = stringResource(R.string.record_peak_power)
+    val labelMostExpensive = stringResource(R.string.record_most_expensive)
+    val labelPriciestKwh = stringResource(R.string.record_priciest_kwh)
+    val labelHighestPoint = stringResource(R.string.record_highest_point)
+    val labelMostClimbing = stringResource(R.string.record_most_climbing)
+    val labelHottestDrive = stringResource(R.string.record_hottest_drive)
+    val labelColdestDrive = stringResource(R.string.record_coldest_drive)
+    val labelHottestCharge = stringResource(R.string.record_hottest_charge)
+    val labelColdestCharge = stringResource(R.string.record_coldest_charge)
+    val labelLongestRange = stringResource(R.string.record_longest_range)
+    val labelNoCharging = stringResource(R.string.record_longest_no_charging)
+    val labelNoDriving = stringResource(R.string.record_longest_no_driving)
+    val labelMostDistanceDay = stringResource(R.string.record_most_distance_day)
+    val categoryDrives = stringResource(R.string.stats_category_drives)
+    val categoryBattery = stringResource(R.string.stats_category_battery)
+    val categoryWeather = stringResource(R.string.stats_category_weather)
+    val categoryDistances = stringResource(R.string.stats_category_distances)
+    val gapTypeCharging = stringResource(R.string.gap_type_charging)
+    val gapTypeDriving = stringResource(R.string.gap_type_driving)
+
     // Category 1: Drives
     val driveRecords = mutableListOf<RecordData>()
     quickStats.longestDrive?.let { drive ->
-        driveRecords.add(RecordData("📏", "Longest Drive", "%.1f km".format(drive.distance), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
+        driveRecords.add(RecordData("📏", labelLongestDrive, "%.1f km".format(drive.distance), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
     }
     quickStats.fastestDrive?.let { drive ->
-        driveRecords.add(RecordData("🏎️", "Top Speed", "${drive.speedMax} km/h", drive.startDate.take(10)) { onDriveClick(drive.driveId) })
+        driveRecords.add(RecordData("🏎️", labelTopSpeed, "${drive.speedMax} km/h", drive.startDate.take(10)) { onDriveClick(drive.driveId) })
     }
     quickStats.mostEfficientDrive?.let { drive ->
-        driveRecords.add(RecordData("🌱", "Most Efficient", "%.0f Wh/km".format(drive.efficiency ?: 0.0), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
+        driveRecords.add(RecordData("🌱", labelMostEfficient, "%.0f Wh/km".format(drive.efficiency ?: 0.0), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
     }
     quickStats.longestDrivingStreak?.let { streak ->
-        driveRecords.add(RecordData("🔥", "Longest Streak", "${streak.streakDays} days", "${streak.startDate} → ${streak.endDate}", null))
+        driveRecords.add(RecordData("🔥", labelLongestStreak, stringResource(R.string.format_days, streak.streakDays), "${streak.startDate} → ${streak.endDate}", null))
     }
     quickStats.busiestDay?.let { day ->
-        driveRecords.add(RecordData("📅", "Busiest Day", "${day.count} drives", day.day) { onDayClick(day.day) })
+        driveRecords.add(RecordData("📅", labelBusiestDay, stringResource(R.string.format_drives_count, day.count), day.day) { onDayClick(day.day) })
     }
 
     // Category 2: Battery
     val batteryRecords = mutableListOf<RecordData>()
     quickStats.biggestBatteryGainCharge?.let { record ->
-        batteryRecords.add(RecordData("🔋", "Biggest Gain", "+${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onChargeClick(record.recordId) })
+        batteryRecords.add(RecordData("🔋", labelBiggestGain, "+${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onChargeClick(record.recordId) })
     }
     quickStats.biggestBatteryDrainDrive?.let { record ->
-        batteryRecords.add(RecordData("📉", "Biggest Drain", "-${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onDriveClick(record.recordId) })
+        batteryRecords.add(RecordData("📉", labelBiggestDrain, "-${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onDriveClick(record.recordId) })
     }
     quickStats.biggestCharge?.let { charge ->
-        batteryRecords.add(RecordData("⚡", "Biggest Charge", "%.0f kWh".format(charge.energyAdded), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+        batteryRecords.add(RecordData("⚡", labelBiggestCharge, "%.0f kWh".format(charge.energyAdded), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
     }
     deepStats?.chargeWithMaxPower?.let { record ->
-        batteryRecords.add(RecordData("⚡", "Peak Power", "${record.powerKw} kW", record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        batteryRecords.add(RecordData("⚡", labelPeakPower, "${record.powerKw} kW", record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
     quickStats.mostExpensiveCharge?.let { charge ->
         charge.cost?.let { cost ->
-            batteryRecords.add(RecordData("💸", "Most Expensive", "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+            batteryRecords.add(RecordData("💸", labelMostExpensive, "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
         }
     }
     quickStats.mostExpensivePerKwhCharge?.let { charge ->
         charge.cost?.let { cost ->
             if (charge.energyAdded > 0) {
-                batteryRecords.add(RecordData("📈", "Priciest/kWh", "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+                batteryRecords.add(RecordData("📈", labelPriciestKwh, "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
             }
         }
     }
@@ -665,46 +704,46 @@ private fun RecordsCard(
     // Category 3: Weather & Altitude
     val weatherRecords = mutableListOf<RecordData>()
     deepStats?.driveWithMaxElevation?.let { record ->
-        weatherRecords.add(RecordData("🏔️", "Highest Point", "${record.elevationM} m", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("🏔️", labelHighestPoint, "${record.elevationM} m", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.driveWithMostClimbing?.let { record ->
-        weatherRecords.add(RecordData("⛰️", "Most Climbing", record.elevationGainM?.let { "+$it m" } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+$it m" } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.hottestDrive?.let { record ->
-        weatherRecords.add(RecordData("🌡️", "Hottest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("🌡️", labelHottestDrive, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.coldestDrive?.let { record ->
-        weatherRecords.add(RecordData("🧊", "Coldest Drive", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("🧊", labelColdestDrive, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.hottestCharge?.let { record ->
-        weatherRecords.add(RecordData("☀️", "Hottest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        weatherRecords.add(RecordData("☀️", labelHottestCharge, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
     deepStats?.coldestCharge?.let { record ->
-        weatherRecords.add(RecordData("❄️", "Coldest Charge", "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
+        weatherRecords.add(RecordData("❄️", labelColdestCharge, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
 
     // Category 4: Distances & Gaps
     val distanceRecords = mutableListOf<RecordData>()
     quickStats.maxDistanceBetweenCharges?.let { record ->
-        distanceRecords.add(RecordData("🔋", "Longest Range", "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
+        distanceRecords.add(RecordData("🔋", labelLongestRange, "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
     quickStats.longestGapWithoutCharging?.let { gap ->
-        distanceRecords.add(RecordData("⏰", "Longest w/o Charging", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, "Without Charging") })
+        distanceRecords.add(RecordData("⏰", labelNoCharging, "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
     }
     quickStats.longestGapWithoutDriving?.let { gap ->
-        distanceRecords.add(RecordData("🅿️", "Longest w/o Driving", "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, "Without Driving") })
+        distanceRecords.add(RecordData("🅿️", labelNoDriving, "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
     }
     quickStats.mostDistanceDay?.let { day ->
-        distanceRecords.add(RecordData("🛣️", "Most Distance Day", "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
+        distanceRecords.add(RecordData("🛣️", labelMostDistanceDay, "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
     }
 
     // Build list of all categories with their records
     data class CategoryData(val title: String, val emoji: String, val records: List<RecordData>)
     val allCategories = mutableListOf<CategoryData>()
-    if (driveRecords.isNotEmpty()) allCategories.add(CategoryData("Drives", "🚗", driveRecords))
-    if (batteryRecords.isNotEmpty()) allCategories.add(CategoryData("Battery", "🔋", batteryRecords))
-    if (weatherRecords.isNotEmpty()) allCategories.add(CategoryData("Weather & Altitude", "🌡️", weatherRecords))
-    if (distanceRecords.isNotEmpty()) allCategories.add(CategoryData("Distances", "📍", distanceRecords))
+    if (driveRecords.isNotEmpty()) allCategories.add(CategoryData(categoryDrives, "🚗", driveRecords))
+    if (batteryRecords.isNotEmpty()) allCategories.add(CategoryData(categoryBattery, "🔋", batteryRecords))
+    if (weatherRecords.isNotEmpty()) allCategories.add(CategoryData(categoryWeather, "🌡️", weatherRecords))
+    if (distanceRecords.isNotEmpty()) allCategories.add(CategoryData(categoryDistances, "📍", distanceRecords))
 
     // Don't render anything if no categories
     if (allCategories.isEmpty()) return
@@ -740,7 +779,7 @@ private fun RecordsCard(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Records",
+                text = stringResource(R.string.stats_records),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = palette.onSurface
@@ -897,12 +936,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette)
     }
 
     StatsCard(
-        title = "Temperature Extremes",
+        title = stringResource(R.string.stats_temperature_extremes),
         icon = Icons.Default.Thermostat,
         palette = palette
     ) {
         Text(
-            text = "While Driving",
+            text = stringResource(R.string.stats_while_driving),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = palette.onSurfaceVariant
@@ -910,12 +949,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette)
         Spacer(modifier = Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "Hottest",
+                label = stringResource(R.string.stats_hottest),
                 value = deepStats.maxOutsideTempDrivingC?.let { "%.1f°C".format(it) } ?: "N/A",
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "Coldest",
+                label = stringResource(R.string.stats_coldest),
                 value = deepStats.minOutsideTempDrivingC?.let { "%.1f°C".format(it) } ?: "N/A",
                 modifier = Modifier.weight(1f)
             )
@@ -924,7 +963,7 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette)
         if (deepStats.maxCabinTempC != null || deepStats.minCabinTempC != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Cabin Temperature",
+                text = stringResource(R.string.stats_cabin_temperature),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = palette.onSurfaceVariant
@@ -932,12 +971,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette)
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
-                    label = "Hottest",
+                    label = stringResource(R.string.stats_hottest),
                     value = deepStats.maxCabinTempC?.let { "%.1f°C".format(it) } ?: "N/A",
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
-                    label = "Coldest",
+                    label = stringResource(R.string.stats_coldest),
                     value = deepStats.minCabinTempC?.let { "%.1f°C".format(it) } ?: "N/A",
                     modifier = Modifier.weight(1f)
                 )
@@ -966,19 +1005,19 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
     val dcColor = Color(0xFFFFC107) // Yellow/Amber
 
     StatsCard(
-        title = "AC/DC Charging Ratio",
+        title = stringResource(R.string.stats_ac_dc_ratio),
         icon = Icons.Default.BatteryChargingFull,
         palette = palette
     ) {
         // Energy stats row
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
-                label = "AC Energy",
+                label = stringResource(R.string.stats_ac_energy),
                 value = formatEnergy(deepStats.acChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = "DC Energy",
+                label = stringResource(R.string.stats_dc_energy),
                 value = formatEnergy(deepStats.dcChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
@@ -1011,26 +1050,26 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
         ) {
             Column {
                 Text(
-                    text = "AC",
+                    text = stringResource(R.string.charging_ac),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = acColor
                 )
                 Text(
-                    text = "${deepStats.acChargeCount} charges",
+                    text = stringResource(R.string.format_charges_count, deepStats.acChargeCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "DC",
+                    text = stringResource(R.string.charging_dc),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = dcColor
                 )
                 Text(
-                    text = "${deepStats.dcChargeCount} charges",
+                    text = stringResource(R.string.format_charges_count, deepStats.dcChargeCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant
                 )
@@ -1161,7 +1200,7 @@ private fun RecordCard(
             if (onClick != null) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "View details",
+                    contentDescription = stringResource(R.string.view_details),
                     modifier = Modifier.size(18.dp),
                     tint = palette.onSurfaceVariant
                 )
@@ -1221,7 +1260,7 @@ private fun SyncLogsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Sync Logs")
+            Text(stringResource(R.string.stats_sync_logs_title))
         },
         text = {
             Box(
@@ -1246,7 +1285,7 @@ private fun SyncLogsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -1264,14 +1303,16 @@ private fun GapRecordDialog(
     palette: CarColorPalette,
     onDismiss: () -> Unit
 ) {
-    val emoji = if (title.contains("Charging")) "⏰" else "🅿️"
+    // title is now the gap type (Charging/Driving), used for determining emoji
+    val isCharging = title == stringResource(R.string.gap_type_charging)
+    val emoji = if (isCharging) "⏰" else "🅿️"
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(emoji, style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Longest $title")
+                Text(stringResource(R.string.stats_gap_dialog_title, title))
             }
         },
         text = {
@@ -1304,7 +1345,7 @@ private fun GapRecordDialog(
                     ) {
                         Column {
                             Text(
-                                text = "Started",
+                                text = stringResource(R.string.started),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = palette.onSurfaceVariant
                             )
@@ -1317,7 +1358,7 @@ private fun GapRecordDialog(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Ended",
+                                text = stringResource(R.string.ended),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = palette.onSurfaceVariant
                             )
@@ -1334,7 +1375,7 @@ private fun GapRecordDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -1358,7 +1399,7 @@ private fun RangeRecordDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("🔋", style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Longest Range")
+                Text(stringResource(R.string.stats_range_record_title))
             }
         },
         text = {
@@ -1378,7 +1419,7 @@ private fun RangeRecordDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Total Distance",
+                                text = stringResource(R.string.total_distance),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = palette.onSurfaceVariant
                             )
@@ -1396,7 +1437,7 @@ private fun RangeRecordDialog(
                         ) {
                             Column {
                                 Text(
-                                    text = "From",
+                                    text = stringResource(R.string.from),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = palette.onSurfaceVariant
                                 )
@@ -1408,7 +1449,7 @@ private fun RangeRecordDialog(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = "To",
+                                    text = stringResource(R.string.to),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = palette.onSurfaceVariant
                                 )
@@ -1426,7 +1467,7 @@ private fun RangeRecordDialog(
 
                 // Drives header
                 Text(
-                    text = "Drives (${drives.size})",
+                    text = stringResource(R.string.stats_drives_count, drives.size),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurfaceVariant
@@ -1453,7 +1494,7 @@ private fun RangeRecordDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No drives found",
+                                text = stringResource(R.string.stats_no_drives_found),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = palette.onSurfaceVariant
                             )
@@ -1477,7 +1518,7 @@ private fun RangeRecordDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.close))
             }
         }
     )
@@ -1542,7 +1583,7 @@ private fun DriveListItem(
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "View drive",
+                contentDescription = stringResource(R.string.view_drive),
                 modifier = Modifier.size(18.dp),
                 tint = palette.onSurfaceVariant
             )

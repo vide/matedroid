@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name shown in launcher and system settings -->
+    <string name="app_name">MateDroid</string>
+
+    <!-- ==================== Common / Shared ==================== -->
+    <!-- Generic button labels used throughout the app -->
+    <string name="cancel">Annulla</string>
+    <string name="ok">OK</string>
+
+    <!-- Shown when a value is not available or loading -->
+    <string name="unknown">Sconosciuto</string>
+
+    <!-- ==================== Dashboard Screen ==================== -->
+    <!-- Dialog title when user has multiple vehicles and can choose one -->
+    <string name="select_vehicle">Seleziona veicolo</string>
+
+    <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
+    <string name="car_fallback_name">Auto %d</string>
+
+    <!-- Content description for checkmark icon next to selected vehicle -->
+    <string name="selected">Selezionato</string>
+
+    <!-- Content description for dropdown arrow indicating car can be changed -->
+    <string name="select_car">Seleziona auto</string>
+
+    <!-- Content description for settings gear icon in top bar -->
+    <string name="settings">Impostazioni</string>
+
+    <!-- Shown with a spinner while fetching vehicle data from the server -->
+    <string name="loading_vehicle_data">Caricamento dati veicolo…</string>
+
+    <!-- Empty state: title when no vehicles are found in the account -->
+    <string name="no_vehicles_found">Nessun veicolo trovato</string>
+
+    <!-- Empty state: subtitle explaining what to check -->
+    <string name="no_vehicles_hint">Assicurati che TeslaMate API sia configurato correttamente</string>
+
+    <!-- Error state: title when data loading fails -->
+    <string name="error_loading_data">Errore nel caricamento dati</string>
+
+    <!-- Vehicle state shown when locked -->
+    <string name="locked">Bloccato</string>
+
+    <!-- Vehicle state shown when unlocked -->
+    <string name="unlocked">Sbloccato</string>
+
+    <!-- Content description when car is plugged in but not charging -->
+    <string name="plugged_in">Collegato</string>
+
+    <!-- Vehicle state shown when driving -->
+    <string name="driving">In guida</string>
+
+    <!-- Content description when sentry mode is active -->
+    <string name="sentry_mode_active">Modalità sentinella attiva</string>
+
+    <!-- Content description for inside temperature indicator -->
+    <string name="inside_temp">Temperatura interna</string>
+
+    <!-- Content description for outside temperature indicator -->
+    <string name="outside_temp">Temperatura esterna</string>
+
+    <!-- Label for external/outside temperature -->
+    <string name="temp_ext_label">Est:</string>
+
+    <!-- Label for internal/inside temperature -->
+    <string name="temp_int_label">Int:</string>
+
+    <!-- Tooltip shown when climate control is active -->
+    <string name="climate_active">Clima attivo</string>
+
+    <!-- Tooltip shown when climate control is inactive -->
+    <string name="climate_inactive">Clima inattivo</string>
+
+    <!-- Content description for the car image, indicates it's tappable -->
+    <string name="car_image_tap_for_stats">Immagine auto - tocca per statistiche</string>
+
+    <!-- Content description for arrow button leading to stats screen -->
+    <string name="view_stats">Vedi statistiche</string>
+
+    <!-- Content description for battery icon, indicates it's tappable -->
+    <string name="tap_for_battery_health">Tocca per stato batteria</string>
+
+    <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
+    <string name="charge_limit_format">Limite: %d%%</string>
+
+    <!-- Battery charge limit label when value is unavailable -->
+    <string name="charge_limit_unknown">Limite: --</string>
+
+    <!-- Power unit abbreviation for kilowatts -->
+    <string name="unit_kw">kW</string>
+
+    <!-- DC (Direct Current) charging indicator badge -->
+    <string name="charging_dc">DC</string>
+
+    <!-- AC (Alternating Current) charging indicator badge -->
+    <string name="charging_ac">AC</string>
+
+    <!-- Content description for warning icon when battery is above 90% -->
+    <string name="high_charge_level">Livello carica elevato</string>
+
+    <!-- Location card section title -->
+    <string name="location">Posizione</string>
+
+    <!-- Elevation label in location card -->
+    <string name="elevation">Altitudine</string>
+
+    <!-- Vehicle info card section title -->
+    <string name="vehicle_info">Info veicolo</string>
+
+    <!-- Navigation button to charges list -->
+    <string name="nav_charges">Ricariche</string>
+
+    <!-- Navigation button to drives list -->
+    <string name="nav_drives">Viaggi</string>
+
+    <!-- Navigation button to mileage/odometer screen -->
+    <string name="nav_mileage">Chilometraggio</string>
+
+    <!-- Navigation button to software versions screen -->
+    <string name="nav_software">Software</string>
+
+    <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
+    <string name="tire_fl">AS</string>
+    <string name="tire_fr">AD</string>
+    <string name="tire_rl">PS</string>
+    <string name="tire_rr">PD</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <!-- Top bar title for settings screen -->
+    <string name="settings_title">Impostazioni MateDroid</string>
+
+    <!-- Shown while loading settings from storage -->
+    <string name="loading_settings">Caricamento impostazioni…</string>
+
+    <!-- Content description for expand/collapse section arrows -->
+    <string name="collapse">Comprimi</string>
+    <string name="expand">Espandi</string>
+
+    <!-- Server connection section -->
+    <string name="settings_connect_title">Connetti a TeslamateApi</string>
+    <string name="settings_connect_description">Inserisci l\'URL del server TeslamateApi per connetterti.</string>
+
+    <!-- Server URL field -->
+    <string name="settings_server_url_label">URL del server</string>
+    <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
+
+    <!-- Advanced network settings section (collapsible) -->
+    <string name="settings_advanced_network">Impostazioni di rete avanzate</string>
+
+    <!-- Secondary server URL field -->
+    <string name="settings_secondary_url_label">URL server secondario (opzionale)</string>
+    <string name="settings_secondary_url_placeholder">https://teslamate-api-internal.local</string>
+    <string name="settings_secondary_url_hint">URL di riserva quando il server primario non è raggiungibile. Utile per accesso LAN/VPN.</string>
+
+    <!-- API token field -->
+    <string name="settings_api_token_label">Token API (opzionale)</string>
+    <string name="settings_api_token_placeholder">Il tuo token API</string>
+    <string name="settings_api_token_hint">Lascia vuoto se TeslamateApi non richiede autenticazione.</string>
+
+    <!-- Content description for password visibility toggle -->
+    <string name="hide_token">Nascondi token</string>
+    <string name="show_token">Mostra token</string>
+
+    <!-- Accept invalid certificates toggle -->
+    <string name="settings_accept_invalid_certs">Accetta certificati non validi</string>
+    <string name="settings_accept_invalid_certs_hint">Abilita per certificati autofirmati</string>
+    <string name="settings_accept_invalid_certs_warning">Disabilitare la validazione dei certificati rende le connessioni vulnerabili ad attacchi man-in-the-middle. Usa solo su reti fidate.</string>
+
+    <!-- Display settings section -->
+    <string name="settings_display_title">Impostazioni schermo</string>
+
+    <!-- Currency selector -->
+    <string name="settings_currency_label">Valuta per i costi</string>
+    <string name="settings_currency_select">Seleziona valuta</string>
+
+    <!-- Teslamate base URL field -->
+    <string name="settings_teslamate_url_label">URL base Teslamate (opzionale)</string>
+    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
+    <string name="settings_teslamate_url_hint">Usato per modificare i costi di ricarica direttamente in Teslamate.</string>
+
+    <!-- Extra settings section (collapsible) -->
+    <string name="settings_extra">Impostazioni extra</string>
+
+    <!-- Show short drives/charges toggle -->
+    <string name="settings_show_short_label">Mostra viaggi / ricariche brevi</string>
+    <string name="settings_show_short_hint">Visualizza viaggi molto brevi e ricariche minime nelle liste</string>
+    <string name="more_information">Maggiori informazioni</string>
+
+    <!-- Short drives/charges info dialog -->
+    <string name="settings_short_dialog_title">Viaggi e ricariche brevi</string>
+    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Viaggi sotto 1 minuto o meno di 0,1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
+
+    <!-- Force resync button and dialog -->
+    <string name="settings_resync_button">Forza risincronizzazione completa</string>
+    <string name="settings_resyncing">Risincronizzazione…</string>
+    <string name="settings_resync_hint">Riscarica tutti i dettagli di viaggi e ricariche. Usa se le statistiche sembrano errate.</string>
+    <string name="settings_resync_dialog_title">Forzare risincronizzazione completa?</string>
+    <string name="settings_resync_dialog_text_prefix">Questo </string>
+    <string name="settings_resync_dialog_text_delete">ELIMINERÀ</string>
+    <string name="settings_resync_dialog_text_suffix"> tutti i viaggi, ricariche e statistiche memorizzati, poi riscaricherà tutto dal server.\n\nIl processo potrebbe richiedere diversi minuti a seconda della quantità di dati.</string>
+    <string name="settings_resync_confirm">Risincronizza</string>
+
+    <!-- Action buttons -->
+    <string name="settings_test_connection">Prova connessione</string>
+    <string name="settings_save">Salva e continua</string>
+
+    <!-- Debug palette preview button -->
+    <string name="settings_palette_preview">Anteprima palette colori (Debug)</string>
+
+    <!-- Test result labels -->
+    <string name="settings_primary_server">Server primario</string>
+    <string name="settings_secondary_server">Server secondario</string>
+    <string name="settings_connected">Connesso</string>
+
+    <!-- ==================== Drives Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drives_title">Viaggi</string>
+
+    <!-- Content description for back button -->
+    <string name="back">Indietro</string>
+
+    <!-- Section title for drive history list -->
+    <string name="drive_history">Cronologia viaggi</string>
+
+    <!-- Empty state when no drives match filters -->
+    <string name="no_drives_found">Nessun viaggio trovato per il periodo selezionato</string>
+
+    <!-- Summary card title -->
+    <string name="summary">Riepilogo</string>
+
+    <!-- Summary card labels -->
+    <string name="total_trips">Viaggi totali</string>
+    <string name="total_distance">Distanza totale</string>
+    <string name="total_time">Tempo totale</string>
+    <string name="max_speed">Velocità max</string>
+
+    <!-- Drive item stat labels -->
+    <string name="distance">Distanza</string>
+    <string name="duration">Durata</string>
+    <string name="battery">Batteria</string>
+
+    <!-- Date filter chips -->
+    <string name="filter_last_7_days">Ultimi 7 giorni</string>
+    <string name="filter_last_30_days">Ultimi 30 giorni</string>
+    <string name="filter_last_90_days">Ultimi 90 giorni</string>
+    <string name="filter_last_year">Ultimo anno</string>
+    <string name="filter_all_time">Tutto</string>
+
+    <!-- Distance filter chips (metric) -->
+    <string name="filter_all">Tutti</string>
+    <string name="filter_commute_km">Brevi (&lt; 10 km)</string>
+    <string name="filter_day_trip_km">Gita giornaliera (10–100 km)</string>
+    <string name="filter_road_trip_km">Viaggio lungo (&gt; 100 km)</string>
+
+    <!-- Distance filter chips (imperial) -->
+    <string name="filter_commute_mi">Brevi (&lt; 6 mi)</string>
+    <string name="filter_day_trip_mi">Gita giornaliera (6–60 mi)</string>
+    <string name="filter_road_trip_mi">Viaggio lungo (&gt; 60 mi)</string>
+
+    <!-- Chart titles - drives per period -->
+    <string name="chart_drives_per_day">Viaggi al giorno</string>
+    <string name="chart_drives_per_week">Viaggi a settimana</string>
+    <string name="chart_drives_per_month">Viaggi al mese</string>
+
+    <!-- Chart titles - driving time per period -->
+    <string name="chart_time_per_day">Tempo di guida al giorno</string>
+    <string name="chart_time_per_week">Tempo di guida a settimana</string>
+    <string name="chart_time_per_month">Tempo di guida al mese</string>
+
+    <!-- Chart titles - distance per period -->
+    <string name="chart_distance_per_day">Distanza al giorno</string>
+    <string name="chart_distance_per_week">Distanza a settimana</string>
+    <string name="chart_distance_per_month">Distanza al mese</string>
+
+    <!-- Chart titles - top speed per period -->
+    <string name="chart_speed_per_day">Velocità max al giorno</string>
+    <string name="chart_speed_per_week">Velocità max a settimana</string>
+    <string name="chart_speed_per_month">Velocità max al mese</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Dettagli viaggio</string>
+
+    <!-- Route card labels -->
+    <string name="from">Da</string>
+    <string name="to">A</string>
+    <string name="unknown_location">Posizione sconosciuta</string>
+    <string name="started">Inizio</string>
+    <string name="ended">Fine</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Durata: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Mappa percorso</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Velocità</string>
+    <string name="trip">Viaggio</string>
+    <string name="power">Potenza</string>
+    <string name="temperature">Temperatura</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Massima</string>
+    <string name="minimum">Minima</string>
+    <string name="average">Media</string>
+    <string name="avg_distance">Media (distanza)</string>
+    <string name="efficiency">Efficienza</string>
+    <string name="start">Inizio</string>
+    <string name="end">Fine</string>
+    <string name="used">Usata</string>
+    <string name="energy">Energia</string>
+    <string name="max_accel">Max (accel)</string>
+    <string name="min_regen">Min (regen)</string>
+    <string name="gain">Guadagno</string>
+    <string name="loss">Perdita</string>
+    <string name="outside">Esterna</string>
+    <string name="inside">Interna</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Profilo velocità</string>
+    <string name="power_profile">Profilo potenza</string>
+    <string name="battery_level">Livello batteria</string>
+    <string name="elevation_profile">Profilo altitudine</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Meteo lungo il percorso</string>
+
+    <!-- ==================== Charges Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charges_title">Ricariche</string>
+
+    <!-- Section title for charge history list -->
+    <string name="charge_history">Cronologia ricariche</string>
+
+    <!-- Empty state when no charges match filters -->
+    <string name="no_charges_found">Nessuna ricarica trovata per il periodo selezionato</string>
+
+    <!-- Summary card labels -->
+    <string name="total_sessions">Sessioni totali</string>
+    <string name="total_energy">Energia totale</string>
+    <string name="total_cost">Costo totale</string>
+    <string name="avg_cost_per_session">Costo medio/sessione</string>
+
+    <!-- Charge item stat labels -->
+    <string name="energy_added">Aggiunta</string>
+    <string name="cost">Costo</string>
+
+    <!-- Content description for edit cost button -->
+    <string name="edit">Modifica</string>
+
+    <!-- Chart titles - energy per period -->
+    <string name="chart_energy_per_day">Energia al giorno</string>
+    <string name="chart_energy_per_week">Energia a settimana</string>
+    <string name="chart_energy_per_month">Energia al mese</string>
+
+    <!-- Chart titles - cost per period -->
+    <string name="chart_cost_per_day">Costo al giorno</string>
+    <string name="chart_cost_per_week">Costo a settimana</string>
+    <string name="chart_cost_per_month">Costo al mese</string>
+
+    <!-- Chart titles - charges count per period -->
+    <string name="chart_charges_per_day">Ricariche al giorno</string>
+    <string name="chart_charges_per_week">Ricariche a settimana</string>
+    <string name="chart_charges_per_month">Ricariche al mese</string>
+
+    <!-- ==================== Charge Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charge_details_title">Dettagli ricarica</string>
+
+    <!-- Header labels -->
+    <string name="energy_added_header">Energia aggiunta</string>
+
+    <!-- Map marker title -->
+    <string name="charge_location">Luogo di ricarica</string>
+
+    <!-- Stats section titles -->
+    <string name="charger">Caricatore</string>
+
+    <!-- Charger stats labels -->
+    <string name="voltage_max">Tensione (max)</string>
+    <string name="voltage_min">Tensione (min)</string>
+    <string name="voltage_avg">Tensione (media)</string>
+    <string name="current_max">Corrente (max)</string>
+    <string name="current_min">Corrente (min)</string>
+    <string name="current_avg">Corrente (media)</string>
+
+    <!-- Cost stats labels -->
+    <string name="total">Totale</string>
+    <string name="per_kwh">Per kWh</string>
+
+    <!-- Chart card titles -->
+    <string name="voltage_profile">Profilo tensione</string>
+    <string name="current_profile">Profilo corrente</string>
+
+    <!-- ==================== Battery Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="battery_health_title">Stato Batteria</string>
+
+    <!-- Empty state -->
+    <string name="no_battery_data">Nessun dato batteria disponibile</string>
+
+    <!-- Capacity section -->
+    <string name="capacity">Capacità</string>
+    <string name="usable_new">Utilizzabile (nuova)</string>
+    <string name="usable_now">Utilizzabile (ora)</string>
+    <string name="rated">Nominale</string>
+
+    <!-- Capacity info dialog -->
+    <string name="battery_capacity_title">Capacità Batteria</string>
+    <string name="battery_capacity_message">Mostra la capacità di accumulo energetico della batteria.\n\n• Utilizzabile (nuova): La capacità utilizzabile originale quando l\'auto era nuova\n• Utilizzabile (ora): Capacità utilizzabile attuale dopo il degrado\n• Efficienza nominale: Consumo energetico per km in condizioni di test standard (Wh/km)</string>
+
+    <!-- Degradation section -->
+    <string name="estimated_degradation">Degrado stimato</string>
+    <string name="loss_kwh">Perdita (kWh)</string>
+    <string name="loss_percent">Perdita (%%)</string>
+
+    <!-- Degradation info dialog -->
+    <string name="estimated_degradation_title">Degrado Stimato</string>
+    <string name="estimated_degradation_message">Il degrado della batteria è stimato in base ai dati di Teslamate.\n\n• Capacità %%: Salute residua della batteria rispetto al nuovo\n• Perdita (kWh): Capacità energetica persa per degrado\n• Perdita (%%): Percentuale della capacità originale persa\n\nNota: Questa è una stima. Tesla non fornisce dati ufficiali sul degrado.</string>
+
+    <!-- Range section -->
+    <string name="range">Autonomia</string>
+    <string name="max_range_new">Autonomia max (nuova)</string>
+    <string name="max_range_now">Autonomia max (ora)</string>
+    <string name="range_loss">Perdita autonomia</string>
+
+    <!-- Battery detail screen -->
+    <string name="battery_detail_title">Dettagli Batteria</string>
+
+    <!-- Current charge section -->
+    <string name="current_charge">Carica Attuale</string>
+    <!-- %d is the percentage of usable battery -->
+    <string name="usable_percent">Utilizzabile: %d%%</string>
+
+    <!-- Current charge info dialog -->
+    <string name="current_charge_title">Carica Attuale</string>
+    <string name="current_charge_message">Mostra lo stato di carica attuale della batteria.\n\n• Batteria %%: Il livello di carica mostrato sul cruscotto\n• Utilizzabile %%: Carica effettivamente utilizzabile (Tesla riserva un piccolo buffer per protezione)\n\nQuesta è la carica attuale, non la salute a lungo termine della batteria.</string>
+
+    <!-- Range information section -->
+    <string name="range_information">Informazioni Autonomia</string>
+    <string name="estimated_range">Autonomia Stimata</string>
+    <string name="estimated_range_subtitle">Basata sulle condizioni di guida attuali</string>
+    <string name="rated_range">Autonomia Nominale</string>
+    <string name="rated_range_subtitle">Autonomia ufficiale EPA/WLTP</string>
+    <string name="ideal_range">Autonomia Ideale</string>
+    <string name="ideal_range_subtitle">Condizioni di guida ideali</string>
+
+    <!-- Range information info dialog -->
+    <string name="range_information_title">Informazioni Autonomia</string>
+    <string name="range_information_message">Diversi modi per stimare quanto puoi guidare.\n\n• Autonomia Stimata: Basata sulla tua efficienza di guida recente e condizioni attuali\n• Autonomia Nominale: Autonomia ufficiale dei test EPA/WLTP (quella pubblicizzata da Tesla)\n• Autonomia Ideale: Autonomia teorica massima in condizioni perfette (no clima, strada pianeggiante, velocità moderata)</string>
+
+    <!-- Estimated total capacity section -->
+    <string name="estimated_total_capacity">Capacità Totale Stimata</string>
+    <string name="range_at_100">Autonomia al 100%%</string>
+    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
+    <string name="estimated_range_description">Stima basata sul %1$d%% attuale e autonomia nominale di %2$.1f km</string>
+
+    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
+    <string name="estimated_total_capacity_title">Capacità Totale Stimata</string>
+    <string name="estimated_total_capacity_message">Proietta la tua autonomia massima se caricata al 100%%.\n\nCalcolata estrapolando la tua autonomia nominale attuale al %d%% a una carica completa.\n\nQuesto ti aiuta a capire la capacità attuale della batteria senza doverla caricare al 100%% (cosa non raccomandata per l\'uso quotidiano).</string>
+
+    <!-- Common dialog button -->
+    <string name="got_it">Capito</string>
+
+    <!-- Content description for info icon -->
+    <string name="info">Info</string>
+
+    <!-- Close button used in dialogs -->
+    <string name="close">Chiudi</string>
+
+    <!-- ==================== Stats Screen ==================== -->
+    <!-- Top bar title - playful name for the detailed statistics screen -->
+    <string name="stats_title">Statistiche Avanzate</string>
+
+    <!-- Empty state when syncing data from server -->
+    <string name="stats_syncing">Sincronizzazione dati…</string>
+
+    <!-- Empty state when no stats are available, with instruction to pull to refresh -->
+    <string name="stats_empty">Nessuna statistica disponibile.\nScorri verso il basso per sincronizzare.</string>
+
+    <!-- Sync phase: fetching summary data from server -->
+    <string name="sync_phase_summaries">Recupero viaggi e ricariche…</string>
+
+    <!-- Sync phase: processing individual drive details -->
+    <string name="sync_phase_drives">Elaborazione dettagli viaggi…</string>
+
+    <!-- Sync phase: processing individual charge details -->
+    <string name="sync_phase_charges">Elaborazione dettagli ricariche…</string>
+
+    <!-- Sync progress percentage. %d is the percentage (e.g., "42% synced") -->
+    <string name="stats_sync_percent">%d%% sincronizzato</string>
+
+    <!-- Sync progress card title when deep sync is running -->
+    <string name="stats_deep_sync_title">Sincronizzazione approfondita in corso</string>
+
+    <!-- Sync progress completion percentage. %d is the percentage -->
+    <string name="stats_sync_complete">%d%% completato</string>
+
+    <!-- Section: Drives Overview - summary statistics about all drives -->
+    <string name="stats_drives_overview">Panoramica Viaggi</string>
+
+    <!-- Label for total number of drives -->
+    <string name="stats_total_drives">Viaggi Totali</string>
+
+    <!-- Label for number of days with at least one drive -->
+    <string name="stats_driving_days">Giorni di Guida</string>
+
+    <!-- Label for total energy consumed while driving -->
+    <string name="stats_energy_used">Energia Usata</string>
+
+    <!-- Label for average energy efficiency (Wh/km) -->
+    <string name="stats_avg_efficiency">Efficienza Media</string>
+
+    <!-- Label for maximum speed recorded -->
+    <string name="stats_top_speed">Velocità Max</string>
+
+    <!-- Section: Charges Overview - summary statistics about all charges -->
+    <string name="stats_charges_overview">Panoramica Ricariche</string>
+
+    <!-- Label for total number of charge sessions -->
+    <string name="stats_total_charges">Ricariche Totali</string>
+
+    <!-- Label for average cost per kWh of energy -->
+    <string name="stats_avg_cost_kwh">Costo Medio/kWh</string>
+
+    <!-- Section: Records - personal bests and extremes -->
+    <string name="stats_records">Record</string>
+
+    <!-- Record category: driving-related records -->
+    <string name="stats_category_drives">Viaggi</string>
+
+    <!-- Record category: battery and charging records -->
+    <string name="stats_category_battery">Batteria</string>
+
+    <!-- Record category: weather and altitude records -->
+    <string name="stats_category_weather">Meteo e Altitudine</string>
+
+    <!-- Record category: distance and gap records -->
+    <string name="stats_category_distances">Distanze</string>
+
+    <!-- Record: longest single drive by distance -->
+    <string name="record_longest_drive">Viaggio più lungo</string>
+
+    <!-- Record: fastest speed ever recorded -->
+    <string name="record_top_speed">Velocità Max</string>
+
+    <!-- Record: most efficient drive (lowest Wh/km) -->
+    <string name="record_most_efficient">Più Efficiente</string>
+
+    <!-- Record: longest consecutive days of driving -->
+    <string name="record_longest_streak">Serie più lunga</string>
+
+    <!-- Record: day with most number of drives -->
+    <string name="record_busiest_day">Giorno più intenso</string>
+
+    <!-- Record: charge session with biggest battery percentage gain -->
+    <string name="record_biggest_gain">Guadagno maggiore</string>
+
+    <!-- Record: drive with biggest battery percentage loss -->
+    <string name="record_biggest_drain">Consumo maggiore</string>
+
+    <!-- Record: charge session with most energy added -->
+    <string name="record_biggest_charge">Ricarica maggiore</string>
+
+    <!-- Record: highest charging power achieved -->
+    <string name="record_peak_power">Potenza massima</string>
+
+    <!-- Record: most expensive single charge session -->
+    <string name="record_most_expensive">Più costoso</string>
+
+    <!-- Record: highest cost per kWh for a charge -->
+    <string name="record_priciest_kwh">Prezzo max/kWh</string>
+
+    <!-- Record: highest elevation reached while driving -->
+    <string name="record_highest_point">Punto più alto</string>
+
+    <!-- Record: most elevation gain in a single drive -->
+    <string name="record_most_climbing">Maggior dislivello</string>
+
+    <!-- Record: drive with highest outside temperature -->
+    <string name="record_hottest_drive">Viaggio più caldo</string>
+
+    <!-- Record: drive with lowest outside temperature -->
+    <string name="record_coldest_drive">Viaggio più freddo</string>
+
+    <!-- Record: charge session with highest outside temperature -->
+    <string name="record_hottest_charge">Ricarica più calda</string>
+
+    <!-- Record: charge session with lowest outside temperature -->
+    <string name="record_coldest_charge">Ricarica più fredda</string>
+
+    <!-- Record: longest distance traveled between two charges -->
+    <string name="record_longest_range">Autonomia max</string>
+
+    <!-- Record: longest period without charging the vehicle -->
+    <string name="record_longest_no_charging">Max senza ricaricare</string>
+
+    <!-- Record: longest period without driving the vehicle -->
+    <string name="record_longest_no_driving">Max senza guidare</string>
+
+    <!-- Record: day with most distance traveled -->
+    <string name="record_most_distance_day">Giorno più km</string>
+
+    <!-- Format for streak duration. %d is number of days -->
+    <string name="format_days">%d giorni</string>
+
+    <!-- Format for number of drives. %d is the count -->
+    <string name="format_drives_count">%d viaggi</string>
+
+    <!-- Section: Temperature extremes recorded while driving and charging -->
+    <string name="stats_temperature_extremes">Temperature Estreme</string>
+
+    <!-- Sub-section: temperatures recorded while driving -->
+    <string name="stats_while_driving">Durante la Guida</string>
+
+    <!-- Label for highest temperature -->
+    <string name="stats_hottest">Più caldo</string>
+
+    <!-- Label for lowest temperature -->
+    <string name="stats_coldest">Più freddo</string>
+
+    <!-- Sub-section: cabin (interior) temperatures -->
+    <string name="stats_cabin_temperature">Temperatura Abitacolo</string>
+
+    <!-- Section: ratio between AC and DC charging -->
+    <string name="stats_ac_dc_ratio">Rapporto CA/CC</string>
+
+    <!-- Label for energy charged via AC -->
+    <string name="stats_ac_energy">Energia AC</string>
+
+    <!-- Label for energy charged via DC -->
+    <string name="stats_dc_energy">Energia DC</string>
+
+    <!-- Format for number of charge sessions. %d is the count -->
+    <string name="format_charges_count">%d ricariche</string>
+
+    <!-- Debug dialog title for viewing sync logs -->
+    <string name="stats_sync_logs_title">Log Sincronizzazione</string>
+
+    <!-- Dialog title for gap record (period without activity). %s is "Charging" or "Driving" -->
+    <string name="stats_gap_dialog_title">Max Senza %s</string>
+
+    <!-- Gap type: charging -->
+    <string name="gap_type_charging">Ricaricare</string>
+
+    <!-- Gap type: driving -->
+    <string name="gap_type_driving">Guidare</string>
+
+    <!-- Dialog title for range record details -->
+    <string name="stats_range_record_title">Autonomia Massima</string>
+
+    <!-- Label for number of drives in range record. %d is the count -->
+    <string name="stats_drives_count">Viaggi (%d)</string>
+
+    <!-- Empty state when no drives found in range record dialog -->
+    <string name="stats_no_drives_found">Nessun viaggio trovato</string>
+
+    <!-- Content description for arrow indicating tappable record -->
+    <string name="view_details">Vedi dettagli</string>
+
+    <!-- Content description for arrow to view drive details -->
+    <string name="view_drive">Vedi viaggio</string>
+
+    <!-- ==================== Mileage Screen ==================== -->
+    <!-- Top bar title for mileage screen -->
+    <string name="mileage_title">Chilometraggio</string>
+
+    <!-- Empty state when no drive data is available -->
+    <string name="mileage_no_data">Nessun dato di viaggio disponibile</string>
+
+    <!-- Empty state when no drive data for a specific year. %d is the year -->
+    <string name="mileage_no_data_year">Nessun dato di viaggio per il %d</string>
+
+    <!-- Chart title: mileage grouped by year -->
+    <string name="mileage_by_year">Chilometraggio per Anno</string>
+
+    <!-- Chart title: mileage grouped by month -->
+    <string name="mileage_by_month">Chilometraggio per Mese</string>
+
+    <!-- Chart title: mileage grouped by day -->
+    <string name="mileage_by_day">Chilometraggio per Giorno</string>
+
+    <!-- Format for number of days with data. %d is the count -->
+    <string name="format_days_count">%d giorni</string>
+
+    <!-- Section header for recent trips list -->
+    <string name="mileage_recent_trips">Viaggi recenti</string>
+
+    <!-- Section header for drives list in day detail -->
+    <string name="mileage_drives">Viaggi</string>
+
+    <!-- Summary label: Total distance -->
+    <string name="mileage_total">Totale</string>
+
+    <!-- Summary label: average per year -->
+    <string name="mileage_avg_year">Media/Anno</string>
+
+    <!-- Summary label: average per month -->
+    <string name="mileage_avg_month">Media/Mese</string>
+
+    <!-- Summary label: number of drives -->
+    <string name="mileage_drive_count">N° di viaggi</string>
+
+    <!-- Info dialog title for average per year calculation -->
+    <string name="mileage_avg_year_title">Media Annuale</string>
+
+    <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
+    <string name="mileage_avg_year_message">Basato sulla tua media giornaliera dal primo viaggio registrato il %1$s (%2$d giorni fa).\n\nCalcolo: distanza totale ÷ giorni × 365</string>
+
+    <!-- Content description for info button explaining calculation -->
+    <string name="info_about_calculation">Info sul calcolo</string>
+
+    <!-- ==================== Software Versions Screen ==================== -->
+    <!-- Top bar title for software updates screen -->
+    <string name="software_title">Versioni Software</string>
+
+    <!-- Date filter: last 6 months -->
+    <string name="filter_last_6_months">Ultimi 6 mesi</string>
+
+    <!-- Section header for update history list -->
+    <string name="software_update_history">Cronologia Aggiornamenti</string>
+
+    <!-- Empty state when no software updates found -->
+    <string name="software_no_updates">Nessun aggiornamento software trovato</string>
+
+    <!-- Overview card title -->
+    <string name="software_overview">Panoramica</string>
+
+    <!-- Label for total number of updates -->
+    <string name="software_total_updates">Aggiornamenti Totali</string>
+
+    <!-- Label for average interval between updates -->
+    <string name="software_avg_interval">Intervallo Medio</string>
+
+    <!-- Format for average interval in days. %d is the number of days -->
+    <string name="format_interval_days">%d giorni</string>
+
+    <!-- Label for newest software version -->
+    <string name="software_newest">Più Recente</string>
+
+    <!-- Label for oldest software version -->
+    <string name="software_oldest">Più Vecchio</string>
+
+    <!-- Chart title: updates grouped by month -->
+    <string name="software_updates_per_month">Aggiornamenti per Mese</string>
+
+    <!-- Tooltip format for chart. %d is the count -->
+    <string name="format_updates_count">%d aggiornamenti</string>
+
+    <!-- Format for single update in chart -->
+    <string name="format_updates_decimal">%.0f aggiornamenti</string>
+
+    <!-- Content description for release notes link -->
+    <string name="software_view_release_notes">Vedi note di rilascio</string>
+
+    <!-- Badge label for current installed version -->
+    <string name="software_current_version">Versione attuale</string>
+
+    <!-- Content description for longest installed badge icon -->
+    <string name="software_longest_installed">Installato più a lungo</string>
+
+    <!-- Badge label for version installed for longest time -->
+    <string name="software_longest">Più lungo</string>
+
+    <!-- Label for installation date of software -->
+    <string name="software_installed">Installato</string>
+
+    <!-- Label for number of days a version was installed -->
+    <string name="software_days">Giorni</string>
+
+    <!-- Label for update installation duration -->
+    <string name="software_duration">Durata</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <!-- Content description for fullscreen mode button in charts -->
+    <string name="fullscreen">Schermo intero</string>
+
+    <!-- Content description for exit fullscreen button -->
+    <string name="exit_fullscreen">Esci da schermo intero</string>
+
+    <!-- ==================== Weather Card ==================== -->
+    <!-- Title for weather along the way card -->
+    <string name="weather_card_title">Meteo Lungo il Percorso</string>
+
+    <!-- Loading state while fetching weather data -->
+    <string name="weather_loading">Caricamento dati meteo…</string>
+
+    <!-- Empty state when weather data is unavailable -->
+    <string name="weather_unavailable">Dati meteo non disponibili</string>
+
+    <!-- Table header: time column -->
+    <string name="weather_time">Ora</string>
+
+    <!-- Table header: distance column -->
+    <string name="weather_distance">Distanza</string>
+
+    <!-- Table header: weather column -->
+    <string name="weather_weather">Meteo</string>
+
+    <!-- Distance marker for route start point -->
+    <string name="weather_start">Partenza</string>
+
+    <!-- Distance marker for route end point -->
+    <string name="weather_end">Arrivo</string>
+
+    <!-- Weather condition: clear sky -->
+    <string name="weather_clear">Cielo sereno</string>
+
+    <!-- Weather condition: partly cloudy -->
+    <string name="weather_partly_cloudy">Parzialmente nuvoloso</string>
+
+    <!-- Weather condition: foggy -->
+    <string name="weather_fog">Nebbioso</string>
+
+    <!-- Weather condition: light rain/drizzle -->
+    <string name="weather_drizzle">Pioggia leggera</string>
+
+    <!-- Weather condition: rain -->
+    <string name="weather_rain">Pioggia</string>
+
+    <!-- Weather condition: snow -->
+    <string name="weather_snow">Neve</string>
+
+    <!-- Weather condition: thunderstorm -->
+    <string name="weather_thunderstorm">Temporale</string>
+</resources>

@@ -60,9 +60,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.Units
 import com.matedroid.ui.components.BarChartData
@@ -115,12 +117,12 @@ fun DrivesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Drives") },
+                title = { Text(stringResource(R.string.drives_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -223,7 +225,7 @@ private fun DrivesContent(
         item {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Drive History",
+                text = stringResource(R.string.drive_history),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -244,7 +246,7 @@ private fun DrivesContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No drives found for selected period",
+                            text = stringResource(R.string.no_drives_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -262,6 +264,17 @@ private fun DrivesContent(
     }
 }
 
+@Composable
+private fun getDateFilterLabel(filter: DriveDateFilter): String {
+    return when (filter) {
+        DriveDateFilter.LAST_7_DAYS -> stringResource(R.string.filter_last_7_days)
+        DriveDateFilter.LAST_30_DAYS -> stringResource(R.string.filter_last_30_days)
+        DriveDateFilter.LAST_90_DAYS -> stringResource(R.string.filter_last_90_days)
+        DriveDateFilter.LAST_YEAR -> stringResource(R.string.filter_last_year)
+        DriveDateFilter.ALL_TIME -> stringResource(R.string.filter_all_time)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateFilterChips(
@@ -276,13 +289,24 @@ private fun DateFilterChips(
             FilterChip(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label) },
+                label = { Text(getDateFilterLabel(filter)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun getDistanceFilterLabel(filter: DriveDistanceFilter, units: Units?): String {
+    val isImperial = units?.isImperial == true
+    return when (filter) {
+        DriveDistanceFilter.ALL -> stringResource(R.string.filter_all)
+        DriveDistanceFilter.COMMUTE -> stringResource(if (isImperial) R.string.filter_commute_mi else R.string.filter_commute_km)
+        DriveDistanceFilter.DAY_TRIP -> stringResource(if (isImperial) R.string.filter_day_trip_mi else R.string.filter_day_trip_km)
+        DriveDistanceFilter.ROAD_TRIP -> stringResource(if (isImperial) R.string.filter_road_trip_mi else R.string.filter_road_trip_km)
     }
 }
 
@@ -301,7 +325,7 @@ private fun DistanceFilterChips(
             FilterChip(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(filter.getLabel(units)) },
+                label = { Text(getDistanceFilterLabel(filter, units)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
@@ -323,7 +347,7 @@ private fun SummaryCard(summary: DrivesSummary, palette: CarColorPalette) {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Summary",
+                text = stringResource(R.string.summary),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = palette.onSurface
@@ -336,14 +360,14 @@ private fun SummaryCard(summary: DrivesSummary, palette: CarColorPalette) {
             ) {
                 SummaryItem(
                     icon = Icons.Default.DirectionsCar,
-                    label = "Total Trips",
+                    label = stringResource(R.string.total_trips),
                     value = summary.totalDrives.toString(),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
                     icon = CustomIcons.SteeringWheel,
-                    label = "Total Distance",
+                    label = stringResource(R.string.total_distance),
                     value = "%.1f km".format(summary.totalDistanceKm),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
@@ -357,14 +381,14 @@ private fun SummaryCard(summary: DrivesSummary, palette: CarColorPalette) {
             ) {
                 SummaryItem(
                     icon = Icons.Default.Timer,
-                    label = "Total Time",
+                    label = stringResource(R.string.total_time),
                     value = formatDuration(summary.totalDurationMin),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
                     icon = Icons.Default.Speed,
-                    label = "Max Speed",
+                    label = stringResource(R.string.max_speed),
                     value = "${summary.maxSpeedKmh} km/h",
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
@@ -449,7 +473,7 @@ private fun DriveItem(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = drive.startAddress ?: "Unknown",
+                            text = drive.startAddress ?: stringResource(R.string.unknown),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f)
@@ -466,7 +490,7 @@ private fun DriveItem(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = drive.endAddress ?: "Unknown",
+                            text = drive.endAddress ?: stringResource(R.string.unknown),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -492,7 +516,7 @@ private fun DriveItem(
                     icon = CustomIcons.SteeringWheel,
                     value = "%.1f".format(drive.distance ?: 0.0),
                     unit = "km",
-                    label = "Distance",
+                    label = stringResource(R.string.distance),
                     modifier = Modifier.weight(1f)
                 )
 
@@ -501,7 +525,7 @@ private fun DriveItem(
                     icon = Icons.Default.Schedule,
                     value = formatDuration(drive.durationMin ?: 0),
                     unit = "",
-                    label = "Duration",
+                    label = stringResource(R.string.duration),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -515,7 +539,7 @@ private fun DriveItem(
                     icon = Icons.Default.Speed,
                     value = "${drive.speedMax ?: 0}",
                     unit = "km/h",
-                    label = "Max Speed",
+                    label = stringResource(R.string.max_speed),
                     modifier = Modifier.weight(1f)
                 )
 
@@ -526,7 +550,7 @@ private fun DriveItem(
                     icon = Icons.Default.BatteryChargingFull,
                     value = if (startLevel != null && endLevel != null) "$startLevel% → $endLevel%" else "--",
                     unit = "",
-                    label = "Battery",
+                    label = stringResource(R.string.battery),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -689,24 +713,24 @@ private fun DrivesChartPage(
 
     val (title, icon) = when (chartType) {
         DrivesChartType.COUNT -> when (granularity) {
-            DriveChartGranularity.DAILY -> "Drives per Day"
-            DriveChartGranularity.WEEKLY -> "Drives per Week"
-            DriveChartGranularity.MONTHLY -> "Drives per Month"
+            DriveChartGranularity.DAILY -> stringResource(R.string.chart_drives_per_day)
+            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_drives_per_week)
+            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_drives_per_month)
         } to Icons.Default.DirectionsCar
         DrivesChartType.TIME -> when (granularity) {
-            DriveChartGranularity.DAILY -> "Driving time per Day"
-            DriveChartGranularity.WEEKLY -> "Driving time per Week"
-            DriveChartGranularity.MONTHLY -> "Driving time per Month"
+            DriveChartGranularity.DAILY -> stringResource(R.string.chart_time_per_day)
+            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_time_per_week)
+            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_time_per_month)
         } to Icons.Default.Timer
         DrivesChartType.DISTANCE -> when (granularity) {
-            DriveChartGranularity.DAILY -> "Distance per Day"
-            DriveChartGranularity.WEEKLY -> "Distance per Week"
-            DriveChartGranularity.MONTHLY -> "Distance per Month"
+            DriveChartGranularity.DAILY -> stringResource(R.string.chart_distance_per_day)
+            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_distance_per_week)
+            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_distance_per_month)
         } to CustomIcons.SteeringWheel
         DrivesChartType.TOP_SPEED -> when (granularity) {
-            DriveChartGranularity.DAILY -> "Top speed per Day"
-            DriveChartGranularity.WEEKLY -> "Top speed per Week"
-            DriveChartGranularity.MONTHLY -> "Top speed per Month"
+            DriveChartGranularity.DAILY -> stringResource(R.string.chart_speed_per_day)
+            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_speed_per_week)
+            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_speed_per_month)
         } to Icons.Default.Speed
     }
 

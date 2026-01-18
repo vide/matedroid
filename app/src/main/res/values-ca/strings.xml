@@ -1,0 +1,827 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name shown in launcher and system settings -->
+    <string name="app_name">MateDroid</string>
+
+    <!-- ==================== Common / Shared ==================== -->
+    <!-- Generic button labels used throughout the app -->
+    <string name="cancel">Cancel·la</string>
+    <string name="ok">D\'acord</string>
+
+    <!-- Shown when a value is not available or loading -->
+    <string name="unknown">Desconegut</string>
+
+    <!-- ==================== Dashboard Screen ==================== -->
+    <!-- Dialog title when user has multiple vehicles and can choose one -->
+    <string name="select_vehicle">Selecciona vehicle</string>
+
+    <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
+    <string name="car_fallback_name">Cotxe %d</string>
+
+    <!-- Content description for checkmark icon next to selected vehicle -->
+    <string name="selected">Seleccionat</string>
+
+    <!-- Content description for dropdown arrow indicating car can be changed -->
+    <string name="select_car">Selecciona cotxe</string>
+
+    <!-- Content description for settings gear icon in top bar -->
+    <string name="settings">Configuració</string>
+
+    <!-- Shown with a spinner while fetching vehicle data from the server -->
+    <string name="loading_vehicle_data">Carregant dades del vehicle…</string>
+
+    <!-- Empty state: title when no vehicles are found in the account -->
+    <string name="no_vehicles_found">No s\'han trobat vehicles</string>
+
+    <!-- Empty state: subtitle explaining what to check -->
+    <string name="no_vehicles_hint">Assegura\'t que TeslaMate API estigui configurat correctament</string>
+
+    <!-- Error state: title when data loading fails -->
+    <string name="error_loading_data">Error en carregar les dades</string>
+
+    <!-- Vehicle state shown when locked -->
+    <string name="locked">Bloquejat</string>
+
+    <!-- Vehicle state shown when unlocked -->
+    <string name="unlocked">Desbloquejat</string>
+
+    <!-- Content description when car is plugged in but not charging -->
+    <string name="plugged_in">Connectat</string>
+
+    <!-- Vehicle state shown when driving -->
+    <string name="driving">Conduint</string>
+
+    <!-- Content description when sentry mode is active -->
+    <string name="sentry_mode_active">Mode sentinella actiu</string>
+
+    <!-- Content description for inside temperature indicator -->
+    <string name="inside_temp">Temperatura interior</string>
+
+    <!-- Content description for outside temperature indicator -->
+    <string name="outside_temp">Temperatura exterior</string>
+
+    <!-- Label for external/outside temperature -->
+    <string name="temp_ext_label">Ext:</string>
+
+    <!-- Label for internal/inside temperature -->
+    <string name="temp_int_label">Int:</string>
+
+    <!-- Tooltip shown when climate control is active -->
+    <string name="climate_active">Clima actiu</string>
+
+    <!-- Tooltip shown when climate control is inactive -->
+    <string name="climate_inactive">Clima inactiu</string>
+
+    <!-- Content description for the car image, indicates it's tappable -->
+    <string name="car_image_tap_for_stats">Imatge del cotxe - toca per estadístiques</string>
+
+    <!-- Content description for arrow button leading to stats screen -->
+    <string name="view_stats">Veure estadístiques</string>
+
+    <!-- Content description for battery icon, indicates it's tappable -->
+    <string name="tap_for_battery_health">Toca per estat de la bateria</string>
+
+    <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
+    <string name="charge_limit_format">Límit: %d%%</string>
+
+    <!-- Battery charge limit label when value is unavailable -->
+    <string name="charge_limit_unknown">Límit: --</string>
+
+    <!-- Power unit abbreviation for kilowatts -->
+    <string name="unit_kw">kW</string>
+
+    <!-- DC (Direct Current) charging indicator badge -->
+    <string name="charging_dc">DC</string>
+
+    <!-- AC (Alternating Current) charging indicator badge -->
+    <string name="charging_ac">AC</string>
+
+    <!-- Content description for warning icon when battery is above 90% -->
+    <string name="high_charge_level">Nivell de càrrega alt</string>
+
+    <!-- Location card section title -->
+    <string name="location">Ubicació</string>
+
+    <!-- Elevation label in location card -->
+    <string name="elevation">Altitud</string>
+
+    <!-- Vehicle info card section title -->
+    <string name="vehicle_info">Info del vehicle</string>
+
+    <!-- Navigation button to charges list -->
+    <string name="nav_charges">Càrregues</string>
+
+    <!-- Navigation button to drives list -->
+    <string name="nav_drives">Viatges</string>
+
+    <!-- Navigation button to mileage/odometer screen -->
+    <string name="nav_mileage">Quilometratge</string>
+
+    <!-- Navigation button to software versions screen -->
+    <string name="nav_software">Programari</string>
+
+    <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
+    <string name="tire_fl">DE</string>
+    <string name="tire_fr">DD</string>
+    <string name="tire_rl">TE</string>
+    <string name="tire_rr">TD</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <!-- Top bar title for settings screen -->
+    <string name="settings_title">Configuració de MateDroid</string>
+
+    <!-- Shown while loading settings from storage -->
+    <string name="loading_settings">Carregant configuració…</string>
+
+    <!-- Content description for expand/collapse section arrows -->
+    <string name="collapse">Contraure</string>
+    <string name="expand">Expandir</string>
+
+    <!-- Server connection section -->
+    <string name="settings_connect_title">Connecta a TeslamateApi</string>
+    <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
+
+    <!-- Server URL field -->
+    <string name="settings_server_url_label">URL del servidor</string>
+    <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
+
+    <!-- Advanced network settings section (collapsible) -->
+    <string name="settings_advanced_network">Configuració de xarxa avançada</string>
+
+    <!-- Secondary server URL field -->
+    <string name="settings_secondary_url_label">URL del servidor secundari (opcional)</string>
+    <string name="settings_secondary_url_placeholder">https://teslamate-api-internal.local</string>
+    <string name="settings_secondary_url_hint">URL de reserva quan el servidor principal no està disponible. Útil per accés LAN/VPN.</string>
+
+    <!-- API token field -->
+    <string name="settings_api_token_label">Token API (opcional)</string>
+    <string name="settings_api_token_placeholder">El teu token API</string>
+    <string name="settings_api_token_hint">Deixa buit si TeslamateApi no requereix autenticació.</string>
+
+    <!-- Content description for password visibility toggle -->
+    <string name="hide_token">Amaga el token</string>
+    <string name="show_token">Mostra el token</string>
+
+    <!-- Accept invalid certificates toggle -->
+    <string name="settings_accept_invalid_certs">Accepta certificats no vàlids</string>
+    <string name="settings_accept_invalid_certs_hint">Activa per a certificats autofirmats</string>
+    <string name="settings_accept_invalid_certs_warning">Desactivar la validació de certificats fa les connexions vulnerables a atacs man-in-the-middle. Usa només en xarxes de confiança.</string>
+
+    <!-- Display settings section -->
+    <string name="settings_display_title">Configuració de pantalla</string>
+
+    <!-- Currency selector -->
+    <string name="settings_currency_label">Moneda per als costos</string>
+    <string name="settings_currency_select">Selecciona moneda</string>
+
+    <!-- Teslamate base URL field -->
+    <string name="settings_teslamate_url_label">URL base de Teslamate (opcional)</string>
+    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
+    <string name="settings_teslamate_url_hint">Usat per editar costos de càrrega directament a Teslamate.</string>
+
+    <!-- Extra settings section (collapsible) -->
+    <string name="settings_extra">Configuració extra</string>
+
+    <!-- Show short drives/charges toggle -->
+    <string name="settings_show_short_label">Mostra viatges / càrregues curts</string>
+    <string name="settings_show_short_hint">Mostra viatges molt curts i càrregues mínimes a les llistes</string>
+    <string name="more_information">Més informació</string>
+
+    <!-- Short drives/charges info dialog -->
+    <string name="settings_short_dialog_title">Viatges i càrregues curts</string>
+    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Viatges de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
+
+    <!-- Force resync button and dialog -->
+    <string name="settings_resync_button">Força resincronització completa</string>
+    <string name="settings_resyncing">Resincronitzant…</string>
+    <string name="settings_resync_hint">Torna a descarregar tots els detalls de viatges i càrregues. Usa si les estadístiques semblen incorrectes.</string>
+    <string name="settings_resync_dialog_title">Forçar resincronització completa?</string>
+    <string name="settings_resync_dialog_text_prefix">Això </string>
+    <string name="settings_resync_dialog_text_delete">ELIMINARÀ</string>
+    <string name="settings_resync_dialog_text_suffix"> tots els viatges, càrregues i estadístiques emmagatzemats, després tornarà a descarregar-ho tot del servidor.\n\nEl procés pot trigar diversos minuts depenent de la quantitat de dades.</string>
+    <string name="settings_resync_confirm">Resincronitza</string>
+
+    <!-- Action buttons -->
+    <string name="settings_test_connection">Prova la connexió</string>
+    <string name="settings_save">Desa i continua</string>
+
+    <!-- Debug palette preview button -->
+    <string name="settings_palette_preview">Vista prèvia de paletes de colors (Debug)</string>
+
+    <!-- Test result labels -->
+    <string name="settings_primary_server">Servidor principal</string>
+    <string name="settings_secondary_server">Servidor secundari</string>
+    <string name="settings_connected">Connectat</string>
+
+    <!-- ==================== Drives Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drives_title">Viatges</string>
+
+    <!-- Content description for back button -->
+    <string name="back">Enrere</string>
+
+    <!-- Section title for drive history list -->
+    <string name="drive_history">Historial de viatges</string>
+
+    <!-- Empty state when no drives match filters -->
+    <string name="no_drives_found">No s\'han trobat viatges per al període seleccionat</string>
+
+    <!-- Summary card title -->
+    <string name="summary">Resum</string>
+
+    <!-- Summary card labels -->
+    <string name="total_trips">Viatges totals</string>
+    <string name="total_distance">Distància total</string>
+    <string name="total_time">Temps total</string>
+    <string name="max_speed">Velocitat màx</string>
+
+    <!-- Drive item stat labels -->
+    <string name="distance">Distància</string>
+    <string name="duration">Durada</string>
+    <string name="battery">Bateria</string>
+
+    <!-- Date filter chips -->
+    <string name="filter_last_7_days">Últims 7 dies</string>
+    <string name="filter_last_30_days">Últims 30 dies</string>
+    <string name="filter_last_90_days">Últims 90 dies</string>
+    <string name="filter_last_year">Últim any</string>
+    <string name="filter_all_time">Tot</string>
+
+    <!-- Distance filter chips (metric) -->
+    <string name="filter_all">Tots</string>
+    <string name="filter_commute_km">Curts (&lt; 10 km)</string>
+    <string name="filter_day_trip_km">Excursió (10–100 km)</string>
+    <string name="filter_road_trip_km">Viatge llarg (&gt; 100 km)</string>
+
+    <!-- Distance filter chips (imperial) -->
+    <string name="filter_commute_mi">Curts (&lt; 6 mi)</string>
+    <string name="filter_day_trip_mi">Excursió (6–60 mi)</string>
+    <string name="filter_road_trip_mi">Viatge llarg (&gt; 60 mi)</string>
+
+    <!-- Chart titles - drives per period -->
+    <string name="chart_drives_per_day">Viatges per dia</string>
+    <string name="chart_drives_per_week">Viatges per setmana</string>
+    <string name="chart_drives_per_month">Viatges per mes</string>
+
+    <!-- Chart titles - driving time per period -->
+    <string name="chart_time_per_day">Temps de conducció per dia</string>
+    <string name="chart_time_per_week">Temps de conducció per setmana</string>
+    <string name="chart_time_per_month">Temps de conducció per mes</string>
+
+    <!-- Chart titles - distance per period -->
+    <string name="chart_distance_per_day">Distància per dia</string>
+    <string name="chart_distance_per_week">Distància per setmana</string>
+    <string name="chart_distance_per_month">Distància per mes</string>
+
+    <!-- Chart titles - top speed per period -->
+    <string name="chart_speed_per_day">Velocitat màx per dia</string>
+    <string name="chart_speed_per_week">Velocitat màx per setmana</string>
+    <string name="chart_speed_per_month">Velocitat màx per mes</string>
+
+    <!-- ==================== Drive Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="drive_details_title">Detalls del viatge</string>
+
+    <!-- Route card labels -->
+    <string name="from">Des de</string>
+    <string name="to">Fins a</string>
+    <string name="unknown_location">Ubicació desconeguda</string>
+    <string name="started">Inici</string>
+    <string name="ended">Fi</string>
+    <!-- %s is the duration string (e.g., "1h 23m") -->
+    <string name="duration_label">Durada: %s</string>
+
+    <!-- Map card title -->
+    <string name="route_map">Mapa de ruta</string>
+
+    <!-- Stats section titles -->
+    <string name="speed">Velocitat</string>
+    <string name="trip">Viatge</string>
+    <string name="power">Potència</string>
+    <string name="temperature">Temperatura</string>
+
+    <!-- Stat labels -->
+    <string name="maximum">Màxima</string>
+    <string name="minimum">Mínima</string>
+    <string name="average">Mitjana</string>
+    <string name="avg_distance">Mitjana (distància)</string>
+    <string name="efficiency">Eficiència</string>
+    <string name="start">Inici</string>
+    <string name="end">Fi</string>
+    <string name="used">Usada</string>
+    <string name="energy">Energia</string>
+    <string name="max_accel">Màx (accel)</string>
+    <string name="min_regen">Mín (regen)</string>
+    <string name="gain">Guany</string>
+    <string name="loss">Pèrdua</string>
+    <string name="outside">Exterior</string>
+    <string name="inside">Interior</string>
+
+    <!-- Chart card titles -->
+    <string name="speed_profile">Perfil de velocitat</string>
+    <string name="power_profile">Perfil de potència</string>
+    <string name="battery_level">Nivell de bateria</string>
+    <string name="elevation_profile">Perfil d\'altitud</string>
+
+    <!-- Weather section -->
+    <string name="weather_along_way">Temps al llarg del trajecte</string>
+
+    <!-- ==================== Charges Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charges_title">Càrregues</string>
+
+    <!-- Section title for charge history list -->
+    <string name="charge_history">Historial de càrregues</string>
+
+    <!-- Empty state when no charges match filters -->
+    <string name="no_charges_found">No s\'han trobat càrregues per al període seleccionat</string>
+
+    <!-- Summary card labels -->
+    <string name="total_sessions">Sessions totals</string>
+    <string name="total_energy">Energia total</string>
+    <string name="total_cost">Cost total</string>
+    <string name="avg_cost_per_session">Cost mitjà/sessió</string>
+
+    <!-- Charge item stat labels -->
+    <string name="energy_added">Afegida</string>
+    <string name="cost">Cost</string>
+
+    <!-- Content description for edit cost button -->
+    <string name="edit">Edita</string>
+
+    <!-- Chart titles - energy per period -->
+    <string name="chart_energy_per_day">Energia per dia</string>
+    <string name="chart_energy_per_week">Energia per setmana</string>
+    <string name="chart_energy_per_month">Energia per mes</string>
+
+    <!-- Chart titles - cost per period -->
+    <string name="chart_cost_per_day">Cost per dia</string>
+    <string name="chart_cost_per_week">Cost per setmana</string>
+    <string name="chart_cost_per_month">Cost per mes</string>
+
+    <!-- Chart titles - charges count per period -->
+    <string name="chart_charges_per_day">Càrregues per dia</string>
+    <string name="chart_charges_per_week">Càrregues per setmana</string>
+    <string name="chart_charges_per_month">Càrregues per mes</string>
+
+    <!-- ==================== Charge Detail Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="charge_details_title">Detalls de la càrrega</string>
+
+    <!-- Header labels -->
+    <string name="energy_added_header">Energia afegida</string>
+
+    <!-- Map marker title -->
+    <string name="charge_location">Lloc de càrrega</string>
+
+    <!-- Stats section titles -->
+    <string name="charger">Carregador</string>
+
+    <!-- Charger stats labels -->
+    <string name="voltage_max">Voltatge (màx)</string>
+    <string name="voltage_min">Voltatge (mín)</string>
+    <string name="voltage_avg">Voltatge (mitjà)</string>
+    <string name="current_max">Corrent (màx)</string>
+    <string name="current_min">Corrent (mín)</string>
+    <string name="current_avg">Corrent (mitjà)</string>
+
+    <!-- Cost stats labels -->
+    <string name="total">Total</string>
+    <string name="per_kwh">Per kWh</string>
+
+    <!-- Chart card titles -->
+    <string name="voltage_profile">Perfil de voltatge</string>
+    <string name="current_profile">Perfil de corrent</string>
+
+    <!-- ==================== Battery Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="battery_health_title">Estat de la Bateria</string>
+
+    <!-- Empty state -->
+    <string name="no_battery_data">No hi ha dades de bateria disponibles</string>
+
+    <!-- Capacity section -->
+    <string name="capacity">Capacitat</string>
+    <string name="usable_new">Utilitzable (nova)</string>
+    <string name="usable_now">Utilitzable (ara)</string>
+    <string name="rated">Nominal</string>
+
+    <!-- Capacity info dialog -->
+    <string name="battery_capacity_title">Capacitat de la Bateria</string>
+    <string name="battery_capacity_message">Mostra la capacitat d\'emmagatzematge energètic de la bateria.\n\n• Utilitzable (nova): La capacitat utilitzable original quan el cotxe era nou\n• Utilitzable (ara): Capacitat utilitzable actual després de la degradació\n• Eficiència nominal: Consum energètic per km en condicions de prova estàndard (Wh/km)</string>
+
+    <!-- Degradation section -->
+    <string name="estimated_degradation">Degradació estimada</string>
+    <string name="loss_kwh">Pèrdua (kWh)</string>
+    <string name="loss_percent">Pèrdua (%%)</string>
+
+    <!-- Degradation info dialog -->
+    <string name="estimated_degradation_title">Degradació Estimada</string>
+    <string name="estimated_degradation_message">La degradació de la bateria s\'estima basant-se en dades de Teslamate.\n\n• Capacitat %%: Salut restant de la bateria comparada amb nova\n• Pèrdua (kWh): Capacitat energètica perduda per degradació\n• Pèrdua (%%): Percentatge de la capacitat original perduda\n\nNota: Això és una estimació. Tesla no proporciona dades oficials de degradació.</string>
+
+    <!-- Range section -->
+    <string name="range">Autonomia</string>
+    <string name="max_range_new">Autonomia màx (nova)</string>
+    <string name="max_range_now">Autonomia màx (ara)</string>
+    <string name="range_loss">Pèrdua d\'autonomia</string>
+
+    <!-- Battery detail screen -->
+    <string name="battery_detail_title">Detall de la Bateria</string>
+
+    <!-- Current charge section -->
+    <string name="current_charge">Càrrega Actual</string>
+    <!-- %d is the percentage of usable battery -->
+    <string name="usable_percent">Utilitzable: %d%%</string>
+
+    <!-- Current charge info dialog -->
+    <string name="current_charge_title">Càrrega Actual</string>
+    <string name="current_charge_message">Mostra l\'estat de càrrega actual de la bateria.\n\n• Bateria %%: El nivell de càrrega mostrat al tauler\n• Utilitzable %%: Càrrega realment utilitzable (Tesla reserva un petit búfer per protecció)\n\nAquesta és la càrrega actual, no la salut a llarg termini de la bateria.</string>
+
+    <!-- Range information section -->
+    <string name="range_information">Informació d\'Autonomia</string>
+    <string name="estimated_range">Autonomia Estimada</string>
+    <string name="estimated_range_subtitle">Basada en les condicions de conducció actuals</string>
+    <string name="rated_range">Autonomia Nominal</string>
+    <string name="rated_range_subtitle">Autonomia oficial EPA/WLTP</string>
+    <string name="ideal_range">Autonomia Ideal</string>
+    <string name="ideal_range_subtitle">Condicions de conducció ideals</string>
+
+    <!-- Range information info dialog -->
+    <string name="range_information_title">Informació d\'Autonomia</string>
+    <string name="range_information_message">Diferents maneres d\'estimar quant pots conduir.\n\n• Autonomia Estimada: Basada en la teva eficiència de conducció recent i condicions actuals\n• Autonomia Nominal: Autonomia oficial de proves EPA/WLTP (la que anuncia Tesla)\n• Autonomia Ideal: Autonomia teòrica màxima en condicions perfectes (sense climatització, carretera plana, velocitat moderada)</string>
+
+    <!-- Estimated total capacity section -->
+    <string name="estimated_total_capacity">Capacitat Total Estimada</string>
+    <string name="range_at_100">Autonomia al 100%%</string>
+    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
+    <string name="estimated_range_description">Estimació basada en el %1$d%% actual i autonomia nominal de %2$.1f km</string>
+
+    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
+    <string name="estimated_total_capacity_title">Capacitat Total Estimada</string>
+    <string name="estimated_total_capacity_message">Projecta la teva autonomia màxima si es carrega al 100%%.\n\nCalculada extrapolant la teva autonomia nominal actual al %d%% a una càrrega completa.\n\nAixò t\'ajuda a entendre la capacitat actual de la bateria sense necessitat de carregar al 100%% (cosa no recomanada per a ús diari).</string>
+
+    <!-- Common dialog button -->
+    <string name="got_it">Entès</string>
+
+    <!-- Content description for info icon -->
+    <string name="info">Info</string>
+
+    <!-- Close button used in dialogs -->
+    <string name="close">Tanca</string>
+
+    <!-- ==================== Stats Screen ==================== -->
+    <!-- Top bar title - playful name for the detailed statistics screen -->
+    <string name="stats_title">Estadístiques Avançades</string>
+
+    <!-- Empty state when syncing data from server -->
+    <string name="stats_syncing">Sincronitzant dades…</string>
+
+    <!-- Empty state when no stats are available, with instruction to pull to refresh -->
+    <string name="stats_empty">No hi ha estadístiques disponibles.\nLlisca cap avall per sincronitzar.</string>
+
+    <!-- Sync phase: fetching summary data from server -->
+    <string name="sync_phase_summaries">Obtenint viatges i càrregues…</string>
+
+    <!-- Sync phase: processing individual drive details -->
+    <string name="sync_phase_drives">Processant detalls de viatges…</string>
+
+    <!-- Sync phase: processing individual charge details -->
+    <string name="sync_phase_charges">Processant detalls de càrregues…</string>
+
+    <!-- Sync progress percentage. %d is the percentage (e.g., "42% synced") -->
+    <string name="stats_sync_percent">%d%% sincronitzat</string>
+
+    <!-- Sync progress card title when deep sync is running -->
+    <string name="stats_deep_sync_title">Sincronització profunda en curs</string>
+
+    <!-- Sync progress completion percentage. %d is the percentage -->
+    <string name="stats_sync_complete">%d%% completat</string>
+
+    <!-- Section: Drives Overview - summary statistics about all drives -->
+    <string name="stats_drives_overview">Resum de Viatges</string>
+
+    <!-- Label for total number of drives -->
+    <string name="stats_total_drives">Viatges Totals</string>
+
+    <!-- Label for number of days with at least one drive -->
+    <string name="stats_driving_days">Dies de Conducció</string>
+
+    <!-- Label for total energy consumed while driving -->
+    <string name="stats_energy_used">Energia Usada</string>
+
+    <!-- Label for average energy efficiency (Wh/km) -->
+    <string name="stats_avg_efficiency">Eficiència Mitjana</string>
+
+    <!-- Label for maximum speed recorded -->
+    <string name="stats_top_speed">Velocitat Màx</string>
+
+    <!-- Section: Charges Overview - summary statistics about all charges -->
+    <string name="stats_charges_overview">Resum de Càrregues</string>
+
+    <!-- Label for total number of charge sessions -->
+    <string name="stats_total_charges">Càrregues Totals</string>
+
+    <!-- Label for average cost per kWh of energy -->
+    <string name="stats_avg_cost_kwh">Cost Mitjà/kWh</string>
+
+    <!-- Section: Records - personal bests and extremes -->
+    <string name="stats_records">Rècords</string>
+
+    <!-- Record category: driving-related records -->
+    <string name="stats_category_drives">Viatges</string>
+
+    <!-- Record category: battery and charging records -->
+    <string name="stats_category_battery">Bateria</string>
+
+    <!-- Record category: weather and altitude records -->
+    <string name="stats_category_weather">Temps i Altitud</string>
+
+    <!-- Record category: distance and gap records -->
+    <string name="stats_category_distances">Distàncies</string>
+
+    <!-- Record: longest single drive by distance -->
+    <string name="record_longest_drive">Viatge més llarg</string>
+
+    <!-- Record: fastest speed ever recorded -->
+    <string name="record_top_speed">Velocitat Màx</string>
+
+    <!-- Record: most efficient drive (lowest Wh/km) -->
+    <string name="record_most_efficient">Més Eficient</string>
+
+    <!-- Record: longest consecutive days of driving -->
+    <string name="record_longest_streak">Ratxa més llarga</string>
+
+    <!-- Record: day with most number of drives -->
+    <string name="record_busiest_day">Dia més actiu</string>
+
+    <!-- Record: charge session with biggest battery percentage gain -->
+    <string name="record_biggest_gain">Major guany</string>
+
+    <!-- Record: drive with biggest battery percentage loss -->
+    <string name="record_biggest_drain">Major consum</string>
+
+    <!-- Record: charge session with most energy added -->
+    <string name="record_biggest_charge">Major càrrega</string>
+
+    <!-- Record: highest charging power achieved -->
+    <string name="record_peak_power">Potència màxima</string>
+
+    <!-- Record: most expensive single charge session -->
+    <string name="record_most_expensive">Més car</string>
+
+    <!-- Record: highest cost per kWh for a charge -->
+    <string name="record_priciest_kwh">Preu màx/kWh</string>
+
+    <!-- Record: highest elevation reached while driving -->
+    <string name="record_highest_point">Punt més alt</string>
+
+    <!-- Record: most elevation gain in a single drive -->
+    <string name="record_most_climbing">Major desnivell</string>
+
+    <!-- Record: drive with highest outside temperature -->
+    <string name="record_hottest_drive">Viatge més calorós</string>
+
+    <!-- Record: drive with lowest outside temperature -->
+    <string name="record_coldest_drive">Viatge més fred</string>
+
+    <!-- Record: charge session with highest outside temperature -->
+    <string name="record_hottest_charge">Càrrega més calorosa</string>
+
+    <!-- Record: charge session with lowest outside temperature -->
+    <string name="record_coldest_charge">Càrrega més freda</string>
+
+    <!-- Record: longest distance traveled between two charges -->
+    <string name="record_longest_range">Autonomia màx</string>
+
+    <!-- Record: longest period without charging the vehicle -->
+    <string name="record_longest_no_charging">Màx sense carregar</string>
+
+    <!-- Record: longest period without driving the vehicle -->
+    <string name="record_longest_no_driving">Màx sense conduir</string>
+
+    <!-- Record: day with most distance traveled -->
+    <string name="record_most_distance_day">Dia amb més km</string>
+
+    <!-- Format for streak duration. %d is number of days -->
+    <string name="format_days">%d dies</string>
+
+    <!-- Format for number of drives. %d is the count -->
+    <string name="format_drives_count">%d viatges</string>
+
+    <!-- Section: Temperature extremes recorded while driving and charging -->
+    <string name="stats_temperature_extremes">Temperatures Extremes</string>
+
+    <!-- Sub-section: temperatures recorded while driving -->
+    <string name="stats_while_driving">Durant la Conducció</string>
+
+    <!-- Label for highest temperature -->
+    <string name="stats_hottest">Més calent</string>
+
+    <!-- Label for lowest temperature -->
+    <string name="stats_coldest">Més fred</string>
+
+    <!-- Sub-section: cabin (interior) temperatures -->
+    <string name="stats_cabin_temperature">Temperatura de l\'Habitacle</string>
+
+    <!-- Section: ratio between AC and DC charging -->
+    <string name="stats_ac_dc_ratio">Ràtio CA/CC</string>
+
+    <!-- Label for energy charged via AC -->
+    <string name="stats_ac_energy">Energia AC</string>
+
+    <!-- Label for energy charged via DC -->
+    <string name="stats_dc_energy">Energia DC</string>
+
+    <!-- Format for number of charge sessions. %d is the count -->
+    <string name="format_charges_count">%d càrregues</string>
+
+    <!-- Debug dialog title for viewing sync logs -->
+    <string name="stats_sync_logs_title">Registres de Sincronització</string>
+
+    <!-- Dialog title for gap record (period without activity). %s is "Charging" or "Driving" -->
+    <string name="stats_gap_dialog_title">Màx Sense %s</string>
+
+    <!-- Gap type: charging -->
+    <string name="gap_type_charging">Carregar</string>
+
+    <!-- Gap type: driving -->
+    <string name="gap_type_driving">Conduir</string>
+
+    <!-- Dialog title for range record details -->
+    <string name="stats_range_record_title">Autonomia Màxima</string>
+
+    <!-- Label for number of drives in range record. %d is the count -->
+    <string name="stats_drives_count">Viatges (%d)</string>
+
+    <!-- Empty state when no drives found in range record dialog -->
+    <string name="stats_no_drives_found">No s\'han trobat viatges</string>
+
+    <!-- Content description for arrow indicating tappable record -->
+    <string name="view_details">Veure detalls</string>
+
+    <!-- Content description for arrow to view drive details -->
+    <string name="view_drive">Veure viatge</string>
+
+    <!-- ==================== Mileage Screen ==================== -->
+    <!-- Top bar title for mileage screen -->
+    <string name="mileage_title">Quilometratge</string>
+
+    <!-- Empty state when no drive data is available -->
+    <string name="mileage_no_data">No hi ha dades de viatges disponibles</string>
+
+    <!-- Empty state when no drive data for a specific year. %d is the year -->
+    <string name="mileage_no_data_year">No hi ha dades de viatges per al %d</string>
+
+    <!-- Chart title: mileage grouped by year -->
+    <string name="mileage_by_year">Quilometratge per Any</string>
+
+    <!-- Chart title: mileage grouped by month -->
+    <string name="mileage_by_month">Quilometratge per Mes</string>
+
+    <!-- Chart title: mileage grouped by day -->
+    <string name="mileage_by_day">Quilometratge per Dia</string>
+
+    <!-- Format for number of days with data. %d is the count -->
+    <string name="format_days_count">%d dies</string>
+
+    <!-- Section header for recent trips list -->
+    <string name="mileage_recent_trips">Viatges recents</string>
+
+    <!-- Section header for drives list in day detail -->
+    <string name="mileage_drives">Viatges</string>
+
+    <!-- Summary label: Total distance -->
+    <string name="mileage_total">Total</string>
+
+    <!-- Summary label: average per year -->
+    <string name="mileage_avg_year">Mitjana/Any</string>
+
+    <!-- Summary label: average per month -->
+    <string name="mileage_avg_month">Mitjana/Mes</string>
+
+    <!-- Summary label: number of drives -->
+    <string name="mileage_drive_count">N° de viatges</string>
+
+    <!-- Info dialog title for average per year calculation -->
+    <string name="mileage_avg_year_title">Mitjana Anual</string>
+
+    <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
+    <string name="mileage_avg_year_message">Basat en la teva mitjana diària des del primer viatge registrat el %1$s (fa %2$d dies).\n\nCàlcul: distància total ÷ dies × 365</string>
+
+    <!-- Content description for info button explaining calculation -->
+    <string name="info_about_calculation">Info sobre el càlcul</string>
+
+    <!-- ==================== Software Versions Screen ==================== -->
+    <!-- Top bar title for software updates screen -->
+    <string name="software_title">Versions de Programari</string>
+
+    <!-- Date filter: last 6 months -->
+    <string name="filter_last_6_months">Últims 6 mesos</string>
+
+    <!-- Section header for update history list -->
+    <string name="software_update_history">Historial d\'Actualitzacions</string>
+
+    <!-- Empty state when no software updates found -->
+    <string name="software_no_updates">No s\'han trobat actualitzacions de programari</string>
+
+    <!-- Overview card title -->
+    <string name="software_overview">Resum</string>
+
+    <!-- Label for total number of updates -->
+    <string name="software_total_updates">Actualitzacions Totals</string>
+
+    <!-- Label for average interval between updates -->
+    <string name="software_avg_interval">Interval Mitjà</string>
+
+    <!-- Format for average interval in days. %d is the number of days -->
+    <string name="format_interval_days">%d dies</string>
+
+    <!-- Label for newest software version -->
+    <string name="software_newest">Més Recent</string>
+
+    <!-- Label for oldest software version -->
+    <string name="software_oldest">Més Antic</string>
+
+    <!-- Chart title: updates grouped by month -->
+    <string name="software_updates_per_month">Actualitzacions per Mes</string>
+
+    <!-- Tooltip format for chart. %d is the count -->
+    <string name="format_updates_count">%d actualitzacions</string>
+
+    <!-- Format for single update in chart -->
+    <string name="format_updates_decimal">%.0f actualitzacions</string>
+
+    <!-- Content description for release notes link -->
+    <string name="software_view_release_notes">Veure notes de la versió</string>
+
+    <!-- Badge label for current installed version -->
+    <string name="software_current_version">Versió actual</string>
+
+    <!-- Content description for longest installed badge icon -->
+    <string name="software_longest_installed">Instal·lat més temps</string>
+
+    <!-- Badge label for version installed for longest time -->
+    <string name="software_longest">Més llarg</string>
+
+    <!-- Label for installation date of software -->
+    <string name="software_installed">Instal·lat</string>
+
+    <!-- Label for number of days a version was installed -->
+    <string name="software_days">Dies</string>
+
+    <!-- Label for update installation duration -->
+    <string name="software_duration">Durada</string>
+
+    <!-- ==================== Common Components ==================== -->
+    <!-- Content description for fullscreen mode button in charts -->
+    <string name="fullscreen">Pantalla completa</string>
+
+    <!-- Content description for exit fullscreen button -->
+    <string name="exit_fullscreen">Sortir de pantalla completa</string>
+
+    <!-- ==================== Weather Card ==================== -->
+    <!-- Title for weather along the way card -->
+    <string name="weather_card_title">Temps al Llarg del Trajecte</string>
+
+    <!-- Loading state while fetching weather data -->
+    <string name="weather_loading">Carregant dades meteorològiques…</string>
+
+    <!-- Empty state when weather data is unavailable -->
+    <string name="weather_unavailable">Dades meteorològiques no disponibles</string>
+
+    <!-- Table header: time column -->
+    <string name="weather_time">Hora</string>
+
+    <!-- Table header: distance column -->
+    <string name="weather_distance">Distància</string>
+
+    <!-- Table header: weather column -->
+    <string name="weather_weather">Temps</string>
+
+    <!-- Distance marker for route start point -->
+    <string name="weather_start">Inici</string>
+
+    <!-- Distance marker for route end point -->
+    <string name="weather_end">Final</string>
+
+    <!-- Weather condition: clear sky -->
+    <string name="weather_clear">Cel serè</string>
+
+    <!-- Weather condition: partly cloudy -->
+    <string name="weather_partly_cloudy">Parcialment ennuvolat</string>
+
+    <!-- Weather condition: foggy -->
+    <string name="weather_fog">Boirós</string>
+
+    <!-- Weather condition: light rain/drizzle -->
+    <string name="weather_drizzle">Plugim</string>
+
+    <!-- Weather condition: rain -->
+    <string name="weather_rain">Pluja</string>
+
+    <!-- Weather condition: snow -->
+    <string name="weather_snow">Neu</string>
+
+    <!-- Weather condition: thunderstorm -->
+    <string name="weather_thunderstorm">Tempesta</string>
+</resources>

@@ -32,7 +32,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.matedroid.R
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
@@ -94,7 +96,7 @@ fun FullscreenLineChart(
         ) {
             Icon(
                 imageVector = Icons.Default.Fullscreen,
-                contentDescription = "Fullscreen",
+                contentDescription = stringResource(R.string.fullscreen),
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -234,7 +236,7 @@ private fun FullscreenChartOverlay(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Exit fullscreen",
+                    contentDescription = stringResource(R.string.exit_fullscreen),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

@@ -37,6 +37,74 @@ matedroid/
 - **Charts**: Vico
 - **Maps**: osmdroid (OpenStreetMap)
 
+### Localization (i18n)
+
+The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:
+
+- **English** (default) - `res/values/strings.xml`
+- **Italian** - `res/values-it/strings.xml`
+- **Spanish** - `res/values-es/strings.xml`
+- **Catalan** - `res/values-ca/strings.xml`
+
+#### Adding/Modifying Translations
+
+1. **All user-visible strings must be in string resources** - never hardcode text in Kotlin files
+2. **String naming convention**: Use `snake_case` (e.g., `settings_title`, `drive_history`)
+3. **Add context comments** for translators above each string:
+   ```xml
+   <!-- Dialog title when user has multiple vehicles -->
+   <string name="select_vehicle">Select Vehicle</string>
+   ```
+
+#### Adding a New String
+
+1. Add the English string to `res/values/strings.xml`:
+   ```xml
+   <!-- Description of what this string is for -->
+   <string name="new_feature_label">Feature Name</string>
+   ```
+
+2. Add translations to all locale files:
+   - `res/values-it/strings.xml`
+   - `res/values-es/strings.xml`
+   - `res/values-ca/strings.xml`
+
+3. Use in Kotlin code:
+   ```kotlin
+   import androidx.compose.ui.res.stringResource
+   import com.matedroid.R
+
+   Text(text = stringResource(R.string.new_feature_label))
+   ```
+
+#### Format Strings
+
+For strings with dynamic values, use placeholders:
+```xml
+<!-- %d is the percentage -->
+<string name="charge_limit_format">Limit: %d%%</string>
+
+<!-- %1$s is the date, %2$d is the number of days -->
+<string name="avg_year_message">Since %1$s (%2$d days ago)</string>
+```
+
+Usage:
+```kotlin
+stringResource(R.string.charge_limit_format, chargeLimit)
+stringResource(R.string.avg_year_message, formattedDate, dayCount)
+```
+
+#### Adding a New Language
+
+1. Create a new folder: `res/values-{language_code}/`
+2. Copy `res/values/strings.xml` to the new folder
+3. Translate all strings, keeping the same `name` attributes
+4. Android will automatically use the correct language based on device settings
+
+#### Testing Translations
+
+Change your device/emulator language in Settings > System > Languages to test different locales.
+
 ### Utility Scripts
 
 #### `util/fetch_tesla_assets.py`

@@ -57,11 +57,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusError
@@ -107,12 +109,12 @@ fun BatteryScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Battery Health") },
+                    title = { Text(stringResource(R.string.battery_health_title)) },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = stringResource(R.string.back)
                             )
                         }
                     },
@@ -151,7 +153,7 @@ fun BatteryScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No battery data available",
+                                text = stringResource(R.string.no_battery_data),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -205,14 +207,20 @@ private fun BatteryHealthContent(
 @Composable
 private fun CapacityCard(stats: BatteryStats, palette: CarColorPalette, onClick: () -> Unit) {
     var showTooltip by remember { mutableStateOf(false) }
+    val capacityTitle = stringResource(R.string.battery_capacity_title)
+    val capacityMessage = stringResource(R.string.battery_capacity_message)
+    val capacityLabel = stringResource(R.string.capacity)
+    val usableNewLabel = stringResource(R.string.usable_new)
+    val usableNowLabel = stringResource(R.string.usable_now)
+    val ratedLabel = stringResource(R.string.rated)
+    val infoLabel = stringResource(R.string.info)
+    val gotItLabel = stringResource(R.string.got_it)
 
     if (showTooltip) {
         InfoDialog(
-            title = "Battery Capacity",
-            message = "Shows your battery's energy storage capacity.\n\n" +
-                    "• Usable (new): The original usable capacity when the car was new\n" +
-                    "• Usable (now): Current usable capacity after degradation\n" +
-                    "• Rated efficiency: Energy consumption per km under standard test conditions (Wh/km)",
+            title = capacityTitle,
+            message = capacityMessage,
+            confirmText = gotItLabel,
             onDismiss = { showTooltip = false }
         )
     }
@@ -240,7 +248,7 @@ private fun CapacityCard(stats: BatteryStats, palette: CarColorPalette, onClick:
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Capacity",
+                    text = capacityLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -248,7 +256,7 @@ private fun CapacityCard(stats: BatteryStats, palette: CarColorPalette, onClick:
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
+                    contentDescription = infoLabel,
                     tint = palette.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
@@ -265,13 +273,13 @@ private fun CapacityCard(stats: BatteryStats, palette: CarColorPalette, onClick:
             ) {
                 CapacityValueCard(
                     value = "%.1f kWh".format(stats.originalCapacity),
-                    label = "Usable (new)",
+                    label = usableNewLabel,
                     iconColor = CapacityGreen,
                     modifier = Modifier.weight(1f)
                 )
                 CapacityValueCard(
                     value = "%.1f kWh".format(stats.currentCapacity),
-                    label = "Usable (now)",
+                    label = usableNowLabel,
                     iconColor = CapacityYellow,
                     modifier = Modifier.weight(1f)
                 )
@@ -300,7 +308,7 @@ private fun CapacityCard(stats: BatteryStats, palette: CarColorPalette, onClick:
                         color = palette.onSurface
                     )
                     Text(
-                        text = "Rated",
+                        text = ratedLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant
                     )
@@ -353,15 +361,20 @@ private fun CapacityValueCard(
 @Composable
 private fun DegradationCard(stats: BatteryStats, palette: CarColorPalette, onClick: () -> Unit) {
     var showTooltip by remember { mutableStateOf(false) }
+    val degradationTitle = stringResource(R.string.estimated_degradation_title)
+    val degradationMessage = stringResource(R.string.estimated_degradation_message)
+    val degradationLabel = stringResource(R.string.estimated_degradation)
+    val capacityLabel = stringResource(R.string.capacity)
+    val lossKwhLabel = stringResource(R.string.loss_kwh)
+    val lossPercentLabel = stringResource(R.string.loss_percent)
+    val infoLabel = stringResource(R.string.info)
+    val gotItLabel = stringResource(R.string.got_it)
 
     if (showTooltip) {
         InfoDialog(
-            title = "Estimated Degradation",
-            message = "Battery degradation is estimated based on Teslamate data.\n\n" +
-                    "• Capacity %: Remaining battery health compared to new\n" +
-                    "• Loss (kWh): Energy capacity lost due to degradation\n" +
-                    "• Loss (%): Percentage of original capacity lost\n\n" +
-                    "Note: This is an estimate. Tesla does not provide official degradation data.",
+            title = degradationTitle,
+            message = degradationMessage,
+            confirmText = gotItLabel,
             onDismiss = { showTooltip = false }
         )
     }
@@ -388,7 +401,7 @@ private fun DegradationCard(stats: BatteryStats, palette: CarColorPalette, onCli
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Estimated degradation",
+                    text = degradationLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -396,7 +409,7 @@ private fun DegradationCard(stats: BatteryStats, palette: CarColorPalette, onCli
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
+                    contentDescription = infoLabel,
                     tint = palette.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
@@ -413,7 +426,7 @@ private fun DegradationCard(stats: BatteryStats, palette: CarColorPalette, onCli
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Capacity",
+                    text = capacityLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.onSurfaceVariant
                 )
@@ -448,13 +461,13 @@ private fun DegradationCard(stats: BatteryStats, palette: CarColorPalette, onCli
             ) {
                 LossValueCard(
                     value = "%.1f kWh".format(stats.lossKwh),
-                    label = "Loss (kWh)",
+                    label = lossKwhLabel,
                     iconColor = LossYellow,
                     modifier = Modifier.weight(1f)
                 )
                 LossValueCard(
                     value = "%.1f%%".format(stats.lossPercent),
-                    label = "Loss (%)",
+                    label = lossPercentLabel,
                     iconColor = LossRed,
                     modifier = Modifier.weight(1f)
                 )
@@ -505,6 +518,11 @@ private fun LossValueCard(
 
 @Composable
 private fun RangeCard(stats: BatteryStats, palette: CarColorPalette, onClick: () -> Unit) {
+    val rangeLabel = stringResource(R.string.range)
+    val maxRangeNewLabel = stringResource(R.string.max_range_new)
+    val maxRangeNowLabel = stringResource(R.string.max_range_now)
+    val rangeLossLabel = stringResource(R.string.range_loss)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -518,7 +536,7 @@ private fun RangeCard(stats: BatteryStats, palette: CarColorPalette, onClick: ()
         ) {
             // Header
             Text(
-                text = "Range",
+                text = rangeLabel,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = palette.onSurface
@@ -533,13 +551,13 @@ private fun RangeCard(stats: BatteryStats, palette: CarColorPalette, onClick: ()
             ) {
                 RangeValueCard(
                     value = "%.1f km".format(stats.maxRangeNew),
-                    label = "Max Range (new)",
+                    label = maxRangeNewLabel,
                     iconColor = CapacityGreen,
                     modifier = Modifier.weight(1f)
                 )
                 RangeValueCard(
                     value = "%.1f km".format(stats.maxRangeNow),
-                    label = "Max Range (now)",
+                    label = maxRangeNowLabel,
                     iconColor = CapacityYellow,
                     modifier = Modifier.weight(1f)
                 )
@@ -568,7 +586,7 @@ private fun RangeCard(stats: BatteryStats, palette: CarColorPalette, onClick: ()
                         color = palette.onSurface
                     )
                     Text(
-                        text = "Range loss",
+                        text = rangeLossLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant
                     )
@@ -628,12 +646,12 @@ private fun BatteryDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Battery Detail") },
+                title = { Text(stringResource(R.string.battery_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -666,14 +684,18 @@ private fun BatteryDetailScreen(
 @Composable
 private fun BatteryStatusCard(stats: BatteryStats) {
     var showTooltip by remember { mutableStateOf(false) }
+    val currentChargeTitle = stringResource(R.string.current_charge_title)
+    val currentChargeMessage = stringResource(R.string.current_charge_message)
+    val currentChargeLabel = stringResource(R.string.current_charge)
+    val usablePercentLabel = stringResource(R.string.usable_percent, stats.usableBatteryLevel)
+    val infoLabel = stringResource(R.string.info)
+    val gotItLabel = stringResource(R.string.got_it)
 
     if (showTooltip) {
         InfoDialog(
-            title = "Current Charge",
-            message = "Shows your battery's current state of charge.\n\n" +
-                    "• Battery %: The charge level displayed on your dashboard\n" +
-                    "• Usable %: Actual usable charge (Tesla reserves a small buffer for battery protection)\n\n" +
-                    "This is the current charge, not the battery's long-term health.",
+            title = currentChargeTitle,
+            message = currentChargeMessage,
+            confirmText = gotItLabel,
             onDismiss = { showTooltip = false }
         )
     }
@@ -699,14 +721,14 @@ private fun BatteryStatusCard(stats: BatteryStats) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Current Charge",
+                    text = currentChargeLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
+                    contentDescription = infoLabel,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
@@ -751,7 +773,7 @@ private fun BatteryStatusCard(stats: BatteryStats) {
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = "Usable: ${stats.usableBatteryLevel}%",
+                    text = usablePercentLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     color = DetailCyan
                 )
@@ -763,14 +785,23 @@ private fun BatteryStatusCard(stats: BatteryStats) {
 @Composable
 private fun RangeInformationCard(stats: BatteryStats) {
     var showTooltip by remember { mutableStateOf(false) }
+    val rangeInfoTitle = stringResource(R.string.range_information_title)
+    val rangeInfoMessage = stringResource(R.string.range_information_message)
+    val rangeInfoLabel = stringResource(R.string.range_information)
+    val estimatedRangeLabel = stringResource(R.string.estimated_range)
+    val estimatedRangeSubtitle = stringResource(R.string.estimated_range_subtitle)
+    val ratedRangeLabel = stringResource(R.string.rated_range)
+    val ratedRangeSubtitle = stringResource(R.string.rated_range_subtitle)
+    val idealRangeLabel = stringResource(R.string.ideal_range)
+    val idealRangeSubtitle = stringResource(R.string.ideal_range_subtitle)
+    val infoLabel = stringResource(R.string.info)
+    val gotItLabel = stringResource(R.string.got_it)
 
     if (showTooltip) {
         InfoDialog(
-            title = "Range Information",
-            message = "Different ways to estimate how far you can drive.\n\n" +
-                    "• Estimated Range: Based on your recent driving efficiency and current conditions\n" +
-                    "• Rated Range: Official EPA/WLTP test range (what Tesla advertises)\n" +
-                    "• Ideal Range: Maximum theoretical range under perfect conditions (no climate, flat road, moderate speed)",
+            title = rangeInfoTitle,
+            message = rangeInfoMessage,
+            confirmText = gotItLabel,
             onDismiss = { showTooltip = false }
         )
     }
@@ -789,14 +820,14 @@ private fun RangeInformationCard(stats: BatteryStats) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Range Information",
+                    text = rangeInfoLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
+                    contentDescription = infoLabel,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
@@ -808,8 +839,8 @@ private fun RangeInformationCard(stats: BatteryStats) {
 
             // Range rows
             RangeInfoRow(
-                title = "Estimated Range",
-                subtitle = "Based on current driving conditions",
+                title = estimatedRangeLabel,
+                subtitle = estimatedRangeSubtitle,
                 value = "%.1f km".format(stats.estimatedRange),
                 valueColor = RangeBlue
             )
@@ -817,8 +848,8 @@ private fun RangeInformationCard(stats: BatteryStats) {
             Spacer(modifier = Modifier.height(12.dp))
 
             RangeInfoRow(
-                title = "Rated Range",
-                subtitle = "Official EPA/WLTP range",
+                title = ratedRangeLabel,
+                subtitle = ratedRangeSubtitle,
                 value = "%.1f km".format(stats.ratedRange),
                 valueColor = RangeBlue
             )
@@ -826,8 +857,8 @@ private fun RangeInformationCard(stats: BatteryStats) {
             Spacer(modifier = Modifier.height(12.dp))
 
             RangeInfoRow(
-                title = "Ideal Range",
-                subtitle = "Ideal driving conditions",
+                title = idealRangeLabel,
+                subtitle = idealRangeSubtitle,
                 value = "%.1f km".format(stats.idealRange),
                 valueColor = RangeBlue
             )
@@ -887,13 +918,19 @@ private fun RangeInfoRow(
 @Composable
 private fun EstimatedCapacityCard(stats: BatteryStats) {
     var showTooltip by remember { mutableStateOf(false) }
+    val estimatedCapacityTitle = stringResource(R.string.estimated_total_capacity_title)
+    val estimatedCapacityMessage = stringResource(R.string.estimated_total_capacity_message, stats.batteryLevel)
+    val estimatedCapacityLabel = stringResource(R.string.estimated_total_capacity)
+    val rangeAt100Label = stringResource(R.string.range_at_100)
+    val estimatedRangeDescription = stringResource(R.string.estimated_range_description, stats.batteryLevel, stats.ratedRange)
+    val infoLabel = stringResource(R.string.info)
+    val gotItLabel = stringResource(R.string.got_it)
 
     if (showTooltip) {
         InfoDialog(
-            title = "Estimated Total Capacity",
-            message = "Projects your maximum range if charged to 100%.\n\n" +
-                    "Calculated by extrapolating your current rated range at ${stats.batteryLevel}% to a full charge.\n\n" +
-                    "This helps you understand your battery's current full capacity without needing to charge to 100% (which isn't recommended for daily use).",
+            title = estimatedCapacityTitle,
+            message = estimatedCapacityMessage,
+            confirmText = gotItLabel,
             onDismiss = { showTooltip = false }
         )
     }
@@ -912,14 +949,14 @@ private fun EstimatedCapacityCard(stats: BatteryStats) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Estimated Total Capacity",
+                    text = estimatedCapacityLabel,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
+                    contentDescription = infoLabel,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(16.dp)
@@ -944,12 +981,12 @@ private fun EstimatedCapacityCard(stats: BatteryStats) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Range at 100%",
+                        text = rangeAt100Label,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Estimate based on current ${stats.batteryLevel}%% and rated range of %.1f km".format(stats.ratedRange),
+                        text = estimatedRangeDescription,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -970,6 +1007,7 @@ private fun EstimatedCapacityCard(stats: BatteryStats) {
 private fun InfoDialog(
     title: String,
     message: String,
+    confirmText: String,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -989,7 +1027,7 @@ private fun InfoDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Got it")
+                Text(confirmText)
             }
         }
     )
