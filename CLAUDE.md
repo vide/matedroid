@@ -32,6 +32,19 @@
 * When releasing a new version, create a new changelog file matching the versionCode in `app/build.gradle.kts`.
 * The F-Droid build recipe is stored in `fdroid/com.matedroid.yml` (reference copy; actual recipe lives in fdroiddata repo).
 
+## Localization
+
+* NEVER hardcode user-visible strings in Kotlin code. Always use `stringResource(R.string.xxx)`.
+* When adding new UI text, add the string to all 4 locale files:
+  - `res/values/strings.xml` (English, default)
+  - `res/values-it/strings.xml` (Italian)
+  - `res/values-es/strings.xml` (Spanish)
+  - `res/values-ca/strings.xml` (Catalan)
+* Use snake_case for string names (e.g., `settings_title`, `drive_history`).
+* Add XML comments above strings to provide context for translators.
+* Technical terms like AC, DC, kW, kWh should NOT be translated.
+* Always run `./gradlew lintDebug` before committing to catch hardcoded strings.
+
 ## Gotchas and notes
 
 * Always check the local instance of Teslamate API and its documentation to know what's the returned JSON format.
