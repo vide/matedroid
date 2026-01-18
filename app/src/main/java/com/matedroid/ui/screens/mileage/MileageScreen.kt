@@ -686,7 +686,7 @@ private fun MonthSummaryCard(
     val totalDistance = monthData?.totalDistance ?: 0.0
     val driveCount = monthData?.driveCount ?: 0
     val avgDistance = if (driveCount > 0) totalDistance / driveCount else 0.0
-    val avgBatteryUsage = monthData?.avgBatteryUsage ?: 0.0
+    val totalBatteryUsage = monthData?.totalBatteryUsage ?: 0.0
     val totalEnergy = monthData?.totalEnergy ?: 0.0
     val avgEnergy = if (driveCount > 0) totalEnergy / driveCount else 0.0
 
@@ -759,9 +759,8 @@ private fun MonthSummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatChip(
-                    prefix = "Ø",
                     iconText = "🔋",
-                    value = "%.0f%%".format(avgBatteryUsage),
+                    value = "%.0f%%".format(totalBatteryUsage),
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
@@ -1140,7 +1139,7 @@ private fun DayTripRow(
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = "%.0f%%".format(dayData.avgBatteryUsage),
+                        text = "%.0f%%".format(dayData.totalBatteryUsage),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -1317,9 +1316,8 @@ private fun DaySummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatChip(
-                    prefix = "Ø",
                     iconText = "🔋",
-                    value = "%.0f%%".format(dayData.avgBatteryUsage),
+                    value = "%.0f%%".format(dayData.totalBatteryUsage),
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(

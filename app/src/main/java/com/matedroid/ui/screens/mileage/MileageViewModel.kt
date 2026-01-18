@@ -23,7 +23,7 @@ data class YearlyMileage(
     val totalDistance: Double,
     val driveCount: Int,
     val totalEnergy: Double,
-    val avgBatteryUsage: Double,
+    val totalBatteryUsage: Double,
     val drives: List<DriveData>
 )
 
@@ -32,7 +32,7 @@ data class MonthlyMileage(
     val totalDistance: Double,
     val driveCount: Int,
     val totalEnergy: Double,
-    val avgBatteryUsage: Double,
+    val totalBatteryUsage: Double,
     val drives: List<DriveData>
 )
 
@@ -41,7 +41,7 @@ data class DailyMileage(
     val totalDistance: Double,
     val driveCount: Int,
     val totalEnergy: Double,
-    val avgBatteryUsage: Double,
+    val totalBatteryUsage: Double,
     val drives: List<DriveData>
 )
 
@@ -202,14 +202,14 @@ class MileageViewModel @Inject constructor(
                 val end = drive.endBatteryLevel
                 if (start != null && end != null) (start - end).toDouble() else null
             }
-            val avgBatteryUsage = if (batteryUsages.isNotEmpty()) batteryUsages.average() else 0.0
+            val totalBatteryUsage = batteryUsages.sum()
 
             YearlyMileage(
                 year = year!!,
                 totalDistance = totalDistance,
                 driveCount = yearDrives.size,
                 totalEnergy = totalEnergy,
-                avgBatteryUsage = avgBatteryUsage,
+                totalBatteryUsage = totalBatteryUsage,
                 drives = yearDrives
             )
         }.sortedByDescending { it.year }
@@ -272,14 +272,14 @@ class MileageViewModel @Inject constructor(
                 val end = drive.endBatteryLevel
                 if (start != null && end != null) (start - end).toDouble() else null
             }
-            val avgBatteryUsage = if (batteryUsages.isNotEmpty()) batteryUsages.average() else 0.0
+            val totalBatteryUsage = batteryUsages.sum()
 
             MonthlyMileage(
                 yearMonth = yearMonth!!,
                 totalDistance = totalDistance,
                 driveCount = monthDrives.size,
                 totalEnergy = totalEnergy,
-                avgBatteryUsage = avgBatteryUsage,
+                totalBatteryUsage = totalBatteryUsage,
                 drives = monthDrives
             )
         }.sortedByDescending { it.yearMonth }
@@ -323,14 +323,14 @@ class MileageViewModel @Inject constructor(
                 val end = drive.endBatteryLevel
                 if (start != null && end != null) (start - end).toDouble() else null
             }
-            val avgBatteryUsage = if (batteryUsages.isNotEmpty()) batteryUsages.average() else 0.0
+            val totalBatteryUsage = batteryUsages.sum()
 
             DailyMileage(
                 date = date!!,
                 totalDistance = totalDistance,
                 driveCount = dayDrives.size,
                 totalEnergy = totalEnergy,
-                avgBatteryUsage = avgBatteryUsage,
+                totalBatteryUsage = totalBatteryUsage,
                 drives = dayDrives.sortedByDescending { it.startDate }
             )
         }.sortedByDescending { it.date }
