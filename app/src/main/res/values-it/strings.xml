@@ -101,4 +101,91 @@
     <string name="tire_fr">AD</string>
     <string name="tire_rl">PS</string>
     <string name="tire_rr">PD</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <!-- Top bar title for settings screen -->
+    <string name="settings_title">Impostazioni MateDroid</string>
+
+    <!-- Shown while loading settings from storage -->
+    <string name="loading_settings">Caricamento impostazioni…</string>
+
+    <!-- Content description for expand/collapse section arrows -->
+    <string name="collapse">Comprimi</string>
+    <string name="expand">Espandi</string>
+
+    <!-- Server connection section -->
+    <string name="settings_connect_title">Connetti a TeslamateApi</string>
+    <string name="settings_connect_description">Inserisci l\'URL del server TeslamateApi per connetterti.</string>
+
+    <!-- Server URL field -->
+    <string name="settings_server_url_label">URL del server</string>
+    <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
+
+    <!-- Advanced network settings section (collapsible) -->
+    <string name="settings_advanced_network">Impostazioni di rete avanzate</string>
+
+    <!-- Secondary server URL field -->
+    <string name="settings_secondary_url_label">URL server secondario (opzionale)</string>
+    <string name="settings_secondary_url_placeholder">https://teslamate-api-internal.local</string>
+    <string name="settings_secondary_url_hint">URL di riserva quando il server primario non è raggiungibile. Utile per accesso LAN/VPN.</string>
+
+    <!-- API token field -->
+    <string name="settings_api_token_label">Token API (opzionale)</string>
+    <string name="settings_api_token_placeholder">Il tuo token API</string>
+    <string name="settings_api_token_hint">Lascia vuoto se TeslamateApi non richiede autenticazione.</string>
+
+    <!-- Content description for password visibility toggle -->
+    <string name="hide_token">Nascondi token</string>
+    <string name="show_token">Mostra token</string>
+
+    <!-- Accept invalid certificates toggle -->
+    <string name="settings_accept_invalid_certs">Accetta certificati non validi</string>
+    <string name="settings_accept_invalid_certs_hint">Abilita per certificati autofirmati</string>
+    <string name="settings_accept_invalid_certs_warning">Disabilitare la validazione dei certificati rende le connessioni vulnerabili ad attacchi man-in-the-middle. Usa solo su reti fidate.</string>
+
+    <!-- Display settings section -->
+    <string name="settings_display_title">Impostazioni schermo</string>
+
+    <!-- Currency selector -->
+    <string name="settings_currency_label">Valuta per i costi</string>
+    <string name="settings_currency_select">Seleziona valuta</string>
+
+    <!-- Teslamate base URL field -->
+    <string name="settings_teslamate_url_label">URL base Teslamate (opzionale)</string>
+    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
+    <string name="settings_teslamate_url_hint">Usato per modificare i costi di ricarica direttamente in Teslamate.</string>
+
+    <!-- Extra settings section (collapsible) -->
+    <string name="settings_extra">Impostazioni extra</string>
+
+    <!-- Show short drives/charges toggle -->
+    <string name="settings_show_short_label">Mostra viaggi / ricariche brevi</string>
+    <string name="settings_show_short_hint">Visualizza viaggi molto brevi e ricariche minime nelle liste</string>
+    <string name="more_information">Maggiori informazioni</string>
+
+    <!-- Short drives/charges info dialog -->
+    <string name="settings_short_dialog_title">Viaggi e ricariche brevi</string>
+    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Viaggi sotto 1 minuto o meno di 0,1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
+
+    <!-- Force resync button and dialog -->
+    <string name="settings_resync_button">Forza risincronizzazione completa</string>
+    <string name="settings_resyncing">Risincronizzazione…</string>
+    <string name="settings_resync_hint">Riscarica tutti i dettagli di viaggi e ricariche. Usa se le statistiche sembrano errate.</string>
+    <string name="settings_resync_dialog_title">Forzare risincronizzazione completa?</string>
+    <string name="settings_resync_dialog_text_prefix">Questo </string>
+    <string name="settings_resync_dialog_text_delete">ELIMINERÀ</string>
+    <string name="settings_resync_dialog_text_suffix"> tutti i viaggi, ricariche e statistiche memorizzati, poi riscaricherà tutto dal server.\n\nIl processo potrebbe richiedere diversi minuti a seconda della quantità di dati.</string>
+    <string name="settings_resync_confirm">Risincronizza</string>
+
+    <!-- Action buttons -->
+    <string name="settings_test_connection">Prova connessione</string>
+    <string name="settings_save">Salva e continua</string>
+
+    <!-- Debug palette preview button -->
+    <string name="settings_palette_preview">Anteprima palette colori (Debug)</string>
+
+    <!-- Test result labels -->
+    <string name="settings_primary_server">Server primario</string>
+    <string name="settings_secondary_server">Server secondario</string>
+    <string name="settings_connected">Connesso</string>
 </resources>

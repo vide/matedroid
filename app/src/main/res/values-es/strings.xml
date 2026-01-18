@@ -101,4 +101,91 @@
     <string name="tire_fr">DD</string>
     <string name="tire_rl">TI</string>
     <string name="tire_rr">TD</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <!-- Top bar title for settings screen -->
+    <string name="settings_title">Ajustes de MateDroid</string>
+
+    <!-- Shown while loading settings from storage -->
+    <string name="loading_settings">Cargando ajustes…</string>
+
+    <!-- Content description for expand/collapse section arrows -->
+    <string name="collapse">Contraer</string>
+    <string name="expand">Expandir</string>
+
+    <!-- Server connection section -->
+    <string name="settings_connect_title">Conectar a TeslamateApi</string>
+    <string name="settings_connect_description">Introduce la URL de tu servidor TeslamateApi para conectar.</string>
+
+    <!-- Server URL field -->
+    <string name="settings_server_url_label">URL del servidor</string>
+    <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
+
+    <!-- Advanced network settings section (collapsible) -->
+    <string name="settings_advanced_network">Ajustes de red avanzados</string>
+
+    <!-- Secondary server URL field -->
+    <string name="settings_secondary_url_label">URL del servidor secundario (opcional)</string>
+    <string name="settings_secondary_url_placeholder">https://teslamate-api-internal.local</string>
+    <string name="settings_secondary_url_hint">URL de respaldo cuando el servidor principal no está disponible. Útil para acceso LAN/VPN.</string>
+
+    <!-- API token field -->
+    <string name="settings_api_token_label">Token API (opcional)</string>
+    <string name="settings_api_token_placeholder">Tu token API</string>
+    <string name="settings_api_token_hint">Deja vacío si tu TeslamateApi no requiere autenticación.</string>
+
+    <!-- Content description for password visibility toggle -->
+    <string name="hide_token">Ocultar token</string>
+    <string name="show_token">Mostrar token</string>
+
+    <!-- Accept invalid certificates toggle -->
+    <string name="settings_accept_invalid_certs">Aceptar certificados inválidos</string>
+    <string name="settings_accept_invalid_certs_hint">Activar para certificados autofirmados</string>
+    <string name="settings_accept_invalid_certs_warning">Desactivar la validación de certificados hace las conexiones vulnerables a ataques man-in-the-middle. Usa solo en redes de confianza.</string>
+
+    <!-- Display settings section -->
+    <string name="settings_display_title">Ajustes de pantalla</string>
+
+    <!-- Currency selector -->
+    <string name="settings_currency_label">Moneda para costes</string>
+    <string name="settings_currency_select">Seleccionar moneda</string>
+
+    <!-- Teslamate base URL field -->
+    <string name="settings_teslamate_url_label">URL base de Teslamate (opcional)</string>
+    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
+    <string name="settings_teslamate_url_hint">Usado para editar costes de carga directamente en Teslamate.</string>
+
+    <!-- Extra settings section (collapsible) -->
+    <string name="settings_extra">Ajustes extra</string>
+
+    <!-- Show short drives/charges toggle -->
+    <string name="settings_show_short_label">Mostrar viajes / cargas cortos</string>
+    <string name="settings_show_short_hint">Mostrar viajes muy cortos y cargas mínimas en las listas</string>
+    <string name="more_information">Más información</string>
+
+    <!-- Short drives/charges info dialog -->
+    <string name="settings_short_dialog_title">Viajes y cargas cortos</string>
+    <string name="settings_short_dialog_text">Cuando está desactivado (por defecto), los siguientes elementos están ocultos de las listas:\n\n• Viajes de menos de 1 minuto o menos de 0,1 km\n• Cargas de 0,1 kWh o menos\n\nEstos elementos siguen incluidos en totales, promedios y estadísticas. Activa este ajuste para ver todos los elementos en las listas.</string>
+
+    <!-- Force resync button and dialog -->
+    <string name="settings_resync_button">Forzar resincronización completa</string>
+    <string name="settings_resyncing">Resincronizando…</string>
+    <string name="settings_resync_hint">Vuelve a descargar todos los detalles de viajes y cargas. Usa si las estadísticas parecen incorrectas.</string>
+    <string name="settings_resync_dialog_title">¿Forzar resincronización completa?</string>
+    <string name="settings_resync_dialog_text_prefix">Esto </string>
+    <string name="settings_resync_dialog_text_delete">ELIMINARÁ</string>
+    <string name="settings_resync_dialog_text_suffix"> todos los viajes, cargas y estadísticas en caché, luego volverá a descargar todo del servidor.\n\nEl proceso puede tardar varios minutos dependiendo de la cantidad de datos.</string>
+    <string name="settings_resync_confirm">Resincronizar</string>
+
+    <!-- Action buttons -->
+    <string name="settings_test_connection">Probar conexión</string>
+    <string name="settings_save">Guardar y continuar</string>
+
+    <!-- Debug palette preview button -->
+    <string name="settings_palette_preview">Vista previa de paletas de colores (Debug)</string>
+
+    <!-- Test result labels -->
+    <string name="settings_primary_server">Servidor principal</string>
+    <string name="settings_secondary_server">Servidor secundario</string>
+    <string name="settings_connected">Conectado</string>
 </resources>

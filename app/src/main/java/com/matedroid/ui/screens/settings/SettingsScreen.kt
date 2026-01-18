@@ -67,9 +67,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import com.matedroid.data.model.Currency
 import com.matedroid.ui.theme.MateDroidTheme
 import com.matedroid.ui.theme.StatusWarning
@@ -103,7 +105,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("MateDroid Settings") }
+                title = { Text(stringResource(R.string.settings_title)) }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -139,7 +141,7 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
     ) {
         CircularProgressIndicator()
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Loading settings...")
+        Text(stringResource(R.string.loading_settings))
     }
 }
 
@@ -167,7 +169,7 @@ private fun CollapsibleSection(
             )
             Icon(
                 imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(if (expanded) R.string.collapse else R.string.expand),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -215,14 +217,14 @@ private fun SettingsContent(
     ) {
         // === Server Connection Section ===
         Text(
-            text = "Connect to TeslamateApi",
+            text = stringResource(R.string.settings_connect_title),
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter your TeslamateApi server URL to connect.",
+            text = stringResource(R.string.settings_connect_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -232,8 +234,8 @@ private fun SettingsContent(
         OutlinedTextField(
             value = uiState.serverUrl,
             onValueChange = onServerUrlChange,
-            label = { Text("Server URL") },
-            placeholder = { Text("https://teslamate-api.example.com") },
+            label = { Text(stringResource(R.string.settings_server_url_label)) },
+            placeholder = { Text(stringResource(R.string.settings_server_url_placeholder)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("urlInput"),
@@ -248,7 +250,7 @@ private fun SettingsContent(
         HorizontalDivider()
 
         CollapsibleSection(
-            title = "Advanced network settings",
+            title = stringResource(R.string.settings_advanced_network),
             expanded = advancedNetworkExpanded,
             onToggle = { advancedNetworkExpanded = !advancedNetworkExpanded }
         ) {
@@ -258,8 +260,8 @@ private fun SettingsContent(
             OutlinedTextField(
                 value = uiState.secondaryServerUrl,
                 onValueChange = onSecondaryServerUrlChange,
-                label = { Text("Secondary Server URL (optional)") },
-                placeholder = { Text("https://teslamate-api-internal.local") },
+                label = { Text(stringResource(R.string.settings_secondary_url_label)) },
+                placeholder = { Text(stringResource(R.string.settings_secondary_url_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -267,7 +269,7 @@ private fun SettingsContent(
             )
 
             Text(
-                text = "Fallback URL used when the primary server is unreachable. Useful for LAN/VPN access.",
+                text = stringResource(R.string.settings_secondary_url_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -279,8 +281,8 @@ private fun SettingsContent(
             OutlinedTextField(
                 value = uiState.apiToken,
                 onValueChange = onApiTokenChange,
-                label = { Text("API Token (optional)") },
-                placeholder = { Text("Your API token") },
+                label = { Text(stringResource(R.string.settings_api_token_label)) },
+                placeholder = { Text(stringResource(R.string.settings_api_token_placeholder)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("tokenInput"),
@@ -299,11 +301,9 @@ private fun SettingsContent(
                             } else {
                                 Icons.Filled.Visibility
                             },
-                            contentDescription = if (passwordVisible) {
-                                "Hide token"
-                            } else {
-                                "Show token"
-                            }
+                            contentDescription = stringResource(
+                                if (passwordVisible) R.string.hide_token else R.string.show_token
+                            )
                         )
                     }
                 },
@@ -311,7 +311,7 @@ private fun SettingsContent(
             )
 
             Text(
-                text = "Leave empty if your TeslamateApi doesn't require authentication.",
+                text = stringResource(R.string.settings_api_token_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -328,11 +328,11 @@ private fun SettingsContent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Accept invalid certificates",
+                        text = stringResource(R.string.settings_accept_invalid_certs),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "Enable for self-signed certificates",
+                        text = stringResource(R.string.settings_accept_invalid_certs_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -365,7 +365,7 @@ private fun SettingsContent(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Disabling certificate validation makes connections vulnerable to man-in-the-middle attacks. Only use on trusted networks.",
+                            text = stringResource(R.string.settings_accept_invalid_certs_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = StatusWarning
                         )
@@ -380,7 +380,7 @@ private fun SettingsContent(
 
         // === Display Settings Section ===
         Text(
-            text = "Display Settings",
+            text = stringResource(R.string.settings_display_title),
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -393,14 +393,14 @@ private fun SettingsContent(
             OutlinedTextField(
                 value = "${selectedCurrency.symbol} ${selectedCurrency.code} - ${selectedCurrency.name}",
                 onValueChange = {},
-                label = { Text("Currency for costs") },
+                label = { Text(stringResource(R.string.settings_currency_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
                 trailingIcon = {
                     IconButton(onClick = { currencyDropdownExpanded = true }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowDropDown,
-                            contentDescription = "Select currency"
+                            contentDescription = stringResource(R.string.settings_currency_select)
                         )
                     }
                 }
@@ -431,15 +431,15 @@ private fun SettingsContent(
         OutlinedTextField(
             value = uiState.teslamateBaseUrl,
             onValueChange = onTeslamateBaseUrlChange,
-            label = { Text("Teslamate Base URL (optional)") },
-            placeholder = { Text("https://teslamate.example.com") },
+            label = { Text(stringResource(R.string.settings_teslamate_url_label)) },
+            placeholder = { Text(stringResource(R.string.settings_teslamate_url_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
         )
 
         Text(
-            text = "Used for editing charge costs directly in Teslamate.",
+            text = stringResource(R.string.settings_teslamate_url_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
@@ -451,7 +451,7 @@ private fun SettingsContent(
         HorizontalDivider()
 
         CollapsibleSection(
-            title = "Extra settings",
+            title = stringResource(R.string.settings_extra),
             expanded = extraSettingsExpanded,
             onToggle = { extraSettingsExpanded = !extraSettingsExpanded }
         ) {
@@ -467,7 +467,7 @@ private fun SettingsContent(
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Show short drives / charges",
+                            text = stringResource(R.string.settings_show_short_label),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         IconButton(
@@ -476,14 +476,14 @@ private fun SettingsContent(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Info,
-                                contentDescription = "More information",
+                                contentDescription = stringResource(R.string.more_information),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                     Text(
-                        text = "Display very short drives and minimal charges in lists",
+                        text = stringResource(R.string.settings_show_short_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -498,19 +498,13 @@ private fun SettingsContent(
             if (showShortDrivesChargesInfoDialog) {
                 AlertDialog(
                     onDismissRequest = { showShortDrivesChargesInfoDialog = false },
-                    title = { Text("Short drives & charges") },
+                    title = { Text(stringResource(R.string.settings_short_dialog_title)) },
                     text = {
-                        Text(
-                            "When disabled (default), the following are hidden from the lists:\n\n" +
-                                    "• Drives under 1 minute or less than 0.1 km\n" +
-                                    "• Charges of 0.1 kWh or less\n\n" +
-                                    "These entries are still included in totals, averages, and statistics. " +
-                                    "Enable this setting to see all entries in the lists."
-                        )
+                        Text(stringResource(R.string.settings_short_dialog_text))
                     },
                     confirmButton = {
                         TextButton(onClick = { showShortDrivesChargesInfoDialog = false }) {
-                            Text("OK")
+                            Text(stringResource(R.string.ok))
                         }
                     }
                 )
@@ -531,11 +525,11 @@ private fun SettingsContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(if (uiState.isResyncing) "Resyncing..." else "Force Full Resync")
+                Text(stringResource(if (uiState.isResyncing) R.string.settings_resyncing else R.string.settings_resync_button))
             }
 
             Text(
-                text = "Re-downloads all drive and charge details. Use if stats seem incorrect.",
+                text = stringResource(R.string.settings_resync_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -553,16 +547,15 @@ private fun SettingsContent(
                             modifier = Modifier.size(32.dp)
                         )
                     },
-                    title = { Text("Force Full Resync?") },
+                    title = { Text(stringResource(R.string.settings_resync_dialog_title)) },
                     text = {
                         Text(
                             buildAnnotatedString {
-                                append("This will ")
+                                append(stringResource(R.string.settings_resync_dialog_text_prefix))
                                 withStyle(SpanStyle(color = StatusError, fontWeight = FontWeight.Bold)) {
-                                    append("DELETE")
+                                    append(stringResource(R.string.settings_resync_dialog_text_delete))
                                 }
-                                append(" all cached drives, charges, and statistics, then re-download everything from the server.\n\n")
-                                append("The process may take several minutes depending on how much data you have.")
+                                append(stringResource(R.string.settings_resync_dialog_text_suffix))
                             }
                         )
                     },
@@ -573,12 +566,12 @@ private fun SettingsContent(
                                 onForceResync()
                             }
                         ) {
-                            Text("Resync")
+                            Text(stringResource(R.string.settings_resync_confirm))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showResyncConfirmDialog = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -612,7 +605,7 @@ private fun SettingsContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Test Connection")
+                Text(stringResource(R.string.settings_test_connection))
             }
 
             Button(
@@ -630,7 +623,7 @@ private fun SettingsContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Save & Continue")
+                Text(stringResource(R.string.settings_save))
             }
         }
 
@@ -641,7 +634,7 @@ private fun SettingsContent(
                 onClick = onPalettePreview,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Preview Color Palettes (Debug)")
+                Text(stringResource(R.string.settings_palette_preview))
             }
         }
 
@@ -673,7 +666,7 @@ private fun TestResultCard(result: TestResult) {
         ) {
             // Primary server result
             ServerTestResultRow(
-                label = "Primary server",
+                label = stringResource(R.string.settings_primary_server),
                 result = result.primaryResult
             )
 
@@ -681,7 +674,7 @@ private fun TestResultCard(result: TestResult) {
             result.secondaryResult?.let { secondaryResult ->
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 ServerTestResultRow(
-                    label = "Secondary server",
+                    label = stringResource(R.string.settings_secondary_server),
                     result = secondaryResult
                 )
             }
@@ -694,11 +687,12 @@ private fun ServerTestResultRow(
     label: String,
     result: ServerTestResult
 ) {
+    val connectedText = stringResource(R.string.settings_connected)
     val (icon, color, statusText) = when (result) {
         is ServerTestResult.Success -> Triple(
             Icons.Filled.CheckCircle,
             StatusSuccess,
-            "Connected"
+            connectedText
         )
         is ServerTestResult.Failure -> Triple(
             Icons.Filled.Error,

@@ -101,4 +101,91 @@
     <string name="tire_fr">DD</string>
     <string name="tire_rl">TE</string>
     <string name="tire_rr">TD</string>
+
+    <!-- ==================== Settings Screen ==================== -->
+    <!-- Top bar title for settings screen -->
+    <string name="settings_title">Configuració de MateDroid</string>
+
+    <!-- Shown while loading settings from storage -->
+    <string name="loading_settings">Carregant configuració…</string>
+
+    <!-- Content description for expand/collapse section arrows -->
+    <string name="collapse">Contraure</string>
+    <string name="expand">Expandir</string>
+
+    <!-- Server connection section -->
+    <string name="settings_connect_title">Connecta a TeslamateApi</string>
+    <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
+
+    <!-- Server URL field -->
+    <string name="settings_server_url_label">URL del servidor</string>
+    <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
+
+    <!-- Advanced network settings section (collapsible) -->
+    <string name="settings_advanced_network">Configuració de xarxa avançada</string>
+
+    <!-- Secondary server URL field -->
+    <string name="settings_secondary_url_label">URL del servidor secundari (opcional)</string>
+    <string name="settings_secondary_url_placeholder">https://teslamate-api-internal.local</string>
+    <string name="settings_secondary_url_hint">URL de reserva quan el servidor principal no està disponible. Útil per accés LAN/VPN.</string>
+
+    <!-- API token field -->
+    <string name="settings_api_token_label">Token API (opcional)</string>
+    <string name="settings_api_token_placeholder">El teu token API</string>
+    <string name="settings_api_token_hint">Deixa buit si TeslamateApi no requereix autenticació.</string>
+
+    <!-- Content description for password visibility toggle -->
+    <string name="hide_token">Amaga el token</string>
+    <string name="show_token">Mostra el token</string>
+
+    <!-- Accept invalid certificates toggle -->
+    <string name="settings_accept_invalid_certs">Accepta certificats no vàlids</string>
+    <string name="settings_accept_invalid_certs_hint">Activa per a certificats autofirmats</string>
+    <string name="settings_accept_invalid_certs_warning">Desactivar la validació de certificats fa les connexions vulnerables a atacs man-in-the-middle. Usa només en xarxes de confiança.</string>
+
+    <!-- Display settings section -->
+    <string name="settings_display_title">Configuració de pantalla</string>
+
+    <!-- Currency selector -->
+    <string name="settings_currency_label">Moneda per als costos</string>
+    <string name="settings_currency_select">Selecciona moneda</string>
+
+    <!-- Teslamate base URL field -->
+    <string name="settings_teslamate_url_label">URL base de Teslamate (opcional)</string>
+    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
+    <string name="settings_teslamate_url_hint">Usat per editar costos de càrrega directament a Teslamate.</string>
+
+    <!-- Extra settings section (collapsible) -->
+    <string name="settings_extra">Configuració extra</string>
+
+    <!-- Show short drives/charges toggle -->
+    <string name="settings_show_short_label">Mostra viatges / càrregues curts</string>
+    <string name="settings_show_short_hint">Mostra viatges molt curts i càrregues mínimes a les llistes</string>
+    <string name="more_information">Més informació</string>
+
+    <!-- Short drives/charges info dialog -->
+    <string name="settings_short_dialog_title">Viatges i càrregues curts</string>
+    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Viatges de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
+
+    <!-- Force resync button and dialog -->
+    <string name="settings_resync_button">Força resincronització completa</string>
+    <string name="settings_resyncing">Resincronitzant…</string>
+    <string name="settings_resync_hint">Torna a descarregar tots els detalls de viatges i càrregues. Usa si les estadístiques semblen incorrectes.</string>
+    <string name="settings_resync_dialog_title">Forçar resincronització completa?</string>
+    <string name="settings_resync_dialog_text_prefix">Això </string>
+    <string name="settings_resync_dialog_text_delete">ELIMINARÀ</string>
+    <string name="settings_resync_dialog_text_suffix"> tots els viatges, càrregues i estadístiques emmagatzemats, després tornarà a descarregar-ho tot del servidor.\n\nEl procés pot trigar diversos minuts depenent de la quantitat de dades.</string>
+    <string name="settings_resync_confirm">Resincronitza</string>
+
+    <!-- Action buttons -->
+    <string name="settings_test_connection">Prova la connexió</string>
+    <string name="settings_save">Desa i continua</string>
+
+    <!-- Debug palette preview button -->
+    <string name="settings_palette_preview">Vista prèvia de paletes de colors (Debug)</string>
+
+    <!-- Test result labels -->
+    <string name="settings_primary_server">Servidor principal</string>
+    <string name="settings_secondary_server">Servidor secundari</string>
+    <string name="settings_connected">Connectat</string>
 </resources>
