@@ -76,7 +76,7 @@
     <string name="asleep_since">Dormido desde %s</string>
 
     <!-- Word for yesterday used in timestamps -->
-    <string name="yesterday">yesterday</string>
+    <string name="yesterday">ayer</string>
 
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Imagen del coche - toca para estadísticas</string>
