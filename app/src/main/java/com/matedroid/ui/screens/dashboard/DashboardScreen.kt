@@ -690,14 +690,25 @@ private fun formatDurationSince(isoTimestamp: String?): String? {
 }
 
 /**
- * Formats an ISO timestamp to local time as "HH:mm"
+ * Formats an ISO timestamp to a human-readable format:
+ * - Today: "HH:mm"
+ * - Yesterday: "yesterday HH:mm"
+ * - Older: "DD/MM HH:mm"
  */
-private fun formatTimeFromTimestamp(isoTimestamp: String?): String? {
+private fun formatTimeFromTimestamp(isoTimestamp: String?, yesterdayStr: String): String? {
     if (isoTimestamp == null) return null
     return try {
         val dateTime = java.time.OffsetDateTime.parse(isoTimestamp)
-        val localTime = dateTime.toLocalTime()
-        String.format("%02d:%02d", localTime.hour, localTime.minute)
+        val localDateTime = dateTime.toLocalDateTime()
+        val today = java.time.LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+
+        when (localDateTime.toLocalDate()) {
+            today -> timeStr
+            yesterday -> "$yesterdayStr $timeStr"
+            else -> String.format("%02d/%02d %s", localDateTime.dayOfMonth, localDateTime.monthValue, timeStr)
+        }
     } catch (e: Exception) {
         null
     }
@@ -729,8 +740,9 @@ private fun StatusIndicatorsRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // State icon - bedtime when asleep, power icon otherwise
+                val yesterdayStr = stringResource(R.string.yesterday)
                 val stateTooltip = if (isAsleep) {
-                    val sleepTime = formatTimeFromTimestamp(status.stateSince)
+                    val sleepTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr)
                     if (sleepTime != null) {
                         stringResource(R.string.asleep_since, sleepTime)
                     } else {
