@@ -666,6 +666,54 @@ private fun StatusIcon(
     }
 }
 
+/**
+ * Formats duration since a given ISO timestamp as "XXm" or "XXh YYm"
+ */
+private fun formatDurationSince(isoTimestamp: String?): String? {
+    if (isoTimestamp == null) return null
+    return try {
+        val instant = java.time.OffsetDateTime.parse(isoTimestamp).toInstant()
+        val now = java.time.Instant.now()
+        val duration = java.time.Duration.between(instant, now)
+        val totalMinutes = duration.toMinutes()
+        if (totalMinutes < 0) return null
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        if (hours > 0) {
+            "${hours}h ${minutes}m"
+        } else {
+            "${minutes}m"
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+/**
+ * Formats an ISO timestamp to a human-readable format:
+ * - Today: "HH:mm"
+ * - Yesterday: "yesterday HH:mm"
+ * - Older: "DD/MM HH:mm"
+ */
+private fun formatTimeFromTimestamp(isoTimestamp: String?, yesterdayStr: String): String? {
+    if (isoTimestamp == null) return null
+    return try {
+        val dateTime = java.time.OffsetDateTime.parse(isoTimestamp)
+        val localDateTime = dateTime.toLocalDateTime()
+        val today = java.time.LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+
+        when (localDateTime.toLocalDate()) {
+            today -> timeStr
+            yesterday -> "$yesterdayStr $timeStr"
+            else -> String.format("%02d/%02d %s", localDateTime.dayOfMonth, localDateTime.monthValue, timeStr)
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StatusIndicatorsRow(
@@ -677,137 +725,164 @@ private fun StatusIndicatorsRow(
     val isSentryModeActive = status.sentryMode == true
     val isClimateOn = status.isClimateOn == true
     val isOnline = status.state?.lowercase() == "online"
+    val isAsleep = status.state?.lowercase() in listOf("asleep", "suspended")
     val isLocked = status.locked == true
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Left side: Status icons
+    Column(modifier = modifier) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Power/state icon - green when online, grey otherwise
-            StatusIcon(
-                icon = Icons.Filled.PowerSettingsNew,
-                tooltipText = status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown),
-                tint = if (isOnline) StatusSuccess else palette.onSurfaceVariant
-            )
+            // Left side: Status icons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // State icon - bedtime when asleep, power icon otherwise
+                val yesterdayStr = stringResource(R.string.yesterday)
+                val stateTooltip = if (isAsleep) {
+                    val sleepTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr)
+                    if (sleepTime != null) {
+                        stringResource(R.string.asleep_since, sleepTime)
+                    } else {
+                        status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+                    }
+                } else {
+                    status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+                }
+                StatusIcon(
+                    icon = if (isAsleep) Icons.Filled.Bedtime else Icons.Filled.PowerSettingsNew,
+                    tooltipText = stateTooltip,
+                    tint = if (isOnline) StatusSuccess else palette.onSurfaceVariant
+                )
 
-            // Lock icon - grey when locked, light red when unlocked
-            StatusIcon(
-                icon = if (isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                tooltipText = stringResource(if (isLocked) R.string.locked else R.string.unlocked),
-                tint = if (isLocked) palette.onSurfaceVariant else StatusError.copy(alpha = 0.7f)
-            )
+                // Lock icon - grey when locked, light red when unlocked
+                StatusIcon(
+                    icon = if (isLocked) Icons.Filled.Lock else Icons.Filled.LockOpen,
+                    tooltipText = stringResource(if (isLocked) R.string.locked else R.string.unlocked),
+                    tint = if (isLocked) palette.onSurfaceVariant else StatusError.copy(alpha = 0.7f)
+                )
 
-            // Sentry mode red dot (if active)
-            if (isSentryModeActive) {
-                val sentryTooltipState = rememberTooltipState(isPersistent = true)
-                val scope = rememberCoroutineScope()
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                    tooltip = {
-                        PlainTooltip {
-                            Text(stringResource(R.string.sentry_mode_active))
-                        }
-                    },
-                    state = sentryTooltipState
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(StatusError, RoundedCornerShape(6.dp))
-                            .clickable { scope.launch { sentryTooltipState.show() } }
+                // Sentry mode red dot (if active)
+                if (isSentryModeActive) {
+                    val sentryTooltipState = rememberTooltipState(isPersistent = true)
+                    val scope = rememberCoroutineScope()
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                        tooltip = {
+                            PlainTooltip {
+                                Text(stringResource(R.string.sentry_mode_active))
+                            }
+                        },
+                        state = sentryTooltipState
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(StatusError, RoundedCornerShape(6.dp))
+                                .clickable { scope.launch { sentryTooltipState.show() } }
+                        )
+                    }
+                }
+
+                // Plug icon (grey, if plugged in)
+                if (status.pluggedIn == true) {
+                    StatusIcon(
+                        icon = Icons.Filled.Power,
+                        tooltipText = stringResource(R.string.plugged_in),
+                        tint = palette.onSurfaceVariant
                     )
                 }
             }
 
-            // Plug icon (grey, if plugged in)
-            if (status.pluggedIn == true) {
-                StatusIcon(
-                    icon = Icons.Filled.Power,
-                    tooltipText = stringResource(R.string.plugged_in),
-                    tint = palette.onSurfaceVariant
-                )
+            // Right side: Temperature indicators with labels
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val climateTooltip = stringResource(if (isClimateOn) R.string.climate_active else R.string.climate_inactive)
+                val scope = rememberCoroutineScope()
+
+                // Outside temp: "Ext:"
+                val extTooltipState = rememberTooltipState(isPersistent = true)
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text(climateTooltip) } },
+                    state = extTooltipState
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { scope.launch { extTooltipState.show() } }
+                    ) {
+                        Text(
+                            text = stringResource(R.string.temp_ext_label),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = palette.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Filled.Thermostat,
+                            contentDescription = stringResource(R.string.outside_temp),
+                            modifier = Modifier.size(14.dp),
+                            tint = palette.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = status.outsideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = palette.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Inside temp: "Int:" (bold and green if climate is on)
+                val intTooltipState = rememberTooltipState(isPersistent = true)
+                val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text(climateTooltip) } },
+                    state = intTooltipState
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { scope.launch { intTooltipState.show() } }
+                    ) {
+                        Text(
+                            text = stringResource(R.string.temp_int_label),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
+                            color = intColor
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Filled.Thermostat,
+                            contentDescription = stringResource(R.string.inside_temp),
+                            modifier = Modifier.size(14.dp),
+                            tint = intColor
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
+                            color = intColor
+                        )
+                    }
+                }
             }
         }
 
-        // Right side: Temperature indicators with labels
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val climateTooltip = stringResource(if (isClimateOn) R.string.climate_active else R.string.climate_inactive)
-            val scope = rememberCoroutineScope()
-
-            // Outside temp: "Ext:"
-            val extTooltipState = rememberTooltipState(isPersistent = true)
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = { PlainTooltip { Text(climateTooltip) } },
-                state = extTooltipState
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { scope.launch { extTooltipState.show() } }
-                ) {
-                    Text(
-                        text = stringResource(R.string.temp_ext_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = palette.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Thermostat,
-                        contentDescription = stringResource(R.string.outside_temp),
-                        modifier = Modifier.size(14.dp),
-                        tint = palette.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = status.outsideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = palette.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Inside temp: "Int:" (bold and green if climate is on)
-            val intTooltipState = rememberTooltipState(isPersistent = true)
-            val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                tooltip = { PlainTooltip { Text(climateTooltip) } },
-                state = intTooltipState
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { scope.launch { intTooltipState.show() } }
-                ) {
-                    Text(
-                        text = stringResource(R.string.temp_int_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                        color = intColor
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Thermostat,
-                        contentDescription = stringResource(R.string.inside_temp),
-                        modifier = Modifier.size(14.dp),
-                        tint = intColor
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = status.insideTemp?.let { UnitFormatter.formatTemperature(it, units) } ?: "--",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal,
-                        color = intColor
-                    )
-                }
+        // Show sleep duration when asleep
+        if (isAsleep) {
+            val sleepDuration = formatDurationSince(status.stateSince)
+            if (sleepDuration != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = sleepDuration,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant
+                )
             }
         }
     }
