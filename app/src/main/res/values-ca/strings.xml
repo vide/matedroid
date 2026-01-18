@@ -368,4 +368,77 @@
     <!-- Chart card titles -->
     <string name="voltage_profile">Perfil de voltatge</string>
     <string name="current_profile">Perfil de corrent</string>
+
+    <!-- ==================== Battery Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="battery_health_title">Estat de la Bateria</string>
+
+    <!-- Empty state -->
+    <string name="no_battery_data">No hi ha dades de bateria disponibles</string>
+
+    <!-- Capacity section -->
+    <string name="capacity">Capacitat</string>
+    <string name="usable_new">Utilitzable (nova)</string>
+    <string name="usable_now">Utilitzable (ara)</string>
+    <string name="rated">Nominal</string>
+
+    <!-- Capacity info dialog -->
+    <string name="battery_capacity_title">Capacitat de la Bateria</string>
+    <string name="battery_capacity_message">Mostra la capacitat d\'emmagatzematge energètic de la bateria.\n\n• Utilitzable (nova): La capacitat utilitzable original quan el cotxe era nou\n• Utilitzable (ara): Capacitat utilitzable actual després de la degradació\n• Eficiència nominal: Consum energètic per km en condicions de prova estàndard (Wh/km)</string>
+
+    <!-- Degradation section -->
+    <string name="estimated_degradation">Degradació estimada</string>
+    <string name="loss_kwh">Pèrdua (kWh)</string>
+    <string name="loss_percent">Pèrdua (%%)</string>
+
+    <!-- Degradation info dialog -->
+    <string name="estimated_degradation_title">Degradació Estimada</string>
+    <string name="estimated_degradation_message">La degradació de la bateria s\'estima basant-se en dades de Teslamate.\n\n• Capacitat %%: Salut restant de la bateria comparada amb nova\n• Pèrdua (kWh): Capacitat energètica perduda per degradació\n• Pèrdua (%%): Percentatge de la capacitat original perduda\n\nNota: Això és una estimació. Tesla no proporciona dades oficials de degradació.</string>
+
+    <!-- Range section -->
+    <string name="range">Autonomia</string>
+    <string name="max_range_new">Autonomia màx (nova)</string>
+    <string name="max_range_now">Autonomia màx (ara)</string>
+    <string name="range_loss">Pèrdua d\'autonomia</string>
+
+    <!-- Battery detail screen -->
+    <string name="battery_detail_title">Detall de la Bateria</string>
+
+    <!-- Current charge section -->
+    <string name="current_charge">Càrrega Actual</string>
+    <!-- %d is the percentage of usable battery -->
+    <string name="usable_percent">Utilitzable: %d%%</string>
+
+    <!-- Current charge info dialog -->
+    <string name="current_charge_title">Càrrega Actual</string>
+    <string name="current_charge_message">Mostra l\'estat de càrrega actual de la bateria.\n\n• Bateria %%: El nivell de càrrega mostrat al tauler\n• Utilitzable %%: Càrrega realment utilitzable (Tesla reserva un petit búfer per protecció)\n\nAquesta és la càrrega actual, no la salut a llarg termini de la bateria.</string>
+
+    <!-- Range information section -->
+    <string name="range_information">Informació d\'Autonomia</string>
+    <string name="estimated_range">Autonomia Estimada</string>
+    <string name="estimated_range_subtitle">Basada en les condicions de conducció actuals</string>
+    <string name="rated_range">Autonomia Nominal</string>
+    <string name="rated_range_subtitle">Autonomia oficial EPA/WLTP</string>
+    <string name="ideal_range">Autonomia Ideal</string>
+    <string name="ideal_range_subtitle">Condicions de conducció ideals</string>
+
+    <!-- Range information info dialog -->
+    <string name="range_information_title">Informació d\'Autonomia</string>
+    <string name="range_information_message">Diferents maneres d\'estimar quant pots conduir.\n\n• Autonomia Estimada: Basada en la teva eficiència de conducció recent i condicions actuals\n• Autonomia Nominal: Autonomia oficial de proves EPA/WLTP (la que anuncia Tesla)\n• Autonomia Ideal: Autonomia teòrica màxima en condicions perfectes (sense climatització, carretera plana, velocitat moderada)</string>
+
+    <!-- Estimated total capacity section -->
+    <string name="estimated_total_capacity">Capacitat Total Estimada</string>
+    <string name="range_at_100">Autonomia al 100%%</string>
+    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
+    <string name="estimated_range_description">Estimació basada en el %1$d%% actual i autonomia nominal de %2$.1f km</string>
+
+    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
+    <string name="estimated_total_capacity_title">Capacitat Total Estimada</string>
+    <string name="estimated_total_capacity_message">Projecta la teva autonomia màxima si es carrega al 100%%.\n\nCalculada extrapolant la teva autonomia nominal actual al %d%% a una càrrega completa.\n\nAixò t\'ajuda a entendre la capacitat actual de la bateria sense necessitat de carregar al 100%% (cosa no recomanada per a ús diari).</string>
+
+    <!-- Common dialog button -->
+    <string name="got_it">Entès</string>
+
+    <!-- Content description for info icon -->
+    <string name="info">Info</string>
 </resources>

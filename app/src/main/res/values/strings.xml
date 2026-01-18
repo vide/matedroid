@@ -368,4 +368,77 @@
     <!-- Chart card titles -->
     <string name="voltage_profile">Voltage Profile</string>
     <string name="current_profile">Current Profile</string>
+
+    <!-- ==================== Battery Screen ==================== -->
+    <!-- Top bar title -->
+    <string name="battery_health_title">Battery Health</string>
+
+    <!-- Empty state -->
+    <string name="no_battery_data">No battery data available</string>
+
+    <!-- Capacity section -->
+    <string name="capacity">Capacity</string>
+    <string name="usable_new">Usable (new)</string>
+    <string name="usable_now">Usable (now)</string>
+    <string name="rated">Rated</string>
+
+    <!-- Capacity info dialog -->
+    <string name="battery_capacity_title">Battery Capacity</string>
+    <string name="battery_capacity_message">Shows your battery\'s energy storage capacity.\n\n• Usable (new): The original usable capacity when the car was new\n• Usable (now): Current usable capacity after degradation\n• Rated efficiency: Energy consumption per km under standard test conditions (Wh/km)</string>
+
+    <!-- Degradation section -->
+    <string name="estimated_degradation">Estimated degradation</string>
+    <string name="loss_kwh">Loss (kWh)</string>
+    <string name="loss_percent">Loss (%)</string>
+
+    <!-- Degradation info dialog -->
+    <string name="estimated_degradation_title">Estimated Degradation</string>
+    <string name="estimated_degradation_message">Battery degradation is estimated based on Teslamate data.\n\n• Capacity %%: Remaining battery health compared to new\n• Loss (kWh): Energy capacity lost due to degradation\n• Loss (%%): Percentage of original capacity lost\n\nNote: This is an estimate. Tesla does not provide official degradation data.</string>
+
+    <!-- Range section -->
+    <string name="range">Range</string>
+    <string name="max_range_new">Max Range (new)</string>
+    <string name="max_range_now">Max Range (now)</string>
+    <string name="range_loss">Range loss</string>
+
+    <!-- Battery detail screen -->
+    <string name="battery_detail_title">Battery Detail</string>
+
+    <!-- Current charge section -->
+    <string name="current_charge">Current Charge</string>
+    <!-- %d is the percentage of usable battery -->
+    <string name="usable_percent">Usable: %d%%</string>
+
+    <!-- Current charge info dialog -->
+    <string name="current_charge_title">Current Charge</string>
+    <string name="current_charge_message">Shows your battery\'s current state of charge.\n\n• Battery %%: The charge level displayed on your dashboard\n• Usable %%: Actual usable charge (Tesla reserves a small buffer for battery protection)\n\nThis is the current charge, not the battery\'s long-term health.</string>
+
+    <!-- Range information section -->
+    <string name="range_information">Range Information</string>
+    <string name="estimated_range">Estimated Range</string>
+    <string name="estimated_range_subtitle">Based on current driving conditions</string>
+    <string name="rated_range">Rated Range</string>
+    <string name="rated_range_subtitle">Official EPA/WLTP range</string>
+    <string name="ideal_range">Ideal Range</string>
+    <string name="ideal_range_subtitle">Ideal driving conditions</string>
+
+    <!-- Range information info dialog -->
+    <string name="range_information_title">Range Information</string>
+    <string name="range_information_message">Different ways to estimate how far you can drive.\n\n• Estimated Range: Based on your recent driving efficiency and current conditions\n• Rated Range: Official EPA/WLTP test range (what Tesla advertises)\n• Ideal Range: Maximum theoretical range under perfect conditions (no climate, flat road, moderate speed)</string>
+
+    <!-- Estimated total capacity section -->
+    <string name="estimated_total_capacity">Estimated Total Capacity</string>
+    <string name="range_at_100">Range at 100%%</string>
+    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
+    <string name="estimated_range_description">Estimate based on current %1$d%% and rated range of %2$.1f km</string>
+
+    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
+    <string name="estimated_total_capacity_title">Estimated Total Capacity</string>
+    <string name="estimated_total_capacity_message">Projects your maximum range if charged to 100%%.\n\nCalculated by extrapolating your current rated range at %d%% to a full charge.\n\nThis helps you understand your battery\'s current full capacity without needing to charge to 100%% (which isn\'t recommended for daily use).</string>
+
+    <!-- Common dialog button -->
+    <string name="got_it">Got it</string>
+
+    <!-- Content description for info icon -->
+    <string name="info">Info</string>
 </resources>
