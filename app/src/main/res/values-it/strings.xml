@@ -5,100 +5,100 @@
 
     <!-- ==================== Common / Shared ==================== -->
     <!-- Generic button labels used throughout the app -->
-    <string name="cancel">Cancel</string>
+    <string name="cancel">Annulla</string>
     <string name="ok">OK</string>
 
     <!-- Shown when a value is not available or loading -->
-    <string name="unknown">Unknown</string>
+    <string name="unknown">Sconosciuto</string>
 
     <!-- ==================== Dashboard Screen ==================== -->
     <!-- Dialog title when user has multiple vehicles and can choose one -->
-    <string name="select_vehicle">Select Vehicle</string>
+    <string name="select_vehicle">Seleziona veicolo</string>
 
     <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
-    <string name="car_fallback_name">Car %d</string>
+    <string name="car_fallback_name">Auto %d</string>
 
     <!-- Content description for checkmark icon next to selected vehicle -->
-    <string name="selected">Selected</string>
+    <string name="selected">Selezionato</string>
 
     <!-- Content description for dropdown arrow indicating car can be changed -->
-    <string name="select_car">Select car</string>
+    <string name="select_car">Seleziona auto</string>
 
     <!-- Content description for settings gear icon in top bar -->
-    <string name="settings">Settings</string>
+    <string name="settings">Impostazioni</string>
 
     <!-- Shown with a spinner while fetching vehicle data from the server -->
-    <string name="loading_vehicle_data">Loading vehicle data…</string>
+    <string name="loading_vehicle_data">Caricamento dati veicolo…</string>
 
     <!-- Empty state: title when no vehicles are found in the account -->
-    <string name="no_vehicles_found">No vehicles found</string>
+    <string name="no_vehicles_found">Nessun veicolo trovato</string>
 
     <!-- Empty state: subtitle explaining what to check -->
-    <string name="no_vehicles_hint">Make sure TeslaMate API is properly configured</string>
+    <string name="no_vehicles_hint">Assicurati che TeslaMate API sia configurato correttamente</string>
 
     <!-- Error state: title when data loading fails -->
-    <string name="error_loading_data">Error loading data</string>
+    <string name="error_loading_data">Errore nel caricamento dati</string>
 
     <!-- Vehicle state shown when locked -->
-    <string name="locked">Locked</string>
+    <string name="locked">Bloccato</string>
 
     <!-- Vehicle state shown when unlocked -->
-    <string name="unlocked">Unlocked</string>
+    <string name="unlocked">Sbloccato</string>
 
     <!-- Content description when car is plugged in but not charging -->
-    <string name="plugged_in">Plugged in</string>
+    <string name="plugged_in">Collegato</string>
 
     <!-- Content description for the car image, indicates it's tappable -->
-    <string name="car_image_tap_for_stats">Car image - tap for stats</string>
+    <string name="car_image_tap_for_stats">Immagine auto - tocca per statistiche</string>
 
     <!-- Content description for arrow button leading to stats screen -->
-    <string name="view_stats">View stats</string>
+    <string name="view_stats">Vedi statistiche</string>
 
     <!-- Content description for battery icon, indicates it's tappable -->
-    <string name="tap_for_battery_health">Tap for battery health</string>
+    <string name="tap_for_battery_health">Tocca per stato batteria</string>
 
     <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
-    <string name="charge_limit_format">Limit: %d%%</string>
+    <string name="charge_limit_format">Limite: %d%%</string>
 
     <!-- Battery charge limit label when value is unavailable -->
-    <string name="charge_limit_unknown">Limit: --</string>
+    <string name="charge_limit_unknown">Limite: --</string>
 
     <!-- Power unit abbreviation for kilowatts -->
     <string name="unit_kw">kW</string>
 
     <!-- DC (Direct Current) charging indicator badge -->
-    <string name="charging_dc">DC</string>
+    <string name="charging_dc">CC</string>
 
     <!-- AC (Alternating Current) charging indicator badge -->
-    <string name="charging_ac">AC</string>
+    <string name="charging_ac">CA</string>
 
     <!-- Content description for warning icon when battery is above 90% -->
-    <string name="high_charge_level">High charge level</string>
+    <string name="high_charge_level">Livello carica elevato</string>
 
     <!-- Location card section title -->
-    <string name="location">Location</string>
+    <string name="location">Posizione</string>
 
     <!-- Elevation label in location card -->
-    <string name="elevation">Elevation</string>
+    <string name="elevation">Altitudine</string>
 
     <!-- Vehicle info card section title -->
-    <string name="vehicle_info">Vehicle Info</string>
+    <string name="vehicle_info">Info veicolo</string>
 
     <!-- Navigation button to charges list -->
-    <string name="nav_charges">Charges</string>
+    <string name="nav_charges">Ricariche</string>
 
     <!-- Navigation button to drives list -->
-    <string name="nav_drives">Drives</string>
+    <string name="nav_drives">Viaggi</string>
 
     <!-- Navigation button to mileage/odometer screen -->
-    <string name="nav_mileage">Mileage</string>
+    <string name="nav_mileage">Chilometraggio</string>
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">Software</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
-    <string name="tire_fl">FL</string>
-    <string name="tire_fr">FR</string>
-    <string name="tire_rl">RL</string>
-    <string name="tire_rr">RR</string>
+    <string name="tire_fl">AS</string>
+    <string name="tire_fr">AD</string>
+    <string name="tire_rl">PS</string>
+    <string name="tire_rr">PD</string>
 </resources>

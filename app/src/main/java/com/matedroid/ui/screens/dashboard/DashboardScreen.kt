@@ -97,10 +97,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.matedroid.R
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -156,7 +158,7 @@ fun DashboardScreen(
     if (showCarSelector && uiState.hasMultipleCars) {
         AlertDialog(
             onDismissRequest = { showCarSelector = false },
-            title = { Text("Select Vehicle") },
+            title = { Text(stringResource(R.string.select_vehicle)) },
             text = {
                 Column {
                     uiState.cars.forEach { car ->
@@ -182,7 +184,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = car.displayName ?: "Car ${car.carId}",
+                                text = car.displayName ?: stringResource(R.string.car_fallback_name, car.carId),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                 modifier = Modifier.weight(1f)
@@ -190,7 +192,7 @@ fun DashboardScreen(
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = stringResource(R.string.selected),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -200,7 +202,7 @@ fun DashboardScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showCarSelector = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -218,7 +220,7 @@ fun DashboardScreen(
                             Text(uiState.selectedCarName ?: "MateDroid")
                             Icon(
                                 imageVector = Icons.Filled.ArrowDropDown,
-                                contentDescription = "Select car",
+                                contentDescription = stringResource(R.string.select_car),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -228,7 +230,7 @@ fun DashboardScreen(
                 },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 }
             )
@@ -310,7 +312,7 @@ private fun LoadingContent() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Loading vehicle data...")
+            Text(stringResource(R.string.loading_vehicle_data))
         }
     }
 }
@@ -330,11 +332,11 @@ private fun EmptyContent() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "No vehicles found",
+                text = stringResource(R.string.no_vehicles_found),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Make sure TeslamateApi is properly configured",
+                text = stringResource(R.string.no_vehicles_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -350,7 +352,7 @@ private fun ErrorContent(message: String) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Error loading data",
+                text = stringResource(R.string.error_loading_data),
                 style = MaterialTheme.typography.titleMedium,
                 color = StatusError
             )
@@ -592,7 +594,7 @@ private fun CarImage(
             }
             Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Car image - tap for stats",
+                contentDescription = stringResource(R.string.car_image_tap_for_stats),
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer {
@@ -613,7 +615,7 @@ private fun CarImage(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "View stats",
+                        contentDescription = stringResource(R.string.view_stats),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(20.dp)
                     )
@@ -658,7 +660,7 @@ private fun StatusIndicatorsRow(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = status.state?.replaceFirstChar { it.uppercase() } ?: "Unknown",
+                text = status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown),
                 style = MaterialTheme.typography.labelMedium,
                 color = stateColor
             )
@@ -675,7 +677,7 @@ private fun StatusIndicatorsRow(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = if (isLocked) "Locked" else "Unlocked",
+                text = stringResource(if (isLocked) R.string.locked else R.string.unlocked),
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isLocked) StatusSuccess else StatusWarning
             )
@@ -685,7 +687,7 @@ private fun StatusIndicatorsRow(
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Filled.Power,
-                    contentDescription = "Plugged in",
+                    contentDescription = stringResource(R.string.plugged_in),
                     modifier = Modifier.size(16.dp),
                     tint = palette.accent
                 )
@@ -797,7 +799,7 @@ private fun BatteryCard(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.BatteryChargingFull,
-                        contentDescription = "Tap for battery health",
+                        contentDescription = stringResource(R.string.tap_for_battery_health),
                         modifier = Modifier.size(28.dp),
                         tint = batteryColor
                     )
@@ -820,7 +822,7 @@ private fun BatteryCard(
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = Icons.Filled.Warning,
-                            contentDescription = "High charge level",
+                            contentDescription = stringResource(R.string.high_charge_level),
                             modifier = Modifier.size(20.dp),
                             tint = StatusWarning
                         )
@@ -836,7 +838,8 @@ private fun BatteryCard(
                         color = palette.onSurface
                     )
                     Text(
-                        text = "Limit: ${status.chargeLimitSoc ?: "--"}%",
+                        text = status.chargeLimitSoc?.let { stringResource(R.string.charge_limit_format, it) }
+                            ?: stringResource(R.string.charge_limit_unknown),
                         style = MaterialTheme.typography.labelSmall,
                         color = palette.onSurfaceVariant
                     )
@@ -1021,7 +1024,7 @@ private fun ChargingPowerGaugeCompact(
                     lineHeight = 10.sp
                 )
                 Text(
-                    text = "kW",
+                    text = stringResource(R.string.unit_kw),
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                     color = gaugeColor,
                     lineHeight = 8.sp
@@ -1040,7 +1043,7 @@ private fun ChargingPowerGaugeCompact(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = if (isDcCharging) "DC" else "AC",
+                text = stringResource(if (isDcCharging) R.string.charging_dc else R.string.charging_ac),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = androidx.compose.ui.graphics.Color.White
@@ -1203,7 +1206,7 @@ private fun LocationCard(status: CarStatus, units: Units?, resolvedAddress: Stri
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Location",
+                    text = stringResource(R.string.location),
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant
                 )
@@ -1225,7 +1228,7 @@ private fun LocationCard(status: CarStatus, units: Units?, resolvedAddress: Stri
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Elevation",
+                            text = stringResource(R.string.elevation),
                             style = MaterialTheme.typography.labelSmall,
                             color = palette.onSurfaceVariant
                         )
@@ -1338,7 +1341,7 @@ private fun VehicleInfoCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Vehicle Info",
+                    text = stringResource(R.string.vehicle_info),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -1353,7 +1356,7 @@ private fun VehicleInfoCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 NavButton(
-                    title = "Charges",
+                    title = stringResource(R.string.nav_charges),
                     value = totalCharges?.let { "%,d".format(it) } ?: "--",
                     icon = Icons.Filled.ElectricBolt,
                     palette = palette,
@@ -1361,7 +1364,7 @@ private fun VehicleInfoCard(
                     modifier = Modifier.weight(1f)
                 )
                 NavButton(
-                    title = "Drives",
+                    title = stringResource(R.string.nav_drives),
                     value = totalDrives?.let { "%,d".format(it) } ?: "--",
                     icon = CustomIcons.SteeringWheel,
                     palette = palette,
@@ -1377,7 +1380,7 @@ private fun VehicleInfoCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 NavButton(
-                    title = "Mileage",
+                    title = stringResource(R.string.nav_mileage),
                     value = status.odometer?.let {
                         val value = UnitFormatter.formatDistanceValue(it, units, 0)
                         "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
@@ -1388,7 +1391,7 @@ private fun VehicleInfoCard(
                     modifier = Modifier.weight(1f)
                 )
                 NavButton(
-                    title = "Software",
+                    title = stringResource(R.string.nav_software),
                     value = status.version ?: "--",
                     icon = Icons.Filled.Settings,
                     palette = palette,
@@ -1490,14 +1493,14 @@ private fun TirePressureDisplay(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TirePressureItem(
-                label = "FL",
+                label = stringResource(R.string.tire_fl),
                 pressure = tpms.pressureFl,
                 color = flColor,
                 units = units,
                 alignEnd = true
             )
             TirePressureItem(
-                label = "RL",
+                label = stringResource(R.string.tire_rl),
                 pressure = tpms.pressureRl,
                 color = rlColor,
                 units = units,
@@ -1583,14 +1586,14 @@ private fun TirePressureDisplay(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TirePressureItem(
-                label = "FR",
+                label = stringResource(R.string.tire_fr),
                 pressure = tpms.pressureFr,
                 color = frColor,
                 units = units,
                 alignEnd = false
             )
             TirePressureItem(
-                label = "RR",
+                label = stringResource(R.string.tire_rr),
                 pressure = tpms.pressureRr,
                 color = rrColor,
                 units = units,
