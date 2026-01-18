@@ -72,6 +72,12 @@
     <!-- Tooltip shown when climate control is inactive -->
     <string name="climate_inactive">Climate inactive</string>
 
+    <!-- Tooltip shown when car is asleep, %s is the time when it went to sleep -->
+    <string name="asleep_since">Asleep since %s</string>
+
+    <!-- Word for yesterday used in timestamps -->
+    <string name="yesterday">yesterday</string>
+
     <!-- Content description for the car image, indicates it's tappable -->
     <string name="car_image_tap_for_stats">Car image - tap for stats</string>
 
