@@ -615,7 +615,7 @@
     <string name="record_most_distance_day">Most Distance Day</string>
 
     <!-- Format for streak duration. %d is number of days -->
-    <string name="format_days">%d days</string>
+    <string name="format_days">%.1f days</string>
 
     <!-- Format for number of drives. %d is the count -->
     <string name="format_drives_count">%d drives</string>

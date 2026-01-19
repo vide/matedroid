@@ -668,7 +668,7 @@ private fun RecordsCard(
         driveRecords.add(RecordData("🌱", labelMostEfficient, "%.0f Wh/km".format(drive.efficiency ?: 0.0), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
     }
     quickStats.longestDrivingStreak?.let { streak ->
-        driveRecords.add(RecordData("🔥", labelLongestStreak, stringResource(R.string.format_days, streak.streakDays), "${streak.startDate} → ${streak.endDate}", null))
+        driveRecords.add(RecordData("🔥", labelLongestStreak, stringResource(R.string.format_days_count, streak.streakDays), "${streak.startDate} → ${streak.endDate}", null))
     }
     quickStats.busiestDay?.let { day ->
         driveRecords.add(RecordData("📅", labelBusiestDay, stringResource(R.string.format_drives_count, day.count), day.day) { onDayClick(day.day) })
@@ -728,10 +728,10 @@ private fun RecordsCard(
         distanceRecords.add(RecordData("🔋", labelLongestRange, "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
     quickStats.longestGapWithoutCharging?.let { gap ->
-        distanceRecords.add(RecordData("⏰", labelNoCharging, "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
+        distanceRecords.add(RecordData("⏰", labelNoCharging, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
     }
     quickStats.longestGapWithoutDriving?.let { gap ->
-        distanceRecords.add(RecordData("🅿️", labelNoDriving, "%.1f days".format(gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
+        distanceRecords.add(RecordData("🅿️", labelNoDriving, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
     }
     quickStats.mostDistanceDay?.let { day ->
         distanceRecords.add(RecordData("🛣️", labelMostDistanceDay, "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
@@ -1329,7 +1329,7 @@ private fun GapRecordDialog(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "%.1f days".format(gapDays),
+                            text = stringResource(R.string.format_days, gapDays),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = palette.accent
