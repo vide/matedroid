@@ -549,7 +549,7 @@
     <string name="stats_category_weather">Weather &amp; Altitude</string>
 
     <!-- Record category: distance and gap records -->
-    <string name="stats_category_others">Others</string>
+    <string name="stats_category_misc">Misc</string>
 
     <!-- Record: longest single drive by distance -->
     <string name="record_longest_drive">Longest Drive</string>

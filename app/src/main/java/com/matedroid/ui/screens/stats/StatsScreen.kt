@@ -652,7 +652,7 @@ private fun RecordsCard(
     val categoryDrives = stringResource(R.string.stats_category_drives)
     val categoryBattery = stringResource(R.string.stats_category_battery)
     val categoryWeather = stringResource(R.string.stats_category_weather)
-    val categoryOthers = stringResource(R.string.stats_category_others)
+    val categoryMisc = stringResource(R.string.stats_category_misc)
     val gapTypeCharging = stringResource(R.string.gap_type_charging)
     val gapTypeDriving = stringResource(R.string.gap_type_driving)
 
@@ -722,19 +722,19 @@ private fun RecordsCard(
         weatherRecords.add(RecordData("❄️", labelColdestCharge, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
     }
 
-    // Category 4: Other
-    val otherRecords = mutableListOf<RecordData>()
+    // Category 4: Miscelaneous
+    val miscRecords = mutableListOf<RecordData>()
     quickStats.maxDistanceBetweenCharges?.let { record ->
-        otherRecords.add(RecordData("🔋", labelLongestRange, "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
+        miscRecords.add(RecordData("🔋", labelLongestRange, "%.1f km".format(record.distance), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
     }
     quickStats.longestGapWithoutCharging?.let { gap ->
-        otherRecords.add(RecordData("⏰", labelNoCharging, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
+        miscRecords.add(RecordData("⏰", labelNoCharging, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
     }
     quickStats.longestGapWithoutDriving?.let { gap ->
-        otherRecords.add(RecordData("🅿️", labelNoDriving, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
+        miscRecords.add(RecordData("🅿️", labelNoDriving, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
     }
     quickStats.mostDistanceDay?.let { day ->
-        otherRecords.add(RecordData("🛣️", labelMostDistanceDay, "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
+        miscRecords.add(RecordData("🛣️", labelMostDistanceDay, "%.1f km".format(day.totalDistance), day.day) { onDayClick(day.day) })
     }
 
     // Build list of all categories with their records
@@ -743,7 +743,7 @@ private fun RecordsCard(
     if (driveRecords.isNotEmpty()) allCategories.add(CategoryData(categoryDrives, "🚗", driveRecords))
     if (batteryRecords.isNotEmpty()) allCategories.add(CategoryData(categoryBattery, "🔋", batteryRecords))
     if (weatherRecords.isNotEmpty()) allCategories.add(CategoryData(categoryWeather, "🌡️", weatherRecords))
-    if (otherRecords.isNotEmpty()) allCategories.add(CategoryData(categoryOthers, "📍", otherRecords))
+    if (miscRecords.isNotEmpty()) allCategories.add(CategoryData(categoryMisc, "📍", miscRecords))
 
     // Don't render anything if no categories
     if (allCategories.isEmpty()) return
