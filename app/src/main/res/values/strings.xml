@@ -925,4 +925,30 @@
 
     <!-- Weather condition: thunderstorm -->
     <string name="weather_thunderstorm">Thunderstorm</string>
+
+    <!-- ==================== Tire Pressure Notifications ==================== -->
+    <!-- Notification channel name for tire pressure alerts -->
+    <string name="tpms_channel_name">Tire Pressure Alerts</string>
+
+    <!-- Notification channel description -->
+    <string name="tpms_channel_description">Alerts when tire pressure is low</string>
+
+    <!-- Notification title when tire pressure warning is detected -->
+    <string name="tpms_notification_title">Tire Pressure Warning</string>
+
+    <!-- Notification body when tires have low pressure. %1$s is car name, %2$s is comma-separated tire list -->
+    <string name="tpms_notification_body">%1$s: Low pressure on %2$s</string>
+
+    <!-- Notification body when all tires are back to normal. %s is car name -->
+    <string name="tpms_notification_cleared">%s: All tires normal</string>
+
+    <!-- Full tire position names for notifications -->
+    <string name="tire_fl_full">Front Left</string>
+    <string name="tire_fr_full">Front Right</string>
+    <string name="tire_rl_full">Rear Left</string>
+    <string name="tire_rr_full">Rear Right</string>
+
+    <!-- Debug buttons for TPMS testing -->
+    <string name="debug_tpms_simulate_warning">Simulate TPMS Warning</string>
+    <string name="debug_tpms_clear_state">Clear TPMS State</string>
 </resources>

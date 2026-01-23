@@ -10,8 +10,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -69,7 +71,8 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val settingsDataStore: SettingsDataStore,
     private val repository: TeslamateRepository,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val tpmsStateRepository: TpmsStateRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -314,5 +317,35 @@ class SettingsViewModel @Inject constructor(
             ExistingWorkPolicy.REPLACE,
             syncRequest
         )
+    }
+
+    // ==================== Debug Functions ====================
+
+    /**
+     * Simulate a TPMS warning for testing purposes.
+     * Only use in debug builds.
+     */
+    fun simulateTpmsWarning(tire: TirePosition) {
+        viewModelScope.launch {
+            // Use carId 1 by default for simulation
+            tpmsStateRepository.simulateWarning(1, tire)
+            _uiState.value = _uiState.value.copy(
+                successMessage = "Simulated TPMS warning for ${tire.name}"
+            )
+        }
+    }
+
+    /**
+     * Clear the TPMS warning state for testing purposes.
+     * Only use in debug builds.
+     */
+    fun clearTpmsWarning() {
+        viewModelScope.launch {
+            // Clear for carId 1 by default
+            tpmsStateRepository.clearWarning(1)
+            _uiState.value = _uiState.value.copy(
+                successMessage = "TPMS state cleared"
+            )
+        }
     }
 }

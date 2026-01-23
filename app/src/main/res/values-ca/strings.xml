@@ -925,4 +925,30 @@
 
     <!-- Weather condition: thunderstorm -->
     <string name="weather_thunderstorm">Tempesta</string>
+
+    <!-- ==================== Tire Pressure Notifications ==================== -->
+    <!-- Notification channel name for tire pressure alerts -->
+    <string name="tpms_channel_name">Alertes de Pressió dels Pneumàtics</string>
+
+    <!-- Notification channel description -->
+    <string name="tpms_channel_description">Alertes quan la pressió dels pneumàtics és baixa</string>
+
+    <!-- Notification title when tire pressure warning is detected -->
+    <string name="tpms_notification_title">Avís de Pressió dels Pneumàtics</string>
+
+    <!-- Notification body when tires have low pressure. %1$s is car name, %2$s is comma-separated tire list -->
+    <string name="tpms_notification_body">%1$s: Pressió baixa a %2$s</string>
+
+    <!-- Notification body when all tires are back to normal. %s is car name -->
+    <string name="tpms_notification_cleared">%s: Tots els pneumàtics normals</string>
+
+    <!-- Full tire position names for notifications -->
+    <string name="tire_fl_full">Davanter Esquerre</string>
+    <string name="tire_fr_full">Davanter Dret</string>
+    <string name="tire_rl_full">Posterior Esquerre</string>
+    <string name="tire_rr_full">Posterior Dret</string>
+
+    <!-- Debug buttons for TPMS testing -->
+    <string name="debug_tpms_simulate_warning">Simula Avís TPMS</string>
+    <string name="debug_tpms_clear_state">Esborra Estat TPMS</string>
 </resources>

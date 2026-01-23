@@ -73,6 +73,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.data.local.TirePosition
 import com.matedroid.data.model.Currency
 import com.matedroid.ui.theme.MateDroidTheme
 import com.matedroid.ui.theme.StatusWarning
@@ -127,7 +128,9 @@ fun SettingsScreen(
                 onTestConnection = viewModel::testConnection,
                 onSave = { viewModel.saveSettings(onNavigateToDashboard) },
                 onPalettePreview = onNavigateToPalettePreview,
-                onForceResync = viewModel::forceResync
+                onForceResync = viewModel::forceResync,
+                onSimulateTpmsWarning = viewModel::simulateTpmsWarning,
+                onClearTpmsWarning = viewModel::clearTpmsWarning
             )
         }
     }
@@ -201,7 +204,9 @@ private fun SettingsContent(
     onTestConnection: () -> Unit,
     onSave: () -> Unit,
     onPalettePreview: () -> Unit = {},
-    onForceResync: () -> Unit = {}
+    onForceResync: () -> Unit = {},
+    onSimulateTpmsWarning: (TirePosition) -> Unit = {},
+    onClearTpmsWarning: () -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
@@ -630,12 +635,62 @@ private fun SettingsContent(
 
         // Debug: Palette Preview button (only visible in debug builds)
         if (com.matedroid.BuildConfig.DEBUG) {
+            var tpmsDropdownExpanded by remember { mutableStateOf(false) }
+
             Spacer(modifier = Modifier.height(32.dp))
             OutlinedButton(
                 onClick = onPalettePreview,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_palette_preview))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // TPMS Debug: Simulate Warning with tire selection
+            Box {
+                OutlinedButton(
+                    onClick = { tpmsDropdownExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.debug_tpms_simulate_warning))
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = tpmsDropdownExpanded,
+                    onDismissRequest = { tpmsDropdownExpanded = false }
+                ) {
+                    TirePosition.entries.forEach { tire ->
+                        val tireName = when (tire) {
+                            TirePosition.FL -> stringResource(R.string.tire_fl_full)
+                            TirePosition.FR -> stringResource(R.string.tire_fr_full)
+                            TirePosition.RL -> stringResource(R.string.tire_rl_full)
+                            TirePosition.RR -> stringResource(R.string.tire_rr_full)
+                        }
+                        DropdownMenuItem(
+                            text = { Text(tireName) },
+                            onClick = {
+                                tpmsDropdownExpanded = false
+                                onSimulateTpmsWarning(tire)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // TPMS Debug: Clear State
+            OutlinedButton(
+                onClick = onClearTpmsWarning,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.debug_tpms_clear_state))
             }
         }
 

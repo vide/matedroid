@@ -13,6 +13,7 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 import com.matedroid.data.sync.DataSyncWorker
+import com.matedroid.data.sync.TpmsPressureWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -33,6 +34,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
         // Start background sync on app launch
         enqueueSyncWork()
+
+        // Schedule periodic TPMS pressure monitoring
+        TpmsPressureWorker.schedulePeriodicWork(this)
     }
 
     /**
