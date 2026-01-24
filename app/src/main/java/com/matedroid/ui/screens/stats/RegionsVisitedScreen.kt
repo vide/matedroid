@@ -632,13 +632,6 @@ private fun CountryMapCard(
                                 }
                             }
                             MapViewMode.DRIVES -> {
-                                // Create steering wheel marker drawable once for all drive markers
-                                val steeringWheelDrawable = createSteeringWheelDrawable(
-                                    mapView.context,
-                                    driveColorArgb,
-                                    size = 36
-                                )
-
                                 driveLocations.forEach { drive ->
                                     val geoPoint = GeoPoint(drive.latitude, drive.longitude)
 
@@ -647,7 +640,14 @@ private fun CountryMapCard(
                                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                                         title = drive.address
                                         snippet = "%.1f km".format(drive.distanceKm)
-                                        icon = steeringWheelDrawable
+
+                                        val dotDrawable = GradientDrawable().apply {
+                                            shape = GradientDrawable.OVAL
+                                            setSize(28, 28)
+                                            setColor(driveColorArgb)
+                                            setStroke(3, android.graphics.Color.WHITE)
+                                        }
+                                        icon = dotDrawable
                                     }
                                     mapView.overlays.add(marker)
                                 }
@@ -735,13 +735,13 @@ private fun CountryMapCard(
                             }
                         }
                         MapViewMode.DRIVES -> {
-                            // Drive legend with steering wheel icon
+                            // Drive legend with colored dot
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = CustomIcons.SteeringWheel,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = driveColor
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(driveColor)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -842,7 +842,7 @@ private fun MapModeToggle(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.Route,
+                    imageVector = CustomIcons.SteeringWheel,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                     tint = when {
