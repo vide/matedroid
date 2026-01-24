@@ -36,6 +36,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -432,51 +434,32 @@ private fun YearFilterRow(
     palette: CarColorPalette
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // "All" chip
         item {
-            val allSelected = selectedYear == null
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (allSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
-                    )
-                    .clickable { onYearSelected(null) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.all_years),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (allSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (allSelected) Color.White else palette.onSurface
+            FilterChip(
+                selected = selectedYear == null,
+                onClick = { onYearSelected(null) },
+                label = { Text(stringResource(R.string.all_years)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
                 )
-            }
+            )
         }
 
         // Year chips
         items(availableYears) { year ->
-            val isSelected = selectedYear == year
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        if (isSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
-                    )
-                    .clickable { onYearSelected(year) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = year.toString(),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) Color.White else palette.onSurface
+            FilterChip(
+                selected = selectedYear == year,
+                onClick = { onYearSelected(year) },
+                label = { Text(year.toString()) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
                 )
-            }
+            )
         }
     }
 }
