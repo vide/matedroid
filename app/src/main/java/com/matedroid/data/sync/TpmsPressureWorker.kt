@@ -10,10 +10,13 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.matedroid.BuildConfig
 import com.matedroid.R
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
@@ -47,29 +50,54 @@ class TpmsPressureWorker @AssistedInject constructor(
         const val CHANNEL_ID = "tire_pressure_channel"
         private const val NOTIFICATION_ID_BASE = 2000
 
+        // Debug: 3 minutes, Release: 15 minutes
+        private val INTERVAL_MINUTES = if (BuildConfig.DEBUG) 3L else 15L
+
         /**
          * Schedule periodic TPMS monitoring work.
-         * Uses 15-minute interval (minimum allowed by WorkManager).
+         * Uses 3-minute interval in debug builds, 15-minute in release.
+         *
+         * Note: WorkManager enforces a 15-minute minimum for PeriodicWorkRequest,
+         * so in debug mode we use a self-rescheduling OneTimeWorkRequest pattern
+         * to achieve shorter intervals.
          */
         fun schedulePeriodicWork(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-            val request = PeriodicWorkRequestBuilder<TpmsPressureWorker>(
-                15, TimeUnit.MINUTES
-            )
-                .setConstraints(constraints)
-                .addTag(TAG)
-                .build()
+            if (BuildConfig.DEBUG) {
+                // Debug: Use OneTimeWorkRequest with delay for shorter intervals
+                val request = OneTimeWorkRequestBuilder<TpmsPressureWorker>()
+                    .setConstraints(constraints)
+                    .setInitialDelay(INTERVAL_MINUTES, TimeUnit.MINUTES)
+                    .addTag(TAG)
+                    .build()
 
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                request
-            )
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    WORK_NAME,
+                    ExistingWorkPolicy.KEEP,
+                    request
+                )
 
-            Log.d(TAG, "Scheduled periodic TPMS monitoring work")
+                Log.d(TAG, "Scheduled TPMS monitoring (debug mode, ${INTERVAL_MINUTES}min interval)")
+            } else {
+                // Release: Use PeriodicWorkRequest (15-minute minimum)
+                val request = PeriodicWorkRequestBuilder<TpmsPressureWorker>(
+                    INTERVAL_MINUTES, TimeUnit.MINUTES
+                )
+                    .setConstraints(constraints)
+                    .addTag(TAG)
+                    .build()
+
+                WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                    WORK_NAME,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    request
+                )
+
+                Log.d(TAG, "Scheduled periodic TPMS monitoring (${INTERVAL_MINUTES}min interval)")
+            }
         }
 
         /**
@@ -122,9 +150,21 @@ class TpmsPressureWorker @AssistedInject constructor(
             }
 
             Log.d(TAG, "TPMS check complete")
+
+            // In debug mode, reschedule the next check (self-rescheduling pattern)
+            if (BuildConfig.DEBUG) {
+                schedulePeriodicWork(appContext)
+            }
+
             return Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error in TPMS worker", e)
+
+            // In debug mode, reschedule even on failure
+            if (BuildConfig.DEBUG) {
+                schedulePeriodicWork(appContext)
+            }
+
             return Result.retry()
         }
     }
