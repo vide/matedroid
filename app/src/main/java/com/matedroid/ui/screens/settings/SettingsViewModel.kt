@@ -2,13 +2,18 @@ package com.matedroid.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import com.matedroid.R
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
@@ -16,6 +21,7 @@ import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
+import com.matedroid.data.sync.TpmsPressureWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -323,12 +329,22 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Simulate a TPMS warning for testing purposes.
+     * Shows a test notification immediately.
      * Only use in debug builds.
      */
     fun simulateTpmsWarning(tire: TirePosition) {
         viewModelScope.launch {
-            // Use carId 1 by default for simulation
+            // Save state for consistency
             tpmsStateRepository.simulateWarning(1, tire)
+
+            // Show notification immediately for testing
+            createNotificationChannel()
+            val tireName = getTireFullName(tire)
+            showTpmsNotification(
+                title = context.getString(R.string.tpms_notification_title),
+                body = context.getString(R.string.tpms_notification_body, "Test Car", tireName)
+            )
+
             _uiState.value = _uiState.value.copy(
                 successMessage = "Simulated TPMS warning for ${tire.name}"
             )
@@ -337,15 +353,64 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Clear the TPMS warning state for testing purposes.
+     * Shows a "cleared" notification immediately.
      * Only use in debug builds.
      */
     fun clearTpmsWarning() {
         viewModelScope.launch {
-            // Clear for carId 1 by default
+            // Clear state
             tpmsStateRepository.clearWarning(1)
+
+            // Show notification immediately for testing
+            createNotificationChannel()
+            showTpmsNotification(
+                title = context.getString(R.string.tpms_notification_title),
+                body = context.getString(R.string.tpms_notification_cleared, "Test Car")
+            )
+
             _uiState.value = _uiState.value.copy(
                 successMessage = "TPMS state cleared"
             )
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                TpmsPressureWorker.CHANNEL_ID,
+                context.getString(R.string.tpms_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = context.getString(R.string.tpms_channel_description)
+            }
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun showTpmsNotification(title: String, body: String) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+
+        val notification = NotificationCompat.Builder(context, TpmsPressureWorker.CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(2001, notification)
+    }
+
+    private fun getTireFullName(tire: TirePosition): String {
+        return when (tire) {
+            TirePosition.FL -> context.getString(R.string.tire_fl_full)
+            TirePosition.FR -> context.getString(R.string.tire_fr_full)
+            TirePosition.RL -> context.getString(R.string.tire_rl_full)
+            TirePosition.RR -> context.getString(R.string.tire_rr_full)
         }
     }
 }
