@@ -1,7 +1,10 @@
 package com.matedroid.ui.screens.stats
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -72,6 +75,7 @@ import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.DriveLocation
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
+import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
@@ -205,11 +209,18 @@ fun RegionsVisitedScreen(
                     RegionsContent(
                         countryRecord = uiState.countryRecord,
                         regions = uiState.regions,
-                        chargeLocations = uiState.chargeLocations,
-                        driveLocations = uiState.driveLocations,
+                        chargeLocations = uiState.filteredChargeLocations,
+                        driveLocations = uiState.filteredDriveLocations,
+                        allChargeLocations = uiState.chargeLocations,
+                        allDriveLocations = uiState.driveLocations,
                         countryBoundary = uiState.countryBoundary,
                         mapViewMode = uiState.mapViewMode,
+                        chargeTypeFilter = uiState.chargeTypeFilter,
+                        availableYears = uiState.availableYears,
+                        selectedMapYear = uiState.selectedMapYear,
                         onMapViewModeChange = { viewModel.setMapViewMode(it) },
+                        onChargeTypeFilterToggle = { viewModel.toggleChargeTypeFilter(it) },
+                        onMapYearChange = { viewModel.setMapYearFilter(it) },
                         palette = palette
                     )
                 }
@@ -224,9 +235,16 @@ private fun RegionsContent(
     regions: List<RegionRecord>,
     chargeLocations: List<ChargeLocation>,
     driveLocations: List<DriveLocation>,
+    allChargeLocations: List<ChargeLocation>,
+    allDriveLocations: List<DriveLocation>,
     countryBoundary: CountryBoundary?,
     mapViewMode: MapViewMode,
+    chargeTypeFilter: ChargeTypeFilter,
+    availableYears: List<Int>,
+    selectedMapYear: Int?,
     onMapViewModeChange: (MapViewMode) -> Unit,
+    onChargeTypeFilterToggle: (ChargeTypeFilter) -> Unit,
+    onMapYearChange: (Int?) -> Unit,
     palette: CarColorPalette
 ) {
     LazyColumn(
@@ -244,15 +262,29 @@ private fun RegionsContent(
             }
         }
 
+        // Year filter chips (only show if there are multiple years)
+        if (availableYears.size > 1) {
+            item(key = "year_filter") {
+                YearFilterRow(
+                    availableYears = availableYears,
+                    selectedYear = selectedMapYear,
+                    onYearSelected = onMapYearChange,
+                    palette = palette
+                )
+            }
+        }
+
         // Map with charge/drive locations (only show if there's data)
-        if (chargeLocations.isNotEmpty() || driveLocations.isNotEmpty()) {
+        if (allChargeLocations.isNotEmpty() || allDriveLocations.isNotEmpty()) {
             item(key = "map") {
                 CountryMapCard(
                     chargeLocations = chargeLocations,
                     driveLocations = driveLocations,
                     countryBoundary = countryBoundary,
                     mapViewMode = mapViewMode,
+                    chargeTypeFilter = chargeTypeFilter,
                     onMapViewModeChange = onMapViewModeChange,
+                    onChargeTypeFilterToggle = onChargeTypeFilterToggle,
                     palette = palette
                 )
             }
@@ -390,6 +422,64 @@ private fun CountrySummaryCard(
 }
 
 /**
+ * Year filter chips for the map.
+ */
+@Composable
+private fun YearFilterRow(
+    availableYears: List<Int>,
+    selectedYear: Int?,
+    onYearSelected: (Int?) -> Unit,
+    palette: CarColorPalette
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // "All" chip
+        val allSelected = selectedYear == null
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (allSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
+                )
+                .clickable { onYearSelected(null) }
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.all_years),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (allSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (allSelected) Color.White else palette.onSurface
+            )
+        }
+
+        // Year chips
+        availableYears.forEach { year ->
+            val isSelected = selectedYear == year
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (isSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
+                    )
+                    .clickable { onYearSelected(year) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = year.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) Color.White else palette.onSurface
+                )
+            }
+        }
+    }
+}
+
+/**
  * Map card showing charge or drive locations in a country with a toggle to switch between views.
  * Uses OSM tiles with custom styled markers.
  * Optionally highlights the country when boundary data is available.
@@ -400,7 +490,9 @@ private fun CountryMapCard(
     driveLocations: List<DriveLocation>,
     countryBoundary: CountryBoundary?,
     mapViewMode: MapViewMode,
+    chargeTypeFilter: ChargeTypeFilter,
     onMapViewModeChange: (MapViewMode) -> Unit,
+    onChargeTypeFilterToggle: (ChargeTypeFilter) -> Unit,
     palette: CarColorPalette
 ) {
     val cardShape = RoundedCornerShape(20.dp)
@@ -540,6 +632,13 @@ private fun CountryMapCard(
                                 }
                             }
                             MapViewMode.DRIVES -> {
+                                // Create steering wheel marker drawable once for all drive markers
+                                val steeringWheelDrawable = createSteeringWheelDrawable(
+                                    mapView.context,
+                                    driveColorArgb,
+                                    size = 36
+                                )
+
                                 driveLocations.forEach { drive ->
                                     val geoPoint = GeoPoint(drive.latitude, drive.longitude)
 
@@ -548,14 +647,7 @@ private fun CountryMapCard(
                                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                                         title = drive.address
                                         snippet = "%.1f km".format(drive.distanceKm)
-
-                                        val dotDrawable = GradientDrawable().apply {
-                                            shape = GradientDrawable.OVAL
-                                            setSize(28, 28)
-                                            setColor(driveColorArgb)
-                                            setStroke(3, android.graphics.Color.WHITE)
-                                        }
-                                        icon = dotDrawable
+                                        icon = steeringWheelDrawable
                                     }
                                     mapView.overlays.add(marker)
                                 }
@@ -589,8 +681,18 @@ private fun CountryMapCard(
                 ) {
                     when (mapViewMode) {
                         MapViewMode.CHARGES -> {
-                            // AC legend
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            // AC legend (tappable filter)
+                            val acSelected = chargeTypeFilter == ChargeTypeFilter.AC_ONLY
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (acSelected) acColor.copy(alpha = 0.2f) else Color.Transparent
+                                    )
+                                    .clickable { onChargeTypeFilterToggle(ChargeTypeFilter.AC_ONLY) }
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
@@ -601,12 +703,22 @@ private fun CountryMapCard(
                                 Text(
                                     text = "AC",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.DarkGray,
-                                    fontWeight = FontWeight.Medium
+                                    color = if (acSelected) acColor else Color.DarkGray,
+                                    fontWeight = if (acSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
-                            // DC legend
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            // DC legend (tappable filter)
+                            val dcSelected = chargeTypeFilter == ChargeTypeFilter.DC_ONLY
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (dcSelected) dcColor.copy(alpha = 0.2f) else Color.Transparent
+                                    )
+                                    .clickable { onChargeTypeFilterToggle(ChargeTypeFilter.DC_ONLY) }
+                                    .padding(horizontal = 6.dp, vertical = 4.dp)
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
@@ -617,19 +729,19 @@ private fun CountryMapCard(
                                 Text(
                                     text = "DC",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.DarkGray,
-                                    fontWeight = FontWeight.Medium
+                                    color = if (dcSelected) dcColor else Color.DarkGray,
+                                    fontWeight = if (dcSelected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
                         }
                         MapViewMode.DRIVES -> {
-                            // Drive start legend
+                            // Drive legend with steering wheel icon
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(driveColor)
+                                Icon(
+                                    imageVector = CustomIcons.SteeringWheel,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = driveColor
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
@@ -1031,4 +1143,59 @@ private fun getLocalizedCountryName(countryCode: String): String {
     } catch (e: Exception) {
         countryCode
     }
+}
+
+/**
+ * Create a steering wheel drawable for drive markers on the map.
+ * Draws a circular background with a simple steering wheel shape.
+ */
+private fun createSteeringWheelDrawable(
+    context: android.content.Context,
+    color: Int,
+    size: Int = 36
+): android.graphics.drawable.Drawable {
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    val center = size / 2f
+    val radius = size / 2f - 2f
+
+    // Draw white circle background with border
+    paint.color = android.graphics.Color.WHITE
+    paint.style = Paint.Style.FILL
+    canvas.drawCircle(center, center, radius, paint)
+
+    // Draw colored border
+    paint.color = color
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 3f
+    canvas.drawCircle(center, center, radius - 1.5f, paint)
+
+    // Draw steering wheel shape
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 2.5f
+    paint.strokeCap = Paint.Cap.ROUND
+
+    // Outer ring
+    val wheelRadius = radius * 0.6f
+    canvas.drawCircle(center, center, wheelRadius, paint)
+
+    // Center hub
+    paint.style = Paint.Style.FILL
+    canvas.drawCircle(center, center, radius * 0.15f, paint)
+
+    // Three spokes at 90°, 210°, 330°
+    paint.style = Paint.Style.STROKE
+    val spokeLength = wheelRadius - radius * 0.15f
+    for (angle in listOf(270.0, 150.0, 30.0)) {
+        val rad = Math.toRadians(angle)
+        val startX = center + (radius * 0.15f * kotlin.math.cos(rad)).toFloat()
+        val startY = center + (radius * 0.15f * kotlin.math.sin(rad)).toFloat()
+        val endX = center + (wheelRadius * kotlin.math.cos(rad)).toFloat()
+        val endY = center + (wheelRadius * kotlin.math.sin(rad)).toFloat()
+        canvas.drawLine(startX, startY, endX, endY, paint)
+    }
+
+    return BitmapDrawable(context.resources, bitmap)
 }

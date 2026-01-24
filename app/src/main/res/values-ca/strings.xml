@@ -786,6 +786,9 @@
     <!-- Legend label for drive start marker -->
     <string name="drive_start_legend">Inici</string>
 
+    <!-- Year filter chip for all years -->
+    <string name="all_years">Tots</string>
+
     <!-- ==================== Mileage Screen ==================== -->
     <!-- Top bar title for mileage screen -->
     <string name="mileage_title">Quilometratge</string>
