@@ -336,20 +336,43 @@ class GeocodingRepository @Inject constructor(
      * Results are cached in memory.
      */
     suspend fun getCountryBoundary(countryCode: String): CountryBoundary? {
+        Log.d("GeocodingRepository", "getCountryBoundary called for $countryCode")
+
         // Check cache first
-        boundaryCache[countryCode]?.let { return it }
+        boundaryCache[countryCode]?.let {
+            Log.d("GeocodingRepository", "Returning cached boundary for $countryCode with ${it.polygons.size} polygons")
+            return it
+        }
 
         return try {
+            Log.d("GeocodingRepository", "Fetching boundary from API for $countryCode")
             val response = nominatimApi.searchCountryBoundary(countryCode)
+            Log.d("GeocodingRepository", "API response: success=${response.isSuccessful}, code=${response.code()}")
+
             if (!response.isSuccessful || response.body().isNullOrEmpty()) {
-                Log.w("GeocodingRepository", "Failed to fetch boundary for $countryCode")
+                Log.w("GeocodingRepository", "Failed to fetch boundary for $countryCode: ${response.errorBody()?.string()}")
                 return null
             }
 
-            val result = response.body()?.firstOrNull() ?: return null
-            val geoJson = result.geojson ?: return null
+            val result = response.body()?.firstOrNull()
+            if (result == null) {
+                Log.w("GeocodingRepository", "No results in response for $countryCode")
+                return null
+            }
+
+            Log.d("GeocodingRepository", "Got result: displayName=${result.displayName}, hasGeoJson=${result.geojson != null}")
+
+            val geoJson = result.geojson
+            if (geoJson == null) {
+                Log.w("GeocodingRepository", "No geojson in result for $countryCode")
+                return null
+            }
+
+            Log.d("GeocodingRepository", "GeoJSON type: ${geoJson.type}, coordinates class: ${geoJson.coordinates?.javaClass?.name}")
 
             val polygons = parseGeoJsonToPolygons(geoJson.type, geoJson.coordinates)
+            Log.d("GeocodingRepository", "Parsed ${polygons.size} polygons for $countryCode")
+
             if (polygons.isEmpty()) {
                 Log.w("GeocodingRepository", "No polygons parsed for $countryCode")
                 return null
@@ -357,6 +380,7 @@ class GeocodingRepository @Inject constructor(
 
             val boundary = CountryBoundary(countryCode, polygons)
             boundaryCache[countryCode] = boundary
+            Log.d("GeocodingRepository", "Successfully cached boundary for $countryCode")
             boundary
         } catch (e: Exception) {
             Log.e("GeocodingRepository", "Error fetching boundary for $countryCode", e)

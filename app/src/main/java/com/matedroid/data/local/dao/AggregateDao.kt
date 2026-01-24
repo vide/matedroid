@@ -709,7 +709,55 @@ interface AggregateDao {
         startDate: String,
         endDate: String
     ): List<ChargeLocationResult>
+
+    // === Drive Locations for Country Map ===
+
+    // Get all drive start locations for a specific country (for map display)
+    @Query("""
+        SELECT a.driveId, a.startLatitude as latitude, a.startLongitude as longitude,
+               d.distance, d.startDate, d.startAddress as address
+        FROM drive_detail_aggregates a
+        JOIN drives_summary d ON a.driveId = d.driveId
+        WHERE a.carId = :carId
+        AND a.startCountryCode = :countryCode
+        AND a.startLatitude IS NOT NULL
+        AND a.startLongitude IS NOT NULL
+        ORDER BY d.startDate DESC
+    """)
+    suspend fun getDriveLocationsForCountry(carId: Int, countryCode: String): List<DriveLocationResult>
+
+    // Get drive start locations for a country within a date range
+    @Query("""
+        SELECT a.driveId, a.startLatitude as latitude, a.startLongitude as longitude,
+               d.distance, d.startDate, d.startAddress as address
+        FROM drive_detail_aggregates a
+        JOIN drives_summary d ON a.driveId = d.driveId
+        WHERE a.carId = :carId
+        AND a.startCountryCode = :countryCode
+        AND a.startLatitude IS NOT NULL
+        AND a.startLongitude IS NOT NULL
+        AND d.startDate >= :startDate AND d.startDate < :endDate
+        ORDER BY d.startDate DESC
+    """)
+    suspend fun getDriveLocationsForCountryInRange(
+        carId: Int,
+        countryCode: String,
+        startDate: String,
+        endDate: String
+    ): List<DriveLocationResult>
 }
+
+/**
+ * Result of drive locations query for map display.
+ */
+data class DriveLocationResult(
+    val driveId: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val distance: Double,
+    val startDate: String,
+    val address: String
+)
 
 /**
  * Simple lat/lon result for geocoding queries.

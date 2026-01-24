@@ -254,3 +254,15 @@ data class ChargeLocation(
     val isDcCharge: Boolean,        // DC (fast) or AC (slow) charge
     val address: String             // Location address
 )
+
+/**
+ * A drive start location for map display.
+ */
+data class DriveLocation(
+    val driveId: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val distanceKm: Double,         // Total distance of this drive
+    val date: String,               // ISO date of the drive
+    val address: String             // Start address
+)

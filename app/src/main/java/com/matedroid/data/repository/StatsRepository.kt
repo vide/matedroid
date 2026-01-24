@@ -15,6 +15,7 @@ import com.matedroid.domain.model.QuickStats
 import com.matedroid.domain.model.BatteryChangeRecord
 import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
+import com.matedroid.domain.model.DriveLocation
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.GapRecord
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
@@ -587,6 +588,25 @@ class StatsRepository @Inject constructor(
     suspend fun getCountryBoundary(countryCode: String): CountryBoundary? {
         return geocodingRepository.getCountryBoundary(countryCode)
     }
+
+    /**
+     * Get all drive start locations for a specific country (for map display).
+     */
+    suspend fun getDriveLocationsForCountry(
+        carId: Int,
+        countryCode: String,
+        yearFilter: YearFilter
+    ): List<DriveLocation> {
+        val results = when (yearFilter) {
+            is YearFilter.AllTime -> aggregateDao.getDriveLocationsForCountry(carId, countryCode)
+            is YearFilter.Year -> {
+                val startDate = "${yearFilter.year}-01-01T00:00:00"
+                val endDate = "${yearFilter.year + 1}-01-01T00:00:00"
+                aggregateDao.getDriveLocationsForCountryInRange(carId, countryCode, startDate, endDate)
+            }
+        }
+        return results.map { it.toDriveLocation() }
+    }
 }
 
 /**
@@ -634,6 +654,15 @@ private fun com.matedroid.data.local.dao.ChargeLocationResult.toChargeLocation()
     energyAddedKwh = energyAdded,
     date = startDate,
     isDcCharge = isFastCharger,
+    address = address
+)
+
+private fun com.matedroid.data.local.dao.DriveLocationResult.toDriveLocation() = DriveLocation(
+    driveId = driveId,
+    latitude = latitude,
+    longitude = longitude,
+    distanceKm = distance,
+    date = startDate,
     address = address
 )
 
