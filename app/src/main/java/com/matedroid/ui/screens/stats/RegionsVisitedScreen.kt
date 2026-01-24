@@ -75,6 +75,8 @@ import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.ui.theme.StatusSuccess
+import com.matedroid.ui.theme.StatusWarning
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -403,21 +405,22 @@ private fun CountryMapCard(
     palette: CarColorPalette
 ) {
     val cardShape = RoundedCornerShape(20.dp)
-    val chargesTitle = stringResource(R.string.country_charge_map_title)
-    val drivesTitle = stringResource(R.string.country_drives_map_title)
     val chargeCount = chargeLocations.size
     val driveCount = driveLocations.size
 
-    // Colors for markers - blue for AC, orange for DC (fast charging), green for drives
-    val acColor = palette.accent
-    val dcColor = Color(0xFFFF9800)
-    val driveColor = Color(0xFF4CAF50)
+    // Colors for markers - green for AC, yellow/orange for DC (matching status colors used elsewhere)
+    val acColor = StatusSuccess
+    val dcColor = StatusWarning
+    val driveColor = palette.accent
     val acColorArgb = acColor.toArgb()
     val dcColorArgb = dcColor.toArgb()
     val driveColorArgb = driveColor.toArgb()
 
     // Remember the MapView reference for updates
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+
+    // Track if initial zoom has been done (only zoom once when page first opens)
+    var hasInitialZoom by remember { mutableStateOf(false) }
 
     // Key to force map recreation when mode changes
     val mapKey = remember(mapViewMode) { mapViewMode }
@@ -555,7 +558,13 @@ private fun CountryMapCard(
                                             overlays.add(marker)
                                         }
 
-                                        post { zoomToBoundingBox(boundingBox, true, 60) }
+                                        // Only zoom on initial load
+                                        if (!hasInitialZoom) {
+                                            post {
+                                                zoomToBoundingBox(boundingBox, false, 60)
+                                                hasInitialZoom = true
+                                            }
+                                        }
                                     }
                                     MapViewMode.DRIVES -> {
                                         // Calculate bounding box from drive locations
@@ -588,7 +597,13 @@ private fun CountryMapCard(
                                             overlays.add(marker)
                                         }
 
-                                        post { zoomToBoundingBox(boundingBox, true, 60) }
+                                        // Only zoom on initial load
+                                        if (!hasInitialZoom) {
+                                            post {
+                                                zoomToBoundingBox(boundingBox, false, 60)
+                                                hasInitialZoom = true
+                                            }
+                                        }
                                     }
                                 }
                             }
