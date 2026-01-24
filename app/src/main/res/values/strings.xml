@@ -771,6 +771,21 @@
         <item quantity="other">%d charges</item>
     </plurals>
 
+    <!-- Map showing drive start locations in the country -->
+    <string name="country_drives_map_title">Drive Locations</string>
+    <!-- Plural for number of drives on the map. %d is the count -->
+    <plurals name="format_drives_on_map">
+        <item quantity="one">%d drive</item>
+        <item quantity="other">%d drives</item>
+    </plurals>
+
+    <!-- Map mode toggle labels -->
+    <string name="map_mode_charges">Charges</string>
+    <string name="map_mode_drives">Drives</string>
+
+    <!-- Legend label for drive start marker -->
+    <string name="drive_start_legend">Start</string>
+
     <!-- ==================== Mileage Screen ==================== -->
     <!-- Top bar title for mileage screen -->
     <string name="mileage_title">Mileage</string>

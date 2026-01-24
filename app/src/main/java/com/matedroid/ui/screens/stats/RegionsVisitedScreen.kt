@@ -1,7 +1,9 @@
 package com.matedroid.ui.screens.stats
 
 import android.graphics.drawable.GradientDrawable
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,6 +70,7 @@ import com.matedroid.R
 import com.matedroid.data.repository.CountryBoundary
 import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
+import com.matedroid.domain.model.DriveLocation
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.theme.CarColorPalette
@@ -201,7 +205,10 @@ fun RegionsVisitedScreen(
                         countryRecord = uiState.countryRecord,
                         regions = uiState.regions,
                         chargeLocations = uiState.chargeLocations,
+                        driveLocations = uiState.driveLocations,
                         countryBoundary = uiState.countryBoundary,
+                        mapViewMode = uiState.mapViewMode,
+                        onMapViewModeChange = { viewModel.setMapViewMode(it) },
                         palette = palette
                     )
                 }
@@ -215,7 +222,10 @@ private fun RegionsContent(
     countryRecord: CountryRecord?,
     regions: List<RegionRecord>,
     chargeLocations: List<ChargeLocation>,
+    driveLocations: List<DriveLocation>,
     countryBoundary: CountryBoundary?,
+    mapViewMode: MapViewMode,
+    onMapViewModeChange: (MapViewMode) -> Unit,
     palette: CarColorPalette
 ) {
     LazyColumn(
@@ -233,12 +243,15 @@ private fun RegionsContent(
             }
         }
 
-        // Map with charge locations (only show if there are charges)
-        if (chargeLocations.isNotEmpty()) {
+        // Map with charge/drive locations (only show if there's data)
+        if (chargeLocations.isNotEmpty() || driveLocations.isNotEmpty()) {
             item(key = "map") {
-                CountryChargeMapCard(
+                CountryMapCard(
                     chargeLocations = chargeLocations,
+                    driveLocations = driveLocations,
                     countryBoundary = countryBoundary,
+                    mapViewMode = mapViewMode,
+                    onMapViewModeChange = onMapViewModeChange,
                     palette = palette
                 )
             }
@@ -376,45 +389,57 @@ private fun CountrySummaryCard(
 }
 
 /**
- * Beautiful map card showing all charge locations in a country.
- * Uses OSM tiles with custom styled markers for AC/DC charges.
- * Optionally dims other countries when boundary data is available.
+ * Map card showing charge or drive locations in a country with a toggle to switch between views.
+ * Uses OSM tiles with custom styled markers.
+ * Optionally highlights the country when boundary data is available.
  */
 @Composable
-private fun CountryChargeMapCard(
+private fun CountryMapCard(
     chargeLocations: List<ChargeLocation>,
+    driveLocations: List<DriveLocation>,
     countryBoundary: CountryBoundary?,
+    mapViewMode: MapViewMode,
+    onMapViewModeChange: (MapViewMode) -> Unit,
     palette: CarColorPalette
 ) {
-    val context = LocalContext.current
     val cardShape = RoundedCornerShape(20.dp)
-    val mapTitle = stringResource(R.string.country_charge_map_title)
+    val chargesTitle = stringResource(R.string.country_charge_map_title)
+    val drivesTitle = stringResource(R.string.country_drives_map_title)
     val chargeCount = chargeLocations.size
+    val driveCount = driveLocations.size
 
-    // Colors for markers - blue for AC, orange for DC (fast charging)
+    // Colors for markers - blue for AC, orange for DC (fast charging), green for drives
     val acColor = palette.accent
     val dcColor = Color(0xFFFF9800)
+    val driveColor = Color(0xFF4CAF50)
+    val acColorArgb = acColor.toArgb()
+    val dcColorArgb = dcColor.toArgb()
+    val driveColorArgb = driveColor.toArgb()
 
     // Remember the MapView reference for updates
     var mapViewRef by remember { mutableStateOf<MapView?>(null) }
 
+    // Key to force map recreation when mode changes
+    val mapKey = remember(mapViewMode) { mapViewMode }
+
     // Update map overlay when boundary arrives
-    LaunchedEffect(countryBoundary) {
+    LaunchedEffect(countryBoundary, mapViewMode) {
         val mapView = mapViewRef ?: return@LaunchedEffect
         val boundary = countryBoundary ?: return@LaunchedEffect
 
-        // Remove any existing dimming overlay (tagged with "dim_overlay")
+        // Remove any existing country boundary overlays
         mapView.overlays.removeAll { overlay ->
-            (overlay as? Polygon)?.id == "dim_overlay"
+            (overlay as? Polygon)?.id?.startsWith("country_boundary_") == true
         }
 
-        // Create the dimming overlay with the country as a "hole"
-        val dimOverlay = createDimmingOverlay(boundary)
-        if (dimOverlay != null) {
-            // Add at the beginning so it's below markers
-            mapView.overlays.add(0, dimOverlay)
-            mapView.invalidate()
+        // Create and add the country highlight overlays
+        val highlightOverlays = createCountryHighlightOverlays(boundary, acColorArgb)
+
+        // Add at the beginning so they're below markers
+        highlightOverlays.forEachIndexed { index, overlay ->
+            mapView.overlays.add(index, overlay)
         }
+        mapView.invalidate()
     }
 
     Box(
@@ -431,7 +456,7 @@ private fun CountryChargeMapCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Header with title and charge count
+            // Header with toggle and count badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -439,23 +464,16 @@ private fun CountryChargeMapCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Decorative dot indicator
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(palette.accent)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = mapTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = palette.onSurface
-                    )
-                }
-                // Charge count badge
+                // Toggle selector with dots
+                MapModeToggle(
+                    selectedMode = mapViewMode,
+                    onModeChange = onMapViewModeChange,
+                    chargesEnabled = chargeLocations.isNotEmpty(),
+                    drivesEnabled = driveLocations.isNotEmpty(),
+                    palette = palette
+                )
+
+                // Count badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
@@ -463,11 +481,18 @@ private fun CountryChargeMapCard(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = pluralStringResource(
-                            R.plurals.format_charges_on_map,
-                            chargeCount,
-                            chargeCount
-                        ),
+                        text = when (mapViewMode) {
+                            MapViewMode.CHARGES -> pluralStringResource(
+                                R.plurals.format_charges_on_map,
+                                chargeCount,
+                                chargeCount
+                            )
+                            MapViewMode.DRIVES -> pluralStringResource(
+                                R.plurals.format_drives_on_map,
+                                driveCount,
+                                driveCount
+                            )
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = palette.accent
@@ -483,62 +508,94 @@ private fun CountryChargeMapCard(
                     .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
                     .clip(RoundedCornerShape(16.dp))
             ) {
-                val acColorArgb = acColor.toArgb()
-                val dcColorArgb = dcColor.toArgb()
-
                 DisposableEffect(Unit) {
                     Configuration.getInstance().userAgentValue = "MateDroid/1.0"
                     onDispose { }
                 }
 
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            mapViewRef = this
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
+                // Use key to force recreation when mode changes
+                key(mapKey) {
+                    AndroidView(
+                        factory = { ctx ->
+                            MapView(ctx).apply {
+                                mapViewRef = this
+                                setTileSource(TileSourceFactory.MAPNIK)
+                                setMultiTouchControls(true)
 
-                            // Calculate bounding box from all charge locations
-                            val boundingBox = calculateBoundingBox(chargeLocations)
+                                when (mapViewMode) {
+                                    MapViewMode.CHARGES -> {
+                                        // Calculate bounding box from charge locations
+                                        val boundingBox = calculateChargeBoundingBox(chargeLocations)
 
-                            // Add dimming overlay if boundary is already available
-                            countryBoundary?.let { boundary ->
-                                createDimmingOverlay(boundary)?.let { dimOverlay ->
-                                    overlays.add(dimOverlay)
-                                }
-                            }
+                                        // Add country highlight if boundary is available
+                                        countryBoundary?.let { boundary ->
+                                            val highlights = createCountryHighlightOverlays(boundary, acColorArgb)
+                                            overlays.addAll(0, highlights)
+                                        }
 
-                            // Add markers for each charge location
-                            chargeLocations.forEach { charge ->
-                                val geoPoint = GeoPoint(charge.latitude, charge.longitude)
-                                val markerColor = if (charge.isDcCharge) dcColorArgb else acColorArgb
+                                        // Add markers for each charge location
+                                        chargeLocations.forEach { charge ->
+                                            val geoPoint = GeoPoint(charge.latitude, charge.longitude)
+                                            val markerColor = if (charge.isDcCharge) dcColorArgb else acColorArgb
 
-                                val marker = Marker(this).apply {
-                                    position = geoPoint
-                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                                    title = charge.address
-                                    snippet = "%.1f kWh".format(charge.energyAddedKwh)
+                                            val marker = Marker(this).apply {
+                                                position = geoPoint
+                                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                                title = charge.address
+                                                snippet = "%.1f kWh".format(charge.energyAddedKwh)
 
-                                    // Create a circular dot drawable for the marker
-                                    val dotDrawable = GradientDrawable().apply {
-                                        shape = GradientDrawable.OVAL
-                                        setSize(32, 32)
-                                        setColor(markerColor)
-                                        setStroke(4, android.graphics.Color.WHITE)
+                                                val dotDrawable = GradientDrawable().apply {
+                                                    shape = GradientDrawable.OVAL
+                                                    setSize(32, 32)
+                                                    setColor(markerColor)
+                                                    setStroke(4, android.graphics.Color.WHITE)
+                                                }
+                                                icon = dotDrawable
+                                            }
+                                            overlays.add(marker)
+                                        }
+
+                                        post { zoomToBoundingBox(boundingBox, true, 60) }
                                     }
-                                    icon = dotDrawable
-                                }
-                                overlays.add(marker)
-                            }
+                                    MapViewMode.DRIVES -> {
+                                        // Calculate bounding box from drive locations
+                                        val boundingBox = calculateDriveBoundingBox(driveLocations)
 
-                            // Fit map to show all markers with padding
-                            post {
-                                zoomToBoundingBox(boundingBox, true, 60)
+                                        // Add country highlight if boundary is available
+                                        countryBoundary?.let { boundary ->
+                                            val highlights = createCountryHighlightOverlays(boundary, acColorArgb)
+                                            overlays.addAll(0, highlights)
+                                        }
+
+                                        // Add markers for each drive start location
+                                        driveLocations.forEach { drive ->
+                                            val geoPoint = GeoPoint(drive.latitude, drive.longitude)
+
+                                            val marker = Marker(this).apply {
+                                                position = geoPoint
+                                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                                title = drive.address
+                                                snippet = "%.1f km".format(drive.distanceKm)
+
+                                                val dotDrawable = GradientDrawable().apply {
+                                                    shape = GradientDrawable.OVAL
+                                                    setSize(28, 28)
+                                                    setColor(driveColorArgb)
+                                                    setStroke(3, android.graphics.Color.WHITE)
+                                                }
+                                                icon = dotDrawable
+                                            }
+                                            overlays.add(marker)
+                                        }
+
+                                        post { zoomToBoundingBox(boundingBox, true, 60) }
+                                    }
+                                }
                             }
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 // Legend overlay at bottom-left
                 Row(
@@ -551,37 +608,59 @@ private fun CountryChargeMapCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // AC legend
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(acColor)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "AC",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.DarkGray,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    // DC legend
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(dcColor)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "DC",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.DarkGray,
-                            fontWeight = FontWeight.Medium
-                        )
+                    when (mapViewMode) {
+                        MapViewMode.CHARGES -> {
+                            // AC legend
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(acColor)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "AC",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.DarkGray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            // DC legend
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(dcColor)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "DC",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.DarkGray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        MapViewMode.DRIVES -> {
+                            // Drive start legend
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(driveColor)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = stringResource(R.string.drive_start_legend),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.DarkGray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -590,9 +669,117 @@ private fun CountryChargeMapCard(
 }
 
 /**
+ * Toggle selector with dots for switching between Charges and Drives map views.
+ */
+@Composable
+private fun MapModeToggle(
+    selectedMode: MapViewMode,
+    onModeChange: (MapViewMode) -> Unit,
+    chargesEnabled: Boolean,
+    drivesEnabled: Boolean,
+    palette: CarColorPalette
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(palette.onSurface.copy(alpha = 0.08f)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Charges option
+        val chargesSelected = selectedMode == MapViewMode.CHARGES
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (chargesSelected) palette.accent else Color.Transparent
+                )
+                .then(
+                    if (chargesEnabled) {
+                        Modifier.clickable { onModeChange(MapViewMode.CHARGES) }
+                    } else Modifier
+                )
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.EvStation,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = when {
+                        chargesSelected -> Color.White
+                        chargesEnabled -> palette.onSurface
+                        else -> palette.onSurface.copy(alpha = 0.4f)
+                    }
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.map_mode_charges),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (chargesSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = when {
+                        chargesSelected -> Color.White
+                        chargesEnabled -> palette.onSurface
+                        else -> palette.onSurface.copy(alpha = 0.4f)
+                    }
+                )
+            }
+        }
+
+        // Dot separator
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 2.dp)
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(palette.onSurface.copy(alpha = 0.3f))
+        )
+
+        // Drives option
+        val drivesSelected = selectedMode == MapViewMode.DRIVES
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (drivesSelected) palette.accent else Color.Transparent
+                )
+                .then(
+                    if (drivesEnabled) {
+                        Modifier.clickable { onModeChange(MapViewMode.DRIVES) }
+                    } else Modifier
+                )
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Route,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = when {
+                        drivesSelected -> Color.White
+                        drivesEnabled -> palette.onSurface
+                        else -> palette.onSurface.copy(alpha = 0.4f)
+                    }
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.map_mode_drives),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (drivesSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = when {
+                        drivesSelected -> Color.White
+                        drivesEnabled -> palette.onSurface
+                        else -> palette.onSurface.copy(alpha = 0.4f)
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
  * Calculate bounding box that contains all charge locations with some padding.
  */
-private fun calculateBoundingBox(chargeLocations: List<ChargeLocation>): BoundingBox {
+private fun calculateChargeBoundingBox(chargeLocations: List<ChargeLocation>): BoundingBox {
     if (chargeLocations.isEmpty()) {
         // Default to Europe if no locations
         return BoundingBox(55.0, 15.0, 35.0, -10.0)
@@ -628,47 +815,65 @@ private fun calculateBoundingBox(chargeLocations: List<ChargeLocation>): Boundin
 }
 
 /**
- * Create a dimming overlay that covers the entire world except for the selected country.
- * Uses a large polygon with the country boundary as a "hole" to let the country show through.
+ * Calculate bounding box that contains all drive locations with some padding.
  */
-private fun createDimmingOverlay(boundary: CountryBoundary): Polygon? {
-    if (boundary.polygons.isEmpty()) return null
-
-    // Create the dimming polygon covering the whole visible area
-    // We use a very large bounding box to cover most map views
-    val worldPolygon = Polygon().apply {
-        id = "dim_overlay"
-
-        // Outer boundary: a large rectangle covering most of the world
-        // (osmdroid handles wrapping, so we don't need to go full -180 to 180)
-        points = listOf(
-            GeoPoint(85.0, -179.0),   // NW
-            GeoPoint(85.0, 179.0),    // NE
-            GeoPoint(-85.0, 179.0),   // SE
-            GeoPoint(-85.0, -179.0),  // SW
-            GeoPoint(85.0, -179.0)    // Close the polygon
-        )
-
-        // Add each country polygon as a hole (inverted to show through)
-        val holes = boundary.polygons.map { ring ->
-            ring.map { (lat, lon) -> GeoPoint(lat, lon) }
-        }
-        setHoles(holes)
-
-        // Semi-transparent dark overlay
-        fillPaint.apply {
-            color = android.graphics.Color.argb(100, 30, 30, 40)  // Dark with 40% opacity
-            style = android.graphics.Paint.Style.FILL
-        }
-
-        // No stroke for the overlay
-        outlinePaint.apply {
-            color = android.graphics.Color.TRANSPARENT
-            strokeWidth = 0f
-        }
+private fun calculateDriveBoundingBox(driveLocations: List<DriveLocation>): BoundingBox {
+    if (driveLocations.isEmpty()) {
+        // Default to Europe if no locations
+        return BoundingBox(55.0, 15.0, 35.0, -10.0)
     }
 
-    return worldPolygon
+    var minLat = Double.MAX_VALUE
+    var maxLat = Double.MIN_VALUE
+    var minLon = Double.MAX_VALUE
+    var maxLon = Double.MIN_VALUE
+
+    driveLocations.forEach { location ->
+        minLat = minOf(minLat, location.latitude)
+        maxLat = maxOf(maxLat, location.latitude)
+        minLon = minOf(minLon, location.longitude)
+        maxLon = maxOf(maxLon, location.longitude)
+    }
+
+    // Add some padding (about 10% on each side)
+    val latPadding = (maxLat - minLat) * 0.15
+    val lonPadding = (maxLon - minLon) * 0.15
+
+    // Ensure minimum padding for single point
+    val minPadding = 0.01
+    val effectiveLatPadding = maxOf(latPadding, minPadding)
+    val effectiveLonPadding = maxOf(lonPadding, minPadding)
+
+    return BoundingBox(
+        maxLat + effectiveLatPadding,  // north
+        maxLon + effectiveLonPadding,  // east
+        minLat - effectiveLatPadding,  // south
+        minLon - effectiveLonPadding   // west
+    )
+}
+
+/**
+ * Create country boundary overlays that highlight the selected country.
+ * Returns a list of polygons - one for each part of the country (mainland + islands).
+ */
+private fun createCountryHighlightOverlays(boundary: CountryBoundary, accentColor: Int): List<Polygon> {
+    return boundary.polygons.mapIndexed { index, ring ->
+        Polygon().apply {
+            id = "country_boundary_$index"
+            points = ring.map { (lat, lon) -> GeoPoint(lat, lon) }
+
+            // Light fill with the accent color (very subtle)
+            fillColor = android.graphics.Color.argb(25,
+                android.graphics.Color.red(accentColor),
+                android.graphics.Color.green(accentColor),
+                android.graphics.Color.blue(accentColor)
+            )
+
+            // Visible stroke in accent color
+            strokeColor = accentColor
+            strokeWidth = 3f
+        }
+    }
 }
 
 @Composable

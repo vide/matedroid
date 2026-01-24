@@ -6,6 +6,7 @@ import com.matedroid.data.repository.CountryBoundary
 import com.matedroid.data.repository.StatsRepository
 import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
+import com.matedroid.domain.model.DriveLocation
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,12 +29,22 @@ enum class RegionSortOrder {
     CHARGES         // Most charges first
 }
 
+/**
+ * Map view mode for switching between charges and drives.
+ */
+enum class MapViewMode {
+    CHARGES,
+    DRIVES
+}
+
 data class RegionsVisitedUiState(
     val isLoading: Boolean = true,
     val countryRecord: CountryRecord? = null,
     val regions: List<RegionRecord> = emptyList(),
     val chargeLocations: List<ChargeLocation> = emptyList(),
+    val driveLocations: List<DriveLocation> = emptyList(),
     val countryBoundary: CountryBoundary? = null,
+    val mapViewMode: MapViewMode = MapViewMode.CHARGES,
     val sortOrder: RegionSortOrder = RegionSortOrder.FIRST_VISIT,
     val error: String? = null
 )
@@ -61,8 +72,9 @@ class RegionsVisitedViewModel @Inject constructor(
                 originalRegions = statsRepository.getRegionsVisited(carId, countryCode, yearFilter)
                 val sorted = sortRegions(originalRegions, _uiState.value.sortOrder)
 
-                // Load charge locations for the map
+                // Load charge and drive locations for the map
                 val chargeLocations = statsRepository.getChargeLocationsForCountry(carId, countryCode, yearFilter)
+                val driveLocations = statsRepository.getDriveLocationsForCountry(carId, countryCode, yearFilter)
 
                 _uiState.update {
                     it.copy(
@@ -70,6 +82,7 @@ class RegionsVisitedViewModel @Inject constructor(
                         countryRecord = countryRecord,
                         regions = sorted,
                         chargeLocations = chargeLocations,
+                        driveLocations = driveLocations,
                         error = null
                     )
                 }
@@ -99,6 +112,10 @@ class RegionsVisitedViewModel @Inject constructor(
                 regions = sorted
             )
         }
+    }
+
+    fun setMapViewMode(mode: MapViewMode) {
+        _uiState.update { it.copy(mapViewMode = mode) }
     }
 
     private fun sortRegions(

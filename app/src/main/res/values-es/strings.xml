@@ -771,6 +771,21 @@
         <item quantity="other">%d cargas</item>
     </plurals>
 
+    <!-- Map showing drive start locations in the country -->
+    <string name="country_drives_map_title">Puntos de Inicio</string>
+    <!-- Plural for number of drives on the map. %d is the count -->
+    <plurals name="format_drives_on_map">
+        <item quantity="one">%d viaje</item>
+        <item quantity="other">%d viajes</item>
+    </plurals>
+
+    <!-- Map mode toggle labels -->
+    <string name="map_mode_charges">Cargas</string>
+    <string name="map_mode_drives">Viajes</string>
+
+    <!-- Legend label for drive start marker -->
+    <string name="drive_start_legend">Inicio</string>
+
     <!-- ==================== Mileage Screen ==================== -->
     <!-- Top bar title for mileage screen -->
     <string name="mileage_title">Kilometraje</string>
