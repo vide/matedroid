@@ -44,7 +44,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -416,34 +415,8 @@ private fun CountryMapCard(
     val dcColorArgb = dcColor.toArgb()
     val driveColorArgb = driveColor.toArgb()
 
-    // Remember the MapView reference for updates
-    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
-
     // Track if initial zoom has been done (only zoom once when page first opens)
     var hasInitialZoom by remember { mutableStateOf(false) }
-
-    // Key to force map recreation when mode changes
-    val mapKey = remember(mapViewMode) { mapViewMode }
-
-    // Update map overlay when boundary arrives
-    LaunchedEffect(countryBoundary, mapViewMode) {
-        val mapView = mapViewRef ?: return@LaunchedEffect
-        val boundary = countryBoundary ?: return@LaunchedEffect
-
-        // Remove any existing country boundary overlays
-        mapView.overlays.removeAll { overlay ->
-            (overlay as? Polygon)?.id?.startsWith("country_boundary_") == true
-        }
-
-        // Create and add the country highlight overlays
-        val highlightOverlays = createCountryHighlightOverlays(boundary, acColorArgb)
-
-        // Add at the beginning so they're below markers
-        highlightOverlays.forEachIndexed { index, overlay ->
-            mapView.overlays.add(index, overlay)
-        }
-        mapView.invalidate()
-    }
 
     Box(
         modifier = Modifier
@@ -516,101 +489,92 @@ private fun CountryMapCard(
                     onDispose { }
                 }
 
-                // Use key to force recreation when mode changes
-                key(mapKey) {
-                    AndroidView(
-                        factory = { ctx ->
-                            MapView(ctx).apply {
-                                mapViewRef = this
-                                setTileSource(TileSourceFactory.MAPNIK)
-                                setMultiTouchControls(true)
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+                        }
+                    },
+                    update = { mapView ->
+                        // Clear all overlays except keep any info windows
+                        mapView.overlays.clear()
 
-                                when (mapViewMode) {
-                                    MapViewMode.CHARGES -> {
-                                        // Calculate bounding box from charge locations
-                                        val boundingBox = calculateChargeBoundingBox(chargeLocations)
+                        // Add country highlight if boundary is available
+                        countryBoundary?.let { boundary ->
+                            val highlights = createCountryHighlightOverlays(boundary, acColorArgb)
+                            mapView.overlays.addAll(highlights)
+                        }
 
-                                        // Add country highlight if boundary is available
-                                        countryBoundary?.let { boundary ->
-                                            val highlights = createCountryHighlightOverlays(boundary, acColorArgb)
-                                            overlays.addAll(0, highlights)
+                        // Add markers based on current mode
+                        when (mapViewMode) {
+                            MapViewMode.CHARGES -> {
+                                chargeLocations.forEach { charge ->
+                                    val geoPoint = GeoPoint(charge.latitude, charge.longitude)
+                                    val markerColor = if (charge.isDcCharge) dcColorArgb else acColorArgb
+
+                                    val marker = Marker(mapView).apply {
+                                        position = geoPoint
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                        title = charge.address
+                                        snippet = "%.1f kWh".format(charge.energyAddedKwh)
+
+                                        val dotDrawable = GradientDrawable().apply {
+                                            shape = GradientDrawable.OVAL
+                                            setSize(32, 32)
+                                            setColor(markerColor)
+                                            setStroke(4, android.graphics.Color.WHITE)
                                         }
-
-                                        // Add markers for each charge location
-                                        chargeLocations.forEach { charge ->
-                                            val geoPoint = GeoPoint(charge.latitude, charge.longitude)
-                                            val markerColor = if (charge.isDcCharge) dcColorArgb else acColorArgb
-
-                                            val marker = Marker(this).apply {
-                                                position = geoPoint
-                                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                                                title = charge.address
-                                                snippet = "%.1f kWh".format(charge.energyAddedKwh)
-
-                                                val dotDrawable = GradientDrawable().apply {
-                                                    shape = GradientDrawable.OVAL
-                                                    setSize(32, 32)
-                                                    setColor(markerColor)
-                                                    setStroke(4, android.graphics.Color.WHITE)
-                                                }
-                                                icon = dotDrawable
-                                            }
-                                            overlays.add(marker)
-                                        }
-
-                                        // Only zoom on initial load
-                                        if (!hasInitialZoom) {
-                                            post {
-                                                zoomToBoundingBox(boundingBox, false, 60)
-                                                hasInitialZoom = true
-                                            }
-                                        }
+                                        icon = dotDrawable
                                     }
-                                    MapViewMode.DRIVES -> {
-                                        // Calculate bounding box from drive locations
-                                        val boundingBox = calculateDriveBoundingBox(driveLocations)
+                                    mapView.overlays.add(marker)
+                                }
 
-                                        // Add country highlight if boundary is available
-                                        countryBoundary?.let { boundary ->
-                                            val highlights = createCountryHighlightOverlays(boundary, acColorArgb)
-                                            overlays.addAll(0, highlights)
-                                        }
-
-                                        // Add markers for each drive start location
-                                        driveLocations.forEach { drive ->
-                                            val geoPoint = GeoPoint(drive.latitude, drive.longitude)
-
-                                            val marker = Marker(this).apply {
-                                                position = geoPoint
-                                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                                                title = drive.address
-                                                snippet = "%.1f km".format(drive.distanceKm)
-
-                                                val dotDrawable = GradientDrawable().apply {
-                                                    shape = GradientDrawable.OVAL
-                                                    setSize(28, 28)
-                                                    setColor(driveColorArgb)
-                                                    setStroke(3, android.graphics.Color.WHITE)
-                                                }
-                                                icon = dotDrawable
-                                            }
-                                            overlays.add(marker)
-                                        }
-
-                                        // Only zoom on initial load
-                                        if (!hasInitialZoom) {
-                                            post {
-                                                zoomToBoundingBox(boundingBox, false, 60)
-                                                hasInitialZoom = true
-                                            }
-                                        }
+                                // Only zoom on initial load
+                                if (!hasInitialZoom && chargeLocations.isNotEmpty()) {
+                                    val boundingBox = calculateChargeBoundingBox(chargeLocations)
+                                    mapView.post {
+                                        mapView.zoomToBoundingBox(boundingBox, false, 60)
+                                        hasInitialZoom = true
                                     }
                                 }
                             }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                            MapViewMode.DRIVES -> {
+                                driveLocations.forEach { drive ->
+                                    val geoPoint = GeoPoint(drive.latitude, drive.longitude)
+
+                                    val marker = Marker(mapView).apply {
+                                        position = geoPoint
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                        title = drive.address
+                                        snippet = "%.1f km".format(drive.distanceKm)
+
+                                        val dotDrawable = GradientDrawable().apply {
+                                            shape = GradientDrawable.OVAL
+                                            setSize(28, 28)
+                                            setColor(driveColorArgb)
+                                            setStroke(3, android.graphics.Color.WHITE)
+                                        }
+                                        icon = dotDrawable
+                                    }
+                                    mapView.overlays.add(marker)
+                                }
+
+                                // Only zoom on initial load
+                                if (!hasInitialZoom && driveLocations.isNotEmpty()) {
+                                    val boundingBox = calculateDriveBoundingBox(driveLocations)
+                                    mapView.post {
+                                        mapView.zoomToBoundingBox(boundingBox, false, 60)
+                                        hasInitialZoom = true
+                                    }
+                                }
+                            }
+                        }
+
+                        mapView.invalidate()
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
 
                 // Legend overlay at bottom-left
                 Row(
