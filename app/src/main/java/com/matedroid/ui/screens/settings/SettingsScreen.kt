@@ -130,7 +130,8 @@ fun SettingsScreen(
                 onPalettePreview = onNavigateToPalettePreview,
                 onForceResync = viewModel::forceResync,
                 onSimulateTpmsWarning = viewModel::simulateTpmsWarning,
-                onClearTpmsWarning = viewModel::clearTpmsWarning
+                onClearTpmsWarning = viewModel::clearTpmsWarning,
+                onRunTpmsCheckNow = viewModel::runTpmsCheckNow
             )
         }
     }
@@ -206,7 +207,8 @@ private fun SettingsContent(
     onPalettePreview: () -> Unit = {},
     onForceResync: () -> Unit = {},
     onSimulateTpmsWarning: (TirePosition) -> Unit = {},
-    onClearTpmsWarning: () -> Unit = {}
+    onClearTpmsWarning: () -> Unit = {},
+    onRunTpmsCheckNow: () -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
@@ -691,6 +693,16 @@ private fun SettingsContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.debug_tpms_clear_state))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // TPMS Debug: Run Check Now
+            OutlinedButton(
+                onClick = onRunTpmsCheckNow,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.debug_tpms_run_now))
             }
         }
 

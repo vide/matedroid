@@ -951,4 +951,5 @@
     <!-- Debug buttons for TPMS testing -->
     <string name="debug_tpms_simulate_warning">Simular Aviso TPMS</string>
     <string name="debug_tpms_clear_state">Limpiar Estado TPMS</string>
+    <string name="debug_tpms_run_now">Run TPMS Check Now</string>
 </resources>

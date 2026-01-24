@@ -107,6 +107,23 @@ class TpmsPressureWorker @AssistedInject constructor(
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
             Log.d(TAG, "Cancelled periodic TPMS monitoring work")
         }
+
+        /**
+         * Run TPMS check immediately (for debugging).
+         */
+        fun runNow(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<TpmsPressureWorker>()
+                .setConstraints(constraints)
+                .addTag("$TAG-immediate")
+                .build()
+
+            WorkManager.getInstance(context).enqueue(request)
+            Log.d(TAG, "Triggered immediate TPMS check")
+        }
     }
 
     override suspend fun doWork(): Result {

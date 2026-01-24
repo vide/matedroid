@@ -413,4 +413,14 @@ class SettingsViewModel @Inject constructor(
             TirePosition.RR -> context.getString(R.string.tire_rr_full)
         }
     }
+
+    /**
+     * Run TPMS check immediately (for debugging).
+     */
+    fun runTpmsCheckNow() {
+        TpmsPressureWorker.runNow(context)
+        _uiState.value = _uiState.value.copy(
+            successMessage = "TPMS check triggered - check logcat for TpmsPressureWorker"
+        )
+    }
 }
