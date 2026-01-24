@@ -241,3 +241,16 @@ data class RegionRecord(
     val totalChargeEnergyKwh: Double, // Total kWh charged in this region
     val chargeCount: Int            // Number of charges in this region
 )
+
+/**
+ * A charge location for map display with relevant metadata.
+ */
+data class ChargeLocation(
+    val chargeId: Int,
+    val latitude: Double,
+    val longitude: Double,
+    val energyAddedKwh: Double,     // Energy added in this charge
+    val date: String,               // ISO date of the charge
+    val isDcCharge: Boolean,        // DC (fast) or AC (slow) charge
+    val address: String             // Location address
+)

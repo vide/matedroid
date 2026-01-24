@@ -13,6 +13,7 @@ import com.matedroid.domain.model.DriveElevationRecord
 import com.matedroid.domain.model.DriveTempRecord
 import com.matedroid.domain.model.QuickStats
 import com.matedroid.domain.model.BatteryChangeRecord
+import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.GapRecord
@@ -560,6 +561,25 @@ class StatsRepository @Inject constructor(
     fun observeGeocodeProgress(carId: Int): Flow<GeocodeProgressInfo?> {
         return geocodingRepository.observeGeocodeProgress(carId)
     }
+
+    /**
+     * Get all charge locations for a specific country (for map display).
+     */
+    suspend fun getChargeLocationsForCountry(
+        carId: Int,
+        countryCode: String,
+        yearFilter: YearFilter
+    ): List<ChargeLocation> {
+        val results = when (yearFilter) {
+            is YearFilter.AllTime -> aggregateDao.getChargeLocationsForCountry(carId, countryCode)
+            is YearFilter.Year -> {
+                val startDate = "${yearFilter.year}-01-01T00:00:00"
+                val endDate = "${yearFilter.year + 1}-01-01T00:00:00"
+                aggregateDao.getChargeLocationsForCountryInRange(carId, countryCode, startDate, endDate)
+            }
+        }
+        return results.map { it.toChargeLocation() }
+    }
 }
 
 /**
@@ -598,6 +618,16 @@ private fun com.matedroid.data.local.dao.RegionVisitResult.toRegionRecord() = Re
     totalDistanceKm = totalDistanceKm,
     totalChargeEnergyKwh = totalChargeEnergyKwh,
     chargeCount = chargeCount
+)
+
+private fun com.matedroid.data.local.dao.ChargeLocationResult.toChargeLocation() = ChargeLocation(
+    chargeId = chargeId,
+    latitude = latitude,
+    longitude = longitude,
+    energyAddedKwh = energyAdded,
+    date = startDate,
+    isDcCharge = isFastCharger,
+    address = address
 )
 
 private fun com.matedroid.domain.model.SyncPhase.isProcessing(): Boolean {

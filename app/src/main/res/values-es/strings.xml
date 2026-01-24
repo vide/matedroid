@@ -763,6 +763,14 @@
     <!-- Header card title showing country totals -->
     <string name="regions_country_summary">Resumen del País</string>
 
+    <!-- Map showing charge locations in the country -->
+    <string name="country_charge_map_title">Puntos de Carga</string>
+    <!-- Plural for number of charges on the map. %d is the count -->
+    <plurals name="format_charges_on_map">
+        <item quantity="one">%d carga</item>
+        <item quantity="other">%d cargas</item>
+    </plurals>
+
     <!-- ==================== Mileage Screen ==================== -->
     <!-- Top bar title for mileage screen -->
     <string name="mileage_title">Kilometraje</string>

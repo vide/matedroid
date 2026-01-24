@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.stats
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.repository.StatsRepository
+import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
@@ -30,6 +31,7 @@ data class RegionsVisitedUiState(
     val isLoading: Boolean = true,
     val countryRecord: CountryRecord? = null,
     val regions: List<RegionRecord> = emptyList(),
+    val chargeLocations: List<ChargeLocation> = emptyList(),
     val sortOrder: RegionSortOrder = RegionSortOrder.FIRST_VISIT,
     val error: String? = null
 )
@@ -57,11 +59,15 @@ class RegionsVisitedViewModel @Inject constructor(
                 originalRegions = statsRepository.getRegionsVisited(carId, countryCode, yearFilter)
                 val sorted = sortRegions(originalRegions, _uiState.value.sortOrder)
 
+                // Load charge locations for the map
+                val chargeLocations = statsRepository.getChargeLocationsForCountry(carId, countryCode, yearFilter)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         countryRecord = countryRecord,
                         regions = sorted,
+                        chargeLocations = chargeLocations,
                         error = null
                     )
                 }

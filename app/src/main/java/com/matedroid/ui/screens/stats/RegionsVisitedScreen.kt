@@ -1,5 +1,6 @@
 package com.matedroid.ui.screens.stats
 
+import android.graphics.drawable.GradientDrawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,13 +59,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -182,6 +198,7 @@ fun RegionsVisitedScreen(
                     RegionsContent(
                         countryRecord = uiState.countryRecord,
                         regions = uiState.regions,
+                        chargeLocations = uiState.chargeLocations,
                         palette = palette
                     )
                 }
@@ -194,6 +211,7 @@ fun RegionsVisitedScreen(
 private fun RegionsContent(
     countryRecord: CountryRecord?,
     regions: List<RegionRecord>,
+    chargeLocations: List<ChargeLocation>,
     palette: CarColorPalette
 ) {
     LazyColumn(
@@ -206,6 +224,16 @@ private fun RegionsContent(
                 CountrySummaryCard(
                     country = country,
                     localizedName = getLocalizedCountryName(country.countryCode),
+                    palette = palette
+                )
+            }
+        }
+
+        // Map with charge locations (only show if there are charges)
+        if (chargeLocations.isNotEmpty()) {
+            item(key = "map") {
+                CountryChargeMapCard(
+                    chargeLocations = chargeLocations,
                     palette = palette
                 )
             }
@@ -340,6 +368,226 @@ private fun CountrySummaryCard(
             }
         }
     }
+}
+
+/**
+ * Beautiful map card showing all charge locations in a country.
+ * Uses OSM tiles with custom styled markers for AC/DC charges.
+ */
+@Composable
+private fun CountryChargeMapCard(
+    chargeLocations: List<ChargeLocation>,
+    palette: CarColorPalette
+) {
+    val context = LocalContext.current
+    val cardShape = RoundedCornerShape(20.dp)
+    val mapTitle = stringResource(R.string.country_charge_map_title)
+    val chargeCount = chargeLocations.size
+
+    // Colors for markers - blue for AC, orange for DC (fast charging)
+    val acColor = palette.accent
+    val dcColor = Color(0xFFFF9800)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 6.dp,
+                shape = cardShape,
+                spotColor = palette.onSurface.copy(alpha = 0.15f)
+            )
+            .clip(cardShape)
+            .background(palette.surface)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Header with title and charge count
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Decorative dot indicator
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(palette.accent)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = mapTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = palette.onSurface
+                    )
+                }
+                // Charge count badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.accent.copy(alpha = 0.15f))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.format_charges_on_map,
+                            chargeCount,
+                            chargeCount
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = palette.accent
+                    )
+                }
+            }
+
+            // Map view
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            ) {
+                val acColorArgb = acColor.toArgb()
+                val dcColorArgb = dcColor.toArgb()
+
+                DisposableEffect(Unit) {
+                    Configuration.getInstance().userAgentValue = "MateDroid/1.0"
+                    onDispose { }
+                }
+
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+
+                            // Calculate bounding box from all charge locations
+                            val boundingBox = calculateBoundingBox(chargeLocations)
+
+                            // Add markers for each charge location
+                            chargeLocations.forEach { charge ->
+                                val geoPoint = GeoPoint(charge.latitude, charge.longitude)
+                                val markerColor = if (charge.isDcCharge) dcColorArgb else acColorArgb
+
+                                val marker = Marker(this).apply {
+                                    position = geoPoint
+                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                    title = charge.address
+                                    snippet = "%.1f kWh".format(charge.energyAddedKwh)
+
+                                    // Create a circular dot drawable for the marker
+                                    val dotDrawable = GradientDrawable().apply {
+                                        shape = GradientDrawable.OVAL
+                                        setSize(32, 32)
+                                        setColor(markerColor)
+                                        setStroke(4, android.graphics.Color.WHITE)
+                                    }
+                                    icon = dotDrawable
+                                }
+                                overlays.add(marker)
+                            }
+
+                            // Fit map to show all markers with padding
+                            post {
+                                zoomToBoundingBox(boundingBox, true, 60)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Legend overlay at bottom-left
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.9f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // AC legend
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(acColor)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "AC",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    // DC legend
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(dcColor)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "DC",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Calculate bounding box that contains all charge locations with some padding.
+ */
+private fun calculateBoundingBox(chargeLocations: List<ChargeLocation>): BoundingBox {
+    if (chargeLocations.isEmpty()) {
+        // Default to Europe if no locations
+        return BoundingBox(55.0, 15.0, 35.0, -10.0)
+    }
+
+    var minLat = Double.MAX_VALUE
+    var maxLat = Double.MIN_VALUE
+    var minLon = Double.MAX_VALUE
+    var maxLon = Double.MIN_VALUE
+
+    chargeLocations.forEach { location ->
+        minLat = minOf(minLat, location.latitude)
+        maxLat = maxOf(maxLat, location.latitude)
+        minLon = minOf(minLon, location.longitude)
+        maxLon = maxOf(maxLon, location.longitude)
+    }
+
+    // Add some padding (about 10% on each side)
+    val latPadding = (maxLat - minLat) * 0.15
+    val lonPadding = (maxLon - minLon) * 0.15
+
+    // Ensure minimum padding for single point
+    val minPadding = 0.01
+    val effectiveLatPadding = maxOf(latPadding, minPadding)
+    val effectiveLonPadding = maxOf(lonPadding, minPadding)
+
+    return BoundingBox(
+        maxLat + effectiveLatPadding,  // north
+        maxLon + effectiveLonPadding,  // east
+        minLat - effectiveLatPadding,  // south
+        minLon - effectiveLonPadding   // west
+    )
 }
 
 @Composable

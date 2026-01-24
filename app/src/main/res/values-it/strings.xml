@@ -763,6 +763,14 @@
     <!-- Header card title showing country totals -->
     <string name="regions_country_summary">Riepilogo Paese</string>
 
+    <!-- Map showing charge locations in the country -->
+    <string name="country_charge_map_title">Punti di Ricarica</string>
+    <!-- Plural for number of charges on the map. %d is the count -->
+    <plurals name="format_charges_on_map">
+        <item quantity="one">%d ricarica</item>
+        <item quantity="other">%d ricariche</item>
+    </plurals>
+
     <!-- ==================== Mileage Screen ==================== -->
     <!-- Top bar title for mileage screen -->
     <string name="mileage_title">Chilometraggio</string>
