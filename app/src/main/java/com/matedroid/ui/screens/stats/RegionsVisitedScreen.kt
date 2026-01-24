@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -430,33 +431,35 @@ private fun YearFilterRow(
     onYearSelected: (Int?) -> Unit,
     palette: CarColorPalette
 ) {
-    Row(
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // "All" chip
-        val allSelected = selectedYear == null
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    if (allSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
+        item {
+            val allSelected = selectedYear == null
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        if (allSelected) palette.accent else palette.onSurface.copy(alpha = 0.08f)
+                    )
+                    .clickable { onYearSelected(null) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.all_years),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (allSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (allSelected) Color.White else palette.onSurface
                 )
-                .clickable { onYearSelected(null) }
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.all_years),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (allSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (allSelected) Color.White else palette.onSurface
-            )
+            }
         }
 
         // Year chips
-        availableYears.forEach { year ->
+        items(availableYears) { year ->
             val isSelected = selectedYear == year
             Box(
                 modifier = Modifier
