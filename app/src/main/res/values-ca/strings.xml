@@ -713,8 +713,8 @@
 
     <!-- Plural for number of drives in a country -->
     <plurals name="drives_count">
-        <item quantity="one">%d viatge</item>
-        <item quantity="other">%d viatges</item>
+        <item quantity="one">viatge</item>
+        <item quantity="other">viatges</item>
     </plurals>
 
     <!-- Plural for number of charges in a country -->

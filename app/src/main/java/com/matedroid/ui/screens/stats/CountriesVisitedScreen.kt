@@ -271,7 +271,6 @@ private fun CountryCard(
                     Text(
                         text = pluralStringResource(
                             R.plurals.drives_count,
-                            country.driveCount,
                             country.driveCount
                         ),
                         style = MaterialTheme.typography.labelSmall,

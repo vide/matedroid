@@ -355,7 +355,6 @@ private fun CountrySummaryCard(
                     Text(
                         text = pluralStringResource(
                             R.plurals.drives_count,
-                            country.driveCount,
                             country.driveCount
                         ),
                         style = MaterialTheme.typography.labelSmall,
@@ -1016,7 +1015,6 @@ private fun RegionCard(
                     Text(
                         text = pluralStringResource(
                             R.plurals.drives_count,
-                            region.driveCount,
                             region.driveCount
                         ),
                         style = MaterialTheme.typography.labelSmall,
