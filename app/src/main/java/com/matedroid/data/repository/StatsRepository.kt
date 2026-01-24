@@ -580,6 +580,13 @@ class StatsRepository @Inject constructor(
         }
         return results.map { it.toChargeLocation() }
     }
+
+    /**
+     * Get country boundary polygon for map overlay.
+     */
+    suspend fun getCountryBoundary(countryCode: String): CountryBoundary? {
+        return geocodingRepository.getCountryBoundary(countryCode)
+    }
 }
 
 /**

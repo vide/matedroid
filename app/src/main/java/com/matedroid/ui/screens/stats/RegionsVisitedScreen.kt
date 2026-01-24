@@ -64,6 +64,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.data.repository.CountryBoundary
 import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.RegionRecord
@@ -76,6 +77,7 @@ import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -199,6 +201,7 @@ fun RegionsVisitedScreen(
                         countryRecord = uiState.countryRecord,
                         regions = uiState.regions,
                         chargeLocations = uiState.chargeLocations,
+                        countryBoundary = uiState.countryBoundary,
                         palette = palette
                     )
                 }
@@ -212,6 +215,7 @@ private fun RegionsContent(
     countryRecord: CountryRecord?,
     regions: List<RegionRecord>,
     chargeLocations: List<ChargeLocation>,
+    countryBoundary: CountryBoundary?,
     palette: CarColorPalette
 ) {
     LazyColumn(
@@ -234,6 +238,7 @@ private fun RegionsContent(
             item(key = "map") {
                 CountryChargeMapCard(
                     chargeLocations = chargeLocations,
+                    countryBoundary = countryBoundary,
                     palette = palette
                 )
             }
@@ -373,10 +378,12 @@ private fun CountrySummaryCard(
 /**
  * Beautiful map card showing all charge locations in a country.
  * Uses OSM tiles with custom styled markers for AC/DC charges.
+ * Optionally dims other countries when boundary data is available.
  */
 @Composable
 private fun CountryChargeMapCard(
     chargeLocations: List<ChargeLocation>,
+    countryBoundary: CountryBoundary?,
     palette: CarColorPalette
 ) {
     val context = LocalContext.current
@@ -387,6 +394,28 @@ private fun CountryChargeMapCard(
     // Colors for markers - blue for AC, orange for DC (fast charging)
     val acColor = palette.accent
     val dcColor = Color(0xFFFF9800)
+
+    // Remember the MapView reference for updates
+    var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+
+    // Update map overlay when boundary arrives
+    LaunchedEffect(countryBoundary) {
+        val mapView = mapViewRef ?: return@LaunchedEffect
+        val boundary = countryBoundary ?: return@LaunchedEffect
+
+        // Remove any existing dimming overlay (tagged with "dim_overlay")
+        mapView.overlays.removeAll { overlay ->
+            (overlay as? Polygon)?.id == "dim_overlay"
+        }
+
+        // Create the dimming overlay with the country as a "hole"
+        val dimOverlay = createDimmingOverlay(boundary)
+        if (dimOverlay != null) {
+            // Add at the beginning so it's below markers
+            mapView.overlays.add(0, dimOverlay)
+            mapView.invalidate()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -465,11 +494,19 @@ private fun CountryChargeMapCard(
                 AndroidView(
                     factory = { ctx ->
                         MapView(ctx).apply {
+                            mapViewRef = this
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
 
                             // Calculate bounding box from all charge locations
                             val boundingBox = calculateBoundingBox(chargeLocations)
+
+                            // Add dimming overlay if boundary is already available
+                            countryBoundary?.let { boundary ->
+                                createDimmingOverlay(boundary)?.let { dimOverlay ->
+                                    overlays.add(dimOverlay)
+                                }
+                            }
 
                             // Add markers for each charge location
                             chargeLocations.forEach { charge ->
@@ -588,6 +625,50 @@ private fun calculateBoundingBox(chargeLocations: List<ChargeLocation>): Boundin
         minLat - effectiveLatPadding,  // south
         minLon - effectiveLonPadding   // west
     )
+}
+
+/**
+ * Create a dimming overlay that covers the entire world except for the selected country.
+ * Uses a large polygon with the country boundary as a "hole" to let the country show through.
+ */
+private fun createDimmingOverlay(boundary: CountryBoundary): Polygon? {
+    if (boundary.polygons.isEmpty()) return null
+
+    // Create the dimming polygon covering the whole visible area
+    // We use a very large bounding box to cover most map views
+    val worldPolygon = Polygon().apply {
+        id = "dim_overlay"
+
+        // Outer boundary: a large rectangle covering most of the world
+        // (osmdroid handles wrapping, so we don't need to go full -180 to 180)
+        points = listOf(
+            GeoPoint(85.0, -179.0),   // NW
+            GeoPoint(85.0, 179.0),    // NE
+            GeoPoint(-85.0, 179.0),   // SE
+            GeoPoint(-85.0, -179.0),  // SW
+            GeoPoint(85.0, -179.0)    // Close the polygon
+        )
+
+        // Add each country polygon as a hole (inverted to show through)
+        val holes = boundary.polygons.map { ring ->
+            ring.map { (lat, lon) -> GeoPoint(lat, lon) }
+        }
+        setHoles(holes)
+
+        // Semi-transparent dark overlay
+        fillPaint.apply {
+            color = android.graphics.Color.argb(100, 30, 30, 40)  // Dark with 40% opacity
+            style = android.graphics.Paint.Style.FILL
+        }
+
+        // No stroke for the overlay
+        outlinePaint.apply {
+            color = android.graphics.Color.TRANSPARENT
+            strokeWidth = 0f
+        }
+    }
+
+    return worldPolygon
 }
 
 @Composable

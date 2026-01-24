@@ -1,5 +1,6 @@
 package com.matedroid.data.repository
 
+import android.util.Log
 import com.matedroid.data.api.NominatimApi
 import com.matedroid.data.api.NominatimAddress
 import com.matedroid.data.local.dao.GeocodeCacheDao
@@ -31,6 +32,16 @@ data class GeocodeProgressInfo(
     val processed: Int,
     val total: Int,
     val percentage: Float
+)
+
+/**
+ * Country boundary as a list of polygon rings.
+ * Each ring is a list of [latitude, longitude] pairs.
+ * For countries with multiple polygons (islands), this contains all of them.
+ */
+data class CountryBoundary(
+    val countryCode: String,
+    val polygons: List<List<Pair<Double, Double>>>  // List of polygons, each polygon is list of lat/lon pairs
 )
 
 @Singleton
@@ -312,5 +323,101 @@ class GeocodingRepository @Inject constructor(
         if (city != null) parts.add(city)
 
         return if (parts.isNotEmpty()) parts.joinToString(", ") else null
+    }
+
+    // === Country Boundary Methods ===
+
+    // Cache for country boundaries (in-memory, cleared on app restart)
+    private val boundaryCache = mutableMapOf<String, CountryBoundary>()
+
+    /**
+     * Fetch country boundary polygon from Nominatim.
+     * Returns null if the boundary cannot be fetched.
+     * Results are cached in memory.
+     */
+    suspend fun getCountryBoundary(countryCode: String): CountryBoundary? {
+        // Check cache first
+        boundaryCache[countryCode]?.let { return it }
+
+        return try {
+            val response = nominatimApi.searchCountryBoundary(countryCode)
+            if (!response.isSuccessful || response.body().isNullOrEmpty()) {
+                Log.w("GeocodingRepository", "Failed to fetch boundary for $countryCode")
+                return null
+            }
+
+            val result = response.body()?.firstOrNull() ?: return null
+            val geoJson = result.geojson ?: return null
+
+            val polygons = parseGeoJsonToPolygons(geoJson.type, geoJson.coordinates)
+            if (polygons.isEmpty()) {
+                Log.w("GeocodingRepository", "No polygons parsed for $countryCode")
+                return null
+            }
+
+            val boundary = CountryBoundary(countryCode, polygons)
+            boundaryCache[countryCode] = boundary
+            boundary
+        } catch (e: Exception) {
+            Log.e("GeocodingRepository", "Error fetching boundary for $countryCode", e)
+            null
+        }
+    }
+
+    /**
+     * Parse GeoJSON coordinates to list of polygon rings.
+     * Handles both Polygon and MultiPolygon types.
+     * GeoJSON uses [longitude, latitude] order; we convert to [latitude, longitude].
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun parseGeoJsonToPolygons(type: String, coordinates: Any?): List<List<Pair<Double, Double>>> {
+        if (coordinates == null) return emptyList()
+
+        return try {
+            when (type) {
+                "Polygon" -> {
+                    // Polygon: [[[lon, lat], [lon, lat], ...]]
+                    // First ring is the outer boundary, others are holes (we only need the outer)
+                    val rings = coordinates as? List<*> ?: return emptyList()
+                    val outerRing = rings.firstOrNull() as? List<*> ?: return emptyList()
+                    val points = parseRing(outerRing)
+                    if (points.isNotEmpty()) listOf(points) else emptyList()
+                }
+                "MultiPolygon" -> {
+                    // MultiPolygon: [[[[lon, lat], ...]], [[[lon, lat], ...]]]
+                    val polygonsList = coordinates as? List<*> ?: return emptyList()
+                    polygonsList.mapNotNull { polygon ->
+                        val rings = polygon as? List<*> ?: return@mapNotNull null
+                        val outerRing = rings.firstOrNull() as? List<*> ?: return@mapNotNull null
+                        val points = parseRing(outerRing)
+                        points.takeIf { it.isNotEmpty() }
+                    }
+                }
+                else -> {
+                    Log.w("GeocodingRepository", "Unsupported GeoJSON type: $type")
+                    emptyList()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GeocodingRepository", "Error parsing GeoJSON", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Parse a single ring of coordinates.
+     * Input: [[lon, lat], [lon, lat], ...]
+     * Output: [(lat, lon), (lat, lon), ...]
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun parseRing(ring: List<*>): List<Pair<Double, Double>> {
+        return ring.mapNotNull { point ->
+            val coords = point as? List<*> ?: return@mapNotNull null
+            if (coords.size < 2) return@mapNotNull null
+            val lon = (coords[0] as? Number)?.toDouble() ?: return@mapNotNull null
+            val lat = (coords[1] as? Number)?.toDouble() ?: return@mapNotNull null
+            // Convert from GeoJSON [lon, lat] to our [lat, lon] convention
+            lat to lon
+        }
     }
 }

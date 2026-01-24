@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.data.repository.CountryBoundary
 import com.matedroid.data.repository.StatsRepository
 import com.matedroid.domain.model.ChargeLocation
 import com.matedroid.domain.model.CountryRecord
@@ -32,6 +33,7 @@ data class RegionsVisitedUiState(
     val countryRecord: CountryRecord? = null,
     val regions: List<RegionRecord> = emptyList(),
     val chargeLocations: List<ChargeLocation> = emptyList(),
+    val countryBoundary: CountryBoundary? = null,
     val sortOrder: RegionSortOrder = RegionSortOrder.FIRST_VISIT,
     val error: String? = null
 )
@@ -70,6 +72,13 @@ class RegionsVisitedViewModel @Inject constructor(
                         chargeLocations = chargeLocations,
                         error = null
                     )
+                }
+
+                // Fetch country boundary asynchronously (non-blocking)
+                // This will update the UI when ready, dimming other countries on the map
+                launch {
+                    val boundary = statsRepository.getCountryBoundary(countryCode)
+                    _uiState.update { it.copy(countryBoundary = boundary) }
                 }
             } catch (e: Exception) {
                 _uiState.update {
