@@ -68,6 +68,7 @@ class TpmsPressureWorker @AssistedInject constructor(
 
             if (BuildConfig.DEBUG) {
                 // Debug: Use OneTimeWorkRequest with delay for shorter intervals
+                // Use REPLACE policy so reinstalling updates the interval
                 val request = OneTimeWorkRequestBuilder<TpmsPressureWorker>()
                     .setConstraints(constraints)
                     .setInitialDelay(INTERVAL_MINUTES, TimeUnit.MINUTES)
@@ -76,7 +77,7 @@ class TpmsPressureWorker @AssistedInject constructor(
 
                 WorkManager.getInstance(context).enqueueUniqueWork(
                     WORK_NAME,
-                    ExistingWorkPolicy.KEEP,
+                    ExistingWorkPolicy.REPLACE,
                     request
                 )
 
