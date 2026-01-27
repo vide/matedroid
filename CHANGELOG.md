@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard**: Use bolt/zap icon for charging state instead of generic power icon
 - **Dashboard**: Align elevation icon and text with location icon and text in location card
 
+### Fixed
+- **Drives**: Y-axis labels in driving time histogram now display in HH:MM format instead of raw minutes
+
 ## [0.12.2] - 2026-01-25
 
 ### Changed
