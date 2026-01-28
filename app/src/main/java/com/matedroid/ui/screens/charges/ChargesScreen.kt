@@ -385,7 +385,7 @@ private fun SummaryCard(summary: ChargesSummary, currencySymbol: String, palette
                     icon = Icons.Default.BatteryChargingFull,
                     label = stringResource(R.string.total_energy),
                     value = if (summary.totalEnergyAdded > 999) {
-                        "%.1f MWh".format(summary.totalEnergyAdded / 1000)
+                        "%.2f MWh".format(summary.totalEnergyAdded / 1000)
                     } else {
                         "%.0f kWh".format(summary.totalEnergyAdded)
                     },
