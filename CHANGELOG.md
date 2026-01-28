@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Charges**: Cleaner summary totals with adaptive decimal places
+
 ### Fixed
 - **Model X**: Wheels now display correctly in car images (fixes #119)
 
