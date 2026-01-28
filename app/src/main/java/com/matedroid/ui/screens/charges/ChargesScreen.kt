@@ -402,7 +402,11 @@ private fun SummaryCard(summary: ChargesSummary, currencySymbol: String, palette
                 SummaryItem(
                     icon = Icons.Default.Paid,
                     label = stringResource(R.string.total_cost),
-                    value = "$currencySymbol%.0f".format(summary.totalCost),
+                    value = when {
+                        summary.totalCost < 100 -> "$currencySymbol%.2f".format(summary.totalCost)
+                        summary.totalCost < 1000 -> "$currencySymbol%.1f".format(summary.totalCost)
+                        else -> "$currencySymbol%.0f".format(summary.totalCost)
+                    },
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
