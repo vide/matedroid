@@ -115,25 +115,18 @@ class ChargingNotificationManager @Inject constructor(
         timeToFullCharge: Double?
     ): String {
         val chargeType = if (isDcCharging) "DC" else "AC"
-        val energyText = String.format("%.1f", energyAdded)
 
         val parts = mutableListOf<String>()
         parts.add("$batteryLevel% \u2192 $chargeLimit%")
         parts.add("$chargerPower kW $chargeType")
-        parts.add("+$energyText kWh")
 
-        // Add time remaining if available
+        // Add time remaining if available (clock icon + HH:MM format)
         timeToFullCharge?.let { hours ->
             if (hours > 0) {
-                val minutes = (hours * 60).toInt()
-                val timeText = if (minutes >= 60) {
-                    val h = minutes / 60
-                    val m = minutes % 60
-                    if (m > 0) "${h}h ${m}min" else "${h}h"
-                } else {
-                    "${minutes}min"
-                }
-                parts.add("$timeText remaining")
+                val totalMinutes = (hours * 60).toInt()
+                val h = totalMinutes / 60
+                val m = totalMinutes % 60
+                parts.add("\uD83D\uDD52 %d:%02d".format(h, m))
             }
         }
 
@@ -254,7 +247,7 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
-     * Load car image from assets with semi-transparency for notification background.
+     * Load car image from assets.
      */
     private fun loadCarImage(car: CarData): Bitmap? {
         return try {
@@ -266,27 +259,12 @@ class ChargingNotificationManager @Inject constructor(
             )
 
             context.assets.open(assetPath).use { inputStream ->
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                // Apply 30% alpha for semi-transparent background
-                applyAlpha(bitmap, 77)  // 77 = 30% of 255
+                BitmapFactory.decodeStream(inputStream)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load car image", e)
             null
         }
-    }
-
-    /**
-     * Apply alpha to a bitmap.
-     */
-    private fun applyAlpha(source: Bitmap, alpha: Int): Bitmap {
-        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(result)
-        val paint = android.graphics.Paint().apply {
-            this.alpha = alpha
-        }
-        canvas.drawBitmap(source, 0f, 0f, paint)
-        return result
     }
 
     /**
