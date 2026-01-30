@@ -217,6 +217,7 @@ class ChargingNotificationManager @Inject constructor(
             .setStyle(progressStyle)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)  // Show on lock screen
 
         // Add car image as large icon if available
         carBitmap?.let { bitmap ->
@@ -248,6 +249,7 @@ class ChargingNotificationManager @Inject constructor(
             .setOngoing(false)  // Dismissable on older Android
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Show on lock screen
             .build()
     }
 
@@ -295,10 +297,13 @@ class ChargingNotificationManager @Inject constructor(
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 context.getString(R.string.charging_channel_name),
-                NotificationManager.IMPORTANCE_LOW  // Low importance = no sound/vibration
+                NotificationManager.IMPORTANCE_DEFAULT  // Default importance for lock screen visibility
             ).apply {
                 description = context.getString(R.string.charging_channel_description)
                 setShowBadge(false)  // Don't show app badge for ongoing charging
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setSound(null, null)  // No sound
+                enableVibration(false)  // No vibration
             }
 
             notificationManager.createNotificationChannel(channel)
