@@ -40,24 +40,26 @@ class ChargingNotificationWorker @AssistedInject constructor(
     companion object {
         const val TAG = "ChargingNotificationWorker"
         const val WORK_NAME = "charging_notification_work"
+        const val PERIODIC_WORK_NAME = "charging_notification_periodic"
 
         // Debug: 30 seconds, Release: 1 minute
         // Note: WorkManager enforces 15-minute minimum for PeriodicWorkRequest
         private val INTERVAL_SECONDS = if (BuildConfig.DEBUG) 30L else 60L
 
         /**
-         * Schedule periodic charging notification monitoring.
+         * Schedule charging notification monitoring.
          *
-         * Uses self-rescheduling OneTimeWorkRequest pattern to achieve
-         * shorter intervals than WorkManager's 15-minute minimum.
+         * Uses two strategies:
+         * 1. Self-rescheduling OneTimeWorkRequest for frequent checks (30s-1min)
+         * 2. PeriodicWorkRequest (15min) as reliable fallback when app is killed
          */
         fun schedulePeriodicWork(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-            // Always use OneTimeWorkRequest with delay for shorter intervals
-            val request = OneTimeWorkRequestBuilder<ChargingNotificationWorker>()
+            // Strategy 1: OneTimeWorkRequest with delay for frequent checks
+            val oneTimeRequest = OneTimeWorkRequestBuilder<ChargingNotificationWorker>()
                 .setConstraints(constraints)
                 .setInitialDelay(INTERVAL_SECONDS, TimeUnit.SECONDS)
                 .addTag(TAG)
@@ -66,22 +68,38 @@ class ChargingNotificationWorker @AssistedInject constructor(
             WorkManager.getInstance(context).enqueueUniqueWork(
                 WORK_NAME,
                 ExistingWorkPolicy.REPLACE,
-                request
+                oneTimeRequest
             )
 
-            Log.d(TAG, "Scheduled charging notification check (${INTERVAL_SECONDS}s interval)")
+            // Strategy 2: PeriodicWorkRequest as reliable backup (survives app death)
+            // This ensures notification is cancelled within 15 minutes even if app is killed
+            val periodicRequest = PeriodicWorkRequestBuilder<ChargingNotificationWorker>(
+                15, TimeUnit.MINUTES
+            )
+                .setConstraints(constraints)
+                .addTag("$TAG-periodic")
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                PERIODIC_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,  // Don't reset if already scheduled
+                periodicRequest
+            )
+
+            Log.d(TAG, "Scheduled charging notification check (${INTERVAL_SECONDS}s + 15min backup)")
         }
 
         /**
-         * Cancel periodic charging notification monitoring.
+         * Cancel all charging notification monitoring.
          */
         fun cancelPeriodicWork(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+            WorkManager.getInstance(context).cancelUniqueWork(PERIODIC_WORK_NAME)
             Log.d(TAG, "Cancelled charging notification work")
         }
 
         /**
-         * Run charging check immediately (for debugging).
+         * Run charging check immediately (for app startup or debugging).
          */
         fun runNow(context: Context) {
             val constraints = Constraints.Builder()
