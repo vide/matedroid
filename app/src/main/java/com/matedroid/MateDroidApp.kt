@@ -12,6 +12,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
+import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
 import dagger.hilt.android.HiltAndroidApp
@@ -37,6 +38,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
         // Schedule periodic TPMS pressure monitoring
         TpmsPressureWorker.schedulePeriodicWork(this)
+
+        // Schedule periodic charging notification monitoring
+        ChargingNotificationWorker.schedulePeriodicWork(this)
     }
 
     /**

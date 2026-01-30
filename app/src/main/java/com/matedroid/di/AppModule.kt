@@ -2,6 +2,7 @@ package com.matedroid.di
 
 import android.content.Context
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.notification.ChargingNotificationManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,5 +20,13 @@ object AppModule {
         @ApplicationContext context: Context
     ): SettingsDataStore {
         return SettingsDataStore(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChargingNotificationManager(
+        @ApplicationContext context: Context
+    ): ChargingNotificationManager {
+        return ChargingNotificationManager(context)
     }
 }

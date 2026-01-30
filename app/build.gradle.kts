@@ -13,12 +13,12 @@ ksp {
 
 android {
     namespace = "com.matedroid"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.matedroid"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 28
         versionName = "0.12.4"
 

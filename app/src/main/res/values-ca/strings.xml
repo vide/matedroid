@@ -979,4 +979,20 @@
     <string name="debug_tpms_simulate_warning">Simula Avís TPMS</string>
     <string name="debug_tpms_clear_state">Esborra Estat TPMS</string>
     <string name="debug_tpms_run_now">Run TPMS Check Now</string>
+
+    <!-- ==================== Charging Notifications ==================== -->
+    <!-- Notification channel name for charging session alerts -->
+    <string name="charging_channel_name">Sessions de Càrrega</string>
+
+    <!-- Notification channel description -->
+    <string name="charging_channel_description">Actualitzacions en temps real durant les sessions de càrrega</string>
+
+    <!-- Notification title during charging. %s is car name -->
+    <string name="charging_notification_title">%s - Carregant</string>
+
+    <!-- Settings toggle for charging notifications -->
+    <string name="settings_charging_notifications">Notificacions de càrrega</string>
+
+    <!-- Settings hint for charging notifications -->
+    <string name="settings_charging_notifications_hint">Mostra notificacions en temps real durant les sessions de càrrega</string>
 </resources>

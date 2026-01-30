@@ -125,6 +125,7 @@ fun SettingsScreen(
                 onCurrencyChange = viewModel::updateCurrency,
                 onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
                 onTeslamateBaseUrlChange = viewModel::updateTeslamateBaseUrl,
+                onChargingNotificationsEnabledChange = viewModel::updateChargingNotificationsEnabled,
                 onTestConnection = viewModel::testConnection,
                 onSave = { viewModel.saveSettings(onNavigateToDashboard) },
                 onPalettePreview = onNavigateToPalettePreview,
@@ -202,6 +203,7 @@ private fun SettingsContent(
     onCurrencyChange: (String) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
     onTeslamateBaseUrlChange: (String) -> Unit,
+    onChargingNotificationsEnabledChange: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
     onSave: () -> Unit,
     onPalettePreview: () -> Unit = {},
@@ -520,6 +522,32 @@ private fun SettingsContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Charging notifications toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_charging_notifications),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_charging_notifications_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = uiState.chargingNotificationsEnabled,
+                    onCheckedChange = onChargingNotificationsEnabledChange
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Force Full Resync button
             OutlinedButton(
                 onClick = { showResyncConfirmDialog = true },
@@ -818,6 +846,7 @@ private fun SettingsScreenPreview() {
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onTeslamateBaseUrlChange = {},
+            onChargingNotificationsEnabledChange = {},
             onTestConnection = {},
             onSave = {}
         )
@@ -843,6 +872,7 @@ private fun SettingsScreenWithResultPreview() {
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onTeslamateBaseUrlChange = {},
+            onChargingNotificationsEnabledChange = {},
             onTestConnection = {},
             onSave = {}
         )
@@ -870,6 +900,7 @@ private fun SettingsScreenWithBothResultsPreview() {
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onTeslamateBaseUrlChange = {},
+            onChargingNotificationsEnabledChange = {},
             onTestConnection = {},
             onSave = {}
         )
@@ -893,6 +924,7 @@ private fun SettingsScreenWithWarningPreview() {
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onTeslamateBaseUrlChange = {},
+            onChargingNotificationsEnabledChange = {},
             onTestConnection = {},
             onSave = {}
         )
