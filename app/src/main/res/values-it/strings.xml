@@ -989,10 +989,4 @@
 
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - In ricarica</string>
-
-    <!-- Settings toggle for charging notifications -->
-    <string name="settings_charging_notifications">Notifiche di ricarica</string>
-
-    <!-- Settings hint for charging notifications -->
-    <string name="settings_charging_notifications_hint">Mostra notifiche in tempo reale durante le sessioni di ricarica</string>
 </resources>

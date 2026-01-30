@@ -24,8 +24,7 @@ data class AppSettings(
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val teslamateBaseUrl: String = "",
-    val lastSelectedCarId: Int? = null,
-    val chargingNotificationsEnabled: Boolean = true
+    val lastSelectedCarId: Int? = null
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
@@ -46,7 +45,6 @@ class SettingsDataStore @Inject constructor(
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
-    private val chargingNotificationsEnabledKey = booleanPreferencesKey("charging_notifications_enabled")
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { preferences ->
         AppSettings(
@@ -57,8 +55,7 @@ class SettingsDataStore @Inject constructor(
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
-            lastSelectedCarId = preferences[lastSelectedCarIdKey],
-            chargingNotificationsEnabled = preferences[chargingNotificationsEnabledKey] ?: true
+            lastSelectedCarId = preferences[lastSelectedCarIdKey]
         )
     }
 
@@ -103,12 +100,6 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveLastSelectedCarId(carId: Int) {
         context.dataStore.edit { preferences ->
             preferences[lastSelectedCarIdKey] = carId
-        }
-    }
-
-    suspend fun saveChargingNotificationsEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[chargingNotificationsEnabledKey] = enabled
         }
     }
 

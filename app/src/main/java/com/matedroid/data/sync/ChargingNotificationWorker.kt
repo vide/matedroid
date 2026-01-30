@@ -109,13 +109,6 @@ class ChargingNotificationWorker @AssistedInject constructor(
             return Result.success()
         }
 
-        // Check if charging notifications are enabled
-        if (!settings.chargingNotificationsEnabled) {
-            Log.d(TAG, "Charging notifications disabled, skipping check")
-            scheduleNextCheck()
-            return Result.success()
-        }
-
         try {
             // Get list of cars
             val carsResult = teslamateRepository.getCars()
