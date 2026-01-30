@@ -41,6 +41,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
         // Schedule periodic charging notification monitoring
         ChargingNotificationWorker.schedulePeriodicWork(this)
+
+        // Also run an immediate check to cancel stale notifications
+        ChargingNotificationWorker.runNow(this)
     }
 
     /**
