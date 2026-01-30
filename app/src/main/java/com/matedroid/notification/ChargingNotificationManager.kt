@@ -10,10 +10,15 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.matedroid.R
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.domain.model.CarImageResolver
+import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.ui.theme.StatusError
+import com.matedroid.ui.theme.StatusSuccess
+import com.matedroid.ui.theme.StatusWarning
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -136,7 +141,7 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
-     * Build Android 16+ BigPictureStyle notification with full car image background.
+     * Build Android 16+ ProgressStyle notification with visual battery progress bar.
      */
     @RequiresApi(36)
     private fun buildProgressStyleNotification(
@@ -147,33 +152,80 @@ class ChargingNotificationManager @Inject constructor(
         chargeLimit: Int,
         isDcCharging: Boolean
     ): Notification {
-        // Load car image for full background
-        val carBitmap = loadCarImage(car, applyAlpha = false)
+        // Get battery level color (same as dashboard)
+        val batteryColor = when {
+            batteryLevel < 20 -> StatusError
+            batteryLevel < 40 -> StatusWarning
+            else -> StatusSuccess
+        }
+
+        // Get car palette accent color for target marker
+        val palette = CarColorPalettes.forExteriorColor(
+            car.carExterior?.exteriorColor,
+            darkTheme = false  // Use light theme colors for notification
+        )
+
+        // Load car image (semi-transparent for background)
+        val carBitmap = loadCarImage(car)
+
+        // Create progress segments:
+        // - Filled segment: 0 to batteryLevel (battery color)
+        // - Target segment: batteryLevel to chargeLimit (dimmed accent)
+        val segments = mutableListOf<Notification.ProgressStyle.Segment>()
+
+        // Filled battery segment
+        segments.add(
+            Notification.ProgressStyle.Segment(batteryLevel)
+                .setColor(batteryColor.toArgb())
+        )
+
+        // Remaining to charge limit (if not yet at limit)
+        if (chargeLimit > batteryLevel) {
+            segments.add(
+                Notification.ProgressStyle.Segment(chargeLimit - batteryLevel)
+                    .setColor(palette.accentDim.toArgb())
+            )
+        }
+
+        // Remaining after limit (empty/track color)
+        if (chargeLimit < 100) {
+            segments.add(
+                Notification.ProgressStyle.Segment(100 - chargeLimit)
+                    .setColor(palette.progressTrack.toArgb())
+            )
+        }
+
+        val progressStyle = Notification.ProgressStyle()
+            .setProgress(batteryLevel)
+            .setProgressTrackerIcon(
+                android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_bolt)
+            )
+            .setProgressSegments(segments)
+            .setProgressPoints(
+                listOf(
+                    Notification.ProgressStyle.Point(chargeLimit)
+                        .setColor(palette.accent.toArgb())
+                )
+            )
 
         val title = context.getString(R.string.charging_notification_title, carName)
-
-        // Use BigPictureStyle for full background image
-        val bigPictureStyle = Notification.BigPictureStyle()
-            .setSummaryText(contentText)
-
-        // Set the car image as the big picture (full background)
-        carBitmap?.let { bitmap ->
-            bigPictureStyle.bigPicture(bitmap)
-            // Show the big picture in both collapsed and expanded states
-            bigPictureStyle.showBigPictureWhenCollapsed(true)
-        }
 
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
-            .setStyle(bigPictureStyle)
+            .setStyle(progressStyle)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)  // Show on lock screen
-            .setProgress(100, batteryLevel, false)  // Add progress bar
+
+        // Add car image as large icon if available
+        carBitmap?.let { bitmap ->
+            builder.setLargeIcon(bitmap)
+        }
 
         // Request promoted ongoing status (Live Update)
+        // Use literal string since the constant is only available in API 36+
         builder.extras.putBoolean("android.requestPromotedOngoing", true)
 
         return builder.build()
@@ -202,12 +254,9 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
-     * Load car image from assets.
-     *
-     * @param car The car data
-     * @param applyAlpha If true, applies 30% alpha for semi-transparent background
+     * Load car image from assets with semi-transparency for notification background.
      */
-    private fun loadCarImage(car: CarData, applyAlpha: Boolean = true): Bitmap? {
+    private fun loadCarImage(car: CarData): Bitmap? {
         return try {
             val assetPath = CarImageResolver.getAssetPath(
                 model = car.carDetails?.model,
@@ -218,12 +267,8 @@ class ChargingNotificationManager @Inject constructor(
 
             context.assets.open(assetPath).use { inputStream ->
                 val bitmap = BitmapFactory.decodeStream(inputStream)
-                if (applyAlpha) {
-                    // Apply 30% alpha for semi-transparent background
-                    applyAlpha(bitmap, 77)  // 77 = 30% of 255
-                } else {
-                    bitmap
-                }
+                // Apply 30% alpha for semi-transparent background
+                applyAlpha(bitmap, 77)  // 77 = 30% of 255
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load car image", e)
@@ -263,5 +308,17 @@ class ChargingNotificationManager @Inject constructor(
 
             notificationManager.createNotificationChannel(channel)
         }
+    }
+
+    /**
+     * Convert Compose Color to Android ARGB int.
+     */
+    private fun androidx.compose.ui.graphics.Color.toArgb(): Int {
+        return android.graphics.Color.argb(
+            (alpha * 255).toInt(),
+            (red * 255).toInt(),
+            (green * 255).toInt(),
+            (blue * 255).toInt()
+        )
     }
 }
