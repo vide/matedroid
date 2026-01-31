@@ -17,6 +17,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.notification.ChargingNotificationManager
+import com.matedroid.service.ChargingMonitorService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -195,12 +196,13 @@ class ChargingNotificationWorker @AssistedInject constructor(
         val status = statusData.status ?: return
 
         if (status.isCharging) {
-            // Car is charging - show/update notification
-            Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%")
-            chargingNotificationManager.showChargingNotification(car, status)
+            // Car is charging - start foreground service for real-time updates
+            Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%, starting monitor service")
+            ChargingMonitorService.start(appContext)
         } else {
-            // Car is not charging - cancel notification
-            Log.d(TAG, "Car $carId is not charging")
+            // Car is not charging - stop service and cancel notification
+            Log.d(TAG, "Car $carId is not charging, stopping monitor service")
+            ChargingMonitorService.stop(appContext)
             chargingNotificationManager.cancelNotification(carId)
         }
     }

@@ -38,7 +38,7 @@ class ChargingNotificationManager @Inject constructor(
     companion object {
         private const val TAG = "ChargingNotificationManager"
         const val CHANNEL_ID = "charging_session_channel"
-        private const val NOTIFICATION_ID_BASE = 3000
+        const val NOTIFICATION_ID_BASE = 3000
     }
 
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
@@ -52,10 +52,20 @@ class ChargingNotificationManager @Inject constructor(
      */
     fun showChargingNotification(car: CarData, status: CarStatus) {
         createNotificationChannel()
-
         val notificationId = NOTIFICATION_ID_BASE + car.carId
-        val carName = car.displayName
+        val notification = buildNotification(car, status)
+        notificationManager.notify(notificationId, notification)
+        Log.d(TAG, "Showed charging notification for car ${car.carId}: ${status.batteryLevel}% -> ${status.chargeLimitSoc}%")
+    }
 
+    /**
+     * Build a charging notification for a car (without showing it).
+     * Used by ChargingMonitorService for foreground notification.
+     */
+    fun buildNotification(car: CarData, status: CarStatus): Notification {
+        createNotificationChannel()
+
+        val carName = car.displayName
         val batteryLevel = status.batteryLevel ?: 0
         val chargeLimit = status.chargeLimitSoc ?: 80
         val chargerPower = status.chargerPower ?: 0
@@ -63,7 +73,6 @@ class ChargingNotificationManager @Inject constructor(
         val isDcCharging = status.isDcCharging
         val timeToFullCharge = status.timeToFullCharge
 
-        // Build content text
         val contentText = buildContentText(
             batteryLevel = batteryLevel,
             chargeLimit = chargeLimit,
@@ -73,7 +82,7 @@ class ChargingNotificationManager @Inject constructor(
             timeToFullCharge = timeToFullCharge
         )
 
-        val notification = if (Build.VERSION.SDK_INT >= 36) {
+        return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
                 car = car,
                 carName = carName,
@@ -89,9 +98,6 @@ class ChargingNotificationManager @Inject constructor(
                 batteryLevel = batteryLevel
             )
         }
-
-        notificationManager.notify(notificationId, notification)
-        Log.d(TAG, "Showed charging notification for car ${car.carId}: $batteryLevel% -> $chargeLimit%")
     }
 
     /**
@@ -101,6 +107,14 @@ class ChargingNotificationManager @Inject constructor(
         val notificationId = NOTIFICATION_ID_BASE + carId
         notificationManager.cancel(notificationId)
         Log.d(TAG, "Cancelled charging notification for car $carId")
+    }
+
+    /**
+     * Ensure the notification channel exists.
+     * Called by ChargingMonitorService before creating its foreground notification.
+     */
+    fun ensureChannelExists() {
+        createNotificationChannel()
     }
 
     /**

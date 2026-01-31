@@ -989,4 +989,5 @@
 
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - Charging</string>
+    <string name="charging_notification_loading">Checking charging status…</string>
 </resources>

@@ -989,4 +989,5 @@
 
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - In ricarica</string>
+    <string name="charging_notification_loading">Verificando stato di ricarica…</string>
 </resources>
