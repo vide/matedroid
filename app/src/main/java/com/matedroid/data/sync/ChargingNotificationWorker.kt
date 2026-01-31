@@ -196,9 +196,16 @@ class ChargingNotificationWorker @AssistedInject constructor(
         val status = statusData.status ?: return
 
         if (status.isCharging) {
-            // Car is charging - start foreground service for real-time updates
-            Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%, starting monitor service")
-            ChargingMonitorService.start(appContext)
+            // Car is charging - try to start foreground service for real-time updates
+            Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%")
+            try {
+                ChargingMonitorService.start(appContext)
+            } catch (e: Exception) {
+                // On Android 12+, can't start foreground service from background
+                // Fall back to showing notification directly (won't update in real-time)
+                Log.w(TAG, "Cannot start foreground service, showing notification directly: ${e.message}")
+                chargingNotificationManager.showChargingNotification(car, status)
+            }
         } else {
             // Car is not charging - stop service and cancel notification
             Log.d(TAG, "Car $carId is not charging, stopping monitor service")
