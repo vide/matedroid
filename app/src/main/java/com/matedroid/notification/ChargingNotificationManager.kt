@@ -134,13 +134,14 @@ class ChargingNotificationManager @Inject constructor(
         parts.add("$batteryLevel% \u2192 $chargeLimit%")
         parts.add("$chargerPower kW $chargeType")
 
-        // Add time remaining if available (clock icon + HH:MM format)
+        // Add estimated finish time if available (clock icon + locale time format)
         timeToFullCharge?.let { hours ->
             if (hours > 0) {
-                val totalMinutes = (hours * 60).toInt()
-                val h = totalMinutes / 60
-                val m = totalMinutes % 60
-                parts.add("\uD83D\uDD52 %d:%02d".format(h, m))
+                val finishTime = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.MINUTE, (hours * 60).toInt())
+                }
+                val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
+                parts.add("\uD83D\uDD52 ${timeFormat.format(finishTime.time)}")
             }
         }
 
