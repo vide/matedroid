@@ -69,31 +69,27 @@ class ChargingNotificationManager @Inject constructor(
         val batteryLevel = status.batteryLevel ?: 0
         val chargeLimit = status.chargeLimitSoc ?: 80
         val chargerPower = status.chargerPower ?: 0
-        val energyAdded = status.chargeEnergyAdded ?: 0.0
         val isDcCharging = status.isDcCharging
         val timeToFullCharge = status.timeToFullCharge
 
+        val title = buildTitle(carName, chargerPower, isDcCharging)
         val contentText = buildContentText(
             batteryLevel = batteryLevel,
             chargeLimit = chargeLimit,
-            chargerPower = chargerPower,
-            energyAdded = energyAdded,
-            isDcCharging = isDcCharging,
             timeToFullCharge = timeToFullCharge
         )
 
         return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
                 car = car,
-                carName = carName,
+                title = title,
                 contentText = contentText,
                 batteryLevel = batteryLevel,
-                chargeLimit = chargeLimit,
-                isDcCharging = isDcCharging
+                chargeLimit = chargeLimit
             )
         } else {
             buildFallbackNotification(
-                carName = carName,
+                title = title,
                 contentText = contentText,
                 batteryLevel = batteryLevel
             )
@@ -118,30 +114,47 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
+     * Build title for the notification (e.g., "Elysa ⚡ 5kW AC").
+     */
+    private fun buildTitle(
+        carName: String,
+        chargerPower: Int,
+        isDcCharging: Boolean
+    ): String {
+        val chargeType = if (isDcCharging) "DC" else "AC"
+        return "$carName \u26A1 $chargerPower kW $chargeType"
+    }
+
+    /**
      * Build content text for the notification.
      */
     private fun buildContentText(
         batteryLevel: Int,
         chargeLimit: Int,
-        chargerPower: Int,
-        energyAdded: Double,
-        isDcCharging: Boolean,
         timeToFullCharge: Double?
     ): String {
-        val chargeType = if (isDcCharging) "DC" else "AC"
-
         val parts = mutableListOf<String>()
         parts.add("$batteryLevel% \u2192 $chargeLimit%")
-        parts.add("$chargerPower kW $chargeType")
 
-        // Add estimated finish time if available (clock icon + locale time format)
+        // Add estimated finish time with relative day (e.g., "today at 15:30")
         timeToFullCharge?.let { hours ->
             if (hours > 0) {
                 val finishTime = java.util.Calendar.getInstance().apply {
                     add(java.util.Calendar.MINUTE, (hours * 60).toInt())
                 }
                 val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
-                parts.add("\uD83D\uDD52 ${timeFormat.format(finishTime.time)}")
+                val formattedTime = timeFormat.format(finishTime.time)
+
+                // Determine relative day using DateUtils
+                val relativeDateTime = android.text.format.DateUtils.getRelativeDateTimeString(
+                    context,
+                    finishTime.timeInMillis,
+                    android.text.format.DateUtils.DAY_IN_MILLIS,
+                    android.text.format.DateUtils.DAY_IN_MILLIS,
+                    0
+                ).toString()
+
+                parts.add("\uD83D\uDD52 $relativeDateTime")
             }
         }
 
@@ -154,11 +167,10 @@ class ChargingNotificationManager @Inject constructor(
     @RequiresApi(36)
     private fun buildProgressStyleNotification(
         car: CarData,
-        carName: String,
+        title: String,
         contentText: String,
         batteryLevel: Int,
-        chargeLimit: Int,
-        isDcCharging: Boolean
+        chargeLimit: Int
     ): Notification {
         // Get battery level color (same as dashboard)
         val batteryColor = when {
@@ -216,8 +228,6 @@ class ChargingNotificationManager @Inject constructor(
                 )
             )
 
-        val title = context.getString(R.string.charging_notification_title, carName)
-
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
@@ -243,12 +253,10 @@ class ChargingNotificationManager @Inject constructor(
      * Build fallback notification for Android < 16.
      */
     private fun buildFallbackNotification(
-        carName: String,
+        title: String,
         contentText: String,
         batteryLevel: Int
     ): Notification {
-        val title = context.getString(R.string.charging_notification_title, carName)
-
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
