@@ -191,26 +191,19 @@ class ChargingNotificationManager @Inject constructor(
         // Load car image (semi-transparent for background)
         val carBitmap = loadCarImage(car)
 
-        // Create progress segments:
-        // - Filled segment: 0 to batteryLevel (battery color)
-        // - Target segment: batteryLevel to chargeLimit (dimmed accent)
+        // Create segments for the progress bar (0-100 range)
+        // The progress tracker (bolt icon) indicates current battery level
         val segments = mutableListOf<Notification.ProgressStyle.Segment>()
 
-        // Filled battery segment
-        segments.add(
-            Notification.ProgressStyle.Segment(batteryLevel)
-                .setColor(batteryColor.toArgb())
-        )
-
-        // Remaining to charge limit (if not yet at limit)
-        if (chargeLimit > batteryLevel) {
+        // Portion from 0 to chargeLimit (the "active" charging range)
+        if (chargeLimit > 0) {
             segments.add(
-                Notification.ProgressStyle.Segment(chargeLimit - batteryLevel)
+                Notification.ProgressStyle.Segment(chargeLimit)
                     .setColor(palette.accentDim.toArgb())
             )
         }
 
-        // Remaining after limit (empty/track color)
+        // Portion after chargeLimit (won't be charged)
         if (chargeLimit < 100) {
             segments.add(
                 Notification.ProgressStyle.Segment(100 - chargeLimit)
@@ -218,8 +211,11 @@ class ChargingNotificationManager @Inject constructor(
             )
         }
 
+        Log.d(TAG, "ProgressStyle: batteryLevel=$batteryLevel, chargeLimit=$chargeLimit")
+
         val progressStyle = Notification.ProgressStyle()
             .setProgress(batteryLevel)
+            .setStyledByProgress(true)
             .setProgressTrackerIcon(
                 android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_bolt)
             )
