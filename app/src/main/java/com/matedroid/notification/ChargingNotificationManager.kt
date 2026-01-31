@@ -19,9 +19,6 @@ import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalettes
-import com.matedroid.ui.theme.StatusError
-import com.matedroid.ui.theme.StatusSuccess
-import com.matedroid.ui.theme.StatusWarning
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -175,13 +172,6 @@ class ChargingNotificationManager @Inject constructor(
         batteryLevel: Int,
         chargeLimit: Int
     ): Notification {
-        // Get battery level color (same as dashboard)
-        val batteryColor = when {
-            batteryLevel < 20 -> StatusError
-            batteryLevel < 40 -> StatusWarning
-            else -> StatusSuccess
-        }
-
         // Get car palette accent color for target marker
         val palette = CarColorPalettes.forExteriorColor(
             car.carExterior?.exteriorColor,
@@ -191,43 +181,14 @@ class ChargingNotificationManager @Inject constructor(
         // Load car image (semi-transparent for background)
         val carBitmap = loadCarImage(car)
 
-        // Create segments for the progress bar (0-100 range)
-        // Three parts: filled (battery color), to-be-charged (dimmed), after-limit (track)
-        val segments = mutableListOf<Notification.ProgressStyle.Segment>()
-
-        // Filled portion: 0 to batteryLevel (colored by battery state)
-        if (batteryLevel > 0) {
-            segments.add(
-                Notification.ProgressStyle.Segment(batteryLevel)
-                    .setColor(batteryColor.toArgb())
-            )
-        }
-
-        // To-be-charged portion: batteryLevel to chargeLimit
-        if (chargeLimit > batteryLevel) {
-            segments.add(
-                Notification.ProgressStyle.Segment(chargeLimit - batteryLevel)
-                    .setColor(palette.accentDim.toArgb())
-            )
-        }
-
-        // After-limit portion: chargeLimit to 100 (won't be charged)
-        if (chargeLimit < 100) {
-            segments.add(
-                Notification.ProgressStyle.Segment(100 - chargeLimit)
-                    .setColor(palette.progressTrack.toArgb())
-            )
-        }
-
-        Log.d(TAG, "ProgressStyle: batteryLevel=$batteryLevel, chargeLimit=$chargeLimit")
-
+        // Use simple progress without custom segments - let Android handle the fill
+        // Custom segments cause minimum size issues at low battery levels
         val progressStyle = Notification.ProgressStyle()
             .setProgress(batteryLevel)
             .setStyledByProgress(true)
             .setProgressTrackerIcon(
                 android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_bolt)
             )
-            .setProgressSegments(segments)
             .setProgressPoints(
                 listOf(
                     Notification.ProgressStyle.Point(chargeLimit)
