@@ -3,7 +3,10 @@ package com.matedroid.notification
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import com.matedroid.MainActivity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -236,6 +239,7 @@ class ChargingNotificationManager @Inject constructor(
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)  // Show on lock screen
+            .setContentIntent(createContentIntent())
 
         // Add car image as large icon if available
         carBitmap?.let { bitmap ->
@@ -266,7 +270,23 @@ class ChargingNotificationManager @Inject constructor(
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Show on lock screen
+            .setContentIntent(createContentIntent())
             .build()
+    }
+
+    /**
+     * Create a PendingIntent that opens the app when notification is tapped.
+     */
+    private fun createContentIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     /**
