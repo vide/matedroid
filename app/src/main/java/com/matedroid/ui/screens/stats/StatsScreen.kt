@@ -1121,8 +1121,8 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(28.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .height(32.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(dcColor)
         ) {
             // AC portion (green)
@@ -1136,10 +1136,10 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                 if (showAcPercent) {
                     Text(
                         text = "$acPercent%",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = dcColor,
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.padding(start = 10.dp)
                     )
                 }
             }
@@ -1151,10 +1151,10 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                 ) {
                     Text(
                         text = "$dcPercent%",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = acColor,
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 10.dp)
                     )
                 }
             }
