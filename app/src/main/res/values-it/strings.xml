@@ -658,7 +658,7 @@
     <string name="stats_cabin_temperature">Temperatura Abitacolo</string>
 
     <!-- Section: ratio between AC and DC charging -->
-    <string name="stats_ac_dc_ratio">Rapporto CA/CC</string>
+    <string name="stats_ac_dc_ratio">Rapporto AC/DC</string>
 
     <!-- Label for energy charged via AC -->
     <string name="stats_ac_energy">Energia AC</string>
