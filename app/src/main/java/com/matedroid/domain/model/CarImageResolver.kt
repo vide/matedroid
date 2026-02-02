@@ -1,6 +1,30 @@
 package com.matedroid.domain.model
 
 /**
+ * Represents a car model variant for the image picker.
+ *
+ * @param id The internal variant ID (e.g., "my", "myj", "myjs", "myjp")
+ * @param displayNameResId The string resource ID for the display name
+ */
+data class CarVariant(
+    val id: String,
+    val displayNameResId: Int
+)
+
+/**
+ * Represents a wheel option for the image picker.
+ *
+ * @param code The wheel code (e.g., "WY18P", "WY19P")
+ * @param displayName The human-readable wheel name
+ * @param assetPath The full path to the asset for preview
+ */
+data class WheelOption(
+    val code: String,
+    val displayName: String,
+    val assetPath: String
+)
+
+/**
  * Resolves Tesla car image assets based on vehicle configuration.
  *
  * Maps TeslamateAPI values (e.g., "MidnightSilver", "Pinwheel18CapKit")
@@ -71,6 +95,9 @@ object CarImageResolver {
     // Legacy Model Y valid colors
     private val LEGACY_MY_COLORS = setOf("PBSB", "PMNG", "PPSW", "PPSB", "PPMR")
 
+    // Juniper Model Y Standard valid colors (limited to 3 colors with 18" Photon)
+    private val JUNIPER_MY_STANDARD_COLORS = setOf("PPSW", "PN01", "PX02")
+
     // Juniper Model Y valid colors (Standard/Premium)
     // Note: PN00/PR01/PPSB only available with Premium (MTY60) 19"/20" wheels
     private val JUNIPER_MY_COLORS = setOf("PPSW", "PN01", "PX02", "PN00", "PR01", "PPSB")
@@ -140,6 +167,12 @@ object CarImageResolver {
         "18" to "WY18P"
     )
 
+    // Juniper Model Y Standard wheels (only 18" Photon)
+    private val WHEEL_PATTERNS_MYJS = listOf(
+        "photon18" to "WY18P",
+        "18" to "WY18P"
+    )
+
     // Juniper Model Y Performance wheels
     private val WHEEL_PATTERNS_MYJP = listOf(
         "uberturbine21" to "WY21A",
@@ -167,6 +200,7 @@ object CarImageResolver {
         "m3h" to "W38A",
         "m3hp" to "W30P",
         "my" to "WY19B",
+        "myjs" to "WY18P",
         "myj" to "WY18P",
         "myjp" to "WY21A",
         "ms" to "WT19",
@@ -179,6 +213,7 @@ object CarImageResolver {
         "m3h" to "PPSW",
         "m3hp" to "PPSW",
         "my" to "PPSW",
+        "myjs" to "PPSW",
         "myj" to "PPSW",
         "myjp" to "PPSW",
         "ms" to "PPSW",
@@ -235,7 +270,7 @@ object CarImageResolver {
     fun getScaleFactorForVariant(modelVariant: String): Float {
         return when (modelVariant) {
             "m3h", "m3hp" -> 1.35f  // Highland Model 3 renders smaller
-            "myj", "myjp" -> 1.25f  // Juniper Model Y renders smaller
+            "myjs", "myj", "myjp" -> 1.25f  // Juniper Model Y renders smaller
             "mx" -> 1.4f            // Model X renders smaller
             else -> 1.0f            // Legacy models render at full size
         }
@@ -349,11 +384,12 @@ object CarImageResolver {
      * Validate that a color is available for the model variant.
      * Returns the color if valid, or a fallback color if not.
      */
-    private fun validateColorForVariant(modelVariant: String, colorCode: String): String {
+    fun validateColorForVariant(modelVariant: String, colorCode: String): String {
         val validColors = when (modelVariant) {
             "m3" -> LEGACY_M3_COLORS
             "m3h", "m3hp" -> HIGHLAND_M3_COLORS
             "my" -> LEGACY_MY_COLORS
+            "myjs" -> JUNIPER_MY_STANDARD_COLORS
             "myj" -> JUNIPER_MY_COLORS
             "myjp" -> JUNIPER_MY_PERF_COLORS
             "ms", "mx" -> MODEL_SX_COLORS
@@ -367,7 +403,13 @@ object CarImageResolver {
         }
     }
 
-    private fun mapColor(color: String?): String? {
+    /**
+     * Map an exterior color name to its compositor code.
+     *
+     * @param color The color name from TeslamateAPI (e.g., "MidnightSilver")
+     * @return The compositor code (e.g., "PMNG") or null if not found
+     */
+    fun mapColor(color: String?): String? {
         if (color == null) return null
         val normalized = color.lowercase().replace(" ", "").replace("-", "").replace("_", "")
         return COLOR_CODES[normalized]
@@ -384,6 +426,7 @@ object CarImageResolver {
             "m3hp" -> WHEEL_PATTERNS_M3HP
             "my" -> WHEEL_PATTERNS_MY
             "myj" -> WHEEL_PATTERNS_MYJ
+            "myjs" -> WHEEL_PATTERNS_MYJS
             "myjp" -> WHEEL_PATTERNS_MYJP
             "ms" -> WHEEL_PATTERNS_MS
             "mx" -> WHEEL_PATTERNS_MX
@@ -398,5 +441,136 @@ object CarImageResolver {
         }
 
         return null
+    }
+
+    // ==================== Image Picker Support ====================
+
+    // String resource IDs for variant names (must match R.string.car_variant_*)
+    // These are placeholder IDs - actual values will be resolved at runtime
+    object VariantResIds {
+        const val MY_LEGACY = "car_variant_my_legacy"
+        const val MY_STANDARD = "car_variant_my_standard"
+        const val MY_PREMIUM = "car_variant_my_premium"
+        const val MY_PERFORMANCE = "car_variant_my_performance"
+        const val M3_LEGACY = "car_variant_m3_legacy"
+        const val M3_HIGHLAND = "car_variant_m3_highland"
+        const val M3_HIGHLAND_PERF = "car_variant_m3_highland_perf"
+    }
+
+    // Wheel display names (not localized - technical names)
+    private val WHEEL_DISPLAY_NAMES = mapOf(
+        // Legacy Model 3
+        "W38B" to "18\" Aero",
+        "W39B" to "19\" Sport",
+        "W32P" to "20\" Performance",
+        // Highland Model 3
+        "W38A" to "18\" Photon",
+        "W30P" to "20\" Performance",
+        // Legacy Model Y
+        "WY18B" to "18\" Aero",
+        "WY19B" to "19\" Gemini",
+        "WY9S" to "19\" Apollo",
+        "WY0S" to "20\" Induction",
+        "WY20P" to "20\" Performance",
+        "WY1S" to "21\" Überturbine",
+        // Juniper Model Y Standard
+        "WY18P" to "18\" Photon",
+        // Juniper Model Y Premium
+        "WY19P" to "19\" Crossflow",
+        "WY20A" to "20\" Helix",
+        // Juniper Model Y Performance
+        "WY21A" to "21\" Überturbine",
+        // Model S
+        "WT19" to "19\" Tempest",
+        // Model X
+        "WT20" to "20\" Cyberstream",
+        "WT22" to "22\" Turbine"
+    )
+
+    // Available wheel codes per variant
+    private val VARIANT_WHEELS = mapOf(
+        "m3" to listOf("W38B", "W39B", "W32P"),
+        "m3h" to listOf("W38A"),
+        "m3hp" to listOf("W30P"),
+        "my" to listOf("WY18B", "WY19B", "WY0S", "WY20P", "WY1S"),
+        "myjs" to listOf("WY18P"),
+        "myj" to listOf("WY18P", "WY19P", "WY20A"),
+        "myjp" to listOf("WY21A"),
+        "ms" to listOf("WT19"),
+        "mx" to listOf("WT20", "WT22")
+    )
+
+    /**
+     * Get available variants for a model.
+     *
+     * @param model The car model from TeslamateAPI (e.g., "3", "Y")
+     * @return List of available variants for the picker
+     */
+    fun getVariantsForModel(model: String?): List<CarVariant> {
+        return when (model?.uppercase()) {
+            "Y" -> listOf(
+                CarVariant("my", VariantResIds.MY_LEGACY.hashCode()),
+                CarVariant("myjs", VariantResIds.MY_STANDARD.hashCode()),
+                CarVariant("myj", VariantResIds.MY_PREMIUM.hashCode()),
+                CarVariant("myjp", VariantResIds.MY_PERFORMANCE.hashCode())
+            )
+            "3" -> listOf(
+                CarVariant("m3", VariantResIds.M3_LEGACY.hashCode()),
+                CarVariant("m3h", VariantResIds.M3_HIGHLAND.hashCode()),
+                CarVariant("m3hp", VariantResIds.M3_HIGHLAND_PERF.hashCode())
+            )
+            else -> emptyList() // Model S/X don't have multiple variants to pick from
+        }
+    }
+
+    /**
+     * Get available wheels for a variant, with preview paths.
+     *
+     * @param variant The model variant (e.g., "my", "myj")
+     * @param colorCode The color code for generating preview paths (defaults to PPSW)
+     * @return List of wheel options with preview paths
+     */
+    fun getWheelsForVariant(variant: String, colorCode: String?): List<WheelOption> {
+        val wheels = VARIANT_WHEELS[variant] ?: return emptyList()
+        val color = colorCode ?: DEFAULT_COLORS[variant] ?: "PPSW"
+        val validatedColor = validateColorForVariant(variant, color)
+
+        return wheels.map { wheelCode ->
+            WheelOption(
+                code = wheelCode,
+                displayName = WHEEL_DISPLAY_NAMES[wheelCode] ?: wheelCode,
+                assetPath = "car_images/${variant}_${validatedColor}_${wheelCode}.png"
+            )
+        }
+    }
+
+    /**
+     * Build an asset path from manual override selection.
+     *
+     * @param variant The model variant (e.g., "my", "myj")
+     * @param colorCode The color code (optional, will use default if not provided)
+     * @param wheelCode The wheel code
+     * @return The asset path for the selected configuration
+     */
+    fun getAssetPathForOverride(variant: String, colorCode: String?, wheelCode: String): String {
+        val color = colorCode ?: DEFAULT_COLORS[variant] ?: "PPSW"
+        val validatedColor = validateColorForVariant(variant, color)
+        return "car_images/${variant}_${validatedColor}_${wheelCode}.png"
+    }
+
+    /**
+     * Get the variant display name resource ID.
+     */
+    fun getVariantDisplayNameResId(variant: String): String {
+        return when (variant) {
+            "my" -> VariantResIds.MY_LEGACY
+            "myjs" -> VariantResIds.MY_STANDARD
+            "myj" -> VariantResIds.MY_PREMIUM
+            "myjp" -> VariantResIds.MY_PERFORMANCE
+            "m3" -> VariantResIds.M3_LEGACY
+            "m3h" -> VariantResIds.M3_HIGHLAND
+            "m3hp" -> VariantResIds.M3_HIGHLAND_PERF
+            else -> variant
+        }
     }
 }

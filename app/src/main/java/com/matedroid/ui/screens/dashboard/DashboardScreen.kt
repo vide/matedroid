@@ -9,9 +9,11 @@ import android.graphics.Paint
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -110,6 +112,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.data.local.CarImageOverride
+import com.matedroid.ui.components.CarImagePickerDialog
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -263,6 +267,7 @@ fun DashboardScreen(
                         resolvedAddress = uiState.resolvedAddress,
                         totalCharges = uiState.totalCharges,
                         totalDrives = uiState.totalDrives,
+                        imageOverride = uiState.carImageOverride,
                         onNavigateToCharges = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToCharges(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -292,6 +297,9 @@ fun DashboardScreen(
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToStats(carId, uiState.selectedCarExterior?.exteriorColor)
                             }
+                        },
+                        onSaveCarImageOverride = { override ->
+                            viewModel.saveCarImageOverride(override)
                         }
                     )
                 }
@@ -422,15 +430,39 @@ private fun DashboardContent(
     resolvedAddress: String? = null,
     totalCharges: Int? = null,
     totalDrives: Int? = null,
+    imageOverride: CarImageOverride? = null,
     onNavigateToCharges: () -> Unit = {},
     onNavigateToDrives: () -> Unit = {},
     onNavigateToBattery: () -> Unit = {},
     onNavigateToMileage: () -> Unit = {},
     onNavigateToUpdates: () -> Unit = {},
-    onNavigateToStats: () -> Unit = {}
+    onNavigateToStats: () -> Unit = {},
+    onSaveCarImageOverride: (CarImageOverride?) -> Unit = {}
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(carExterior?.exteriorColor, isDarkTheme)
+
+    // State for showing the car image picker dialog
+    var showCarImagePicker by remember { mutableStateOf(false) }
+
+    // Car image picker dialog
+    if (showCarImagePicker) {
+        // Map color name to code
+        val colorCode = CarImageResolver.mapColor(carExterior?.exteriorColor)
+
+        CarImagePickerDialog(
+            model = carModel,
+            colorCode = colorCode,
+            currentOverride = imageOverride,
+            onDismiss = { showCarImagePicker = false },
+            onConfirm = { override ->
+                onSaveCarImageOverride(override)
+            },
+            onReset = {
+                onSaveCarImageOverride(null)
+            }
+        )
+    }
 
     // Scrollable content
     Column(
@@ -447,8 +479,10 @@ private fun DashboardContent(
             carModel = carModel,
             carTrimBadging = carTrimBadging,
             carExterior = carExterior,
+            imageOverride = imageOverride,
             onNavigateToBattery = onNavigateToBattery,
-            onNavigateToStats = onNavigateToStats
+            onNavigateToStats = onNavigateToStats,
+            onCarImageLongPress = { showCarImagePicker = true }
         )
 
         // Location Section - show if we have coordinates
@@ -516,6 +550,7 @@ private fun createGlowBitmap(source: Bitmap, glowColor: Color, glowRadius: Float
     return glowBitmap
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CarImage(
     carModel: String?,
@@ -526,25 +561,41 @@ private fun CarImage(
     isDcCharging: Boolean = false,
     accentColor: Color = Color.Transparent,
     carSurfaceColor: Color = Color.Transparent,
-    onNavigateToStats: (() -> Unit)? = null
+    imageOverride: CarImageOverride? = null,
+    onNavigateToStats: (() -> Unit)? = null,
+    onLongPress: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val assetPath = remember(carModel, carTrimBadging, carExterior) {
-        CarImageResolver.getAssetPath(
-            model = carModel,
-            exteriorColor = carExterior?.exteriorColor,
-            wheelType = carExterior?.wheelType,
-            trimBadging = carTrimBadging
-        )
+
+    // Use override if set, otherwise auto-detect
+    val assetPath = remember(carModel, carTrimBadging, carExterior, imageOverride) {
+        if (imageOverride != null) {
+            CarImageResolver.getAssetPathForOverride(
+                variant = imageOverride.variant,
+                colorCode = CarImageResolver.mapColor(carExterior?.exteriorColor),
+                wheelCode = imageOverride.wheelCode
+            )
+        } else {
+            CarImageResolver.getAssetPath(
+                model = carModel,
+                exteriorColor = carExterior?.exteriorColor,
+                wheelType = carExterior?.wheelType,
+                trimBadging = carTrimBadging
+            )
+        }
     }
 
-    val scaleFactor = remember(carModel, carTrimBadging, carExterior) {
-        CarImageResolver.getScaleFactor(
-            model = carModel,
-            exteriorColor = carExterior?.exteriorColor,
-            wheelType = carExterior?.wheelType,
-            trimBadging = carTrimBadging
-        )
+    val scaleFactor = remember(carModel, carTrimBadging, carExterior, imageOverride) {
+        if (imageOverride != null) {
+            CarImageResolver.getScaleFactorForVariant(imageOverride.variant)
+        } else {
+            CarImageResolver.getScaleFactor(
+                model = carModel,
+                exteriorColor = carExterior?.exteriorColor,
+                wheelType = carExterior?.wheelType,
+                trimBadging = carTrimBadging
+            )
+        }
     }
 
     val bitmap = remember(assetPath) {
@@ -615,8 +666,11 @@ private fun CarImage(
             modifier = modifier
                 .height(210.dp)
                 .then(
-                    if (onNavigateToStats != null) {
-                        Modifier.clickable(onClick = onNavigateToStats)
+                    if (onNavigateToStats != null || onLongPress != null) {
+                        Modifier.combinedClickable(
+                            onClick = { onNavigateToStats?.invoke() },
+                            onLongClick = { onLongPress?.invoke() }
+                        )
                     } else {
                         Modifier
                     }
@@ -957,8 +1011,10 @@ private fun BatteryCard(
     carModel: String? = null,
     carTrimBadging: String? = null,
     carExterior: CarExterior? = null,
+    imageOverride: CarImageOverride? = null,
     onNavigateToBattery: () -> Unit = {},
-    onNavigateToStats: () -> Unit = {}
+    onNavigateToStats: () -> Unit = {},
+    onCarImageLongPress: () -> Unit = {}
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(carExterior?.exteriorColor, isDarkTheme)
@@ -1000,7 +1056,9 @@ private fun BatteryCard(
                 isDcCharging = status.isDcCharging,
                 accentColor = palette.accent,
                 carSurfaceColor = palette.surface,
-                onNavigateToStats = onNavigateToStats
+                imageOverride = imageOverride,
+                onNavigateToStats = onNavigateToStats,
+                onLongPress = onCarImageLongPress
             )
 
             // Battery info row - tappable to navigate to battery health

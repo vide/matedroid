@@ -76,6 +76,7 @@ class DashboardViewModelTest {
         settingsDataStore = mockk()
         // Default: no previously selected car
         every { settingsDataStore.settings } returns flowOf(AppSettings())
+        every { settingsDataStore.carImageOverrides } returns flowOf(emptyMap())
         coEvery { settingsDataStore.saveLastSelectedCarId(any()) } returns Unit
     }
 

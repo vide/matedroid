@@ -6,6 +6,7 @@ import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
@@ -33,7 +34,8 @@ data class DashboardUiState(
     val totalCharges: Int? = null,
     val totalDrives: Int? = null,
     val error: String? = null,
-    val errorDetails: String? = null
+    val errorDetails: String? = null,
+    val carImageOverride: CarImageOverride? = null
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -76,6 +78,16 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadCars()
+        observeCarImageOverrides()
+    }
+
+    private fun observeCarImageOverrides() {
+        viewModelScope.launch {
+            settingsDataStore.carImageOverrides.collect { overrides ->
+                val carId = _uiState.value.selectedCarId
+                _uiState.update { it.copy(carImageOverride = carId?.let { id -> overrides[id] }) }
+            }
+        }
     }
 
     fun loadCars() {
@@ -251,5 +263,17 @@ class DashboardViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null, errorDetails = null) }
+    }
+
+    /**
+     * Save or clear a car image override for the current car.
+     *
+     * @param override The override to save, or null to reset to automatic detection
+     */
+    fun saveCarImageOverride(override: CarImageOverride?) {
+        val carId = _uiState.value.selectedCarId ?: return
+        viewModelScope.launch {
+            settingsDataStore.saveCarImageOverride(carId, override)
+        }
     }
 }

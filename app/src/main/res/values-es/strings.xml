@@ -993,4 +993,34 @@
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - Cargando</string>
     <string name="charging_notification_loading">Comprobando estado de carga…</string>
+
+    <!-- ==================== Car Image Picker ==================== -->
+    <!-- Dialog title for selecting car appearance (long-press on car image) -->
+    <string name="car_picker_title">Seleccionar aspecto del coche</string>
+
+    <!-- Label for model variant selector section -->
+    <string name="car_picker_model_variant">Variante del modelo</string>
+
+    <!-- Label for wheel style selector section -->
+    <string name="car_picker_wheel_style">Estilo de llantas</string>
+
+    <!-- Button to confirm the car image selection -->
+    <string name="car_picker_confirm">Confirmar selección</string>
+
+    <!-- Button to reset to automatic detection -->
+    <string name="car_picker_auto">Auto</string>
+
+    <!-- Hint text shown below wheel carousel -->
+    <string name="car_picker_tap_to_select">Toca una imagen para seleccionarla</string>
+
+    <!-- Model Y variant names -->
+    <string name="car_variant_my_legacy">MY pre-2025</string>
+    <string name="car_variant_my_standard">MY 2025 Standard</string>
+    <string name="car_variant_my_premium">MY 2025 Premium</string>
+    <string name="car_variant_my_performance">MY 2025 Performance</string>
+
+    <!-- Model 3 variant names -->
+    <string name="car_variant_m3_legacy">M3 pre-2024</string>
+    <string name="car_variant_m3_highland">M3 2024+</string>
+    <string name="car_variant_m3_highland_perf">M3 2024+ Performance</string>
 </resources>
