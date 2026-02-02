@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Stats for nerds**: AC/DC ratio bar now shows percentage values inside with inverted colors
+- **Stats for nerds**: Replaced "Top Speed" with "Cost / 100 km" in Drives Overview - a more useful metric for tracking EV operating costs
 
 ### Fixed
 - **Stats for nerds**: Fixed AC/DC translation inconsistency - technical terms should not be translated (CA/CC → AC/DC)
