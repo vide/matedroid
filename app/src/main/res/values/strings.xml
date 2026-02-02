@@ -546,6 +546,9 @@
     <!-- Label for maximum speed recorded -->
     <string name="stats_top_speed">Top Speed</string>
 
+    <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
+    <string name="stats_cost_per_distance">Cost / 100 %1$s</string>
+
     <!-- Section: Charges Overview - summary statistics about all charges -->
     <string name="stats_charges_overview">Charges Overview</string>
 

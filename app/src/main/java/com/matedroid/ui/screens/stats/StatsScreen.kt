@@ -412,7 +412,7 @@ private fun StatsContent(
 
         // Quick Stats - Drives Overview
         item {
-            QuickStatsDrivesCard(quickStats = stats.quickStats, palette = palette)
+            QuickStatsDrivesCard(quickStats = stats.quickStats, palette = palette, currencySymbol = currencySymbol)
         }
 
         // Quick Stats - Charges Overview
@@ -587,7 +587,14 @@ private fun GeocodeProgressCard(
 // ======== Quick Stats Cards ========
 
 @Composable
-private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalette) {
+private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalette, currencySymbol: String) {
+    // Calculate cost per 100 km: (totalCost / totalDistanceKm) * 100
+    val costPer100Km = if (quickStats.totalCost != null && quickStats.totalCost > 0 && quickStats.totalDistanceKm > 0) {
+        (quickStats.totalCost / quickStats.totalDistanceKm) * 100
+    } else {
+        null
+    }
+
     StatsCard(
         title = stringResource(R.string.stats_drives_overview),
         icon = Icons.Default.DirectionsCar,
@@ -626,8 +633,8 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
                 modifier = Modifier.weight(1f)
             )
             StatItem(
-                label = stringResource(R.string.stats_top_speed),
-                value = quickStats.maxSpeedKmh?.let { "$it km/h" } ?: "N/A",
+                label = stringResource(R.string.stats_cost_per_distance, "km"),
+                value = costPer100Km?.let { "%.2f %s".format(it, currencySymbol) } ?: "N/A",
                 modifier = Modifier.weight(1f)
             )
         }
