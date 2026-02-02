@@ -1139,7 +1139,7 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = dcColor,
-                        modifier = Modifier.padding(start = 10.dp)
+                        modifier = Modifier.padding(start = 6.dp)
                     )
                 }
             }
@@ -1154,7 +1154,7 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = acColor,
-                        modifier = Modifier.padding(end = 10.dp)
+                        modifier = Modifier.padding(end = 6.dp)
                     )
                 }
             }
