@@ -1121,8 +1121,8 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(32.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .height(20.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(dcColor)
         ) {
             // AC portion (green)
@@ -1139,7 +1139,7 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = dcColor,
-                        modifier = Modifier.padding(start = 6.dp)
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
@@ -1154,7 +1154,7 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = acColor,
-                        modifier = Modifier.padding(end = 6.dp)
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                 }
             }
