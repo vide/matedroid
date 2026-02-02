@@ -1111,20 +1111,53 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Custom ratio bar (thicker, green/yellow)
+        // Custom ratio bar with percentage labels
+        val acPercent = (acRatio * 100).toInt()
+        val dcPercent = 100 - acPercent
+        // Only show percentage if segment is wide enough (>= 15%)
+        val showAcPercent = acPercent >= 15
+        val showDcPercent = dcPercent >= 15
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(20.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .height(28.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(dcColor)
         ) {
+            // AC portion (green)
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(acRatio)
-                    .background(acColor)
-            )
+                    .background(acColor),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (showAcPercent) {
+                    Text(
+                        text = "$acPercent%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = dcColor,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+            // DC percentage label (positioned at the end)
+            if (showDcPercent) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Text(
+                        text = "$dcPercent%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = acColor,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(4.dp))
