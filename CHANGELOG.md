@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Charging Notifications**: Live update notifications during charging sessions (Android 16+) with visual battery progress bar showing current level and charge limit. Falls back to standard dismissable notifications on older Android versions.
 
+### Changed
+- **Stats for nerds**: AC/DC ratio bar now shows percentage values inside with inverted colors
+
 ### Fixed
 - **Stats for nerds**: Fixed AC/DC translation inconsistency - technical terms should not be translated (CA/CC → AC/DC)
 
