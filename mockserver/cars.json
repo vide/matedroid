@@ -65,6 +65,17 @@
       "wheel_type": "Crossflow19"
     }
   },
+  "modely_juniper_red_19": {
+    "car_details": {
+      "model": "Y",
+      "trim_badging": "74"
+    },
+    "car_exterior": {
+      "exterior_color": "RedMulticoat",
+      "spoiler_type": "None",
+      "wheel_type": "Crossflow19"
+    }
+  },
   "modely_juniper_blue_19": {
     "car_details": {
       "model": "Y",
