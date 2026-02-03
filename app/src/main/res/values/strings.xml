@@ -1013,6 +1013,9 @@
     <!-- Hint text shown below wheel carousel -->
     <string name="car_picker_tap_to_select">Tap a car image to select it</string>
 
+    <!-- Hint text shown when a car is selected, tap again to confirm -->
+    <string name="car_picker_tap_to_confirm">Tap again to confirm</string>
+
     <!-- Model Y variant names -->
     <string name="car_variant_my_legacy">MY pre-2025</string>
     <string name="car_variant_my_standard">MY 2025 Standard</string>

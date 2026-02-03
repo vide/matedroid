@@ -16,15 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +44,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.domain.model.CarImageResolver
@@ -51,6 +53,8 @@ import com.matedroid.domain.model.WheelOption
 
 /**
  * A dialog for manually selecting car appearance (variant and wheel style).
+ *
+ * Tapping a car image selects it, tapping again confirms the selection.
  *
  * @param model The car model from TeslamateAPI (e.g., "3", "Y")
  * @param colorCode The exterior color code (e.g., "PPSW", "PN01")
@@ -72,18 +76,28 @@ fun CarImagePickerDialog(
 
     // If no variants available (Model S/X), show info message and dismiss
     if (variants.isEmpty()) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.car_picker_title)) },
-            text = {
-                Text("No variants available for this model.")
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.ok))
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.car_picker_title),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("No variants available for this model.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.ok))
+                    }
                 }
             }
-        )
+        }
         return
     }
 
@@ -97,31 +111,46 @@ fun CarImagePickerDialog(
         CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
     }
 
-    // Initialize selected wheel from override or first available
+    // Initialize selected wheel from override or null (nothing pre-selected for tap-to-confirm)
     var selectedWheel by remember(currentOverride, wheels) {
-        mutableStateOf(currentOverride?.wheelCode ?: wheels.firstOrNull()?.code ?: "")
+        mutableStateOf<String?>(currentOverride?.wheelCode)
     }
 
-    // Update selected wheel when variant changes
+    // Update selected wheel when variant changes - reset to null so user must tap to select
     LaunchedEffect(selectedVariant) {
         val newWheels = CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
-        if (newWheels.isNotEmpty() && newWheels.none { it.code == selectedWheel }) {
-            selectedWheel = newWheels.first().code
+        if (newWheels.isNotEmpty() && (selectedWheel == null || newWheels.none { it.code == selectedWheel })) {
+            selectedWheel = null
         }
     }
 
-    // Check if selection differs from current override
-    val selectionChanged = currentOverride == null ||
-            currentOverride.variant != selectedVariant ||
-            currentOverride.wheelCode != selectedWheel
-
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.car_picker_title)) },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = 400.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
             ) {
+                // Title
+                Text(
+                    text = stringResource(R.string.car_picker_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
                 // Variant selector
                 Text(
                     text = stringResource(R.string.car_picker_model_variant),
@@ -135,7 +164,7 @@ fun CarImagePickerDialog(
                     onVariantSelected = { selectedVariant = it }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Wheel selector
                 Text(
@@ -143,55 +172,61 @@ fun CarImagePickerDialog(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 WheelCarousel(
                     wheels = wheels,
                     selectedWheel = selectedWheel,
-                    onWheelSelected = { selectedWheel = it },
+                    onWheelTapped = { wheelCode ->
+                        if (selectedWheel == wheelCode) {
+                            // Tap again on selected wheel - confirm selection
+                            onConfirm(CarImageOverride(selectedVariant, wheelCode))
+                            onDismiss()
+                        } else {
+                            // First tap - select this wheel
+                            selectedWheel = wheelCode
+                        }
+                    },
                     variant = selectedVariant
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hint text - changes based on whether something is selected
                 Text(
-                    text = stringResource(R.string.car_picker_tap_to_select),
+                    text = if (selectedWheel != null) {
+                        stringResource(R.string.car_picker_tap_to_confirm)
+                    } else {
+                        stringResource(R.string.car_picker_tap_to_select)
+                    },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (selectedWheel != null) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    fontWeight = if (selectedWheel != null) FontWeight.Medium else FontWeight.Normal,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-            }
-        },
-        confirmButton = {
-            Row {
-                // Auto/Reset button
-                if (currentOverride != null) {
-                    TextButton(onClick = {
-                        onReset()
-                        onDismiss()
-                    }) {
-                        Text(stringResource(R.string.car_picker_auto))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
 
-                // Confirm button
-                Button(
-                    onClick = {
-                        onConfirm(CarImageOverride(selectedVariant, selectedWheel))
-                        onDismiss()
-                    },
-                    enabled = selectionChanged
-                ) {
-                    Text(stringResource(R.string.car_picker_confirm))
+                // Auto reset button (only show if there's an existing override)
+                if (currentOverride != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        TextButton(onClick = {
+                            onReset()
+                            onDismiss()
+                        }) {
+                            Text(stringResource(R.string.car_picker_auto))
+                        }
+                    }
                 }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -240,8 +275,8 @@ private fun getVariantDisplayName(variantId: String): String {
 @Composable
 private fun WheelCarousel(
     wheels: List<WheelOption>,
-    selectedWheel: String,
-    onWheelSelected: (String) -> Unit,
+    selectedWheel: String?,
+    onWheelTapped: (String) -> Unit,
     variant: String
 ) {
     val context = LocalContext.current
@@ -249,9 +284,11 @@ private fun WheelCarousel(
 
     // Scroll to selected wheel when it changes
     LaunchedEffect(selectedWheel) {
-        val index = wheels.indexOfFirst { it.code == selectedWheel }
-        if (index >= 0) {
-            listState.animateScrollToItem(index)
+        if (selectedWheel != null) {
+            val index = wheels.indexOfFirst { it.code == selectedWheel }
+            if (index >= 0) {
+                listState.animateScrollToItem(index)
+            }
         }
     }
 
@@ -261,7 +298,7 @@ private fun WheelCarousel(
 
     LazyRow(
         state = listState,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
         items(wheels) { wheel ->
@@ -270,7 +307,7 @@ private fun WheelCarousel(
                 wheel = wheel,
                 isSelected = isSelected,
                 scaleFactor = scaleFactor,
-                onClick = { onWheelSelected(wheel.code) }
+                onClick = { onWheelTapped(wheel.code) }
             )
         }
     }
@@ -306,9 +343,9 @@ private fun WheelOptionItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(120.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .border(borderWidth, borderColor, RoundedCornerShape(12.dp))
+            .width(160.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(borderWidth, borderColor, RoundedCornerShape(16.dp))
             .background(
                 if (isSelected) {
                     MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -317,12 +354,12 @@ private fun WheelOptionItem(
                 }
             )
             .clickable(onClick = onClick)
-            .padding(8.dp)
+            .padding(12.dp)
     ) {
-        // Car image
+        // Car image - bigger size
         Box(
             modifier = Modifier
-                .size(100.dp),
+                .size(140.dp),
             contentAlignment = Alignment.Center
         ) {
             if (bitmap != null) {
@@ -330,10 +367,10 @@ private fun WheelOptionItem(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = wheel.displayName,
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(140.dp)
                         .graphicsLayer {
-                            scaleX = scaleFactor * 0.9f
-                            scaleY = scaleFactor * 0.9f
+                            scaleX = scaleFactor
+                            scaleY = scaleFactor
                         },
                     contentScale = ContentScale.Fit
                 )
@@ -341,7 +378,7 @@ private fun WheelOptionItem(
                 // Placeholder if image not found
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(100.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(8.dp)
@@ -357,12 +394,12 @@ private fun WheelOptionItem(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Wheel name
         Text(
             text = wheel.displayName,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = if (isSelected) {
                 MaterialTheme.colorScheme.primary
