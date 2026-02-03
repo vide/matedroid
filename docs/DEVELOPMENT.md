@@ -124,6 +124,100 @@ Python script to download Tesla car 3D renders from Tesla's compositor service. 
 
 See [ASSETS.md](ASSETS.md) for detailed documentation on Tesla compositor APIs, color/wheel code mappings, and troubleshooting.
 
+### Mock Server
+
+The `mockserver/` directory contains a proxy server that lets you test the app with different Tesla car configurations without owning multiple vehicles. It forwards requests to a real Teslamate API instance while injecting mock car information (model, color, trim, wheels).
+
+#### Requirements
+
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) (for automatic dependency management)
+
+#### Usage
+
+```bash
+# List available car profiles
+./mockserver/server.py --list-cars
+
+# Start the mock server (proxies to upstream and injects car overrides)
+./mockserver/server.py --upstream http://your-teslamate-api:4000 --car modely_juniper_grey_19
+
+# With custom port
+./mockserver/server.py -u http://localhost:4000 -c model3_highland_white_18 -p 5000
+```
+
+Then configure the app to connect to `http://localhost:4001` (or your chosen port) instead of the real Teslamate API.
+
+#### Command-line Options
+
+| Option | Description |
+|--------|-------------|
+| `-u, --upstream` | Upstream Teslamate API URL (required) |
+| `-c, --car` | Car profile name from cars.json (required) |
+| `-p, --port` | Port to run mock server on (default: 4001) |
+| `--host` | Host to bind to (default: 127.0.0.1) |
+| `--cars-file` | Path to cars config JSON (default: cars.json) |
+| `--list-cars` | List available car profiles and exit |
+
+#### Car Profiles
+
+Car profiles are defined in `mockserver/cars.json`. Each profile specifies overrides that get deep-merged into the API response for `/api/v1/cars/*` endpoints:
+
+```json
+{
+  "profile_name": {
+    "car_details": {
+      "model": "Y",
+      "trim_badging": "74"
+    },
+    "car_exterior": {
+      "exterior_color": "StealthGrey",
+      "spoiler_type": "None",
+      "wheel_type": "Crossflow19"
+    }
+  }
+}
+```
+
+The naming convention for profiles is: `{model}_{generation}_{color}_{wheels}`
+
+Pre-configured profiles include:
+- **Model 3 Legacy**: `model3_legacy_white_18`, `model3_legacy_black_18`, etc.
+- **Model 3 Highland**: `model3_highland_white_18`, `model3_highland_grey`, `model3_highland_perf_red`, etc.
+- **Model Y Legacy**: `modely_legacy_white_gemini`, `modely_legacy_blue_induction`, etc.
+- **Model Y Juniper**: `modely_juniper_white_19`, `modely_juniper_grey_20`, `modely_juniper_perf_red`, etc.
+- **Model S/X**: `models_plaid_white`, `modelx_plaid_blue`, `models_100d_silver`, etc.
+- **Cybertruck**: `cybertruck_foundation`
+
+#### Known Values Reference
+
+**Models**: `3`, `Y`, `S`, `X`, `Cybertruck`
+
+**Trim badging**:
+- Model 3 Highland: `LRAWD`, `P` (Performance)
+- Model 3 Legacy: `74D`, `P74D`
+- Model Y Juniper: `50` (RWD), `74` (AWD), `P74D` (Performance)
+- Model Y Legacy: `74D`, `P74D`
+- Model S/X: `100D`, `Plaid`
+
+**Exterior colors**: `PearlWhite`, `StealthGrey`, `DeepBlue`, `UltraRed`, `RedMulticoat`, `MidnightSilver`, `SolidBlack`, `Quicksilver`, `BlackDiamond`, `ObsidianBlack`, `StainlessSteel`
+
+**Wheel types**:
+- Model 3 Highland: `Glider18`, `Pinwheel18CapKit`, `Photon18`, `Performance20`
+- Model 3 Legacy: `Pinwheel18`, `Sport19`, `Performance20`
+- Model Y Juniper: `Photon18`, `Crossflow19`, `Helix20`, `Uberturbine21`
+- Model Y Legacy: `Gemini19`, `Induction20`, `Uberturbine21`
+- Model S: `Tempest19`
+- Model X: `Turbine22`, `Cyberstream20`
+- Cybertruck: `Cybertruck20`
+
+#### How It Works
+
+1. The server listens on the configured port (default 4001)
+2. All incoming requests are proxied to the upstream Teslamate API
+3. For `/api/v1/cars/*` endpoints, the response JSON is modified to include the overrides from the selected car profile (deep-merged into `car_details` and `car_exterior`)
+4. Other endpoints are passed through unchanged
+
 ### Running Tests
 
 ```bash
