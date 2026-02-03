@@ -1,178 +1,254 @@
 {
+  "model3_legacy_white_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+  "model3_legacy_white_19": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Sport19" }
+  },
+  "model3_legacy_white_perf": {
+    "car_details": { "model": "3", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Performance20" }
+  },
+  "model3_legacy_black_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "SolidBlack", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+  "model3_legacy_silver_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+  "model3_legacy_blue_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+  "model3_legacy_red_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "RedMulticoat", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+  "model3_legacy_obsidian_18": {
+    "car_details": { "model": "3", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "ObsidianBlack", "spoiler_type": "None", "wheel_type": "Pinwheel18" }
+  },
+
   "model3_highland_white_18": {
-    "car_details": {
-      "model": "3",
-      "trim_badging": "LRAWD"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Glider18"
-    }
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
   "model3_highland_white_pinwheel": {
-    "car_details": {
-      "model": "3",
-      "trim_badging": "LRAWD"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Pinwheel18CapKit"
-    }
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Pinwheel18CapKit" }
+  },
+  "model3_highland_black_18": {
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "SolidBlack", "spoiler_type": "None", "wheel_type": "Glider18" }
+  },
+  "model3_highland_blue_18": {
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
   "model3_highland_red": {
-    "car_details": {
-      "model": "3",
-      "trim_badging": "LRAWD"
-    },
-    "car_exterior": {
-      "exterior_color": "RedMulticoat",
-      "spoiler_type": "None",
-      "wheel_type": "Glider18"
-    }
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "UltraRed", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
-  "model3_legacy_white": {
-    "car_details": {
-      "model": "3",
-      "trim_badging": "74D"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Pinwheel18"
-    }
+  "model3_highland_quicksilver": {
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "Quicksilver", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
-  "modely_juniper_grey_19": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "74"
-    },
-    "car_exterior": {
-      "exterior_color": "StealthGrey",
-      "spoiler_type": "None",
-      "wheel_type": "Crossflow19"
-    }
+  "model3_highland_grey": {
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
-  "modely_juniper_white_19": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "74"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Crossflow19"
-    }
+  "model3_highland_diamond": {
+    "car_details": { "model": "3", "trim_badging": "LRAWD" },
+    "car_exterior": { "exterior_color": "BlackDiamond", "spoiler_type": "None", "wheel_type": "Glider18" }
   },
-  "modely_juniper_red_19": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "74"
-    },
-    "car_exterior": {
-      "exterior_color": "RedMulticoat",
-      "spoiler_type": "None",
-      "wheel_type": "Crossflow19"
-    }
+
+  "model3_highland_perf_white": {
+    "car_details": { "model": "3", "trim_badging": "P" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Performance20" }
   },
-  "modely_juniper_blue_19": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "50"
-    },
-    "car_exterior": {
-      "exterior_color": "DeepBlue",
-      "spoiler_type": "None",
-      "wheel_type": "Apollo19"
-    }
+  "model3_highland_perf_red": {
+    "car_details": { "model": "3", "trim_badging": "P" },
+    "car_exterior": { "exterior_color": "UltraRed", "spoiler_type": "None", "wheel_type": "Performance20" }
   },
-  "modely_juniper_performance": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "P74D"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Uberturbine21"
-    }
+  "model3_highland_perf_grey": {
+    "car_details": { "model": "3", "trim_badging": "P" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Performance20" }
   },
-  "modely_legacy_white": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "74D"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Gemini19"
-    }
+
+  "modely_legacy_white_gemini": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Gemini19" }
+  },
+  "modely_legacy_white_induction": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Induction20" }
+  },
+  "modely_legacy_white_uberturbine": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_legacy_black_gemini": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "SolidBlack", "spoiler_type": "None", "wheel_type": "Gemini19" }
+  },
+  "modely_legacy_silver_gemini": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Gemini19" }
+  },
+  "modely_legacy_blue_gemini": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Gemini19" }
   },
   "modely_legacy_blue_induction": {
-    "car_details": {
-      "model": "Y",
-      "trim_badging": "74D"
-    },
-    "car_exterior": {
-      "exterior_color": "DeepBlue",
-      "spoiler_type": "None",
-      "wheel_type": "Induction20"
-    }
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Induction20" }
+  },
+  "modely_legacy_red_gemini": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "RedMulticoat", "spoiler_type": "None", "wheel_type": "Gemini19" }
+  },
+
+  "modely_juniper_white_18": {
+    "car_details": { "model": "Y", "trim_badging": "50" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Photon18" }
+  },
+  "modely_juniper_white_19": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Crossflow19" }
+  },
+  "modely_juniper_white_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+  "modely_juniper_grey_18": {
+    "car_details": { "model": "Y", "trim_badging": "50" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Photon18" }
+  },
+  "modely_juniper_grey_19": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Crossflow19" }
+  },
+  "modely_juniper_grey_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+  "modely_juniper_diamond_19": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "BlackDiamond", "spoiler_type": "None", "wheel_type": "Crossflow19" }
+  },
+  "modely_juniper_diamond_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "BlackDiamond", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+  "modely_juniper_red_19": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "UltraRed", "spoiler_type": "None", "wheel_type": "Crossflow19" }
+  },
+  "modely_juniper_red_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "UltraRed", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+  "modely_juniper_quicksilver_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "Quicksilver", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+  "modely_juniper_blue_19": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Crossflow19" }
+  },
+  "modely_juniper_blue_20": {
+    "car_details": { "model": "Y", "trim_badging": "74" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Helix20" }
+  },
+
+  "modely_juniper_perf_white": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_juniper_perf_grey": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "StealthGrey", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_juniper_perf_diamond": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "BlackDiamond", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_juniper_perf_red": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "UltraRed", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_juniper_perf_quicksilver": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "Quicksilver", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+  "modely_juniper_perf_blue": {
+    "car_details": { "model": "Y", "trim_badging": "P74D" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Uberturbine21" }
+  },
+
+  "models_plaid_white": {
+    "car_details": { "model": "S", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "Active", "wheel_type": "Tempest19" }
+  },
+  "models_plaid_black": {
+    "car_details": { "model": "S", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "SolidBlack", "spoiler_type": "Active", "wheel_type": "Tempest19" }
+  },
+  "models_plaid_silver": {
+    "car_details": { "model": "S", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "Active", "wheel_type": "Tempest19" }
   },
   "models_plaid_blue": {
-    "car_details": {
-      "model": "S",
-      "trim_badging": "Plaid"
-    },
-    "car_exterior": {
-      "exterior_color": "DeepBlue",
-      "spoiler_type": "Active",
-      "wheel_type": "AeroTurbine22"
-    }
+    "car_details": { "model": "S", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "Active", "wheel_type": "Tempest19" }
   },
-  "models_100d_grey": {
-    "car_details": {
-      "model": "S",
-      "trim_badging": "100D"
-    },
-    "car_exterior": {
-      "exterior_color": "MidnightSilver",
-      "spoiler_type": "None",
-      "wheel_type": "Tempest19"
-    }
+  "models_plaid_red": {
+    "car_details": { "model": "S", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "RedMulticoat", "spoiler_type": "Active", "wheel_type": "Tempest19" }
   },
+  "models_100d_white": {
+    "car_details": { "model": "S", "trim_badging": "100D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Tempest19" }
+  },
+  "models_100d_silver": {
+    "car_details": { "model": "S", "trim_badging": "100D" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Tempest19" }
+  },
+
   "modelx_plaid_white": {
-    "car_details": {
-      "model": "X",
-      "trim_badging": "Plaid"
-    },
-    "car_exterior": {
-      "exterior_color": "PearlWhite",
-      "spoiler_type": "None",
-      "wheel_type": "Turbine22"
-    }
+    "car_details": { "model": "X", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Turbine22" }
   },
-  "modelx_100d_grey": {
-    "car_details": {
-      "model": "X",
-      "trim_badging": "100D"
-    },
-    "car_exterior": {
-      "exterior_color": "MidnightSilver",
-      "spoiler_type": "None",
-      "wheel_type": "Cyclone20"
-    }
+  "modelx_plaid_black": {
+    "car_details": { "model": "X", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "SolidBlack", "spoiler_type": "None", "wheel_type": "Turbine22" }
   },
+  "modelx_plaid_silver": {
+    "car_details": { "model": "X", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Turbine22" }
+  },
+  "modelx_plaid_blue": {
+    "car_details": { "model": "X", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Turbine22" }
+  },
+  "modelx_plaid_red": {
+    "car_details": { "model": "X", "trim_badging": "Plaid" },
+    "car_exterior": { "exterior_color": "RedMulticoat", "spoiler_type": "None", "wheel_type": "Turbine22" }
+  },
+  "modelx_100d_white_20": {
+    "car_details": { "model": "X", "trim_badging": "100D" },
+    "car_exterior": { "exterior_color": "PearlWhite", "spoiler_type": "None", "wheel_type": "Cyberstream20" }
+  },
+  "modelx_100d_silver_20": {
+    "car_details": { "model": "X", "trim_badging": "100D" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Cyberstream20" }
+  },
+
   "cybertruck_foundation": {
-    "car_details": {
-      "model": "Cybertruck",
-      "trim_badging": "FoundationSeries"
-    },
-    "car_exterior": {
-      "exterior_color": "StainlessSteel",
-      "spoiler_type": "None",
-      "wheel_type": "Cybertruck20"
-    }
+    "car_details": { "model": "Cybertruck", "trim_badging": "FoundationSeries" },
+    "car_exterior": { "exterior_color": "StainlessSteel", "spoiler_type": "None", "wheel_type": "Cybertruck20" }
   }
 }
