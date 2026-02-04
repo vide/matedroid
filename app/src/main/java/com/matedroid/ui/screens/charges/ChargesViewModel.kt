@@ -100,18 +100,19 @@ class ChargesViewModel @Inject constructor(
     }
 
     init {
-        loadSettings()
+        observeSettings()
     }
 
-    private fun loadSettings() {
+    private fun observeSettings() {
         viewModelScope.launch {
-            val settings = settingsDataStore.settings.first()
-            val currency = Currency.findByCode(settings.currencyCode)
-            _uiState.update {
-                it.copy(
-                    currencySymbol = currency.symbol,
-                    teslamateBaseUrl = settings.teslamateBaseUrl
-                )
+            settingsDataStore.settings.collect { settings ->
+                val currency = Currency.findByCode(settings.currencyCode)
+                _uiState.update {
+                    it.copy(
+                        currencySymbol = currency.symbol,
+                        teslamateBaseUrl = settings.teslamateBaseUrl
+                    )
+                }
             }
         }
     }

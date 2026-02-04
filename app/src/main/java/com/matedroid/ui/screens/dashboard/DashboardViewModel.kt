@@ -122,6 +122,8 @@ class DashboardViewModel @Inject constructor(
                         )
                     }
                     selectedCarId?.let { loadCarStatus(it) }
+                    // Fetch and cache global settings (for Teslamate base URL)
+                    fetchAndCacheGlobalSettings()
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
@@ -274,6 +276,26 @@ class DashboardViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null, errorDetails = null) }
+    }
+
+    /**
+     * Fetches global settings from the API and caches the base_url.
+     * This runs silently - failures don't affect the user experience.
+     */
+    private fun fetchAndCacheGlobalSettings() {
+        viewModelScope.launch {
+            when (val result = repository.getGlobalSettings()) {
+                is ApiResult.Success -> {
+                    result.data.baseUrl?.let { url ->
+                        settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
+                    }
+                }
+                is ApiResult.Error -> {
+                    // Silent fail - this is optional functionality
+                    // Older Teslamate API versions may not have this endpoint
+                }
+            }
+        }
     }
 
     /**

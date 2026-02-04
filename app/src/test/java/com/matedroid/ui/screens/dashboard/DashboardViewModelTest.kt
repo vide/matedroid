@@ -6,6 +6,7 @@ import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.CarStatusDetails
 import com.matedroid.data.api.models.ChargingDetails
+import com.matedroid.data.api.models.GlobalSettingsData
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
@@ -78,6 +79,9 @@ class DashboardViewModelTest {
         every { settingsDataStore.settings } returns flowOf(AppSettings())
         every { settingsDataStore.carImageOverrides } returns flowOf(emptyMap())
         coEvery { settingsDataStore.saveLastSelectedCarId(any()) } returns Unit
+        // Mock global settings fetch (called after successful car load)
+        coEvery { repository.getGlobalSettings() } returns ApiResult.Success(GlobalSettingsData(baseUrl = "https://teslamate.example.com"))
+        coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
     }
 
     @After
