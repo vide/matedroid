@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Stats for nerds**: Fixed AC/DC translation inconsistency - technical terms should not be translated (CA/CC → AC/DC)
+- **Dashboard**: Loading and error messages now properly center each line when text wraps
 
 ## [0.12.4] - 2026-01-29
 

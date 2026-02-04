@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.graphicsLayer
@@ -327,10 +328,16 @@ private fun LoadingContent() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
-            Text(stringResource(R.string.loading_vehicle_data))
+            Text(
+                text = stringResource(R.string.loading_vehicle_data),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -341,7 +348,10 @@ private fun EmptyContent() {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        ) {
             Icon(
                 imageVector = Icons.Filled.DirectionsCar,
                 contentDescription = null,
@@ -351,12 +361,14 @@ private fun EmptyContent() {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.no_vehicles_found),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
             )
             Text(
                 text = stringResource(R.string.no_vehicles_hint),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -380,13 +392,15 @@ private fun ErrorContent(
             Text(
                 text = stringResource(R.string.error_loading_data),
                 style = MaterialTheme.typography.titleMedium,
-                color = StatusError
+                color = StatusError,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
             if (details != null) {
                 Spacer(modifier = Modifier.height(16.dp))
