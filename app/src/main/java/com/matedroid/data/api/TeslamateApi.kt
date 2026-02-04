@@ -7,6 +7,7 @@ import com.matedroid.data.api.models.ChargeDetailResponse
 import com.matedroid.data.api.models.ChargesResponse
 import com.matedroid.data.api.models.DriveDetailResponse
 import com.matedroid.data.api.models.DrivesResponse
+import com.matedroid.data.api.models.GlobalSettingsResponse
 import com.matedroid.data.api.models.PingResponse
 import com.matedroid.data.api.models.UpdatesResponse
 import retrofit2.Response
@@ -73,4 +74,7 @@ interface TeslamateApi {
         @Query("page") page: Int? = null,
         @Query("show") show: Int? = null
     ): Response<UpdatesResponse>
+
+    @GET("api/v1/globalsettings")
+    suspend fun getGlobalSettings(): Response<GlobalSettingsResponse>
 }

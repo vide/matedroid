@@ -6,10 +6,11 @@ import com.matedroid.data.api.models.BatteryHealth
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.ChargeData
-import com.matedroid.data.api.models.Units
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.DriveDetail
+import com.matedroid.data.api.models.GlobalSettingsData
+import com.matedroid.data.api.models.Units
 import com.matedroid.data.api.models.UpdateData
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
@@ -330,6 +331,26 @@ class TeslamateRepository @Inject constructor(
                     ApiResult.Success(updates)
                 } else {
                     ApiResult.Error("Failed to fetch updates: ${response.code()}", response.code())
+                }
+            } catch (e: Exception) {
+                throw e
+            }
+        }
+    }
+
+    suspend fun getGlobalSettings(): ApiResult<GlobalSettingsData> {
+        return executeWithFallback { api ->
+            try {
+                val response = api.getGlobalSettings()
+                if (response.isSuccessful) {
+                    val data = response.body()?.data
+                    if (data != null) {
+                        ApiResult.Success(data)
+                    } else {
+                        ApiResult.Error("No global settings data returned")
+                    }
+                } else {
+                    ApiResult.Error("Failed to fetch global settings: ${response.code()}", response.code())
                 }
             } catch (e: Exception) {
                 throw e

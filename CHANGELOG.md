@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Charging Notifications**: Live update notifications during charging sessions (Android 16+) with visual battery progress bar showing current level and charge limit. Falls back to standard dismissable notifications on older Android versions.
 
 ### Changed
+- **Settings**: Teslamate Base URL is now automatically retrieved from the API instead of requiring manual configuration
 - **Stats for nerds**: AC/DC ratio bar now shows percentage values inside with inverted colors
 - **Stats for nerds**: Replaced "Top Speed" with "Cost / 100 km" in Drives Overview - a more useful metric for tracking EV operating costs
 

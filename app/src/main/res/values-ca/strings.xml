@@ -195,11 +195,6 @@
     <string name="settings_currency_label">Moneda per als costos</string>
     <string name="settings_currency_select">Selecciona moneda</string>
 
-    <!-- Teslamate base URL field -->
-    <string name="settings_teslamate_url_label">URL base de Teslamate (opcional)</string>
-    <string name="settings_teslamate_url_placeholder">https://teslamate.example.com</string>
-    <string name="settings_teslamate_url_hint">Usat per editar costos de càrrega directament a Teslamate.</string>
-
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Configuració extra</string>
 

@@ -122,6 +122,31 @@ def should_inject_overrides(path: str) -> bool:
     return False
 
 
+@app.route("/api/v1/globalsettings", methods=["GET"])
+def global_settings():
+    """Return mock global settings with base_url derived from upstream."""
+    # Extract the base URL from the upstream (remove /api suffix if present)
+    upstream = config["upstream_url"]
+    # Assume the Teslamate instance is at the same base as the API
+    # In real deployments, these are often the same host
+    base_url = upstream.rstrip("/")
+    if base_url.endswith("/api"):
+        base_url = base_url[:-4]
+
+    return Response(
+        json.dumps({
+            "data": {
+                "base_url": base_url,
+                "grafana_url": f"{base_url}:3000",
+                "unit_of_length": "km",
+                "unit_of_temperature": "C"
+            }
+        }),
+        status=200,
+        content_type="application/json",
+    )
+
+
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 def proxy(path: str):

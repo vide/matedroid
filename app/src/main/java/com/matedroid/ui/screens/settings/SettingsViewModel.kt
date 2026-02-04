@@ -38,7 +38,6 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
-    val teslamateBaseUrl: String = "",
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -98,7 +97,6 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
-                teslamateBaseUrl = settings.teslamateBaseUrl,
                 isLoading = false
             )
         }
@@ -147,13 +145,6 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showShortDrivesCharges = show)
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
-        }
-    }
-
-    fun updateTeslamateBaseUrl(url: String) {
-        _uiState.value = _uiState.value.copy(teslamateBaseUrl = url)
-        viewModelScope.launch {
-            settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
         }
     }
 
@@ -214,6 +205,11 @@ class SettingsViewModel @Inject constructor(
                 null
             }
 
+            // If primary connection succeeded, fetch and cache global settings
+            if (primaryResult is ServerTestResult.Success) {
+                fetchAndCacheGlobalSettings()
+            }
+
             _uiState.value = _uiState.value.copy(
                 isTesting = false,
                 testResult = TestResult(
@@ -221,6 +217,24 @@ class SettingsViewModel @Inject constructor(
                     secondaryResult = secondaryResult
                 )
             )
+        }
+    }
+
+    /**
+     * Fetches global settings from the API and caches the base_url.
+     * This runs silently - failures don't affect the user experience.
+     */
+    private suspend fun fetchAndCacheGlobalSettings() {
+        when (val result = repository.getGlobalSettings()) {
+            is ApiResult.Success -> {
+                result.data.baseUrl?.let { url ->
+                    settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
+                }
+            }
+            is ApiResult.Error -> {
+                // Silent fail - this is optional functionality
+                // Older Teslamate API versions may not have this endpoint
+            }
         }
     }
 
