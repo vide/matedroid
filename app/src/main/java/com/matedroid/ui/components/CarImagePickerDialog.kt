@@ -126,15 +126,13 @@ fun CarImagePickerDialog(
     }
 
     // Initialize selected wheel from override or detected default
-    var selectedWheel by remember(currentOverride, detectedDefault, wheels) {
+    var selectedWheel by remember(currentOverride, detectedDefault) {
         val initialWheel = currentOverride?.wheelCode
-            ?: if (selectedVariant == detectedDefault.variant) detectedDefault.wheelCode else null
+            ?: if (detectedDefault.variant == (currentOverride?.variant ?: detectedDefault.variant)) {
+                detectedDefault.wheelCode
+            } else null
         mutableStateOf<String?>(initialWheel)
     }
-
-    // Track if user has modified the selection (for showing reset button)
-    val isModifiedFromDefault = selectedVariant != detectedDefault.variant ||
-        selectedWheel != detectedDefault.wheelCode
 
     // Update selected wheel when variant changes
     LaunchedEffect(selectedVariant) {
@@ -203,22 +201,20 @@ fun CarImagePickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Reset to default button (only show if modified from default)
-                    if (isModifiedFromDefault) {
-                        IconButton(
-                            onClick = {
-                                selectedVariant = detectedDefault.variant
-                                selectedWheel = detectedDefault.wheelCode
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = stringResource(R.string.car_picker_reset_default),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                    // Reset to default button (always visible)
+                    IconButton(
+                        onClick = {
+                            selectedVariant = detectedDefault.variant
+                            selectedWheel = detectedDefault.wheelCode
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.car_picker_reset_default),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
