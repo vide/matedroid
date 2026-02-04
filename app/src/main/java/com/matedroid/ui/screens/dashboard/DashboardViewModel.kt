@@ -286,7 +286,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = repository.getGlobalSettings()) {
                 is ApiResult.Success -> {
-                    result.data.baseUrl?.let { url ->
+                    result.data.settings?.teslamateUrls?.baseUrl?.let { url ->
                         settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
                     }
                 }

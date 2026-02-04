@@ -136,10 +136,16 @@ def global_settings():
     return Response(
         json.dumps({
             "data": {
-                "base_url": base_url,
-                "grafana_url": f"{base_url}:3000",
-                "unit_of_length": "km",
-                "unit_of_temperature": "C"
+                "settings": {
+                    "teslamate_urls": {
+                        "base_url": base_url,
+                        "grafana_url": f"{base_url}:3000"
+                    },
+                    "teslamate_units": {
+                        "unit_of_length": "km",
+                        "unit_of_temperature": "C"
+                    }
+                }
             }
         }),
         status=200,
