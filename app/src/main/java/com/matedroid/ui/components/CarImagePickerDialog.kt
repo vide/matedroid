@@ -199,11 +199,11 @@ fun CarImagePickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Reset to default button (always visible)
+                    // Reset to default button - clears override and uses API-detected default
                     IconButton(
                         onClick = {
-                            selectedVariant = detectedDefault.variant
-                            selectedWheel = detectedDefault.wheelCode
+                            onReset()
+                            onDismiss()
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
@@ -252,21 +252,6 @@ fun CarImagePickerDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Auto reset button (only show if there's an existing override)
-                if (currentOverride != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        TextButton(onClick = {
-                            onReset()
-                            onDismiss()
-                        }) {
-                            Text(stringResource(R.string.car_picker_auto))
-                        }
-                    }
-                }
             }
         }
     }
