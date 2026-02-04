@@ -392,7 +392,7 @@ private fun WheelOptionItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(160.dp)
+            .width(220.dp)
             .clip(RoundedCornerShape(16.dp))
             .border(borderWidth, borderColor, RoundedCornerShape(16.dp))
             .background(
@@ -405,10 +405,11 @@ private fun WheelOptionItem(
             .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
-        // Car image - bigger size
+        // Car image - rectangular, wider than tall to match car image aspect ratio
         Box(
             modifier = Modifier
-                .size(140.dp),
+                .width(200.dp)
+                .height(120.dp),
             contentAlignment = Alignment.Center
         ) {
             if (bitmap != null) {
@@ -416,7 +417,8 @@ private fun WheelOptionItem(
                     bitmap = bitmap.asImageBitmap(),
                     contentDescription = wheel.displayName,
                     modifier = Modifier
-                        .size(140.dp)
+                        .width(200.dp)
+                        .height(120.dp)
                         .graphicsLayer {
                             scaleX = scaleFactor
                             scaleY = scaleFactor
@@ -427,7 +429,8 @@ private fun WheelOptionItem(
                 // Placeholder if image not found
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .width(160.dp)
+                        .height(96.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant,
                             RoundedCornerShape(8.dp)
