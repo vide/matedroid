@@ -447,12 +447,11 @@ private fun DashboardContent(
 
     // Car image picker dialog
     if (showCarImagePicker) {
-        // Map color name to code
-        val colorCode = CarImageResolver.mapColor(carExterior?.exteriorColor)
-
         CarImagePickerDialog(
             model = carModel,
-            colorCode = colorCode,
+            exteriorColor = carExterior?.exteriorColor,
+            wheelType = carExterior?.wheelType,
+            trimBadging = carTrimBadging,
             currentOverride = imageOverride,
             onDismiss = { showCarImagePicker = false },
             onConfirm = { override ->

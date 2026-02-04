@@ -445,6 +445,39 @@ object CarImageResolver {
 
     // ==================== Image Picker Support ====================
 
+    /**
+     * Data class representing the detected default selection for the image picker.
+     *
+     * @param variant The model variant (e.g., "my", "myj")
+     * @param wheelCode The wheel code (e.g., "WY18P", "WY19P")
+     */
+    data class DetectedDefault(
+        val variant: String,
+        val wheelCode: String
+    )
+
+    /**
+     * Detect the default variant and wheel based on API data.
+     * Used by the image picker to show the auto-detected default.
+     *
+     * @param model The car model from TeslamateAPI (e.g., "3", "Y")
+     * @param exteriorColor The exterior color from TeslamateAPI (e.g., "MidnightSilver")
+     * @param wheelType The wheel type from TeslamateAPI (e.g., "Photon18")
+     * @param trimBadging The trim badging from TeslamateAPI (e.g., "74D", "P74D")
+     * @return The detected default variant and wheel code
+     */
+    fun getDetectedDefault(
+        model: String?,
+        exteriorColor: String?,
+        wheelType: String?,
+        trimBadging: String?
+    ): DetectedDefault {
+        val colorCode = mapColor(exteriorColor)
+        val variant = determineModelVariant(model, colorCode, wheelType, trimBadging)
+        val wheelCode = mapWheel(variant, wheelType) ?: DEFAULT_WHEELS[variant] ?: "W38B"
+        return DetectedDefault(variant, wheelCode)
+    }
+
     // String resource IDs for variant names (must match R.string.car_variant_*)
     // These are placeholder IDs - actual values will be resolved at runtime
     object VariantResIds {

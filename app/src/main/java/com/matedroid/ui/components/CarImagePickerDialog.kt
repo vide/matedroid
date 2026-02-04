@@ -21,8 +21,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,7 +61,9 @@ import com.matedroid.domain.model.WheelOption
  * Tapping a car image selects it, tapping again confirms the selection.
  *
  * @param model The car model from TeslamateAPI (e.g., "3", "Y")
- * @param colorCode The exterior color code (e.g., "PPSW", "PN01")
+ * @param exteriorColor The exterior color from TeslamateAPI (e.g., "MidnightSilver")
+ * @param wheelType The wheel type from TeslamateAPI (e.g., "Photon18")
+ * @param trimBadging The trim badging from TeslamateAPI (e.g., "74D", "P74D")
  * @param currentOverride The current manual override, if any
  * @param onDismiss Called when the dialog is dismissed
  * @param onConfirm Called when a selection is confirmed, with the new override
@@ -66,13 +72,21 @@ import com.matedroid.domain.model.WheelOption
 @Composable
 fun CarImagePickerDialog(
     model: String?,
-    colorCode: String?,
+    exteriorColor: String?,
+    wheelType: String?,
+    trimBadging: String?,
     currentOverride: CarImageOverride?,
     onDismiss: () -> Unit,
     onConfirm: (CarImageOverride) -> Unit,
     onReset: () -> Unit
 ) {
     val variants = remember(model) { CarImageResolver.getVariantsForModel(model) }
+    val colorCode = remember(exteriorColor) { CarImageResolver.mapColor(exteriorColor) }
+
+    // Compute the detected default from API data
+    val detectedDefault = remember(model, exteriorColor, wheelType, trimBadging) {
+        CarImageResolver.getDetectedDefault(model, exteriorColor, wheelType, trimBadging)
+    }
 
     // If no variants available (Model S/X), show info message and dismiss
     if (variants.isEmpty()) {
@@ -101,9 +115,9 @@ fun CarImagePickerDialog(
         return
     }
 
-    // Initialize selected variant from override or first available
-    var selectedVariant by remember(currentOverride, variants) {
-        mutableStateOf(currentOverride?.variant ?: variants.first().id)
+    // Initialize selected variant from override or detected default
+    var selectedVariant by remember(currentOverride, detectedDefault, variants) {
+        mutableStateOf(currentOverride?.variant ?: detectedDefault.variant)
     }
 
     // Get wheels for selected variant
@@ -111,16 +125,27 @@ fun CarImagePickerDialog(
         CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
     }
 
-    // Initialize selected wheel from override or null (nothing pre-selected for tap-to-confirm)
-    var selectedWheel by remember(currentOverride, wheels) {
-        mutableStateOf<String?>(currentOverride?.wheelCode)
+    // Initialize selected wheel from override or detected default
+    var selectedWheel by remember(currentOverride, detectedDefault, wheels) {
+        val initialWheel = currentOverride?.wheelCode
+            ?: if (selectedVariant == detectedDefault.variant) detectedDefault.wheelCode else null
+        mutableStateOf<String?>(initialWheel)
     }
 
-    // Update selected wheel when variant changes - reset to null so user must tap to select
+    // Track if user has modified the selection (for showing reset button)
+    val isModifiedFromDefault = selectedVariant != detectedDefault.variant ||
+        selectedWheel != detectedDefault.wheelCode
+
+    // Update selected wheel when variant changes
     LaunchedEffect(selectedVariant) {
         val newWheels = CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
         if (newWheels.isNotEmpty() && (selectedWheel == null || newWheels.none { it.code == selectedWheel })) {
-            selectedWheel = null
+            // When variant changes to the detected default, pre-select the default wheel
+            selectedWheel = if (selectedVariant == detectedDefault.variant) {
+                detectedDefault.wheelCode
+            } else {
+                null
+            }
         }
     }
 
@@ -166,13 +191,37 @@ fun CarImagePickerDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Wheel selector
-                Text(
-                    text = stringResource(R.string.car_picker_wheel_style),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                // Wheel selector with reset button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.car_picker_wheel_style),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Reset to default button (only show if modified from default)
+                    if (isModifiedFromDefault) {
+                        IconButton(
+                            onClick = {
+                                selectedVariant = detectedDefault.variant
+                                selectedWheel = detectedDefault.wheelCode
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.car_picker_reset_default),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 WheelCarousel(
                     wheels = wheels,
                     selectedWheel = selectedWheel,

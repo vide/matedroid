@@ -1010,6 +1010,9 @@
     <!-- Button to reset to automatic detection -->
     <string name="car_picker_auto">Auto</string>
 
+    <!-- Content description for reset to default button -->
+    <string name="car_picker_reset_default">Reset to detected default</string>
+
     <!-- Hint text shown below wheel carousel -->
     <string name="car_picker_tap_to_select">Tap a car image to select it</string>
 
