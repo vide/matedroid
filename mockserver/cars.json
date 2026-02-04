@@ -98,6 +98,10 @@
     "car_details": { "model": "Y", "trim_badging": "74D" },
     "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Gemini19" }
   },
+  "modely_legacy_silver_apollo": {
+    "car_details": { "model": "Y", "trim_badging": "74D" },
+    "car_exterior": { "exterior_color": "MidnightSilver", "spoiler_type": "None", "wheel_type": "Apollo19" }
+  },
   "modely_legacy_blue_gemini": {
     "car_details": { "model": "Y", "trim_badging": "74D" },
     "car_exterior": { "exterior_color": "DeepBlue", "spoiler_type": "None", "wheel_type": "Gemini19" }

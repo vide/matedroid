@@ -1,4 +1,4 @@
-.PHONY: build install run build-release install-release run-release clean test help
+.PHONY: build install run build-release install-release run-release clean test help mock-list
 
 # Default target
 help:
@@ -11,6 +11,10 @@ help:
 	@echo "  run-release     - Build, install, and launch the app (release)"
 	@echo "  clean           - Clean build artifacts"
 	@echo "  test            - Run unit tests"
+	@echo "  mock-list       - List available mock server car profiles"
+	@echo ""
+	@echo "Mock server (requires UPSTREAM and CAR):"
+	@echo "  make mock UPSTREAM=http://api:4000 CAR=modely_legacy_silver_apollo"
 
 # Build debug APK
 build:
@@ -43,3 +47,18 @@ clean:
 # Run unit tests
 test:
 	./gradlew testDebugUnitTest
+
+# List available mock server car profiles
+mock-list:
+	@cd mockserver && ./server.py --list-cars -u http://localhost -c dummy 2>/dev/null || true
+
+# Start mock server (requires UPSTREAM and CAR variables)
+# Usage: make mock UPSTREAM=http://teslamate-api:4000 CAR=modely_legacy_silver_apollo
+mock:
+ifndef UPSTREAM
+	$(error UPSTREAM is required. Example: make mock UPSTREAM=http://api:4000 CAR=modely_legacy_silver_apollo)
+endif
+ifndef CAR
+	$(error CAR is required. Run 'make mock-list' to see available profiles)
+endif
+	cd mockserver && ./server.py -u $(UPSTREAM) -c $(CAR) -p 4002
