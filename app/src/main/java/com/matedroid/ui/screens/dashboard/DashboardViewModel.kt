@@ -76,14 +76,23 @@ class DashboardViewModel @Inject constructor(
         private const val AUTO_REFRESH_INTERVAL_MS = 5000L
     }
 
+    // Cache of current overrides for use when selectedCarId changes
+    private var currentOverrides: Map<Int, CarImageOverride> = emptyMap()
+
     init {
-        loadCars()
+        // Load overrides first, then load cars
+        viewModelScope.launch {
+            // Get initial overrides before loading cars
+            currentOverrides = settingsDataStore.carImageOverrides.first()
+            loadCars()
+        }
         observeCarImageOverrides()
     }
 
     private fun observeCarImageOverrides() {
         viewModelScope.launch {
             settingsDataStore.carImageOverrides.collect { overrides ->
+                currentOverrides = overrides
                 val carId = _uiState.value.selectedCarId
                 _uiState.update { it.copy(carImageOverride = carId?.let { id -> overrides[id] }) }
             }
@@ -108,7 +117,8 @@ class DashboardViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             cars = cars,
-                            selectedCarId = selectedCarId
+                            selectedCarId = selectedCarId,
+                            carImageOverride = selectedCarId?.let { id -> currentOverrides[id] }
                         )
                     }
                     selectedCarId?.let { loadCarStatus(it) }
@@ -135,7 +145,8 @@ class DashboardViewModel @Inject constructor(
                 carStatus = null,
                 resolvedAddress = null,
                 totalCharges = null,
-                totalDrives = null
+                totalDrives = null,
+                carImageOverride = currentOverrides[carId]
             )
         }
         // Save the selected car for next app launch
