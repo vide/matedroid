@@ -116,7 +116,7 @@ fun CarImagePickerDialog(
     }
 
     // Initialize selected variant from override or detected default
-    var selectedVariant by remember(currentOverride, detectedDefault, variants) {
+    var selectedVariant by remember(currentOverride, variants) {
         mutableStateOf(currentOverride?.variant ?: detectedDefault.variant)
     }
 
@@ -125,20 +125,18 @@ fun CarImagePickerDialog(
         CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
     }
 
-    // Initialize selected wheel from override or detected default
-    var selectedWheel by remember(currentOverride, detectedDefault) {
+    // Initialize selected wheel from override, or detected default if on default variant
+    // Key on 'wheels' so it resets properly when variant changes (same as original working code)
+    var selectedWheel by remember(currentOverride, wheels) {
         val initialWheel = currentOverride?.wheelCode
-            ?: if (detectedDefault.variant == (currentOverride?.variant ?: detectedDefault.variant)) {
-                detectedDefault.wheelCode
-            } else null
+            ?: if (selectedVariant == detectedDefault.variant) detectedDefault.wheelCode else null
         mutableStateOf<String?>(initialWheel)
     }
 
-    // Update selected wheel when variant changes
+    // Update selected wheel when variant changes - reset to default or null
     LaunchedEffect(selectedVariant) {
         val newWheels = CarImageResolver.getWheelsForVariant(selectedVariant, colorCode)
         if (newWheels.isNotEmpty() && (selectedWheel == null || newWheels.none { it.code == selectedWheel })) {
-            // When variant changes to the detected default, pre-select the default wheel
             selectedWheel = if (selectedVariant == detectedDefault.variant) {
                 detectedDefault.wheelCode
             } else {
