@@ -185,9 +185,9 @@ class DrivesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format: 2006-01-02T15:04:05Z
-            val startDateStr = startDate?.let { "${it}T00:00:00Z" }
-            val endDateStr = endDate?.let { "${it}T23:59:59Z" }
+            // API expects RFC3339 format: 2006-01-02T15:04:05Z but Z excludes early hours.
+            val startDateStr = startDate?.let { "${it}T00:00:00" }
+            val endDateStr = endDate?.let { "${it}T23:59:59" }
 
             when (val result = repository.getDrives(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
