@@ -179,9 +179,19 @@ class ChargesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format: 2006-01-02T15:04:05Z but Z excludes early hours.
-            val startDateStr = startDate?.let { "${it}T00:00:00" }
-            val endDateStr = endDate?.let { "${it}T23:59:59" }
+            // API expects RFC3339 format:
+            // 2006-01-02T15:04:05Z for UTC time
+            // 2006-01-02T15:04:05+nn:00 for local time, with nn the timezone offset
+            val zoneId = java.time.ZoneId.systemDefault()
+            val offsetFormatter = DateTimeFormatter.ofPattern("xxx") // format: +01:00
+            val startDateStr = startDate?.let {
+                val offset = zoneId.rules.getOffset(it.atStartOfDay())
+                "${it}T00:00:00${offset.toString()}"
+            }
+            val endDateStr = endDate?.let {
+                val offset = zoneId.rules.getOffset(it.atTime(23, 59, 59))
+                "${it}T23:59:59${offset.toString()}"
+            }
 
             // Fetch charge IDs from local database aggregates
             val dcChargeIds = try {
