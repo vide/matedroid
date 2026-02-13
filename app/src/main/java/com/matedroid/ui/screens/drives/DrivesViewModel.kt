@@ -295,7 +295,7 @@ class DrivesViewModel @Inject constructor(
         val formatter = DateTimeFormatter.ISO_DATE_TIME
         val weekFields = WeekFields.of(Locale.getDefault())
 
-        //  Group the drives by day
+        // Group the drives by day
         val drivesByDay = drives.mapNotNull { drive ->
             drive.startDate?.let {
                 try {
@@ -305,48 +305,109 @@ class DrivesViewModel @Inject constructor(
             }
         }.groupBy({ it.first }, { it.second })
 
-        return if (granularity == DriveChartGranularity.DAILY) {
-            // DAILY ranges (today, last 7 and last 30 days
-            // If not startDate (All Time), get the first trip, or today
-            val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
-            val end = LocalDate.now()
-            val result = mutableListOf<DriveChartData>()
-            var current = start
-            while (!current.isAfter(end)) {
-                val key = current.toEpochDay()
-                val drivesInDay = drivesByDay[key] ?: emptyList()
-                result.add(
-                    createChartPoint(
-                        label = current.format(DateTimeFormatter.ofPattern("d/M")),
-                        sortKey = key,
-                        drives = drivesInDay
+        return when (granularity) {
+            DriveChartGranularity.DAILY -> {
+                // DAILY ranges (today, last 7 and last 30 days)
+                // If not startDate (All Time), get the first trip, or today
+                val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+                val result = mutableListOf<DriveChartData>()
+                var current = start
+                while (!current.isAfter(end)) {
+                    val key = current.toEpochDay()
+                    val drivesInDay = drivesByDay[key] ?: emptyList()
+                    result.add(
+                        createChartPoint(
+                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            sortKey = key,
+                            drives = drivesInDay
+                        )
                     )
-                )
-                current = current.plusDays(1)
-            }
-            result
-        } else {
-            // WEEKLY and MONTHLY ranges
-            drives.mapNotNull { drive ->
-                drive.startDate?.let { dateStr ->
-                    try {
-                        val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
-                        val (label, sortKey) = when (granularity) {
-                            DriveChartGranularity.WEEKLY -> {
-                                val firstDay = date.with(weekFields.dayOfWeek(), 1)
-                                "W${date.get(weekFields.weekOfYear())}" to firstDay.toEpochDay()
-                            }
-                            else -> { // MONTHLY
-                                date.format(DateTimeFormatter.ofPattern("MMM yy")) to YearMonth.from(date).atDay(1).toEpochDay()
-                            }
-                        }
-                        Triple(label, sortKey, drive)
-                    } catch (e: Exception) { null }
+                    current = current.plusDays(1)
                 }
+                result
             }
-                .groupBy { it.first to it.second }
-                .map { (key, list) -> createChartPoint(key.first, key.second, list.map { it.third }) }
-                .sortedBy { it.sortKey }
+
+            DriveChartGranularity.WEEKLY -> {
+                // WEEKLY range (last 90 days = ~13 weeks)
+                val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+
+                // Get first day of the week for start date
+                var weekStart = start.with(weekFields.dayOfWeek(), 1)
+                // If weekStart is before start, advance to the next week
+                if (weekStart.isBefore(start)) {
+                    weekStart = weekStart.plusWeeks(1)
+                }
+
+                // Group drives by week
+                val drivesByWeek = drives.mapNotNull { drive ->
+                    drive.startDate?.let { dateStr ->
+                        try {
+                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
+                            val firstDayOfWeek = date.with(weekFields.dayOfWeek(), 1)
+                            firstDayOfWeek.toEpochDay() to drive
+                        } catch (e: Exception) { null }
+                    }
+                }.groupBy({ it.first }, { it.second })
+
+                // Generate all weeks in range
+                val result = mutableListOf<DriveChartData>()
+                var currentWeek = weekStart
+                while (!currentWeek.isAfter(end)) {
+                    val key = currentWeek.toEpochDay()
+                    val drivesInWeek = drivesByWeek[key] ?: emptyList()
+                    val weekOfYear = currentWeek.get(weekFields.weekOfYear())
+                    result.add(
+                        createChartPoint(
+                            label = "W$weekOfYear",
+                            sortKey = key,
+                            drives = drivesInWeek
+                        )
+                    )
+                    currentWeek = currentWeek.plusWeeks(1)
+                }
+                result
+            }
+
+            DriveChartGranularity.MONTHLY -> {
+                // MONTHLY range (last year = 12 months)
+                val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+
+                // Get first day of month for start date
+                val monthStart = YearMonth.from(start).atDay(1)
+                val monthEnd = YearMonth.from(end)
+
+                // Group drives by month
+                val drivesByMonth = drives.mapNotNull { drive ->
+                    drive.startDate?.let { dateStr ->
+                        try {
+                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
+                            val firstDayOfMonth = YearMonth.from(date).atDay(1)
+                            firstDayOfMonth.toEpochDay() to drive
+                        } catch (e: Exception) { null }
+                    }
+                }.groupBy({ it.first }, { it.second })
+
+                // Generate all months in range
+                val result = mutableListOf<DriveChartData>()
+                var currentMonth = YearMonth.from(monthStart)
+                while (!currentMonth.isAfter(monthEnd)) {
+                    val firstDay = currentMonth.atDay(1)
+                    val key = firstDay.toEpochDay()
+                    val drivesInMonth = drivesByMonth[key] ?: emptyList()
+                    result.add(
+                        createChartPoint(
+                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            sortKey = key,
+                            drives = drivesInMonth
+                        )
+                    )
+                    currentMonth = currentMonth.plusMonths(1)
+                }
+                result
+            }
         }
     }
 

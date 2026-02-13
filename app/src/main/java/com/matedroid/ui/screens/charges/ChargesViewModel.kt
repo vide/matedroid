@@ -336,7 +336,7 @@ class ChargesViewModel @Inject constructor(
         val formatter = DateTimeFormatter.ISO_DATE_TIME
         val weekFields = WeekFields.of(Locale.getDefault())
 
-        //  Group the charges by day
+        // Group the charges by day
         val chargesByDay = charges.mapNotNull { charge ->
             charge.startDate?.let {
                 try {
@@ -347,56 +347,111 @@ class ChargesViewModel @Inject constructor(
             }
         }.groupBy({ it.first }, { it.second })
 
-        return if (granularity == ChartGranularity.DAILY) {
-            // DAILY ranges (today, last 7 and last 30 days
-            // If not startDate (All Time), get the first trip, or today
-            val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
-            val end = LocalDate.now()
-            val result = mutableListOf<ChargeChartData>()
-            var current = start
-            while (!current.isAfter(end)) {
-                val key = current.toEpochDay()
-                val itemsInDay = chargesByDay[key] ?: emptyList()
-                result.add(
-                    createChargeChartPoint(
-                        label = current.format(DateTimeFormatter.ofPattern("d/M")),
-                        sortKey = key,
-                        charges = itemsInDay,
-                        dcChargeIds = _uiState.value.dcChargeIds
+        return when (granularity) {
+            ChartGranularity.DAILY -> {
+                // DAILY ranges (today, last 7 and last 30 days)
+                // If not startDate (All Time), get the first trip, or today
+                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+                val result = mutableListOf<ChargeChartData>()
+                var current = start
+                while (!current.isAfter(end)) {
+                    val key = current.toEpochDay()
+                    val itemsInDay = chargesByDay[key] ?: emptyList()
+                    result.add(
+                        createChargeChartPoint(
+                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            sortKey = key,
+                            charges = itemsInDay,
+                            dcChargeIds = _uiState.value.dcChargeIds
+                        )
                     )
-                )
-                current = current.plusDays(1)
-            }
-            result
-        } else {
-            // WEEKLY and MONTHLY ranges
-            charges.mapNotNull { charge ->
-                charge.startDate?.let { dateStr ->
-                    try {
-                        val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
-                        val (label, sortKey) = when (granularity) {
-                            ChartGranularity.WEEKLY -> {
-                                val firstDay = date.with(weekFields.dayOfWeek(), 1)
-                                "W${date.get(weekFields.weekOfYear())}" to firstDay.toEpochDay()
-                            }
-                            else -> { // MONTHLY
-                                date.format(DateTimeFormatter.ofPattern("MMM yy")) to YearMonth.from(date).atDay(1).toEpochDay()
-                            }
-                        }
-                        Triple(label, sortKey, charge)
-                    } catch (e: Exception) { null }
+                    current = current.plusDays(1)
                 }
+                result
             }
-                .groupBy { it.first to it.second }
-                .map { (key, list) ->
-                    createChargeChartPoint(
-                        key.first,
-                        key.second,
-                        list.map { it.third },
-                        dcChargeIds = _uiState.value.dcChargeIds
+            ChartGranularity.WEEKLY -> {
+                // WEEKLY range (last 90 days = ~13 weeks)
+                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+
+                // Get first day of the week for start date
+                var weekStart = start.with(weekFields.dayOfWeek(), 1)
+                // If weekStart is before start, advance to the next week
+                if (weekStart.isBefore(start)) {
+                    weekStart = weekStart.plusWeeks(1)
+                }
+
+                // Group charges by week
+                val chargesByWeek = charges.mapNotNull { charge ->
+                    charge.startDate?.let { dateStr ->
+                        try {
+                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
+                            val firstDayOfWeek = date.with(weekFields.dayOfWeek(), 1)
+                            firstDayOfWeek.toEpochDay() to charge
+                        } catch (e: Exception) { null }
+                    }
+                }.groupBy({ it.first }, { it.second })
+
+                // Generate all weeks in range
+                val result = mutableListOf<ChargeChartData>()
+                var currentWeek = weekStart
+                while (!currentWeek.isAfter(end)) {
+                    val key = currentWeek.toEpochDay()
+                    val chargesInWeek = chargesByWeek[key] ?: emptyList()
+                    val weekOfYear = currentWeek.get(weekFields.weekOfYear())
+                    result.add(
+                        createChargeChartPoint(
+                            label = "W$weekOfYear",
+                            sortKey = key,
+                            charges = chargesInWeek,
+                            dcChargeIds = _uiState.value.dcChargeIds
+                        )
                     )
+                    currentWeek = currentWeek.plusWeeks(1)
                 }
-                .sortedBy { it.sortKey }
+                result
+            }
+
+            ChartGranularity.MONTHLY -> {
+                // MONTHLY range (last year = 12 months)
+                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
+                val end = LocalDate.now()
+
+                // Get first day of month for start date
+                val monthStart = YearMonth.from(start).atDay(1)
+                val monthEnd = YearMonth.from(end)
+
+                // Group charges by month
+                val chargesByMonth = charges.mapNotNull { charge ->
+                    charge.startDate?.let { dateStr ->
+                        try {
+                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
+                            val firstDayOfMonth = YearMonth.from(date).atDay(1)
+                            firstDayOfMonth.toEpochDay() to charge
+                        } catch (e: Exception) { null }
+                    }
+                }.groupBy({ it.first }, { it.second })
+
+                // Generate all months in range
+                val result = mutableListOf<ChargeChartData>()
+                var currentMonth = YearMonth.from(monthStart)
+                while (!currentMonth.isAfter(monthEnd)) {
+                    val firstDay = currentMonth.atDay(1)
+                    val key = firstDay.toEpochDay()
+                    val chargesInMonth = chargesByMonth[key] ?: emptyList()
+                    result.add(
+                        createChargeChartPoint(
+                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            sortKey = key,
+                            charges = chargesInMonth,
+                            dcChargeIds = _uiState.value.dcChargeIds
+                        )
+                    )
+                    currentMonth = currentMonth.plusMonths(1)
+                }
+                result
+            }
         }
     }
 
