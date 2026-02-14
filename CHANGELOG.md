@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Live Charge Screen**: Screen now automatically closes and navigates back when charging stops, as the completed charge is immediately available in the charges list
+
 ## [1.1.0-beta3] - 2026-02-12
 
 ### Fixed
