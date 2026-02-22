@@ -5,6 +5,7 @@ import android.graphics.Paint
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -67,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlin.math.roundToInt
 import com.matedroid.R
 import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
@@ -167,11 +170,13 @@ private fun DriveDetailContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    var sharedXFraction by remember { mutableStateOf<Float?>(null) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .pointerInput(Unit) { detectTapGestures { sharedXFraction = null } }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -260,33 +265,51 @@ private fun DriveDetailContent(
             if (!detail.positions.isNullOrEmpty() && detail.positions.size > 2) {
                 // Extract time labels for X axis (5 labels: start, 1st quarter, half, 3rd quarter, end)
                 val timeLabels = extractTimeLabels(detail.positions)
-                var sharedXFraction by remember { mutableStateOf<Float?>(null) }
+                val positions = detail.positions
+                val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                val fractionToTimeLabel: (Float) -> String = { fraction ->
+                    val index = (fraction * positions.lastIndex).roundToInt().coerceIn(0, positions.lastIndex)
+                    positions[index].date?.let { dateStr ->
+                        try {
+                            val dt = try {
+                                java.time.OffsetDateTime.parse(dateStr).toLocalDateTime()
+                            } catch (e: java.time.format.DateTimeParseException) {
+                                java.time.LocalDateTime.parse(dateStr.replace("Z", ""))
+                            }
+                            dt.format(timeFormatter)
+                        } catch (e: Exception) { "" }
+                    } ?: ""
+                }
 
                 SpeedChartCard(
                     positions = detail.positions,
                     units = units,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
-                    onXSelected = { sharedXFraction = it }
+                    onXSelected = { sharedXFraction = it },
+                    fractionToTimeLabel = fractionToTimeLabel
                 )
                 PowerChartCard(
                     positions = detail.positions,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
-                    onXSelected = { sharedXFraction = it }
+                    onXSelected = { sharedXFraction = it },
+                    fractionToTimeLabel = fractionToTimeLabel
                 )
                 BatteryChartCard(
                     positions = detail.positions,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
-                    onXSelected = { sharedXFraction = it }
+                    onXSelected = { sharedXFraction = it },
+                    fractionToTimeLabel = fractionToTimeLabel
                 )
                 if (detail.positions.any { it.elevation != null && it.elevation != 0 }) {
                     ElevationChartCard(
                         positions = detail.positions,
                         timeLabels = timeLabels,
                         externalSelectedFraction = sharedXFraction,
-                        onXSelected = { sharedXFraction = it }
+                        onXSelected = { sharedXFraction = it },
+                        fractionToTimeLabel = fractionToTimeLabel
                     )
                 }
             }
@@ -641,7 +664,8 @@ private fun SpeedChartCard(
     units: Units?,
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val speeds = positions.mapNotNull { it.speed?.toFloat() }
     if (speeds.size < 2) return
@@ -655,6 +679,7 @@ private fun SpeedChartCard(
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
+        fractionToTimeLabel = fractionToTimeLabel,
         convertValue = { value ->
             if (units?.isImperial == true) (value * 0.621371f) else value
         }
@@ -666,7 +691,8 @@ private fun PowerChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val powers = positions.mapNotNull { it.power?.toFloat() }
     if (powers.size < 2) return
@@ -680,7 +706,8 @@ private fun PowerChartCard(
         showZeroLine = true,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected
+        onXSelected = onXSelected,
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 
@@ -689,7 +716,8 @@ private fun BatteryChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val batteryLevels = positions.mapNotNull { it.batteryLevel?.toFloat() }
     if (batteryLevels.size < 2) return
@@ -703,7 +731,8 @@ private fun BatteryChartCard(
         fixedMinMax = Pair(0f, 100f),
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected
+        onXSelected = onXSelected,
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 
@@ -712,7 +741,8 @@ private fun ElevationChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val elevations = positions.mapNotNull { it.elevation?.toFloat() }
     if (elevations.size < 2) return
@@ -725,7 +755,8 @@ private fun ElevationChartCard(
         unit = "m",
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected
+        onXSelected = onXSelected,
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 
@@ -741,7 +772,8 @@ private fun ChartCard(
     timeLabels: List<String> = emptyList(),
     convertValue: (Float) -> Float = { it },
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -780,6 +812,7 @@ private fun ChartCard(
                 convertValue = convertValue,
                 externalSelectedFraction = externalSelectedFraction,
                 onXSelected = onXSelected,
+                fractionToTimeLabel = fractionToTimeLabel,
                 modifier = Modifier.fillMaxWidth()
             )
         }

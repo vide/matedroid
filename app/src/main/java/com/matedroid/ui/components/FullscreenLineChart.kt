@@ -59,7 +59,8 @@ fun FullscreenLineChart(
     timeLabels: List<String> = emptyList(),
     convertValue: (Float) -> Float = { it },
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     if (data.size < 2) return
 
@@ -79,6 +80,7 @@ fun FullscreenLineChart(
             convertValue = convertValue,
             externalSelectedFraction = externalSelectedFraction,
             onXSelected = onXSelected,
+            fractionToTimeLabel = fractionToTimeLabel,
             modifier = Modifier.fillMaxWidth()
         )
 

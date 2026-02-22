@@ -71,7 +71,8 @@ fun OptimizedLineChart(
     convertValue: (Float) -> Float = { it },
     chartHeight: Dp = 120.dp,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     if (data.size < 2) return
 
@@ -135,6 +136,7 @@ fun OptimizedLineChart(
 
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
+                        down.consume()
                         isUserInteracting = true
 
                         // Record what was selected before this press for toggle detection
@@ -200,6 +202,14 @@ fun OptimizedLineChart(
                     radius = 3.dp.toPx(),
                     center = point.position
                 )
+
+                // Draw floating time chip in the X axis label zone
+                if (fractionToTimeLabel != null && timeLabelHeightPx > 0) {
+                    val pts = chartData.displayPoints
+                    val fraction = if (pts.size > 1) point.index.toFloat() / (pts.size - 1) else 0f
+                    val timeStr = fractionToTimeLabel(fraction)
+                    drawFloatingTimeChip(timeStr, point.position.x, color, chartHeightPx, timeLabelHeightPx, width)
+                }
             }
         }
 
@@ -476,5 +486,38 @@ private fun DrawScope.drawTimeLabels(
                 drawText(label, x.coerceAtLeast(0f), timeY, textPaint)
             }
         }
+    }
+}
+
+private fun DrawScope.drawFloatingTimeChip(
+    timeStr: String,
+    xCenter: Float,
+    chipColor: Color,
+    chartHeight: Float,
+    timeLabelHeight: Float,
+    canvasWidth: Float
+) {
+    drawContext.canvas.nativeCanvas.apply {
+        val textPaint = Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = 28f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
+        val bgPaint = Paint().apply {
+            color = chipColor.copy(alpha = 0.9f).toArgb()
+            isAntiAlias = true
+        }
+
+        val textWidth = textPaint.measureText(timeStr)
+        val chipPadding = 12f
+        val chipWidth = textWidth + chipPadding * 2
+        val chipHeight = timeLabelHeight * 0.85f
+        val chipTop = chartHeight + (timeLabelHeight - chipHeight) / 2
+        val chipLeft = (xCenter - chipWidth / 2).coerceIn(0f, canvasWidth - chipWidth)
+
+        val rect = android.graphics.RectF(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
+        drawRoundRect(rect, 8f, 8f, bgPaint)
+        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + textPaint.textSize / 3, textPaint)
     }
 }

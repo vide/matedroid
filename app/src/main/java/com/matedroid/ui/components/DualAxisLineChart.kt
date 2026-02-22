@@ -61,7 +61,8 @@ fun DualAxisLineChart(
     timeLabels: List<String> = emptyList(),
     chartHeight: Dp = 120.dp,
     externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null
+    onXSelected: ((Float?) -> Unit)? = null,
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     if (dataLeft.size < 2 && dataRight.size < 2) return
 
@@ -142,6 +143,7 @@ fun DualAxisLineChart(
 
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
+                        down.consume()
                         isUserInteracting = true
 
                         if (down.position.y > chartHeightPx) {
@@ -247,6 +249,13 @@ fun DualAxisLineChart(
                     val y = chartHeightPx * (1 - (v - chartDataRight.minValue) / chartDataRight.range)
                     drawCircle(color = colorRight, radius = 6.dp.toPx(), center = Offset(pointX, y))
                     drawCircle(color = Color.White, radius = 3.dp.toPx(), center = Offset(pointX, y))
+                }
+
+                // Draw floating time chip in the X axis label zone
+                if (fractionToTimeLabel != null && timeLabelHeightPx > 0) {
+                    val fraction = if (dataSize > 1) point.index.toFloat() / (dataSize - 1) else 0f
+                    val timeStr = fractionToTimeLabel(fraction)
+                    drawFloatingTimeChipDual(timeStr, pointX, colorLeft, chartHeightPx, timeLabelHeightPx, width - rLabelWidth)
                 }
             }
         }
@@ -443,5 +452,38 @@ private fun DrawScope.drawDualTimeLabels(
                 drawText(label, x.coerceAtLeast(0f), timeY, textPaint)
             }
         }
+    }
+}
+
+private fun DrawScope.drawFloatingTimeChipDual(
+    timeStr: String,
+    xCenter: Float,
+    chipColor: Color,
+    chartHeight: Float,
+    timeLabelHeight: Float,
+    chartWidth: Float
+) {
+    drawContext.canvas.nativeCanvas.apply {
+        val textPaint = Paint().apply {
+            color = android.graphics.Color.WHITE
+            textSize = 28f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
+        val bgPaint = Paint().apply {
+            color = chipColor.copy(alpha = 0.9f).toArgb()
+            isAntiAlias = true
+        }
+
+        val textWidth = textPaint.measureText(timeStr)
+        val chipPadding = 12f
+        val chipWidth = textWidth + chipPadding * 2
+        val chipHeight = timeLabelHeight * 0.85f
+        val chipTop = chartHeight + (timeLabelHeight - chipHeight) / 2
+        val chipLeft = (xCenter - chipWidth / 2).coerceIn(0f, chartWidth - chipWidth)
+
+        val rect = android.graphics.RectF(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
+        drawRoundRect(rect, 8f, 8f, bgPaint)
+        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + textPaint.textSize / 3, textPaint)
     }
 }
