@@ -55,7 +55,9 @@ fun FullscreenDualAxisLineChart(
     colorRight: Color = MaterialTheme.colorScheme.secondary,
     unitLeft: String = "V",
     unitRight: String = "A",
-    timeLabels: List<String> = emptyList()
+    timeLabels: List<String> = emptyList(),
+    externalSelectedFraction: Float? = null,
+    onXSelected: ((Float?) -> Unit)? = null
 ) {
     if (dataLeft.size < 2 && dataRight.size < 2) return
 
@@ -72,6 +74,8 @@ fun FullscreenDualAxisLineChart(
             unitLeft = unitLeft,
             unitRight = unitRight,
             timeLabels = timeLabels,
+            externalSelectedFraction = externalSelectedFraction,
+            onXSelected = onXSelected,
             modifier = Modifier.fillMaxWidth()
         )
 

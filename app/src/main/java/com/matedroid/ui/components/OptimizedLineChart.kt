@@ -3,7 +3,9 @@ package com.matedroid.ui.components
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -49,6 +53,11 @@ private const val MAX_DISPLAY_POINTS = 150
  * 2. Cached computations using remember - prevents recalculation on every frame
  * 3. Path-based drawing - single draw call instead of many line segments
  * 4. Minimal text drawing - labels drawn efficiently
+ *
+ * @param externalSelectedFraction When provided (0.0–1.0), shows a tooltip at the corresponding
+ *   X position. Used for cross-chart synchronization when user is interacting with a sibling chart.
+ * @param onXSelected Called with the normalized X fraction (0.0–1.0) when the user interacts
+ *   with this chart, or null when the tooltip is dismissed.
  */
 @Composable
 fun OptimizedLineChart(
@@ -60,7 +69,9 @@ fun OptimizedLineChart(
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
     convertValue: (Float) -> Float = { it },
-    chartHeight: androidx.compose.ui.unit.Dp = 120.dp
+    chartHeight: Dp = 120.dp,
+    externalSelectedFraction: Float? = null,
+    onXSelected: ((Float?) -> Unit)? = null
 ) {
     if (data.size < 2) return
 
@@ -72,55 +83,87 @@ fun OptimizedLineChart(
         prepareChartData(data, fixedMinMax, convertValue)
     }
 
-    // State for tooltip on tap
     var selectedPoint by remember { mutableStateOf<SelectedPoint?>(null) }
+    var isUserInteracting by remember { mutableStateOf(false) }
+    var canvasWidthPx by remember { mutableStateOf(0f) }
 
-    // Calculate heights
-    val chartHeightDp = chartHeight
+    val density = LocalDensity.current
+    val chartHeightPx = with(density) { chartHeight.toPx() }
     val timeLabelHeightDp = if (timeLabels.isNotEmpty()) 20.dp else 0.dp
-    val totalHeightDp = chartHeightDp + timeLabelHeightDp
+    val timeLabelHeightPx = with(density) { timeLabelHeightDp.toPx() }
+    val totalHeightDp = chartHeight + timeLabelHeightDp
+
+    // Compute tooltip position from external sync state (when another chart is being interacted with)
+    val externalPoint: SelectedPoint? = remember(externalSelectedFraction, chartData, canvasWidthPx) {
+        if (externalSelectedFraction == null || canvasWidthPx == 0f) return@remember null
+        val points = chartData.displayPoints
+        if (points.isEmpty()) return@remember null
+        val index = (externalSelectedFraction * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex)
+        val stepX = canvasWidthPx / (points.size - 1).coerceAtLeast(1)
+        val pointX = index * stepX
+        val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
+        SelectedPoint(index, points[index], Offset(pointX, pointY))
+    }
+
+    // Show external state when user is not touching this chart and external sync is active
+    val displayedPoint = if (!isUserInteracting && externalSelectedFraction != null) {
+        externalPoint
+    } else {
+        selectedPoint
+    }
 
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(totalHeightDp)
+                .onSizeChanged { canvasWidthPx = it.width.toFloat() }
                 .pointerInput(chartData) {
-                    detectTapGestures { offset ->
+                    val points = chartData.displayPoints
+                    if (points.isEmpty()) return@pointerInput
+
+                    fun updateSelection(xOffset: Float) {
                         val width = size.width.toFloat()
-                        val chartHeightPx = chartHeightDp.toPx()
-                        val points = chartData.displayPoints
-
-                        if (points.isEmpty()) {
-                            selectedPoint = null
-                            return@detectTapGestures
-                        }
-
-                        // Tap outside chart area dismisses tooltip
-                        if (offset.y > chartHeightPx) {
-                            selectedPoint = null
-                            return@detectTapGestures
-                        }
-
-                        // Find closest point to tap
                         val stepX = width / (points.size - 1).coerceAtLeast(1)
-                        val tappedIndex = ((offset.x / stepX).roundToInt()).coerceIn(0, points.lastIndex)
-                        val pointValue = points[tappedIndex]
+                        val index = ((xOffset / stepX).roundToInt()).coerceIn(0, points.lastIndex)
+                        val fraction = if (points.size > 1) index.toFloat() / (points.size - 1) else 0f
+                        val pointX = index * stepX
+                        val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
+                        selectedPoint = SelectedPoint(index, points[index], Offset(pointX, pointY))
+                        onXSelected?.invoke(fraction)
+                    }
 
-                        val pointX = tappedIndex * stepX
-                        val pointY = chartHeightPx * (1 - (pointValue - chartData.minValue) / chartData.range)
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isUserInteracting = true
 
-                        selectedPoint = if (selectedPoint?.index == tappedIndex) {
-                            null // Toggle off
-                        } else {
-                            SelectedPoint(tappedIndex, pointValue, Offset(pointX, pointY))
+                        // Record what was selected before this press for toggle detection
+                        val width = size.width.toFloat()
+                        val stepX = width / (points.size - 1).coerceAtLeast(1)
+                        val initialIndex = ((down.position.x / stepX).roundToInt()).coerceIn(0, points.lastIndex)
+                        val wasSelectedAtSameIndex = selectedPoint?.index == initialIndex
+
+                        // Show tooltip immediately on press
+                        updateSelection(down.position.x)
+
+                        var hasDragged = false
+                        drag(down.id) { change ->
+                            change.consume()
+                            hasDragged = true
+                            updateSelection(change.position.x)
                         }
+
+                        // Tap on already-selected point: toggle off (dismiss tooltip)
+                        if (!hasDragged && wasSelectedAtSameIndex) {
+                            selectedPoint = null
+                            onXSelected?.invoke(null)
+                        }
+
+                        isUserInteracting = false
                     }
                 }
         ) {
             val width = size.width
-            val chartHeightPx = chartHeightDp.toPx()
-            val timeLabelHeightPx = timeLabelHeightDp.toPx()
 
             // Draw grid lines
             drawGridLines(gridColor, width, chartHeightPx)
@@ -146,7 +189,7 @@ fun OptimizedLineChart(
             }
 
             // Draw selected point indicator
-            selectedPoint?.let { point ->
+            displayedPoint?.let { point ->
                 drawCircle(
                     color = color,
                     radius = 6.dp.toPx(),
@@ -160,18 +203,18 @@ fun OptimizedLineChart(
             }
         }
 
-        // Tooltip popup - dismisses on tap outside
-        selectedPoint?.let { point ->
-            val density = LocalDensity.current
+        // Tooltip popup
+        displayedPoint?.let { point ->
+            val d = LocalDensity.current
             Popup(
-                offset = with(density) {
+                offset = with(d) {
                     IntOffset(
                         x = point.position.x.roundToInt(),
                         y = (point.position.y - 48.dp.toPx()).roundToInt()
                     )
                 },
                 onDismissRequest = { selectedPoint = null },
-                properties = PopupProperties(focusable = true)
+                properties = PopupProperties(focusable = false)
             ) {
                 val text = "%.1f".format(point.value) + " $unit"
                 Text(
@@ -435,4 +478,3 @@ private fun DrawScope.drawTimeLabels(
         }
     }
 }
-

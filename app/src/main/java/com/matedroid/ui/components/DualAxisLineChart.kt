@@ -3,7 +3,9 @@ package com.matedroid.ui.components
 import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
@@ -40,6 +43,11 @@ private const val MAX_DISPLAY_POINTS = 150
 /**
  * A dual-axis line chart showing two data series with independent Y axes.
  * Left Y axis shows the first series (e.g., Voltage), right Y axis shows the second (e.g., Current).
+ *
+ * @param externalSelectedFraction When provided (0.0–1.0), shows tooltips at the corresponding
+ *   X position. Used for cross-chart synchronization.
+ * @param onXSelected Called with the normalized X fraction when the user interacts with this chart,
+ *   or null when dismissed.
  */
 @Composable
 fun DualAxisLineChart(
@@ -51,7 +59,9 @@ fun DualAxisLineChart(
     unitLeft: String = "V",
     unitRight: String = "A",
     timeLabels: List<String> = emptyList(),
-    chartHeight: Dp = 120.dp
+    chartHeight: Dp = 120.dp,
+    externalSelectedFraction: Float? = null,
+    onXSelected: ((Float?) -> Unit)? = null
 ) {
     if (dataLeft.size < 2 && dataRight.size < 2) return
 
@@ -62,53 +72,110 @@ fun DualAxisLineChart(
     val chartDataRight = remember(dataRight) { prepareDualChartData(dataRight) }
 
     var selectedPoint by remember { mutableStateOf<DualSelectedPoint?>(null) }
+    var isUserInteracting by remember { mutableStateOf(false) }
+    var canvasWidthPx by remember { mutableStateOf(0f) }
 
+    val density = LocalDensity.current
+    val chartHeightPx = with(density) { chartHeight.toPx() }
     val timeLabelHeightDp = if (timeLabels.isNotEmpty()) 20.dp else 0.dp
     val totalHeightDp = chartHeight + timeLabelHeightDp
 
     // Use the larger dataset size for X positioning
     val dataSize = maxOf(dataLeft.size, dataRight.size)
+    val rightLabelWidth = 70f
+
+    // Compute tooltip from external sync state
+    val externalPoint: DualSelectedPoint? = remember(externalSelectedFraction, chartDataLeft, chartDataRight, canvasWidthPx) {
+        if (externalSelectedFraction == null || canvasWidthPx == 0f) return@remember null
+        val index = (externalSelectedFraction * (dataSize - 1)).roundToInt().coerceIn(0, dataSize - 1)
+        val chartWidth = canvasWidthPx - rightLabelWidth
+        val stepX = chartWidth / (dataSize - 1).coerceAtLeast(1)
+        val pointX = index * stepX
+        val leftVal = chartDataLeft.displayPoints.getOrNull(index)
+        val rightVal = chartDataRight.displayPoints.getOrNull(index)
+        val leftY = if (leftVal != null) {
+            chartHeightPx * (1 - (leftVal - chartDataLeft.minValue) / chartDataLeft.range)
+        } else chartHeightPx / 2
+        DualSelectedPoint(
+            index = index,
+            valueLeft = leftVal,
+            valueRight = rightVal,
+            position = Offset(pointX, leftY)
+        )
+    }
+
+    val displayedPoint = if (!isUserInteracting && externalSelectedFraction != null) {
+        externalPoint
+    } else {
+        selectedPoint
+    }
 
     Box(modifier = modifier) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(totalHeightDp)
+                .onSizeChanged { canvasWidthPx = it.width.toFloat() }
                 .pointerInput(chartDataLeft, chartDataRight) {
-                    detectTapGestures { offset ->
+                    if (dataSize < 2) return@pointerInput
+
+                    fun updateSelection(xOffset: Float, yOffset: Float) {
                         val width = size.width.toFloat()
-                        val chartHeightPx = chartHeight.toPx()
+                        val chartWidth = width - rightLabelWidth
+                        val stepX = chartWidth / (dataSize - 1).coerceAtLeast(1)
+                        val index = ((xOffset / stepX).roundToInt()).coerceIn(0, dataSize - 1)
+                        val fraction = if (dataSize > 1) index.toFloat() / (dataSize - 1) else 0f
+                        val pointX = index * stepX
+                        val leftVal = chartDataLeft.displayPoints.getOrNull(index)
+                        val rightVal = chartDataRight.displayPoints.getOrNull(index)
+                        val leftY = if (leftVal != null) {
+                            chartHeightPx * (1 - (leftVal - chartDataLeft.minValue) / chartDataLeft.range)
+                        } else yOffset
+                        selectedPoint = DualSelectedPoint(
+                            index = index,
+                            valueLeft = leftVal,
+                            valueRight = rightVal,
+                            position = Offset(pointX, leftY)
+                        )
+                        onXSelected?.invoke(fraction)
+                    }
 
-                        if (offset.y > chartHeightPx) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isUserInteracting = true
+
+                        if (down.position.y > chartHeightPx) {
+                            isUserInteracting = false
+                            return@awaitEachGesture
+                        }
+
+                        val width = size.width.toFloat()
+                        val chartWidth = width - rightLabelWidth
+                        val stepX = chartWidth / (dataSize - 1).coerceAtLeast(1)
+                        val initialIndex = ((down.position.x / stepX).roundToInt()).coerceIn(0, dataSize - 1)
+                        val wasSelectedAtSameIndex = selectedPoint?.index == initialIndex
+
+                        updateSelection(down.position.x, down.position.y)
+
+                        var hasDragged = false
+                        drag(down.id) { change ->
+                            change.consume()
+                            hasDragged = true
+                            updateSelection(change.position.x, change.position.y)
+                        }
+
+                        if (!hasDragged && wasSelectedAtSameIndex) {
                             selectedPoint = null
-                            return@detectTapGestures
+                            onXSelected?.invoke(null)
                         }
 
-                        val stepX = width / (dataSize - 1).coerceAtLeast(1)
-                        val tappedIndex = ((offset.x / stepX).roundToInt()).coerceIn(0, dataSize - 1)
-
-                        val leftVal = chartDataLeft.displayPoints.getOrNull(tappedIndex)
-                        val rightVal = chartDataRight.displayPoints.getOrNull(tappedIndex)
-
-                        val pointX = tappedIndex * stepX
-
-                        selectedPoint = if (selectedPoint?.index == tappedIndex) {
-                            null
-                        } else {
-                            DualSelectedPoint(
-                                index = tappedIndex,
-                                valueLeft = leftVal,
-                                valueRight = rightVal,
-                                position = Offset(pointX, offset.y)
-                            )
-                        }
+                        isUserInteracting = false
                     }
                 }
         ) {
             val width = size.width
-            val chartHeightPx = chartHeight.toPx()
             val timeLabelHeightPx = timeLabelHeightDp.toPx()
-            val rightLabelWidth = 70f // Reserve space for right Y labels
+            val rLabelWidth = rightLabelWidth
 
             // Draw grid lines
             val gridLineCount = 4
@@ -125,7 +192,7 @@ fun DualAxisLineChart(
             // Draw left series path
             if (chartDataLeft.displayPoints.size >= 2) {
                 drawPath(
-                    path = createLinePath(chartDataLeft, width - rightLabelWidth, chartHeightPx),
+                    path = createLinePath(chartDataLeft, width - rLabelWidth, chartHeightPx),
                     color = colorLeft,
                     style = Stroke(width = 2.5f)
                 )
@@ -134,7 +201,7 @@ fun DualAxisLineChart(
             // Draw right series path
             if (chartDataRight.displayPoints.size >= 2) {
                 drawPath(
-                    path = createLinePath(chartDataRight, width - rightLabelWidth, chartHeightPx),
+                    path = createLinePath(chartDataRight, width - rLabelWidth, chartHeightPx),
                     color = colorRight,
                     style = Stroke(width = 2.5f)
                 )
@@ -163,12 +230,12 @@ fun DualAxisLineChart(
 
             // Draw time labels
             if (timeLabels.size == 5) {
-                drawDualTimeLabels(surfaceColor, timeLabels, width - rightLabelWidth, chartHeightPx, timeLabelHeightPx)
+                drawDualTimeLabels(surfaceColor, timeLabels, width - rLabelWidth, chartHeightPx, timeLabelHeightPx)
             }
 
             // Draw selected point indicators
-            selectedPoint?.let { point ->
-                val stepX = (width - rightLabelWidth) / (dataSize - 1).coerceAtLeast(1)
+            displayedPoint?.let { point ->
+                val stepX = (width - rLabelWidth) / (dataSize - 1).coerceAtLeast(1)
                 val pointX = point.index * stepX
 
                 point.valueLeft?.let { v ->
@@ -184,18 +251,18 @@ fun DualAxisLineChart(
             }
         }
 
-        // Tooltip popup - dismisses on tap outside
-        selectedPoint?.let { point ->
-            val density = LocalDensity.current
+        // Tooltip popup
+        displayedPoint?.let { point ->
+            val d = LocalDensity.current
             Popup(
-                offset = with(density) {
+                offset = with(d) {
                     IntOffset(
                         x = point.position.x.roundToInt(),
                         y = (point.position.y - 48.dp.toPx()).roundToInt()
                     )
                 },
                 onDismissRequest = { selectedPoint = null },
-                properties = PopupProperties(focusable = true)
+                properties = PopupProperties(focusable = false)
             ) {
                 val lines = mutableListOf<String>()
                 if (point.valueLeft != null) lines.add("%.1f".format(point.valueLeft) + " $unitLeft")
@@ -378,4 +445,3 @@ private fun DrawScope.drawDualTimeLabels(
         }
     }
 }
-

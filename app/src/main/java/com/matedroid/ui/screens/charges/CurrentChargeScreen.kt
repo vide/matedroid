@@ -46,7 +46,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -222,6 +224,7 @@ private fun CurrentChargeContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    var sharedXFraction by remember { mutableStateOf<Float?>(null) }
 
     Column(
         modifier = modifier
@@ -256,6 +259,8 @@ private fun CurrentChargeContent(
                     color = Color(0xFF4CAF50),
                     unit = "kW",
                     timeLabels = timeLabels,
+                    externalSelectedFraction = sharedXFraction,
+                    onXSelected = { sharedXFraction = it },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -280,6 +285,8 @@ private fun CurrentChargeContent(
                         unitLeft = "V",
                         unitRight = "A",
                         timeLabels = timeLabels,
+                        externalSelectedFraction = sharedXFraction,
+                        onXSelected = { sharedXFraction = it },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -299,6 +306,8 @@ private fun CurrentChargeContent(
                     unit = "%",
                     fixedMinMax = Pair(0f, 100f),
                     timeLabels = timeLabels,
+                    externalSelectedFraction = sharedXFraction,
+                    onXSelected = { sharedXFraction = it },
                     modifier = Modifier.fillMaxWidth()
                 )
             }

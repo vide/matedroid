@@ -2,7 +2,9 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -84,26 +86,47 @@ fun InteractiveBarChart(
                     containerWidth = it.size.width.toFloat()}
                 .height(120.dp)
                 .pointerInput(data) {
-                    detectTapGestures { offset ->
-                        val yAxisWidth = with(density) { 32.dp.toPx() }
+                    val yAxisWidth = 32.dp.toPx()
+
+                    fun updateBar(offset: Offset) {
                         val chartWidth = size.width - yAxisWidth
                         val barWidth = chartWidth / data.size
-
-                        // Check if tap is in chart area
                         if (offset.x > yAxisWidth) {
                             val barIndex = ((offset.x - yAxisWidth) / barWidth).toInt()
-                            if (barIndex in data.indices) {
-                                if (selectedBarIndex == barIndex) {
-                                    selectedBarIndex = null
-                                } else {
-                                    selectedBarIndex = barIndex
-                                    tooltipPosition = Offset(
-                                        yAxisWidth + barIndex * barWidth + barWidth / 2,
-                                        offset.y
-                                    )
-                                }
-                            }
-                        } else {
+                                .coerceIn(0, data.lastIndex)
+                            selectedBarIndex = barIndex
+                            tooltipPosition = Offset(
+                                yAxisWidth + barIndex * barWidth + barWidth / 2,
+                                offset.y
+                            )
+                        }
+                    }
+
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+
+                        val chartWidth = size.width - yAxisWidth
+                        val barWidth = chartWidth / data.size
+                        val initialBarIndex = if (down.position.x > yAxisWidth) {
+                            ((down.position.x - yAxisWidth) / barWidth).toInt()
+                                .coerceIn(0, data.lastIndex)
+                        } else null
+                        val wasSelectedAtSameIndex = initialBarIndex != null &&
+                            selectedBarIndex == initialBarIndex
+
+                        if (down.position.x > yAxisWidth) {
+                            updateBar(down.position)
+                        }
+
+                        var hasDragged = false
+                        drag(down.id) { change ->
+                            change.consume()
+                            hasDragged = true
+                            updateBar(change.position)
+                        }
+
+                        // Tap on already-selected bar: toggle off
+                        if (!hasDragged && wasSelectedAtSameIndex) {
                             selectedBarIndex = null
                         }
                     }
