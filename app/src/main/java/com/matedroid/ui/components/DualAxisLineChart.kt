@@ -19,6 +19,7 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +104,13 @@ fun DualAxisLineChart(
             valueRight = rightVal,
             position = Offset(pointX, leftY)
         )
+    }
+
+    // When the parent clears the shared fraction (e.g. scroll, tap outside), also clear local state
+    LaunchedEffect(externalSelectedFraction) {
+        if (externalSelectedFraction == null && onXSelected != null && !isUserInteracting) {
+            selectedPoint = null
+        }
     }
 
     val displayedPoint = if (!isUserInteracting && externalSelectedFraction != null) {

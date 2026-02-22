@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,6 +105,13 @@ fun OptimizedLineChart(
         val pointX = index * stepX
         val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
         SelectedPoint(index, points[index], Offset(pointX, pointY))
+    }
+
+    // When the parent clears the shared fraction (e.g. scroll, tap outside), also clear local state
+    LaunchedEffect(externalSelectedFraction) {
+        if (externalSelectedFraction == null && onXSelected != null && !isUserInteracting) {
+            selectedPoint = null
+        }
     }
 
     // Show external state when user is not touching this chart and external sync is active

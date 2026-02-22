@@ -49,6 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -171,6 +172,11 @@ private fun DriveDetailContent(
 ) {
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { isScrolling -> if (isScrolling) sharedXFraction = null }
+    }
 
     Column(
         modifier = modifier

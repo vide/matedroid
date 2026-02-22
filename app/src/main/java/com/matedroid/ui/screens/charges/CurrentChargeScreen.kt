@@ -50,6 +50,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -227,6 +228,11 @@ private fun CurrentChargeContent(
 ) {
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { isScrolling -> if (isScrolling) sharedXFraction = null }
+    }
 
     Column(
         modifier = modifier

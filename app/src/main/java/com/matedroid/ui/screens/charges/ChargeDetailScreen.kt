@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -161,6 +162,11 @@ private fun ChargeDetailContent(
 ) {
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { isScrolling -> if (isScrolling) sharedXFraction = null }
+    }
 
     Column(
         modifier = modifier
