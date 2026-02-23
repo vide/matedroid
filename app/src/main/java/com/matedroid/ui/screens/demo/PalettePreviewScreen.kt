@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Battery5Bar
 import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Lock
@@ -31,6 +30,8 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalette
@@ -59,9 +61,10 @@ import com.matedroid.ui.theme.StatusWarning
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalettePreviewScreen(
+    darkTheme: Boolean? = null,  // ← Optional parameter for dark mode
     onNavigateBack: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = darkTheme ?: isSystemInDarkTheme()  // ← Use system theme if not provided
 
     Scaffold(
         topBar = {
@@ -106,6 +109,11 @@ fun PalettePreviewScreen(
                 isCharging = true
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("White", isDark),
+                label = "White"
+            )
+
             // Midnight Silver - Charging
             PreviewBatteryCard(
                 carColor = "Midnight Silver",
@@ -114,6 +122,42 @@ fun PalettePreviewScreen(
                 wheelType = "Pinwheel18",
                 isDarkTheme = isDark,
                 isCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("MidnightSilver", isDark),
+                label = "Midnight Silver"
+            )
+
+            // Red Multi-Coat - Charging
+            PreviewBatteryCard(
+                carColor = "Red Multi-Coat",
+                exteriorColor = "RedMulticoat",
+                model = "3",
+                wheelType = "Pinwheel18",
+                isDarkTheme = isDark,
+                isCharging = true,
+                isDcCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("RedMulticoat", isDark),
+                label = "Red Multi-Coat"
+            )
+
+            // Black car - Charging
+            PreviewBatteryCard(
+                carColor = "Black",
+                exteriorColor = "SolidBlack",
+                model = "3",
+                wheelType = "Pinwheel18",
+                isDarkTheme = isDark,
+                isCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("SolidBlack", isDark),
+                label = "Black"
             )
 
             // Section: Not Charging cards
@@ -137,6 +181,11 @@ fun PalettePreviewScreen(
                 isCharging = false
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("White", isDark),
+                label = "White"
+            )
+
             // Black car - Not charging
             PreviewBatteryCard(
                 carColor = "Black (Not Charging)",
@@ -145,6 +194,11 @@ fun PalettePreviewScreen(
                 wheelType = "Pinwheel18",
                 isDarkTheme = isDark,
                 isCharging = false
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("SolidBlack", isDark),
+                label = "Black"
             )
 
             // Midnight Silver - Not charging
@@ -157,6 +211,11 @@ fun PalettePreviewScreen(
                 isCharging = false
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("MidnightSilver", isDark),
+                label = "Midnight Silver"
+            )
+
             // Red - Not charging
             PreviewBatteryCard(
                 carColor = "Red Multi-Coat (Not Charging)",
@@ -165,6 +224,11 @@ fun PalettePreviewScreen(
                 wheelType = "Pinwheel18",
                 isDarkTheme = isDark,
                 isCharging = false
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("RedMulticoat", isDark),
+                label = "Red Multi-Coat"
             )
 
             // Section: Other models (Charging)
@@ -188,6 +252,11 @@ fun PalettePreviewScreen(
                 isCharging = true
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("White", isDark),
+                label = "Pearl White (Model Y)"
+            )
+
             // Deep Blue (Model Y Legacy)
             PreviewBatteryCard(
                 carColor = "Deep Blue (Model Y Legacy)",
@@ -195,7 +264,13 @@ fun PalettePreviewScreen(
                 model = "Y",
                 wheelType = "Gemini19",
                 isDarkTheme = isDark,
-                isCharging = true
+                isCharging = true,
+                isDcCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("DeepBlue", isDark),
+                label = "Deep Blue (Model Y)"
             )
 
             // Model Y Juniper
@@ -206,6 +281,11 @@ fun PalettePreviewScreen(
                 wheelType = "Photon18",
                 isDarkTheme = isDark,
                 isCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("BlackDiamond", isDark),
+                label = "Black Diamond (Model Y)"
             )
 
             // Stealth Grey (Highland)
@@ -219,6 +299,11 @@ fun PalettePreviewScreen(
                 isCharging = true
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("StealthGrey", isDark),
+                label = "Stealth Grey (Highland)"
+            )
+
             // Model S
             PreviewBatteryCard(
                 carColor = "Pearl White (Model S)",
@@ -229,6 +314,11 @@ fun PalettePreviewScreen(
                 isCharging = true
             )
 
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("White", isDark),
+                label = "Pearl White (Model S)"
+            )
+
             // Model X
             PreviewBatteryCard(
                 carColor = "Deep Blue (Model X)",
@@ -237,6 +327,11 @@ fun PalettePreviewScreen(
                 wheelType = "Cyberstream20",
                 isDarkTheme = isDark,
                 isCharging = true
+            )
+
+            ChargesPreview(
+                palette = CarColorPalettes.forExteriorColor("DeepBlue", isDark),
+                label = "Deep Blue (Model X)"
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -252,7 +347,8 @@ private fun PreviewBatteryCard(
     wheelType: String,
     trimBadging: String? = null,
     isDarkTheme: Boolean,
-    isCharging: Boolean = true
+    isCharging: Boolean = true,
+    isDcCharging: Boolean = false
 ) {
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
@@ -335,21 +431,14 @@ private fun PreviewBatteryCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Progress bar
-            if (isCharging) {
-                ChargingProgressBarPreview(
-                    currentLevel = 72,
-                    targetLevel = 80,
-                    palette = palette,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else {
-                NotChargingProgressBarPreview(
-                    currentLevel = 65,
-                    targetLevel = 80,
-                    palette = palette,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            ChargingProgressBarPreview(
+                currentLevel = if (isCharging) 72 else 65,
+                targetLevel = 80,
+                isCharging = isCharging,
+                isDcCharging = isDcCharging,
+                palette = palette,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -562,13 +651,20 @@ private fun PreviewCarImage(
 private fun ChargingProgressBarPreview(
     currentLevel: Int,
     targetLevel: Int,
+    isCharging: Boolean,
+    isDcCharging: Boolean = false,
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
     val currentFraction = currentLevel / 100f
     val targetFraction = targetLevel / 100f
-    val solidGreen = StatusSuccess
-    val dimmedGreen = StatusSuccess.copy(alpha = 0.3f)
+    // Use AC/DC color when charging, StatusSuccess as fallback
+    val chargeColor = if (isCharging) {
+        if (isDcCharging) palette.dcColor else palette.acColor
+    } else {
+        StatusSuccess  // Fallback (not used in practice)
+    }
+    val dimmedChargeColor = chargeColor.copy(alpha = 0.3f)
 
     Canvas(
         modifier = modifier
@@ -584,61 +680,340 @@ private fun ChargingProgressBarPreview(
             size = size
         )
 
-        // Dimmed green for target area
-        if (targetFraction > currentFraction) {
-            drawRect(
-                color = dimmedGreen,
-                topLeft = androidx.compose.ui.geometry.Offset(width * currentFraction, 0f),
-                size = androidx.compose.ui.geometry.Size(
-                    width * (targetFraction - currentFraction),
-                    height
+        if (isCharging) {
+            // Charging: show AC/DC color with target area
+            // Dimmed color for target area (from current to target)
+            if (targetFraction > currentFraction) {
+                drawRect(
+                    color = dimmedChargeColor,
+                    topLeft = androidx.compose.ui.geometry.Offset(width * currentFraction, 0f),
+                    size = androidx.compose.ui.geometry.Size(
+                        width * (targetFraction - currentFraction),
+                        height
+                    )
                 )
+            }
+            // Solid AC/DC color for current charge level
+            drawRect(
+                color = chargeColor,
+                size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
+            )
+        } else {
+            // Not charging: show accent color with limit marker
+            // Dimmed accent for limit area
+            if (targetFraction > currentFraction) {
+                drawRect(
+                    color = palette.accentDim,
+                    topLeft = androidx.compose.ui.geometry.Offset(width * currentFraction, 0f),
+                    size = androidx.compose.ui.geometry.Size(
+                        width * (targetFraction - currentFraction),
+                        height
+                    )
+                )
+            }
+            // Solid accent for current charge level
+            drawRect(
+                color = palette.accent,
+                size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
             )
         }
+    }
+}
 
-        // Solid green for current charge level
-        drawRect(
-            color = solidGreen,
-            size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
+/**
+ * Preview component showing Charges filters and chart for demo purposes
+ */
+@Composable
+private fun ChargesPreview(
+    palette: CarColorPalette,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = palette.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // Label (e.g., "White - Light Mode")
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = palette.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Charge Type Filters (Todos, AC, DC)
+            ChargeTypeFiltersPreview(palette = palette)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Chart
+            ChargesChartPreview(palette = palette)
+        }
+    }
+}
+
+/**
+ * Preview of charge type filter chips (Todos, AC, DC)
+ */
+@Composable
+private fun ChargeTypeFiltersPreview(
+    palette: CarColorPalette
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Todos - Selected
+        FilterChip(
+            selected = true,
+            onClick = { },
+            label = {
+                Text(
+                    text = "Todos",
+                    color = Color.White
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = palette.onSurfaceVariant,
+                containerColor = Color.Transparent
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = true,
+                borderWidth = 0.dp
+            )
+        )
+
+        // AC
+        FilterChip(
+            selected = false,
+            onClick = { },
+            label = {
+                Text(
+                    text = "AC",
+                    color = palette.acColor
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = palette.acColor,
+                containerColor = Color.Transparent
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = false,
+                borderColor = palette.acColor.copy(alpha = 0.6f),
+                borderWidth = 1.dp
+            )
+        )
+
+        // DC
+        FilterChip(
+            selected = false,
+            onClick = { },
+            label = {
+                Text(
+                    text = "DC",
+                    color = palette.dcColor
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = palette.dcColor,
+                containerColor = Color.Transparent
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = false,
+                borderColor = palette.dcColor.copy(alpha = 0.6f),
+                borderWidth = 1.dp
+            )
         )
     }
 }
 
+/**
+ * Preview of energy chart with AC/DC segments
+ */
 @Composable
-private fun NotChargingProgressBarPreview(
-    currentLevel: Int,
-    targetLevel: Int,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
+private fun ChargesChartPreview(
+    palette: CarColorPalette
 ) {
-    val currentFraction = currentLevel / 100f
-    val targetFraction = targetLevel / 100f
+    Column {
+        // Chart title
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.BatteryChargingFull,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = palette.accent
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Energía por semana",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurface
+            )
+        }
 
-    Canvas(
-        modifier = modifier
-            .height(8.dp)
-            .clip(RoundedCornerShape(4.dp))
-    ) {
-        val width = size.width
-        val height = size.height
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Background
-        drawRect(
-            color = palette.progressTrack,
-            size = size
+        // Sample data - Weekly energy with AC/DC breakdown
+        val sampleData = listOf(
+            com.matedroid.ui.components.BarChartData(
+                label = "W47",
+                value = 165.0,
+                displayValue = "165.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(165.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W48",
+                value = 178.0,
+                displayValue = "178.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(178.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W49",
+                value = 248.0,
+                displayValue = "248.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(248.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W50",
+                value = 142.0,
+                displayValue = "142.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(142.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W51",
+                value = 98.0,
+                displayValue = "98.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(98.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W52",
+                value = 215.0,
+                displayValue = "215.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(25.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(190.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W1",
+                value = 235.0,
+                displayValue = "235.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(45.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(190.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W2",
+                value = 38.0,
+                displayValue = "38.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(5.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(33.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W3",
+                value = 52.0,
+                displayValue = "52.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(52.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W4",
+                value = 168.0,
+                displayValue = "168.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(168.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W5",
+                value = 125.0,
+                displayValue = "125.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(125.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W6",
+                value = 188.0,
+                displayValue = "188.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(20.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(168.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W7",
+                value = 145.0,
+                displayValue = "145.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(145.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            ),
+            com.matedroid.ui.components.BarChartData(
+                label = "W8",
+                value = 72.0,
+                displayValue = "72.0 kWh",
+                segments = listOf(
+                    com.matedroid.ui.components.BarSegment(72.0, palette.acColor, "AC"),
+                    com.matedroid.ui.components.BarSegment(0.0, palette.dcColor, "DC")
+                )
+            )
         )
 
-        // Target marker line (vertical line at target level)
-        drawRect(
-            color = palette.onSurfaceVariant.copy(alpha = 0.5f),
-            topLeft = androidx.compose.ui.geometry.Offset(width * targetFraction - 1.dp.toPx(), 0f),
-            size = androidx.compose.ui.geometry.Size(2.dp.toPx(), height)
+        com.matedroid.ui.components.InteractiveBarChart(
+            data = sampleData,
+            modifier = Modifier.fillMaxWidth(),
+            barColor = palette.accent,
+            labelColor = palette.onSurfaceVariant,
+            showEveryNthLabel = 3,
+            valueFormatter = { v -> "%.0f kWh".format(v) }
         )
+    }
+}
 
-        // Current battery level (using accent color when not charging)
-        drawRect(
-            color = palette.accent,
-            size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
-        )
+@Preview(name = "Light Mode", showBackground = true)
+@Composable
+private fun PalettePreviewScreenLightPreview() {
+    com.matedroid.ui.theme.MateDroidTheme(darkTheme = false) {
+        PalettePreviewScreen(darkTheme = false)
+    }
+}
+
+@Preview(name = "Dark Mode", showBackground = true)
+@Composable
+private fun PalettePreviewScreenDarkPreview() {
+    com.matedroid.ui.theme.MateDroidTheme(darkTheme = true) {
+        PalettePreviewScreen(darkTheme = true)
     }
 }

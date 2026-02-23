@@ -44,7 +44,8 @@ data class StatsUiState(
     val geocodeProgress: GeocodeProgressInfo? = null,
     val isGeocoding: Boolean = false,
     val currencySymbol: String = "€",
-    val error: String? = null
+    val error: String? = null,
+    val isUpdating: Boolean = false
 )
 
 @HiltViewModel
@@ -149,8 +150,11 @@ class StatsViewModel @Inject constructor(
     }
 
     fun setYearFilter(yearFilter: YearFilter) {
-        _uiState.update { it.copy(selectedYearFilter = yearFilter) }
-        loadStats()
+        _uiState.update { it.copy(selectedYearFilter = yearFilter, isUpdating = true) }
+        viewModelScope.launch {
+            loadStatsInternal()
+            _uiState.update { it.copy(isUpdating = false) }
+        }
     }
 
     fun refresh() {
@@ -196,7 +200,10 @@ class StatsViewModel @Inject constructor(
 
     private fun loadStats() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            // Only show initial loading state if the screen is empty
+            if (_uiState.value.carStats == null) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
             loadStatsInternal()
             _uiState.update { it.copy(isLoading = false) }
         }

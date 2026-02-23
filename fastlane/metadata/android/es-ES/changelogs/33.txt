@@ -1,0 +1,11 @@
+Estabilidad y mejoras para la carga en vivo introducida en 1.0.0.
+
+Cambios:
+- Pantalla de carga en vivo: SoC mostrado como número grande destacado
+
+Correcciones:
+- Pantalla de carga en vivo se cierra automáticamente al finalizar
+- Notificación de carga abre la pantalla principal en APIs TM antiguas
+- Flecha del indicador oculta cuando la carga en vivo no está disponible
+- Gráfico V/A con colores distintos (ámbar y azul)
+- Estadísticas: valores faltantes al filtrar por año corregidos

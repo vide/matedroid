@@ -66,9 +66,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
-import com.matedroid.ui.theme.StatusError
 import com.matedroid.ui.theme.StatusSuccess
-import com.matedroid.ui.theme.StatusWarning
 
 // Colors matching the reference screenshots
 private val CapacityGreen = Color(0xFF4CAF50)

@@ -36,6 +36,7 @@ data class DashboardUiState(
     val error: String? = null,
     val errorDetails: String? = null,
     val carImageOverride: CarImageOverride? = null,
+    val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     val isCurrentChargeAvailable: Boolean = false
 ) {
     private val selectedCar: CarData?
@@ -95,7 +96,12 @@ class DashboardViewModel @Inject constructor(
             settingsDataStore.carImageOverrides.collect { overrides ->
                 currentOverrides = overrides
                 val carId = _uiState.value.selectedCarId
-                _uiState.update { it.copy(carImageOverride = carId?.let { id -> overrides[id] }) }
+                _uiState.update {
+                    it.copy(
+                        carImageOverride = carId?.let { id -> overrides[id] },
+                        carImageOverrides = overrides
+                    )
+                }
             }
         }
     }

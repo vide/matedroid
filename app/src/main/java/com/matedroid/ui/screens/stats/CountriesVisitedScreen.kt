@@ -263,7 +263,7 @@ private fun CountryCard(
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = country.driveCount.toString(),
+                        text = "%,d".format(country.driveCount),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = palette.accent

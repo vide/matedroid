@@ -76,13 +76,18 @@ class TeslamateRepository @Inject constructor(
 
     /**
      * Check whether the current charge endpoint is available for the given car.
-     * Returns true if the API supports it (HTTP 200), false on 404 (old API).
+     * Makes a dedicated HTTP call and checks only the status code: 200 means the endpoint exists,
+     * anything else (e.g. 404 on old TM versions) means it doesn't.
      * Result is cached for the app session since the API version doesn't change at runtime.
      */
     suspend fun isCurrentChargeAvailable(carId: Int): Boolean {
         currentChargeApiAvailable[carId]?.let { return it }
-        val result = getCurrentCharge(carId)
-        val available = result !is ApiResult.Error || result.code != 404
+        val result = executeWithFallback { api ->
+            val response = api.getCurrentCharge(carId)
+            if (response.code() == 200) ApiResult.Success(true)
+            else ApiResult.Error("Not available", response.code())
+        }
+        val available = result is ApiResult.Success
         currentChargeApiAvailable[carId] = available
         return available
     }

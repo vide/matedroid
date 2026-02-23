@@ -20,6 +20,16 @@ Useful for testing the app with different car configurations without owning mult
 
 # With custom port
 ./server.py -u http://localhost:4000 -c model3_highland_white_18 -p 5000
+
+# Simulate an ongoing AC charge (40% → 80%, 11 kW)
+./server.py -u http://localhost:4000 -c modely_juniper_grey_19 --charging
+
+# Simulate a DC fast charge starting at 20%, targeting 90%, at 150 kW
+./server.py -u http://localhost:4000 -c modely_juniper_grey_19 --charging --charging-dc \
+  --charging-start-soc 20 --charging-limit-soc 90
+
+# Custom AC charge at 22 kW
+./server.py -u http://localhost:4000 -c modely_juniper_grey_19 --charging --charging-power 22
 ```
 
 ## Options
@@ -29,9 +39,21 @@ Useful for testing the app with different car configurations without owning mult
 | `-u, --upstream` | Upstream Teslamate API URL (required) |
 | `-c, --car` | Car profile name from cars.json (required) |
 | `-p, --port` | Port to run mock server on (default: 4001) |
-| `--host` | Host to bind to (default: 127.0.0.1) |
+| `--host` | Host to bind to (default: 0.0.0.0) |
 | `--cars-file` | Path to cars config JSON (default: cars.json) |
 | `--list-cars` | List available car profiles and exit |
+
+### Charging simulation options
+
+| Option | Description |
+|--------|-------------|
+| `--charging` | Enable charging simulation on the `/status` endpoint |
+| `--charging-dc` | Simulate DC fast charging instead of AC (changes defaults to 150 kW, null phases) |
+| `--charging-start-soc PCT` | Starting battery % when the server starts (default: 40) |
+| `--charging-limit-soc PCT` | Charge limit / target battery % (default: 80) |
+| `--charging-power KW` | Charger power in kW (default: 11 for AC, 150 for DC) |
+
+When `--charging` is active the `/api/v1/cars/<id>/status` endpoint is intercepted and returns a fully simulated response. The battery SOC and energy-added values advance in real time based on elapsed wall-clock time and the configured charger power. All other endpoints continue to proxy normally to the upstream.
 
 ## Car Profiles
 

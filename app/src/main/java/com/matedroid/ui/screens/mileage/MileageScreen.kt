@@ -376,7 +376,7 @@ private fun YearRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = yearData.driveCount.toString(),
+                        text = "%,d".format(yearData.driveCount),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -580,7 +580,7 @@ private fun MonthRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = monthData.driveCount.toString(),
+                        text = "%,d".format(monthData.driveCount),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -724,7 +724,7 @@ private fun MonthSummaryCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = driveCount.toString(),
+                        text = "%,d".format(driveCount),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = palette.onSurface
@@ -849,7 +849,7 @@ private fun SummaryRow(
             )
             SummaryItem(
                 icon = Icons.Filled.DirectionsCar,
-                value = driveCount.toString(),
+                value = "%,d".format(driveCount),
                 label = stringResource(R.string.mileage_drive_count),
                 iconColor = iconColor,
                 valueColor = valueColor,

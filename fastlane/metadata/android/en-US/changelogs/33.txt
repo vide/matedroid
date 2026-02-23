@@ -1,0 +1,11 @@
+Stability and polish for the live charging feature introduced in 1.0.0.
+
+Changed:
+- Live Charge Screen: SoC now displayed as a large hero number
+
+Fixed:
+- Live charge screen closes automatically when charging stops
+- Charging notification correctly opens main screen on older TM APIs
+- Charging gauge arrow hidden when live charge is unavailable
+- V/A chart uses distinct colors (amber and blue)
+- Stats for Nerds: missing values when filtering by year

@@ -1,0 +1,11 @@
+Estabilitat i millores per a la càrrega en viu introduïda a 1.0.0.
+
+Canvis:
+- Pantalla de càrrega en viu: SoC mostrat com a número gran destacat
+
+Correccions:
+- Pantalla de càrrega en viu es tanca automàticament en acabar
+- Notificació de càrrega obre la pantalla principal en API TM antigues
+- Fletxa de l'indicador amagada quan la càrrega en viu no és disponible
+- Gràfic V/A amb colors diferents (ambre i blau)
+- Estadístiques: valors mancants en filtrar per any corregits

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Charging plug (plugged in but not charging) — matches Icons.Filled.Power used in the dashboard -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16.01,7L16,3L14,3L14,7L10,7L10,3L8,3L8,7L7.99,7C6.99,6.99 6,7.99 6,8.99L6,14.48L9.5,17.98L9.5,21L14.5,21L14.5,17.98L18,14.49L18,8.99C18,7.99 17.01,7 16.01,7z" />
+</vector>

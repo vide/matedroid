@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -46,10 +47,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -88,6 +93,18 @@ fun CurrentChargeScreen(
         uiState.error?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.isUnsupportedApi) {
+        if (uiState.isUnsupportedApi) {
+            onNavigateBack()
+        }
+    }
+
+    LaunchedEffect(uiState.isNotCharging) {
+        if (uiState.isNotCharging) {
+            onNavigateBack()
         }
     }
 
@@ -210,11 +227,18 @@ private fun CurrentChargeContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    var sharedXFraction by remember { mutableStateOf<Float?>(null) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { isScrolling -> if (isScrolling) sharedXFraction = null }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .pointerInput(Unit) { detectTapGestures { sharedXFraction = null } }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -231,6 +255,21 @@ private fun CurrentChargeContent(
         val timeLabels = extractChronoTimeLabels(chronologicalPoints)
         val powers = chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
         val batteryLevels = chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
+        val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+        val fractionToTimeLabel: (Float) -> String = { fraction ->
+            val pts = chronologicalPoints
+            val index = (fraction * pts.lastIndex).roundToInt().coerceIn(0, pts.lastIndex)
+            pts[index].date?.let { dateStr ->
+                try {
+                    val dt = try {
+                        OffsetDateTime.parse(dateStr).toLocalDateTime()
+                    } catch (e: java.time.format.DateTimeParseException) {
+                        java.time.LocalDateTime.parse(dateStr.replace("Z", ""))
+                    }
+                    dt.format(timeFormatter)
+                } catch (e: Exception) { "" }
+            } ?: ""
+        }
 
         // Power chart (always shown)
         val powerProfileTitle = stringResource(R.string.power_profile)
@@ -244,6 +283,9 @@ private fun CurrentChargeContent(
                     color = Color(0xFF4CAF50),
                     unit = "kW",
                     timeLabels = timeLabels,
+                    externalSelectedFraction = sharedXFraction,
+                    onXSelected = { sharedXFraction = it },
+                    fractionToTimeLabel = fractionToTimeLabel,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -268,6 +310,9 @@ private fun CurrentChargeContent(
                         unitLeft = "V",
                         unitRight = "A",
                         timeLabels = timeLabels,
+                        externalSelectedFraction = sharedXFraction,
+                        onXSelected = { sharedXFraction = it },
+                        fractionToTimeLabel = fractionToTimeLabel,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -287,6 +332,9 @@ private fun CurrentChargeContent(
                     unit = "%",
                     fixedMinMax = Pair(0f, 100f),
                     timeLabels = timeLabels,
+                    externalSelectedFraction = sharedXFraction,
+                    onXSelected = { sharedXFraction = it },
+                    fractionToTimeLabel = fractionToTimeLabel,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

@@ -25,9 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.MateDroidTheme
-import com.matedroid.ui.theme.StatusSuccess
-import com.matedroid.ui.theme.StatusWarning
 
 /**
  * A compact circular gauge showing charging power with an AC/DC badge.
@@ -40,6 +40,7 @@ import com.matedroid.ui.theme.StatusWarning
  * @param powerKw Current charging power in kW
  * @param isDcCharging True for DC charging, false for AC
  * @param gaugeProgress Progress value from 0.0 to 1.0 for the gauge fill
+ * @param palette Color palette for theming
  * @param modifier Modifier for the entire component
  * @param gaugeSize Diameter of the circular gauge
  */
@@ -48,10 +49,11 @@ fun ChargingPowerGauge(
     powerKw: Int,
     isDcCharging: Boolean,
     gaugeProgress: Float,
+    palette: CarColorPalette,
     modifier: Modifier = Modifier,
     gaugeSize: Dp = 41.dp
 ) {
-    val gaugeColor = if (isDcCharging) StatusWarning else StatusSuccess
+    val gaugeColor = if (isDcCharging) palette.dcColor else palette.acColor
     val trackColor = gaugeColor.copy(alpha = 0.2f)
 
     Row(
@@ -60,7 +62,7 @@ fun ChargingPowerGauge(
         horizontalArrangement = Arrangement.Start
     ) {
         // AC/DC Badge
-        ChargeTypeBadge(isDcCharging = isDcCharging)
+        ChargeTypeBadge(isDcCharging = isDcCharging, palette = palette)
 
         Spacer(modifier = Modifier.width(8.dp))
 
@@ -132,8 +134,8 @@ fun ChargingPowerGauge(
  * Small badge showing AC or DC charging type.
  */
 @Composable
-private fun ChargeTypeBadge(isDcCharging: Boolean) {
-    val backgroundColor = if (isDcCharging) StatusWarning else StatusSuccess
+private fun ChargeTypeBadge(isDcCharging: Boolean, palette: CarColorPalette) {
+    val backgroundColor = if (isDcCharging) palette.dcColor else palette.acColor
     val text = if (isDcCharging) "DC" else "AC"
 
     Box(
@@ -174,7 +176,8 @@ private fun ChargingPowerGaugePreviewDc() {
         ChargingPowerGauge(
             powerKw = 150,
             isDcCharging = true,
-            gaugeProgress = 0.6f  // 150/250
+            gaugeProgress = 0.6f,  // 150/250
+            palette = CarColorPalettes.forExteriorColor("White", false)
         )
     }
 }
@@ -186,7 +189,8 @@ private fun ChargingPowerGaugePreviewAc() {
         ChargingPowerGauge(
             powerKw = 11,
             isDcCharging = false,
-            gaugeProgress = 0.5f  // 16A/32A
+            gaugeProgress = 0.5f,  // 16A/32A
+            palette = CarColorPalettes.forExteriorColor("White", false)
         )
     }
 }
@@ -198,7 +202,8 @@ private fun ChargingPowerGaugePreviewLow() {
         ChargingPowerGauge(
             powerKw = 3,
             isDcCharging = false,
-            gaugeProgress = 0.1f
+            gaugeProgress = 0.1f,
+            palette = CarColorPalettes.forExteriorColor("White", false)
         )
     }
 }

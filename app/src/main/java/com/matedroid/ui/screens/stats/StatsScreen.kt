@@ -60,6 +60,7 @@ import androidx.compose.foundation.lazy.items as logItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,7 +68,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import com.matedroid.BuildConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
@@ -111,6 +114,9 @@ fun StatsScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
     var showSyncLogsDialog by remember { mutableStateOf(false) }
+
+    // State for Records pager - remember across filter changes
+    var recordsSelectedCategory by rememberSaveable { mutableStateOf("") }
 
     // State for range record dialog
     var rangeRecordToShow by remember { mutableStateOf<MaxDistanceBetweenChargesRecord?>(null) }
@@ -236,10 +242,13 @@ fun StatsScreen(
                     selectedYearFilter = uiState.selectedYearFilter,
                     deepSyncProgress = uiState.deepSyncProgress,
                     isSyncing = uiState.isSyncing,
+                    isUpdating = uiState.isUpdating,
                     geocodeProgress = uiState.geocodeProgress,
                     isGeocoding = uiState.isGeocoding,
                     palette = palette,
                     currencySymbol = uiState.currencySymbol,
+                    recordsSelectedCategory = recordsSelectedCategory,
+                    onRecordsCategoryChanged = { recordsSelectedCategory = it },
                     onYearFilterSelected = { viewModel.setYearFilter(it) },
                     onNavigateToDriveDetail = onNavigateToDriveDetail,
                     onNavigateToChargeDetail = onNavigateToChargeDetail,
@@ -341,10 +350,13 @@ private fun StatsContent(
     selectedYearFilter: YearFilter,
     deepSyncProgress: Float,
     isSyncing: Boolean,
+    isUpdating: Boolean,
     geocodeProgress: GeocodeProgressInfo?,
     isGeocoding: Boolean,
     palette: CarColorPalette,
     currencySymbol: String,
+    recordsSelectedCategory: String,
+    onRecordsCategoryChanged: (String) -> Unit,
     onYearFilterSelected: (YearFilter) -> Unit,
     onNavigateToDriveDetail: (Int) -> Unit,
     onNavigateToChargeDetail: (Int) -> Unit,
@@ -354,87 +366,110 @@ private fun StatsContent(
     onGapRecordClick: (Double, String, String, String) -> Unit,
     onSyncProgressClick: (() -> Unit)? = null
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Year filter chips
-        item {
-            YearFilterChips(
-                availableYears = availableYears,
-                selectedFilter = selectedYearFilter,
-                palette = palette,
-                onFilterSelected = onYearFilterSelected
-            )
-        }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Year filter chips — pinned above the scrollable content
+        YearFilterChips(
+            availableYears = availableYears,
+            selectedFilter = selectedYearFilter,
+            palette = palette,
+            onFilterSelected = onYearFilterSelected,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider(color = palette.onSurface.copy(alpha = 0.08f))
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Sync progress indicator if deep sync is actively running
+            if (isSyncing && deepSyncProgress < 1f && deepSyncProgress > 0f) {
+                item {
+                    SyncProgressCard(
+                        progress = deepSyncProgress,
+                        palette = palette,
+                        onClick = onSyncProgressClick
+                    )
+                }
+            }
 
-        // Sync progress indicator if deep sync is actively running
-        if (isSyncing && deepSyncProgress < 1f && deepSyncProgress > 0f) {
+            // Geocode progress indicator if location identification is ongoing
+            if (isGeocoding && geocodeProgress != null) {
+                item {
+                    GeocodeProgressCard(
+                        progress = geocodeProgress,
+                        palette = palette,
+                        onClick = onSyncProgressClick
+                    )
+                }
+            }
+
+            // Records (at the top)
             item {
-                SyncProgressCard(
-                    progress = deepSyncProgress,
+                RecordsCard(
+                    quickStats = stats.quickStats,
+                    deepStats = stats.deepStats,
                     palette = palette,
-                    onClick = onSyncProgressClick
+                    currencySymbol = currencySymbol,
+                    selectedCategory = recordsSelectedCategory,
+                    onCategoryChanged = onRecordsCategoryChanged,
+                    onDriveClick = onNavigateToDriveDetail,
+                    onChargeClick = onNavigateToChargeDetail,
+                    onDayClick = onNavigateToDayDetail,
+                    onCountriesVisitedClick = {
+                        val year = (selectedYearFilter as? YearFilter.Year)?.year
+                        onNavigateToCountriesVisited(year)
+                    },
+                    onRangeRecordClick = onRangeRecordClick,
+                    onGapRecordClick = onGapRecordClick
                 )
             }
-        }
 
-        // Geocode progress indicator if location identification is ongoing
-        if (isGeocoding && geocodeProgress != null) {
+            // Quick Stats - Drives Overview
             item {
-                GeocodeProgressCard(
-                    progress = geocodeProgress,
+                QuickStatsDrivesCard(
+                    quickStats = stats.quickStats,
                     palette = palette,
-                    onClick = onSyncProgressClick
+                    currencySymbol = currencySymbol
                 )
             }
-        }
 
-        // Records (at the top)
-        item {
-            RecordsCard(
-                quickStats = stats.quickStats,
-                deepStats = stats.deepStats,
-                palette = palette,
-                currencySymbol = currencySymbol,
-                onDriveClick = onNavigateToDriveDetail,
-                onChargeClick = onNavigateToChargeDetail,
-                onDayClick = onNavigateToDayDetail,
-                onCountriesVisitedClick = {
-                    val year = (selectedYearFilter as? YearFilter.Year)?.year
-                    onNavigateToCountriesVisited(year)
-                },
-                onRangeRecordClick = onRangeRecordClick,
-                onGapRecordClick = onGapRecordClick
+            // Quick Stats - Charges Overview
+            item {
+                QuickStatsChargesCard(
+                    quickStats = stats.quickStats,
+                    palette = palette,
+                    currencySymbol = currencySymbol
+                )
+            }
+
+            // AC/DC Ratio (moved here, near charges)
+            stats.deepStats?.let { deepStats ->
+                item {
+                    AcDcRatioCard(deepStats = deepStats, palette = palette)
+                }
+            }
+
+            // Deep Stats - only if available
+            stats.deepStats?.let { deepStats ->
+                // Temperature Stats
+                item {
+                    TemperatureStatsCard(deepStats = deepStats, palette = palette)
+                }
+            }
+        }
+        // Progress indicator overlay at the top of the scrollable area
+        if (isUpdating) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .align(Alignment.TopCenter),
+                color = palette.accent
             )
         }
-
-        // Quick Stats - Drives Overview
-        item {
-            QuickStatsDrivesCard(quickStats = stats.quickStats, palette = palette, currencySymbol = currencySymbol)
-        }
-
-        // Quick Stats - Charges Overview
-        item {
-            QuickStatsChargesCard(quickStats = stats.quickStats, palette = palette, currencySymbol = currencySymbol)
-        }
-
-        // AC/DC Ratio (moved here, near charges)
-        stats.deepStats?.let { deepStats ->
-            item {
-                AcDcRatioCard(deepStats = deepStats, palette = palette)
-            }
-        }
-
-        // Deep Stats - only if available
-        stats.deepStats?.let { deepStats ->
-            // Temperature Stats
-            item {
-                TemperatureStatsCard(deepStats = deepStats, palette = palette)
-            }
-        }
-    }
+        } // end Box (scrollable area)
+    } // end Column
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -443,9 +478,11 @@ private fun YearFilterChips(
     availableYears: List<Int>,
     selectedFilter: YearFilter,
     palette: CarColorPalette,
-    onFilterSelected: (YearFilter) -> Unit
+    onFilterSelected: (YearFilter) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyRow(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // All Time option
@@ -603,12 +640,12 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_total_drives),
-                value = quickStats.totalDrives.toString(),
+                value = "%,d".format(quickStats.totalDrives),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
                 label = stringResource(R.string.stats_driving_days),
-                value = quickStats.totalDrivingDays?.toString() ?: "-",
+                value = quickStats.totalDrivingDays?.let { "%,d".format(it) } ?: "-",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -651,7 +688,7 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_total_charges),
-                value = quickStats.totalCharges.toString(),
+                value = "%,d".format(quickStats.totalCharges),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
@@ -709,6 +746,8 @@ private fun RecordsCard(
     deepStats: DeepStats?,
     palette: CarColorPalette,
     currencySymbol: String,
+    selectedCategory: String,
+    onCategoryChanged: (String) -> Unit,
     onDriveClick: (Int) -> Unit,
     onChargeClick: (Int) -> Unit,
     onDayClick: (String) -> Unit,
@@ -797,10 +836,10 @@ private fun RecordsCard(
     // Category 3: Weather & Altitude
     val weatherRecords = mutableListOf<RecordData>()
     deepStats?.driveWithMaxElevation?.let { record ->
-        weatherRecords.add(RecordData("🏔️", labelHighestPoint, "${record.elevationM} m", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("🏔️", labelHighestPoint, "%,d m".format(record.elevationM), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.driveWithMostClimbing?.let { record ->
-        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+$it m" } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+%,d m".format(it) } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.hottestDrive?.let { record ->
         weatherRecords.add(RecordData("🌡️", labelHottestDrive, "%.1f°C".format(record.tempC), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
@@ -856,7 +895,27 @@ private fun RecordsCard(
         }
     }
 
-    val pagerState = rememberPagerState(pageCount = { pages.size })
+// Find the first page of the selected category, or default to 0
+    val initialPage = if (selectedCategory.isNotEmpty()) {
+        pages.indexOfFirst { it.categoryTitle == selectedCategory }.takeIf { it >= 0 } ?: 0
+    } else {
+        0
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { pages.size }
+    )
+
+// Update selected category when page changes
+    LaunchedEffect(pagerState.currentPage) {
+        snapshotFlow { pagerState.currentPage }
+            .collect { page ->
+                if (page < pages.size) {
+                    onCategoryChanged(pages[page].categoryTitle)
+                }
+            }
+    }
 
     Column {
         // Section header
@@ -1094,8 +1153,8 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
     }
 
     val acRatio = (deepStats.acChargeEnergyKwh / totalEnergy).toFloat()
-    val acColor = Color(0xFF4CAF50) // Green
-    val dcColor = Color(0xFFFFC107) // Yellow/Amber
+    val acColor = palette.acColor
+    val dcColor = palette.dcColor
 
     StatsCard(
         title = stringResource(R.string.stats_ac_dc_ratio),

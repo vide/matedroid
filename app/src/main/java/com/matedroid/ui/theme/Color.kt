@@ -50,3 +50,6 @@ val SurfaceVariantDark = Color(0xFF44474A)
 val OnSurfaceVariantDark = Color(0xFFCACCCE)
 val ErrorDark = Color(0xFFFFB4AB)
 val OnErrorDark = Color(0xFF690005)
+
+// Other colors
+val BoundaryColor = Color(0xFF4CAF50)

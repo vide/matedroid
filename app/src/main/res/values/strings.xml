@@ -1045,4 +1045,20 @@
     <!-- Compact energy/power row labels -->
     <string name="soc_energy_added">energy added</string>
     <string name="soc_instant_power">instant</string>
+
+    <!-- ==================== Home Screen Widget ==================== -->
+    <!-- Widget description shown in the system widget picker -->
+    <string name="widget_description">Battery status for your Tesla</string>
+
+    <!-- Title of the car selection screen shown when configuring the widget -->
+    <string name="widget_select_car_title">Select a vehicle for the widget</string>
+
+    <!-- Shown on the widget while data is being loaded for the first time -->
+    <string name="widget_loading">Loading…</string>
+
+    <!-- Shown on the widget when the car ID is not yet configured -->
+    <string name="widget_error_configure">Tap to configure</string>
+
+    <!-- Tap hint shown on the widget (accessibility / tooltip) -->
+    <string name="widget_tap_to_open">Tap to open MateDroid</string>
 </resources>

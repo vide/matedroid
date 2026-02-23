@@ -49,6 +49,12 @@ data class ChargeChartData(
     val label: String,
     val count: Int,
     val totalEnergy: Double,
+    val energyAc: Double,
+    val energyDc: Double,
+    val costAc: Double,
+    val costDc: Double,
+    val countAc: Int,
+    val countDc: Int,
     val totalCost: Double,
     val sortKey: Long // For sorting (epoch day, week number, or year-month)
 )
@@ -410,14 +416,28 @@ class ChargesViewModel @Inject constructor(
         charges: List<ChargeData>,
         dcChargeIds: Set<Int>
     ): ChargeChartData {
+        val dcCharges = charges.filter { it.chargeId in dcChargeIds }
+        val energyDc = dcCharges.sumOf { it.chargeEnergyAdded ?: 0.0 }
+        val energyTotal = charges.sumOf { it.chargeEnergyAdded ?: 0.0 }
+        val costDc = dcCharges.sumOf { it.cost ?: 0.0 }
+        val costTotal = charges.sumOf { it.cost ?: 0.0 }
+        val countDc = dcCharges.size
+        val countTotal = charges.size
         return ChargeChartData(
             label = label,
-            count = charges.size,
-            totalEnergy = charges.sumOf { it.chargeEnergyAdded ?: 0.0 },
-            totalCost = charges.sumOf { it.cost ?: 0.0 },
-            sortKey = sortKey
+            totalEnergy = energyTotal,
+            totalCost = costTotal,
+            count = countTotal,
+            sortKey = sortKey,
+            energyDc = energyDc,
+            energyAc = energyTotal - energyDc,
+            costDc = costDc,
+            costAc = costTotal - costDc,
+            countDc = countDc,
+            countAc = countTotal - countDc
         )
     }
+
     private fun calculateSummary(charges: List<ChargeData>): ChargesSummary {
         if (charges.isEmpty()) return ChargesSummary()
 

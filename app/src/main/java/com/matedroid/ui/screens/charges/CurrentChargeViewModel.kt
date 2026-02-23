@@ -116,22 +116,24 @@ class CurrentChargeViewModel @Inject constructor(
                 }
             }
             is ApiResult.Error -> {
-                if (chargeResult.code == 404) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isUnsupportedApi = true,
-                            error = null
-                        )
+                when (chargeResult.code) {
+                    404 -> {
+                        _uiState.update {
+                            it.copy(isLoading = false, isUnsupportedApi = true, error = null)
+                        }
+                        refreshJob?.cancel()
                     }
-                    // Stop refreshing for unsupported API
-                    refreshJob?.cancel()
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = chargeResult.message
-                        )
+                    null -> {
+                        // No HTTP code means 200 with no charge data — charging has stopped
+                        _uiState.update {
+                            it.copy(isLoading = false, isNotCharging = true, error = null)
+                        }
+                        refreshJob?.cancel()
+                    }
+                    else -> {
+                        _uiState.update {
+                            it.copy(isLoading = false, error = chargeResult.message)
+                        }
                     }
                 }
             }

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Paid
@@ -56,7 +57,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +73,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
 import com.matedroid.ui.components.BarChartData
+import com.matedroid.ui.components.BarSegment
 import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -262,6 +266,7 @@ private fun ChargesContent(
                     // Will be correct once sync has processed charge details
                     isDcCharge = charge.chargeId in dcChargeIds,
                     currencySymbol = currencySymbol,
+                    palette = palette,
                     onEditCost = if (teslamateBaseUrl.isNotBlank()) {
                         {
                             val url = "$teslamateBaseUrl/charge-cost/${charge.chargeId}"
@@ -318,25 +323,32 @@ private fun ChargeTypeFilterChips(
     ) {
         items(ChargeTypeFilter.entries.toList()) { filter ->
             val isSelected = filter == selectedFilter
-            val chipColors = when (filter) {
-                ChargeTypeFilter.ALL -> FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = palette.surface,
-                    selectedLabelColor = palette.onSurface
-                )
-                ChargeTypeFilter.AC -> FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFF4CAF50),
-                    selectedLabelColor = Color.White
-                )
-                ChargeTypeFilter.DC -> FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFFFF9800),
-                    selectedLabelColor = Color.White
-                )
+            val themeColor = when (filter) {
+                ChargeTypeFilter.ALL -> palette.onSurfaceVariant
+                ChargeTypeFilter.AC -> palette.acColor
+                ChargeTypeFilter.DC -> palette.dcColor
             }
+
             FilterChip(
                 selected = isSelected,
                 onClick = { onFilterSelected(filter) },
-                label = { Text(getChargeTypeFilterLabel(filter)) },
-                colors = chipColors
+                label = {
+                    Text(
+                        text = getChargeTypeFilterLabel(filter),
+                        color = if (isSelected) Color.White else themeColor
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = themeColor,
+                    containerColor = Color.Transparent
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = themeColor.copy(alpha = 0.6f),
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 0.dp
+                )
             )
         }
     }
@@ -462,6 +474,7 @@ private fun ChargeItem(
     charge: ChargeData,
     isDcCharge: Boolean,
     currencySymbol: String,
+    palette: CarColorPalette,
     onEditCost: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
@@ -520,7 +533,7 @@ private fun ChargeItem(
                         }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    ChargeTypeBadge(isDcCharge = isDcCharge)
+                    ChargeTypeBadge(isDcCharge = isDcCharge, palette = palette)
                 }
             }
 
@@ -652,8 +665,8 @@ private fun ChargeStatCard(
 }
 
 @Composable
-private fun ChargeTypeBadge(isDcCharge: Boolean) {
-    val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
+private fun ChargeTypeBadge(isDcCharge: Boolean, palette: CarColorPalette) {
+    val backgroundColor = if (isDcCharge) palette.dcColor else palette.acColor
     val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
 
     Box(
@@ -725,6 +738,7 @@ private fun ChargesChartsPager(
                         palette = palette
                     )
                 }
+                //ChartLegend(palette = palette)
             }
         }
 
@@ -784,7 +798,6 @@ private fun ChargesChartPage(
         ChargesChartType.COST -> Icons.Default.Paid
         ChargesChartType.COUNT -> Icons.Default.ElectricBolt
     }
-
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -809,21 +822,33 @@ private fun ChargesChartPage(
                 BarChartData(
                     label = data.label,
                     value = data.totalEnergy,
-                    displayValue = "%.1f kWh".format(data.totalEnergy)
+                    displayValue = "%.1f kWh".format(data.totalEnergy),
+                    segments = listOf(
+                        BarSegment(data.energyAc, palette.acColor, "AC"),
+                        BarSegment(data.energyDc, palette.dcColor, "DC")
+                    )
                 )
             }
             ChargesChartType.COST -> chartData.map { data ->
                 BarChartData(
                     label = data.label,
                     value = data.totalCost,
-                    displayValue = "$currencySymbol%.2f".format(data.totalCost)
+                    displayValue = "$currencySymbol%.2f".format(data.totalCost),
+                    segments = listOf(
+                        BarSegment(data.costAc, palette.acColor, "AC"),
+                        BarSegment(data.costDc, palette.dcColor, "DC")
+                    )
                 )
             }
             ChargesChartType.COUNT -> chartData.map { data ->
                 BarChartData(
                     label = data.label,
                     value = data.count.toDouble(),
-                    displayValue = data.count.toString()
+                    displayValue = data.count.toString(),
+                    segments = listOf(
+                        BarSegment(data.countAc.toDouble(), palette.acColor, "AC"),
+                        BarSegment(data.countDc.toDouble(), palette.dcColor, "DC")
+                    )
                 )
             }
         }
@@ -851,3 +876,40 @@ private fun ChargesChartPage(
         )
     }
 }
+
+/*
+@Composable
+private fun ChartLegend(
+    palette: CarColorPalette
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LegendItem(color = Color(0xFF4CAF50) , label = stringResource(R.string.charging_ac))
+        Spacer(modifier = Modifier.width(24.dp))
+        LegendItem(color = Color(0xFFFF9800), label = stringResource(R.string.charging_dc))
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+*/

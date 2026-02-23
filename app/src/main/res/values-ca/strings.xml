@@ -1044,4 +1044,11 @@
     <!-- Etiquetes fila compacta energia/potència -->
     <string name="soc_energy_added">energia afegida</string>
     <string name="soc_instant_power">instantània</string>
+
+    <!-- ==================== Estri a la pantalla d'inici ==================== -->
+    <string name="widget_description">Estat de bateria del teu Tesla</string>
+    <string name="widget_select_car_title">Selecciona un vehicle per a l\'estri</string>
+    <string name="widget_loading">Carregant…</string>
+    <string name="widget_error_configure">Toca per configurar</string>
+    <string name="widget_tap_to_open">Toca per obrir MateDroid</string>
 </resources>

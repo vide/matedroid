@@ -22,6 +22,7 @@ import argparse
 import copy
 import json
 import sys
+import time
 from pathlib import Path
 
 import httpx
@@ -33,7 +34,18 @@ app = Flask(__name__)
 config = {
     "upstream_url": "",
     "car_overrides": {},
+    "charging": {
+        "enabled": False,
+        "dc": False,
+        "start_soc": 40,
+        "limit_soc": 80,
+        "power_kw": None,  # None = auto (11 for AC, 150 for DC)
+        "start_time": None,
+    },
 }
+
+# Approximate usable battery capacity in kWh (used for SOC progression calculation)
+BATTERY_CAPACITY_KWH = 82.0
 
 
 def load_cars_config(config_path: Path) -> dict:
@@ -153,6 +165,134 @@ def global_settings():
     )
 
 
+def _build_charging_status_response(car_id: int) -> dict:
+    """Build a mock /status response simulating an ongoing charge session."""
+    charging_cfg = config["charging"]
+    is_dc = charging_cfg["dc"]
+    start_soc = charging_cfg["start_soc"]
+    limit_soc = charging_cfg["limit_soc"]
+    power_kw = charging_cfg["power_kw"] or (150 if is_dc else 11)
+
+    elapsed_hours = (time.time() - charging_cfg["start_time"]) / 3600
+    energy_added = elapsed_hours * power_kw
+
+    current_soc = min(start_soc + (energy_added / BATTERY_CAPACITY_KWH) * 100, limit_soc)
+    current_soc_int = int(current_soc)
+
+    is_charging = current_soc_int < limit_soc
+    charging_state = "Charging" if is_charging else "Complete"
+
+    remaining_kwh = max((limit_soc - current_soc) / 100 * BATTERY_CAPACITY_KWH, 0.0)
+    time_to_full = round(remaining_kwh / power_kw, 2) if is_charging else 0.0
+
+    # AC: phases=3, 230V, 16A; DC: phases=null, 400V, high current
+    if is_dc:
+        charger_phases = None
+        charger_voltage = 400
+        charger_current = round(power_kw * 1000 / charger_voltage)
+    else:
+        charger_phases = 3
+        charger_voltage = 230
+        charger_current = round(power_kw * 1000 / (charger_voltage * charger_phases))
+
+    active_power = power_kw if is_charging else 0
+    active_voltage = charger_voltage if is_charging else 0
+    active_current = charger_current if is_charging else 0
+
+    # Rough range estimates: ~5.5 km/% rated, 5.0 km/% estimated
+    rated_range = round(current_soc_int * 5.5, 1)
+    est_range = round(current_soc_int * 5.0, 1)
+
+    return {
+        "data": {
+            "status": {
+                "display_name": "Mock Tesla",
+                "state": "charging" if is_charging else "online",
+                "state_since": "2024-01-01T00:00:00Z",
+                "odometer": 12345.0,
+                "car_status": {
+                    "healthy": True,
+                    "locked": True,
+                    "sentry_mode": False,
+                    "windows_open": False,
+                    "doors_open": False,
+                    "trunk_open": False,
+                    "frunk_open": False,
+                    "is_user_present": False,
+                },
+                "car_geodata": {
+                    "geofence": "Home",
+                    "latitude": 52.52,
+                    "longitude": 13.405,
+                },
+                "car_versions": {
+                    "version": "2024.44.25",
+                    "update_available": False,
+                    "update_version": None,
+                },
+                "driving_details": {
+                    "shift_state": None,
+                    "power": 0,
+                    "speed": None,
+                    "heading": 180,
+                    "elevation": 50,
+                },
+                "climate_details": {
+                    "is_climate_on": False,
+                    "inside_temp": 22.5,
+                    "outside_temp": 15.0,
+                    "is_preconditioning": False,
+                },
+                "battery_details": {
+                    "battery_level": current_soc_int,
+                    "usable_battery_level": max(current_soc_int - 1, 0),
+                    "est_battery_range": est_range,
+                    "rated_battery_range": rated_range,
+                    "ideal_battery_range": round(current_soc_int * 6.0, 1),
+                },
+                "charging_details": {
+                    "plugged_in": True,
+                    "charging_state": charging_state,
+                    "charge_energy_added": round(energy_added, 2),
+                    "charge_limit_soc": limit_soc,
+                    "charger_phases": charger_phases,
+                    "charger_power": active_power,
+                    "charger_voltage": active_voltage,
+                    "charger_actual_current": active_current,
+                    "charge_current_request": active_current,
+                    "charge_current_request_max": charger_current,
+                    "charge_port_door_open": True,
+                    "time_to_full_charge": time_to_full,
+                },
+                "tpms_details": {
+                    "tpms_pressure_fl": 2.9,
+                    "tpms_pressure_fr": 2.9,
+                    "tpms_pressure_rl": 2.9,
+                    "tpms_pressure_rr": 2.9,
+                    "tpms_soft_warning_fl": False,
+                    "tpms_soft_warning_fr": False,
+                    "tpms_soft_warning_rl": False,
+                    "tpms_soft_warning_rr": False,
+                },
+            },
+            "units": {
+                "unit_of_length": "km",
+                "unit_of_pressure": "bar",
+                "unit_of_temperature": "C",
+            },
+        }
+    }
+
+
+@app.route("/api/v1/cars/<int:car_id>/status", methods=["GET"])
+def car_status(car_id: int):
+    """Return a mock charging status when --charging is active; otherwise proxy."""
+    if config["charging"]["enabled"]:
+        data = _build_charging_status_response(car_id)
+        return Response(json.dumps(data), status=200, content_type="application/json")
+    return proxy(f"api/v1/cars/{car_id}/status")
+
+
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 def proxy(path: str):
@@ -260,6 +400,39 @@ def main():
         help="List available car profiles and exit",
     )
 
+    charging_group = parser.add_argument_group("charging simulation")
+    charging_group.add_argument(
+        "--charging",
+        action="store_true",
+        help="Simulate an ongoing charge session on the /status endpoint",
+    )
+    charging_group.add_argument(
+        "--charging-dc",
+        action="store_true",
+        help="Simulate DC fast charging instead of AC (default: AC 3-phase 11 kW)",
+    )
+    charging_group.add_argument(
+        "--charging-start-soc",
+        type=int,
+        default=40,
+        metavar="PCT",
+        help="Starting battery %% when the server starts (default: 40)",
+    )
+    charging_group.add_argument(
+        "--charging-limit-soc",
+        type=int,
+        default=80,
+        metavar="PCT",
+        help="Charge limit / target battery %% (default: 80)",
+    )
+    charging_group.add_argument(
+        "--charging-power",
+        type=int,
+        default=None,
+        metavar="KW",
+        help="Charger power in kW (default: 11 for AC, 150 for DC)",
+    )
+
     args = parser.parse_args()
 
     # Load cars configuration
@@ -285,14 +458,39 @@ def main():
         print(f"Available profiles: {', '.join(cars_config.keys())}", file=sys.stderr)
         sys.exit(1)
 
+    # Validate charging SOC values
+    if args.charging:
+        if not (0 <= args.charging_start_soc <= 100):
+            print("Error: --charging-start-soc must be between 0 and 100", file=sys.stderr)
+            sys.exit(1)
+        if not (0 <= args.charging_limit_soc <= 100):
+            print("Error: --charging-limit-soc must be between 0 and 100", file=sys.stderr)
+            sys.exit(1)
+        if args.charging_start_soc >= args.charging_limit_soc:
+            print("Error: --charging-start-soc must be less than --charging-limit-soc", file=sys.stderr)
+            sys.exit(1)
+
     # Configure the server
     config["upstream_url"] = args.upstream.rstrip("/")
     config["car_overrides"] = cars_config[args.car]
+    config["charging"] = {
+        "enabled": args.charging,
+        "dc": args.charging_dc,
+        "start_soc": args.charging_start_soc,
+        "limit_soc": args.charging_limit_soc,
+        "power_kw": args.charging_power,
+        "start_time": time.time(),
+    }
+
+    effective_power = args.charging_power or (150 if args.charging_dc else 11)
 
     print("Starting Teslamate Mock Server")
     print(f"  Upstream: {config['upstream_url']}")
     print(f"  Car profile: {args.car}")
     print(f"  Overrides: {json.dumps(config['car_overrides'], indent=2)}")
+    if args.charging:
+        charger_type = f"DC {effective_power} kW" if args.charging_dc else f"AC 3-phase {effective_power} kW"
+        print(f"  Charging simulation: {args.charging_start_soc}% → {args.charging_limit_soc}% ({charger_type})")
     print(f"  Listening on: http://{args.host}:{args.port}")
     print()
 

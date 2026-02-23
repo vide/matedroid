@@ -3,9 +3,7 @@ package com.matedroid.ui.screens.dashboard
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.BlurMaskFilter
-import android.graphics.Canvas as AndroidCanvas
-import android.graphics.Paint
+import com.matedroid.ui.util.GlowBitmapRenderer
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.Canvas
@@ -26,7 +24,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -51,8 +52,6 @@ import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
 import com.matedroid.ui.icons.CustomIcons
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -121,6 +120,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import com.matedroid.data.api.models.BatteryDetails
+import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
 import com.matedroid.data.api.models.CarGeodata
 import com.matedroid.data.api.models.CarStatus
@@ -158,7 +158,6 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showCarSelector by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -167,79 +166,11 @@ fun DashboardScreen(
         }
     }
 
-    // Car selector dialog
-    if (showCarSelector && uiState.hasMultipleCars) {
-        AlertDialog(
-            onDismissRequest = { showCarSelector = false },
-            title = { Text(stringResource(R.string.select_vehicle)) },
-            text = {
-                Column {
-                    uiState.cars.forEach { car ->
-                        val isSelected = car.carId == uiState.selectedCarId
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    viewModel.selectCar(car.carId)
-                                    showCarSelector = false
-                                }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.DirectionsCar,
-                                contentDescription = null,
-                                tint = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = car.displayName ?: stringResource(R.string.car_fallback_name, car.carId),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                modifier = Modifier.weight(1f)
-                            )
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = stringResource(R.string.selected),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showCarSelector = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    if (uiState.hasMultipleCars) {
-                        Row(
-                            modifier = Modifier.clickable { showCarSelector = true },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(uiState.selectedCarName ?: "MateDroid")
-                            Icon(
-                                imageVector = Icons.Filled.ArrowDropDown,
-                                contentDescription = stringResource(R.string.select_car),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    } else {
-                        Text(uiState.selectedCarName ?: "MateDroid")
-                    }
+                    Text(uiState.selectedCarName ?: "MateDroid")
                 },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
@@ -270,6 +201,10 @@ fun DashboardScreen(
                         totalCharges = uiState.totalCharges,
                         totalDrives = uiState.totalDrives,
                         imageOverride = uiState.carImageOverride,
+                        cars = uiState.cars,
+                        selectedCarId = uiState.selectedCarId,
+                        onSelectCar = { viewModel.selectCar(it) },
+                        carImageOverrides = uiState.carImageOverrides,
                         isCurrentChargeAvailable = uiState.isCurrentChargeAvailable,
                         onNavigateToCharges = {
                             uiState.selectedCarId?.let { carId ->
@@ -452,6 +387,10 @@ private fun DashboardContent(
     totalCharges: Int? = null,
     totalDrives: Int? = null,
     imageOverride: CarImageOverride? = null,
+    cars: List<CarData> = emptyList(),
+    selectedCarId: Int? = null,
+    onSelectCar: (Int) -> Unit = {},
+    carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
     onNavigateToCharges: () -> Unit = {},
     onNavigateToDrives: () -> Unit = {},
@@ -502,6 +441,10 @@ private fun DashboardContent(
             carTrimBadging = carTrimBadging,
             carExterior = carExterior,
             imageOverride = imageOverride,
+            cars = cars,
+            selectedCarId = selectedCarId,
+            onSelectCar = onSelectCar,
+            carImageOverrides = carImageOverrides,
             isCurrentChargeAvailable = isCurrentChargeAvailable,
             onNavigateToBattery = onNavigateToBattery,
             onNavigateToStats = onNavigateToStats,
@@ -529,50 +472,9 @@ private fun DashboardContent(
     }
 }
 
-/**
- * Creates a glow bitmap from the alpha channel of the source bitmap.
- * The glow follows the shape of the non-transparent pixels.
- *
- * @param source The source bitmap with transparency
- * @param glowColor The color for the glow effect
- * @param glowRadius The radius of the blur effect in pixels
- * @return A new bitmap containing only the glow effect
- */
-private fun createGlowBitmap(source: Bitmap, glowColor: Color, glowRadius: Float): Bitmap {
-    // Create a larger bitmap to accommodate the glow extending beyond the original bounds
-    val padding = (glowRadius * 2).toInt()
-    val glowBitmap = Bitmap.createBitmap(
-        source.width + padding * 2,
-        source.height + padding * 2,
-        Bitmap.Config.ARGB_8888
-    )
-
-    val canvas = AndroidCanvas(glowBitmap)
-
-    // Extract alpha from source first
-    val alphaBitmap = source.extractAlpha()
-
-    // Create paint with blur effect - use OUTER blur for glow effect
-    val glowPaint = Paint().apply {
-        isAntiAlias = true
-        color = android.graphics.Color.argb(
-            (glowColor.alpha * 255).toInt(),
-            (glowColor.red * 255).toInt(),
-            (glowColor.green * 255).toInt(),
-            (glowColor.blue * 255).toInt()
-        )
-        maskFilter = BlurMaskFilter(glowRadius, BlurMaskFilter.Blur.OUTER)
-    }
-
-    // Draw the blurred alpha multiple times for a stronger glow effect
-    repeat(3) {
-        canvas.drawBitmap(alphaBitmap, padding.toFloat(), padding.toFloat(), glowPaint)
-    }
-
-    alphaBitmap.recycle()
-
-    return glowBitmap
-}
+// createGlowBitmap moved to GlowBitmapRenderer for reuse by the home screen widget
+private fun createGlowBitmap(source: Bitmap, glowColor: Color, glowRadius: Float): Bitmap =
+    GlowBitmapRenderer.createGlowBitmap(source, glowColor, glowRadius)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -580,6 +482,7 @@ private fun CarImage(
     carModel: String?,
     carTrimBadging: String?,
     carExterior: CarExterior?,
+    palette: CarColorPalette,
     modifier: Modifier = Modifier,
     isCharging: Boolean = false,
     isDcCharging: Boolean = false,
@@ -652,7 +555,7 @@ private fun CarImage(
     val glowRadius = 70f
 
     // AC/DC color tint
-    val chargeTypeColor = if (isDcCharging) StatusWarning else StatusSuccess
+    val chargeTypeColor = if (isDcCharging) palette.dcColor else palette.acColor
 
     // Breathing animation - smooth in/out
     val infiniteTransition = rememberInfiniteTransition(label = "chargingBreath")
@@ -1044,6 +947,10 @@ private fun BatteryCard(
     carTrimBadging: String? = null,
     carExterior: CarExterior? = null,
     imageOverride: CarImageOverride? = null,
+    cars: List<CarData> = emptyList(),
+    selectedCarId: Int? = null,
+    onSelectCar: (Int) -> Unit = {},
+    carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
     onNavigateToBattery: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
@@ -1080,20 +987,86 @@ private fun BatteryCard(
                 modifier = Modifier.padding(top = 4.dp, bottom = 0.dp)
             )
 
-            // Car image with pulsing glow effect when charging
-            CarImage(
-                carModel = carModel,
-                carTrimBadging = carTrimBadging,
-                carExterior = carExterior,
-                modifier = Modifier.fillMaxWidth(),
-                isCharging = status.isCharging,
-                isDcCharging = status.isDcCharging,
-                accentColor = palette.accent,
-                carSurfaceColor = palette.surface,
-                imageOverride = imageOverride,
-                onNavigateToStats = onNavigateToStats,
-                onLongPress = onCarImageLongPress
-            )
+            // Car image — pager when multiple cars, single image otherwise
+            if (cars.size > 1) {
+                val initialPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
+                val pagerState = rememberPagerState(initialPage = initialPage) { cars.size }
+
+                // Sync pager position when selected car changes externally
+                LaunchedEffect(selectedCarId) {
+                    val targetPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
+                    if (targetPage != pagerState.currentPage) {
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
+
+                // Notify viewmodel when user swipes to a new car
+                LaunchedEffect(pagerState.settledPage) {
+                    val car = cars.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
+                    if (car.carId != selectedCarId) {
+                        onSelectCar(car.carId)
+                    }
+                }
+
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    val car = cars[page]
+                    val isSettled = page == pagerState.settledPage
+                    val carPalette = CarColorPalettes.forExteriorColor(car.carExterior?.exteriorColor, isDarkTheme)
+                    CarImage(
+                        carModel = car.carDetails?.model,
+                        carTrimBadging = car.carDetails?.trimBadging,
+                        carExterior = car.carExterior,
+                        palette = carPalette,
+                        modifier = Modifier.fillMaxWidth(),
+                        isCharging = if (isSettled) status.isCharging else false,
+                        isDcCharging = if (isSettled) status.isDcCharging else false,
+                        accentColor = carPalette.accent,
+                        carSurfaceColor = carPalette.surface,
+                        imageOverride = carImageOverrides[car.carId],
+                        onNavigateToStats = if (isSettled) onNavigateToStats else null,
+                        onLongPress = if (isSettled) onCarImageLongPress else null
+                    )
+                }
+
+                // Dots indicator
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    repeat(cars.size) { index ->
+                        val isSelected = pagerState.currentPage == index
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) palette.accent
+                                    else palette.onSurfaceVariant.copy(alpha = 0.3f)
+                                )
+                        )
+                    }
+                }
+            } else {
+                // Single car — existing behaviour unchanged
+                CarImage(
+                    carModel = carModel,
+                    carTrimBadging = carTrimBadging,
+                    carExterior = carExterior,
+                    palette = palette,
+                    modifier = Modifier.fillMaxWidth(),
+                    isCharging = status.isCharging,
+                    isDcCharging = status.isDcCharging,
+                    accentColor = palette.accent,
+                    carSurfaceColor = palette.surface,
+                    imageOverride = imageOverride,
+                    onNavigateToStats = onNavigateToStats,
+                    onLongPress = onCarImageLongPress
+                )
+            }
 
             // Battery info row - tappable to navigate to battery health
             Row(
@@ -1129,7 +1102,9 @@ private fun BatteryCard(
                         Box(modifier = if (isCurrentChargeAvailable) Modifier.clickable(onClick = onNavigateToCurrentCharge) else Modifier) {
                             ChargingPowerGaugeCompact(
                                 status = status,
-                                carTrimBadging = carTrimBadging
+                                carTrimBadging = carTrimBadging,
+                                isTappable = isCurrentChargeAvailable,
+                                palette = palette
                             )
                         }
                     }
@@ -1178,6 +1153,7 @@ private fun BatteryCard(
                 currentLevel = batteryLevel,
                 targetLevel = chargeLimit,
                 isCharging = status.isCharging,
+                isDcCharging = status.isDcCharging,
                 palette = palette,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1205,13 +1181,19 @@ private fun ChargingProgressBar(
     currentLevel: Int,
     targetLevel: Int,
     isCharging: Boolean = false,
+    isDcCharging: Boolean = false,
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
     val currentFraction = currentLevel / 100f
     val targetFraction = targetLevel / 100f
-    val solidGreen = StatusSuccess
-    val dimmedGreen = StatusSuccess.copy(alpha = 0.3f)
+    // Use AC/DC color when charging, StatusSuccess as fallback
+    val chargeColor = if (isCharging) {
+        if (isDcCharging) palette.dcColor else palette.acColor
+    } else {
+        StatusSuccess  // Fallback (not used in practice)
+    }
+    val dimmedChargeColor = chargeColor.copy(alpha = 0.3f)
 
     Canvas(
         modifier = modifier
@@ -1228,11 +1210,11 @@ private fun ChargingProgressBar(
         )
 
         if (isCharging) {
-            // Charging: show green with target area
-            // Dimmed green for target area (from current to target)
+            // Charging: show AC/DC color with target area
+            // Dimmed color for target area (from current to target)
             if (targetFraction > currentFraction) {
                 drawRect(
-                    color = dimmedGreen,
+                    color = dimmedChargeColor,
                     topLeft = androidx.compose.ui.geometry.Offset(width * currentFraction, 0f),
                     size = androidx.compose.ui.geometry.Size(
                         width * (targetFraction - currentFraction),
@@ -1240,9 +1222,9 @@ private fun ChargingProgressBar(
                     )
                 )
             }
-            // Solid green for current charge level
+            // Solid AC/DC color for current charge level
             drawRect(
-                color = solidGreen,
+                color = chargeColor,
                 size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
             )
         } else {
@@ -1273,11 +1255,13 @@ private fun ChargingProgressBar(
 @Composable
 private fun ChargingPowerGaugeCompact(
     status: CarStatus,
-    carTrimBadging: String?
+    carTrimBadging: String?,
+    isTappable: Boolean = false,
+    palette: CarColorPalette
 ) {
     val isDcCharging = status.isDcCharging
     val powerKw = status.chargerPower ?: 0
-    val gaugeColor = if (isDcCharging) StatusWarning else StatusSuccess
+    val gaugeColor = if (isDcCharging) palette.dcColor else palette.acColor
 
     // Calculate gauge progress based on charging type
     val gaugeProgress = if (isDcCharging) {
@@ -1370,13 +1354,15 @@ private fun ChargingPowerGaugeCompact(
             )
         }
 
-        // Chevron to indicate tappable
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = gaugeColor
-        )
+        // Chevron to indicate tappable - only shown when the live charge API is available
+        if (isTappable) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = gaugeColor
+            )
+        }
     }
 }
 
@@ -1498,9 +1484,9 @@ private fun LocationCard(status: CarStatus, units: Units?, resolvedAddress: Stri
         val isImperial = units?.unitOfLength == "mi"
         if (isImperial) {
             val feet = (it * 3.28084).toInt()
-            "$feet ft"
+            "%,d ft".format(feet)
         } else {
-            "$it m"
+            "%,d m".format(it)
         }
     }
 
@@ -1624,17 +1610,17 @@ private fun SmallLocationMap(
                     controller.setZoom(15.0)
                     controller.setCenter(carLocation)
 
-                // Add a marker for the car
-                val marker = Marker(this).apply {
-                    position = carLocation
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    icon = ctx.getDrawable(android.R.drawable.ic_menu_mylocation)
+                    // Add a marker for the car
+                    val marker = Marker(this).apply {
+                        position = carLocation
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        icon = ctx.getDrawable(android.R.drawable.ic_menu_mylocation)
+                    }
+                    overlays.add(marker)
                 }
-                overlays.add(marker)
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
+            },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 @Composable

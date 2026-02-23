@@ -1,0 +1,11 @@
+Stabilità e miglioramenti per la ricarica live introdotta in 1.0.0.
+
+Modifiche:
+- Schermata ricarica live: SoC visualizzato come numero grande in evidenza
+
+Correzioni:
+- Schermata ricarica live si chiude automaticamente a fine ricarica
+- Notifica di ricarica apre la schermata principale su API TM precedenti
+- Freccia sul gauge nascosta quando la ricarica live non è disponibile
+- Grafico V/A con colori distinti (ambra e blu)
+- Statistiche: valori mancanti con filtro per anno corretti

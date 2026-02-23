@@ -350,7 +350,7 @@ private fun SummaryCard(summary: DrivesSummary, palette: CarColorPalette) {
                 SummaryItem(
                     icon = Icons.Default.DirectionsCar,
                     label = stringResource(R.string.total_trips),
-                    value = summary.totalDrives.toString(),
+                    value = "%,d".format(summary.totalDrives),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )

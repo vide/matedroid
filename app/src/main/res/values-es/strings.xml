@@ -1044,4 +1044,11 @@
     <!-- Etiquetas fila compacta energía/potencia -->
     <string name="soc_energy_added">energía añadida</string>
     <string name="soc_instant_power">instantánea</string>
+
+    <!-- ==================== Widget en la pantalla de inicio ==================== -->
+    <string name="widget_description">Estado de batería de tu Tesla</string>
+    <string name="widget_select_car_title">Selecciona un vehículo para el widget</string>
+    <string name="widget_loading">Cargando…</string>
+    <string name="widget_error_configure">Toca para configurar</string>
+    <string name="widget_tap_to_open">Toca para abrir MateDroid</string>
 </resources>
