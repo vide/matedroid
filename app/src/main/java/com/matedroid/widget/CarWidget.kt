@@ -105,6 +105,7 @@ class CarWidget : GlanceAppWidget() {
         val CHARGER_VOLTAGE_KEY = intPreferencesKey("charger_voltage")       // -1 if null
         val CHARGER_CURRENT_KEY = intPreferencesKey("charger_current")       // -1 if null
         val AC_PHASES_KEY = intPreferencesKey("ac_phases")                   // -1 if null
+        val SENTRY_EVENT_COUNT_KEY = intPreferencesKey("sentry_event_count")   // 0 = none
     }
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -358,6 +359,7 @@ class CarWidget : GlanceAppWidget() {
                 this[CHARGER_VOLTAGE_KEY] = data.chargerVoltage ?: -1
                 this[CHARGER_CURRENT_KEY] = data.chargerActualCurrent ?: -1
                 this[AC_PHASES_KEY] = data.acPhases ?: -1
+                this[SENTRY_EVENT_COUNT_KEY] = data.sentryEventCount
             }
         }
         update(context, glanceId)
@@ -392,6 +394,7 @@ class CarWidget : GlanceAppWidget() {
         val state = prefs[STATE_KEY]
         val isLocked = prefs[IS_LOCKED_KEY] ?: false
         val sentryMode = prefs[SENTRY_MODE_KEY] ?: false
+        val sentryEventCount = prefs[SENTRY_EVENT_COUNT_KEY] ?: 0
         val pluggedIn = prefs[PLUGGED_IN_KEY] ?: false
         val isClimateOn = prefs[IS_CLIMATE_ON_KEY] ?: false
         val isCharging = prefs[IS_CHARGING_KEY] ?: false
@@ -479,7 +482,7 @@ class CarWidget : GlanceAppWidget() {
         // 5. Status bar icons (drawn after scrim so they are visible)
         drawStatusBar(
             context, canvas, sbTopPadPx, sbHorzPadPx, iconSzPx, width,
-            state, isLocked, sentryMode, pluggedIn,
+            state, isLocked, sentryMode, sentryEventCount, pluggedIn,
             isClimateOn, outsideTemp, insideTemp, palette
         )
 
@@ -547,6 +550,7 @@ class CarWidget : GlanceAppWidget() {
         state: String?,
         isLocked: Boolean,
         sentryMode: Boolean,
+        sentryEventCount: Int,
         pluggedIn: Boolean,
         isClimateOn: Boolean,
         outsideTemp: Float?,
@@ -589,7 +593,7 @@ class CarWidget : GlanceAppWidget() {
         drawIcon(context, canvas, lockIconRes, cursorX + iconSz / 2f, cy, iconSz, lockColor)
         cursorX += iconSz + iconGap
 
-        // --- Sentry dot (12dp-equivalent red circle, same as dashboard) ---
+        // --- Sentry dot (12dp-equivalent red circle, same as dashboard) + event count ---
         if (sentryMode) {
             val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = ANDROID_STATUS_ERROR
@@ -597,7 +601,22 @@ class CarWidget : GlanceAppWidget() {
             }
             val dotR = iconSz * 0.25f
             canvas.drawCircle(cursorX + dotR, cy, dotR, dotPaint)
-            cursorX += dotR * 2f + iconGap
+            cursorX += dotR * 2f
+
+            if (sentryEventCount > 0) {
+                val countPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = ANDROID_STATUS_ERROR
+                    textSize = iconSz * 0.65f
+                    typeface = Typeface.DEFAULT_BOLD
+                    textAlign = Paint.Align.LEFT
+                }
+                val countBaseline = cy + countPaint.textSize * 0.36f
+                val countGap = iconSz * 0.15f
+                canvas.drawText("$sentryEventCount", cursorX + countGap, countBaseline, countPaint)
+                cursorX += countGap + countPaint.measureText("$sentryEventCount")
+            }
+
+            cursorX += iconGap
         }
 
         // --- Plug icon (shown when plugged in but not currently charging) ---

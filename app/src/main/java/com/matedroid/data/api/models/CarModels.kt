@@ -114,6 +114,9 @@ data class CarStatus(
 
     val locked: Boolean? get() = carStatus?.locked
     val sentryMode: Boolean? get() = carStatus?.sentryMode
+    val centerDisplayState: String? get() = carStatus?.centerDisplayState
+    /** True when the center display is showing the sentry warning screen. */
+    val isSentryAlerted: Boolean get() = centerDisplayState == "7"
 
     val version: String? get() = carVersions?.version
     val updateAvailable: Boolean? get() = carVersions?.updateAvailable
@@ -133,7 +136,8 @@ data class CarStatusDetails(
     @Json(name = "doors_open") val doorsOpen: Boolean? = null,
     @Json(name = "trunk_open") val trunkOpen: Boolean? = null,
     @Json(name = "frunk_open") val frunkOpen: Boolean? = null,
-    @Json(name = "is_user_present") val isUserPresent: Boolean? = null
+    @Json(name = "is_user_present") val isUserPresent: Boolean? = null,
+    @Json(name = "center_display_state") val centerDisplayState: String? = null
 )
 
 @JsonClass(generateAdapter = true)

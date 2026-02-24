@@ -18,7 +18,9 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
+import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import com.matedroid.data.sync.TpmsPressureWorker
@@ -77,7 +79,9 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val repository: TeslamateRepository,
     private val syncManager: SyncManager,
-    private val tpmsStateRepository: TpmsStateRepository
+    private val tpmsStateRepository: TpmsStateRepository,
+    private val sentryStateRepository: SentryStateRepository,
+    private val sentryNotificationManager: SentryNotificationManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -384,6 +388,29 @@ class SettingsViewModel @Inject constructor(
 
             _uiState.value = _uiState.value.copy(
                 successMessage = "TPMS state cleared"
+            )
+        }
+    }
+
+    /**
+     * Simulate a sentry alert event for testing purposes.
+     * Increments the event counter and fires a notification immediately.
+     * Only use in debug builds.
+     */
+    fun simulateSentryEvent() {
+        viewModelScope.launch {
+            val carId = 1
+            // Bypass debounce — directly increment the counter
+            val count = sentryStateRepository.forceIncrementEventCount(carId)
+
+            sentryNotificationManager.showSentryAlert(
+                carName = "Test Car",
+                carId = carId,
+                eventCount = count
+            )
+
+            _uiState.value = _uiState.value.copy(
+                successMessage = "Simulated sentry event #$count"
             )
         }
     }

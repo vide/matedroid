@@ -10,6 +10,7 @@ import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
+import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
 import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +38,8 @@ data class DashboardUiState(
     val errorDetails: String? = null,
     val carImageOverride: CarImageOverride? = null,
     val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
-    val isCurrentChargeAvailable: Boolean = false
+    val isCurrentChargeAvailable: Boolean = false,
+    val sentryEventCount: Int = 0
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -65,7 +67,8 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val geocodingRepository: GeocodingRepository,
-    private val settingsDataStore: SettingsDataStore
+    private val settingsDataStore: SettingsDataStore,
+    private val sentryStateRepository: SentryStateRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -208,6 +211,7 @@ class DashboardViewModel @Inject constructor(
                     // Fetch address if no geofence but coordinates are available
                     fetchAddressIfNeeded(status)
                     checkCurrentChargeAvailability(carId, status)
+                    loadSentryEventCount(carId)
                 }
                 is ApiResult.Error -> {
                     _uiState.update { it.copy(error = result.message) }
@@ -275,6 +279,7 @@ class DashboardViewModel @Inject constructor(
                         // Update address if location changed
                         fetchAddressIfNeeded(status)
                         checkCurrentChargeAvailability(carId, status)
+                        loadSentryEventCount(carId)
                     }
                     is ApiResult.Error -> {
                         // Silently ignore errors during auto-refresh
@@ -290,6 +295,13 @@ class DashboardViewModel @Inject constructor(
                 val available = repository.isCurrentChargeAvailable(carId)
                 _uiState.update { it.copy(isCurrentChargeAvailable = available) }
             }
+        }
+    }
+
+    private fun loadSentryEventCount(carId: Int) {
+        viewModelScope.launch {
+            val count = sentryStateRepository.getEventCount(carId)
+            _uiState.update { it.copy(sentryEventCount = count) }
         }
     }
 

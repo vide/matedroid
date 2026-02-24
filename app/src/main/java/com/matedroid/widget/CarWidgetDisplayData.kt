@@ -39,6 +39,7 @@ data class CarWidgetDisplayData(
     val chargerVoltage: Int?,
     val chargerActualCurrent: Int?,
     val acPhases: Int?,
+    val sentryEventCount: Int = 0,
 ) {
     companion object {
         fun from(carData: CarData, status: CarStatus): CarWidgetDisplayData {
@@ -68,6 +69,7 @@ data class CarWidgetDisplayData(
                 chargerVoltage = status.chargingDetails?.chargerVoltage,
                 chargerActualCurrent = status.chargerActualCurrent,
                 acPhases = status.acPhases,
+                sentryEventCount = 0,  // Populated separately by worker from SentryStateRepository
             )
         }
     }

@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit
 import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.notification.SentryNotificationManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -23,6 +24,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var sentryNotificationManager: SentryNotificationManager
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -44,6 +48,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
         // Also run an immediate check to cancel stale notifications
         ChargingNotificationWorker.runNow(this)
+
+        // Create sentry notification channel eagerly so it appears in Android settings
+        sentryNotificationManager.ensureChannelExists()
     }
 
     /**

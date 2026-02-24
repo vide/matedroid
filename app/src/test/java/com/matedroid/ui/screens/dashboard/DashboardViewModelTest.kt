@@ -15,6 +15,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.CarStatusWithUnits
 import com.matedroid.data.repository.GeocodingRepository
+import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
 import kotlinx.coroutines.flow.flowOf
 import io.mockk.clearAllMocks
@@ -45,6 +46,7 @@ class DashboardViewModelTest {
     private lateinit var repository: TeslamateRepository
     private lateinit var geocodingRepository: GeocodingRepository
     private lateinit var settingsDataStore: SettingsDataStore
+    private lateinit var sentryStateRepository: SentryStateRepository
     private var viewModel: DashboardViewModel? = null
 
     private val testCar = CarData(
@@ -77,6 +79,8 @@ class DashboardViewModelTest {
         repository = mockk()
         geocodingRepository = mockk()
         settingsDataStore = mockk()
+        sentryStateRepository = mockk()
+        coEvery { sentryStateRepository.getEventCount(any()) } returns 0
         // Default: no previously selected car
         every { settingsDataStore.settings } returns flowOf(AppSettings())
         every { settingsDataStore.carImageOverrides } returns flowOf(emptyMap())
@@ -97,7 +101,7 @@ class DashboardViewModelTest {
     }
 
     private fun createViewModel(): DashboardViewModel {
-        return DashboardViewModel(repository, geocodingRepository, settingsDataStore)
+        return DashboardViewModel(repository, geocodingRepository, settingsDataStore, sentryStateRepository)
     }
 
     /**

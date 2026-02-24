@@ -206,6 +206,7 @@ fun DashboardScreen(
                         onSelectCar = { viewModel.selectCar(it) },
                         carImageOverrides = uiState.carImageOverrides,
                         isCurrentChargeAvailable = uiState.isCurrentChargeAvailable,
+                        sentryEventCount = uiState.sentryEventCount,
                         onNavigateToCharges = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToCharges(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -392,6 +393,7 @@ private fun DashboardContent(
     onSelectCar: (Int) -> Unit = {},
     carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
+    sentryEventCount: Int = 0,
     onNavigateToCharges: () -> Unit = {},
     onNavigateToDrives: () -> Unit = {},
     onNavigateToBattery: () -> Unit = {},
@@ -446,6 +448,7 @@ private fun DashboardContent(
             onSelectCar = onSelectCar,
             carImageOverrides = carImageOverrides,
             isCurrentChargeAvailable = isCurrentChargeAvailable,
+            sentryEventCount = sentryEventCount,
             onNavigateToBattery = onNavigateToBattery,
             onNavigateToStats = onNavigateToStats,
             onNavigateToCurrentCharge = onNavigateToCurrentCharge,
@@ -749,6 +752,7 @@ private fun StatusIndicatorsRow(
     status: CarStatus,
     units: Units?,
     palette: CarColorPalette,
+    sentryEventCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val isSentryModeActive = status.sentryMode == true
@@ -817,25 +821,43 @@ private fun StatusIndicatorsRow(
                     tint = if (isLocked) palette.onSurfaceVariant else StatusError.copy(alpha = 0.7f)
                 )
 
-                // Sentry mode red dot (if active)
+                // Sentry mode red dot (if active) + event count
                 if (isSentryModeActive) {
                     val sentryTooltipState = rememberTooltipState(isPersistent = true)
                     val scope = rememberCoroutineScope()
+                    val tooltipText = if (sentryEventCount > 0) {
+                        stringResource(R.string.sentry_mode_active) + " ($sentryEventCount)"
+                    } else {
+                        stringResource(R.string.sentry_mode_active)
+                    }
                     TooltipBox(
                         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
                         tooltip = {
                             PlainTooltip {
-                                Text(stringResource(R.string.sentry_mode_active))
+                                Text(tooltipText)
                             }
                         },
                         state = sentryTooltipState
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(StatusError, RoundedCornerShape(6.dp))
-                                .clickable { scope.launch { sentryTooltipState.show() } }
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            modifier = Modifier.clickable { scope.launch { sentryTooltipState.show() } }
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(StatusError, RoundedCornerShape(6.dp))
+                            )
+                            if (sentryEventCount > 0) {
+                                Text(
+                                    text = "$sentryEventCount",
+                                    color = StatusError,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -952,6 +974,7 @@ private fun BatteryCard(
     onSelectCar: (Int) -> Unit = {},
     carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
+    sentryEventCount: Int = 0,
     onNavigateToBattery: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToCurrentCharge: () -> Unit = {},
@@ -984,6 +1007,7 @@ private fun BatteryCard(
                 status = status,
                 units = units,
                 palette = palette,
+                sentryEventCount = sentryEventCount,
                 modifier = Modifier.padding(top = 4.dp, bottom = 0.dp)
             )
 

@@ -17,6 +17,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.matedroid.BuildConfig
 import com.matedroid.data.repository.ApiResult
+import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -34,6 +35,7 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val teslamateRepository: TeslamateRepository,
+    private val sentryStateRepository: SentryStateRepository,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -146,7 +148,10 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
                     }
                 }
 
-                val displayData = CarWidgetDisplayData.from(car, status)
+                val sentryEventCount = sentryStateRepository.getEventCount(carId)
+                val displayData = CarWidgetDisplayData.from(car, status).copy(
+                    sentryEventCount = sentryEventCount
+                )
                 CarWidget().updateWidget(appContext, glanceId, displayData)
                 Log.d(TAG, "Updated widget for car $carId (${car.displayName})")
 

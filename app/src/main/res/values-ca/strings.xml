@@ -977,6 +977,7 @@
     <string name="debug_tpms_simulate_warning">Simula Avís TPMS</string>
     <string name="debug_tpms_clear_state">Esborra Estat TPMS</string>
     <string name="debug_tpms_run_now">Run TPMS Check Now</string>
+    <string name="debug_sentry_simulate_event">Simulate Sentry Event</string>
 
     <!-- ==================== Charging Notifications ==================== -->
     <!-- Notification channel name for charging session alerts -->
@@ -988,6 +989,22 @@
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - Carregant</string>
     <string name="charging_notification_loading">Comprovant estat de càrrega…</string>
+
+    <!-- ==================== Sentry Notifications ==================== -->
+    <!-- Notification channel name for sentry mode alerts -->
+    <string name="sentry_channel_name">Alertes de Sentinella</string>
+
+    <!-- Notification channel description -->
+    <string name="sentry_channel_description">Alertes quan el mode sentinella detecta un event a prop del teu cotxe</string>
+
+    <!-- Notification title for sentry alert. %s is car name -->
+    <string name="sentry_notification_title">%s - Alerta Sentinella</string>
+
+    <!-- Notification body for sentry events (plurals) -->
+    <plurals name="sentry_notification_body">
+        <item quantity="one">%d event detectat</item>
+        <item quantity="other">%d events detectats</item>
+    </plurals>
 
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
