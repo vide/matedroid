@@ -29,6 +29,7 @@ class SentryNotificationManager @Inject constructor(
         private const val TAG = "SentryNotificationManager"
         const val CHANNEL_ID = "sentry_alerts_channel"
         const val NOTIFICATION_ID_BASE = 4000
+        private const val TESLA_PACKAGE_NAME = "com.teslamotors.tesla"
     }
 
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
@@ -58,6 +59,21 @@ class SentryNotificationManager @Inject constructor(
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(createContentIntent(carId))
+
+        // Add "Open Tesla" action button if the Tesla app is installed
+        createTeslaAppIntent()?.let { teslaIntent ->
+            val teslaPendingIntent = PendingIntent.getActivity(
+                context,
+                NOTIFICATION_ID_BASE + carId + 1000,
+                teslaIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                R.drawable.ic_notification,
+                context.getString(R.string.sentry_action_open_tesla),
+                teslaPendingIntent
+            )
+        }
 
         if (!shouldAlert) {
             // Suppress sound/vibration/heads-up for counter-only updates
@@ -97,6 +113,13 @@ class SentryNotificationManager @Inject constructor(
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+    }
+
+    private fun createTeslaAppIntent(): Intent? {
+        val intent = context.packageManager.getLaunchIntentForPackage(TESLA_PACKAGE_NAME)
+        return intent?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
     }
 
     private fun createNotificationChannel() {

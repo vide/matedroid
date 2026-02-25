@@ -10,6 +10,11 @@
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Required for getLaunchIntentForPackage on Android 11+ (package visibility) -->
+    <queries>
+        <package android:name="com.teslamotors.tesla" />
+    </queries>
+
     <application
         android:name=".MateDroidApp"
         android:allowBackup="true"

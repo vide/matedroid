@@ -1007,6 +1007,9 @@
         <item quantity="other">%d events detected</item>
     </plurals>
 
+    <!-- Notification action button to open the Tesla app -->
+    <string name="sentry_action_open_tesla">Open Tesla app</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>
