@@ -707,7 +707,7 @@ private fun SettingsContent(
         // Version number and issue link at bottom
         Spacer(modifier = Modifier.height(48.dp))
         Text(
-            text = "v${com.matedroid.BuildConfig.VERSION_NAME}",
+            text = "v${com.matedroid.BuildConfig.VERSION_NAME} (${com.matedroid.BuildConfig.GIT_SHA})",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.align(Alignment.CenterHorizontally)

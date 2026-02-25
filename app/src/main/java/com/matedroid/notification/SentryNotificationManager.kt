@@ -50,16 +50,21 @@ class SentryNotificationManager @Inject constructor(
             R.plurals.sentry_notification_body, eventCount, eventCount
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(body)
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(false)
             .setAutoCancel(true)
-            .setOnlyAlertOnce(!shouldAlert)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(createContentIntent(carId))
-            .build()
+
+        if (!shouldAlert) {
+            // Suppress sound/vibration/heads-up for counter-only updates
+            builder.setSilent(true)
+        }
+
+        val notification = builder.build()
 
         notificationManager.notify(notificationId, notification)
         Log.d(TAG, "Sentry alert for car $carId: $eventCount events (alert=$shouldAlert)")

@@ -23,6 +23,12 @@ android {
         versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Embed git commit short SHA in BuildConfig for debugging
+        val gitSha = providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+        }.standardOutput.asText.get().trim()
+        buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
     }
 
     signingConfigs {
