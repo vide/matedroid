@@ -203,6 +203,7 @@ fun NavGraph(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
+                intent = intent,
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },

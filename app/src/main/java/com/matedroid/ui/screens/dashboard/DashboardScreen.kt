@@ -91,6 +91,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
@@ -146,6 +148,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    intent: Intent? = null,
     onNavigateToSettings: () -> Unit,
     onNavigateToCharges: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
     onNavigateToDrives: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
@@ -158,6 +161,17 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // When opened from a widget tap, select the car that belongs to that widget.
+    // Wait until the cars list is populated before switching, in case the app is
+    // cold-starting and the ViewModel hasn't loaded cars yet.
+    LaunchedEffect(intent) {
+        val carIdFromIntent = intent?.getIntExtra("EXTRA_CAR_ID", -1)?.takeIf { it > 0 }
+            ?: return@LaunchedEffect
+        snapshotFlow { uiState.cars }
+            .first { cars -> cars.any { it.carId == carIdFromIntent } }
+        viewModel.selectCar(carIdFromIntent)
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
