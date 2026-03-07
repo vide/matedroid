@@ -279,33 +279,37 @@ class CarWidget : GlanceAppWidget() {
                                         )
                                     }
                                     if (useHomeLayout) {
-                                        // Home screen 2×2+: range centered, location right, no SoC limit
-                                        val hasRange = layout.showMileage && ratedRange != null
-                                        val hasLocation = !locationText.isNullOrBlank()
-                                        if (hasRange || hasLocation) {
-                                            Spacer(modifier = GlanceModifier.defaultWeight())
-                                        }
-                                        if (hasRange) {
-                                            Text(
-                                                text = "${ratedRange!!.roundToInt()} km",
-                                                style = TextStyle(
-                                                    color = ColorProvider(Color.White.copy(alpha = 0.85f)),
-                                                    fontSize = 12.sp
+                                        // Home screen 2×2+: range centered, location right, no SoC limit.
+                                        // Each in a weighted Box so the location text is width-bounded
+                                        // and can wrap instead of overflowing the Row.
+                                        Box(
+                                            modifier = GlanceModifier.defaultWeight(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (layout.showMileage && ratedRange != null) {
+                                                Text(
+                                                    text = "${ratedRange.roundToInt()} km",
+                                                    style = TextStyle(
+                                                        color = ColorProvider(Color.White.copy(alpha = 0.85f)),
+                                                        fontSize = 12.sp
+                                                    )
                                                 )
-                                            )
+                                            }
                                         }
-                                        if (hasRange && hasLocation) {
-                                            Spacer(modifier = GlanceModifier.defaultWeight())
-                                        }
-                                        if (hasLocation) {
-                                            Text(
-                                                text = locationText!!,
-                                                style = TextStyle(
-                                                    color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                                    fontSize = 10.sp
-                                                ),
-                                                maxLines = 1
-                                            )
+                                        Box(
+                                            modifier = GlanceModifier.defaultWeight(),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            if (!locationText.isNullOrBlank()) {
+                                                Text(
+                                                    text = locationText,
+                                                    style = TextStyle(
+                                                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                                        fontSize = 10.sp
+                                                    ),
+                                                    maxLines = 2
+                                                )
+                                            }
                                         }
                                     } else if (layout.showMileage || layout.showChargeLimit) {
                                         // Lock screen / small sizes: right-aligned range + charge limit
