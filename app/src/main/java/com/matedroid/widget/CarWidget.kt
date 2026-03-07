@@ -350,13 +350,13 @@ class CarWidget : GlanceAppWidget() {
                                 }
                             }
 
-                            // Home screen 2×2+: range at absolute top-center of the
-                            // widget, below the status bar icons drawn in the bitmap.
+                            // Home screen 2×2+: range at top-center, same line as
+                            // status icons and temperatures drawn in the bitmap.
                             if (useHomeLayout && layout.showMileage && ratedRange != null) {
                                 Box(
                                     modifier = GlanceModifier
                                         .fillMaxSize()
-                                        .padding(top = 34.dp),
+                                        .padding(top = 8.dp),
                                     contentAlignment = Alignment.TopCenter
                                 ) {
                                     Text(
