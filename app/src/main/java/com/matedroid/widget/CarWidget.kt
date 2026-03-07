@@ -205,6 +205,9 @@ class CarWidget : GlanceAppWidget() {
                             val isCompact = size.height.value < COMPACT_HEIGHT_DP
                             val layout = computeWidgetLayout(size.width.value, size.height.value, isCharging)
 
+                            // Home screen at 2×2+: location right, range at top center, no SoC limit
+                            val useHomeLayout = !isOnLockScreen && layout.showLocation
+
                             // Bitmap generated at the exact widget pixel size — FillBounds is safe.
                             // showTemperatures is passed so the bitmap omits the right-side temp
                             // text at sizes where it is not part of the spec (1×n widgets).
@@ -253,9 +256,6 @@ class CarWidget : GlanceAppWidget() {
                                     else -> 24.sp
                                 }
 
-                                // Home screen at 2×2+: range centered, no limit, location shown
-                                val useHomeLayout = !isOnLockScreen && layout.showLocation
-
                                 Row(
                                     modifier = GlanceModifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -279,37 +279,18 @@ class CarWidget : GlanceAppWidget() {
                                         )
                                     }
                                     if (useHomeLayout) {
-                                        // Home screen 2×2+: range centered, location right, no SoC limit.
-                                        // Each in a weighted Box so the location text is width-bounded
-                                        // and can wrap instead of overflowing the Row.
-                                        Box(
-                                            modifier = GlanceModifier.defaultWeight(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (layout.showMileage && ratedRange != null) {
-                                                Text(
-                                                    text = "${ratedRange.roundToInt()} km",
-                                                    style = TextStyle(
-                                                        color = ColorProvider(Color.White.copy(alpha = 0.85f)),
-                                                        fontSize = 12.sp
-                                                    )
-                                                )
-                                            }
-                                        }
-                                        Box(
-                                            modifier = GlanceModifier.defaultWeight(),
-                                            contentAlignment = Alignment.CenterEnd
-                                        ) {
-                                            if (!locationText.isNullOrBlank()) {
-                                                Text(
-                                                    text = locationText,
-                                                    style = TextStyle(
-                                                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                                        fontSize = 10.sp
-                                                    ),
-                                                    maxLines = 2
-                                                )
-                                            }
+                                        // Home screen 2×2+: location right-aligned, no SoC limit.
+                                        // Range is rendered as a separate top-center overlay (below).
+                                        if (!locationText.isNullOrBlank()) {
+                                            Spacer(modifier = GlanceModifier.defaultWeight())
+                                            Text(
+                                                text = locationText,
+                                                style = TextStyle(
+                                                    color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                                    fontSize = 10.sp
+                                                ),
+                                                maxLines = 2
+                                            )
                                         }
                                     } else if (layout.showMileage || layout.showChargeLimit) {
                                         // Lock screen / small sizes: right-aligned range + charge limit
@@ -366,6 +347,25 @@ class CarWidget : GlanceAppWidget() {
                                             )
                                         )
                                     }
+                                }
+                            }
+
+                            // Home screen 2×2+: range at absolute top-center of the
+                            // widget, below the status bar icons drawn in the bitmap.
+                            if (useHomeLayout && layout.showMileage && ratedRange != null) {
+                                Box(
+                                    modifier = GlanceModifier
+                                        .fillMaxSize()
+                                        .padding(top = 34.dp),
+                                    contentAlignment = Alignment.TopCenter
+                                ) {
+                                    Text(
+                                        text = "${ratedRange.roundToInt()} km",
+                                        style = TextStyle(
+                                            color = ColorProvider(Color.White.copy(alpha = 0.85f)),
+                                            fontSize = 12.sp
+                                        )
+                                    )
                                 }
                             }
                         }
