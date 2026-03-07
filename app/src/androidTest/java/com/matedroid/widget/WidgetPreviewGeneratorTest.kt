@@ -56,24 +56,15 @@ class WidgetPreviewGeneratorTest {
         prefs[CarWidget.CHARGER_CURRENT_KEY]     = 16
         prefs[CarWidget.AC_PHASES_KEY]           = 3
 
-        val density = context.resources.displayMetrics.density
-
-        // 3×2 widget at standard dp sizing
-        val widthPx  = (330f * density).toInt()
-        val heightPx = (196f * density).toInt()
-
         // buildBackgroundBitmap is private — access it via reflection
         val method = CarWidget::class.java.getDeclaredMethod(
             "buildBackgroundBitmap",
             android.content.Context::class.java,
-            Preferences::class.java,
-            Int::class.java,
-            Int::class.java,
-            Float::class.java
+            Preferences::class.java
         )
         method.isAccessible = true
 
-        val bitmap = method.invoke(CarWidget(), context, prefs, widthPx, heightPx, density) as Bitmap
+        val bitmap = method.invoke(CarWidget(), context, prefs) as Bitmap
 
         val outFile = File(context.getExternalFilesDir(null), "widget_preview.png")
         FileOutputStream(outFile).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

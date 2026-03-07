@@ -12,10 +12,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
-import android.graphics.Typeface
 import androidx.compose.ui.graphics.Color
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -23,6 +20,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -48,9 +46,13 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
+import androidx.glance.layout.width
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -64,10 +66,19 @@ import com.matedroid.ui.util.GlowBitmapRenderer
 import java.io.IOException
 import kotlin.math.roundToInt
 
-// Matches StatusSuccess / StatusError from Color.kt
-private val ANDROID_STATUS_SUCCESS = android.graphics.Color.argb(230, 76, 175, 80)
-private val ANDROID_STATUS_ERROR = android.graphics.Color.argb(255, 244, 67, 54)
-private val ANDROID_STATUS_ERROR_DIM = android.graphics.Color.argb(178, 244, 67, 54)
+// Compose Color constants matching StatusSuccess / StatusError
+private val STATUS_SUCCESS = Color(0xE64CAF50)
+private val STATUS_ERROR = Color(0xFFF44336)
+private val STATUS_ERROR_DIM = Color(0xB2F44336)
+
+/** Fixed reference width for progress bar bitmap (px). */
+private const val PROGRESS_BAR_W = 1000
+/** Fixed reference height for progress bar bitmap (px). */
+private const val PROGRESS_BAR_H = 16
+/** Fallback bitmap width when no car image is available. */
+private const val FALLBACK_BG_W = 720
+/** Fallback bitmap height when no car image is available. */
+private const val FALLBACK_BG_H = 405
 
 /**
  * Home screen widget displaying real-time battery info for a configured car.
@@ -77,8 +88,13 @@ private val ANDROID_STATUS_ERROR_DIM = android.graphics.Color.argb(178, 244, 67,
  * [updateWidget] writes every field from [CarWidgetDisplayData] into preferences
  * and then calls [update] to trigger a redraw.
  *
- * Uses [SizeMode.Exact] so the background bitmap is generated at the widget's
- * exact pixel dimensions, preventing any aspect-ratio distortion.
+ * The background bitmap (car image + glow + scrim) is generated at the car
+ * image's native resolution and displayed with [ContentScale.Crop], decoupling
+ * it from the launcher-reported widget size.  All functional UI (status bar
+ * icons, temperatures, progress bar, text) is rendered as Glance composables
+ * that are positioned by the layout engine using actual rendered dimensions.
+ * This avoids aspect-ratio distortion on third-party launchers (e.g. Nova)
+ * that report widget sizes inconsistently.
  */
 class CarWidget : GlanceAppWidget() {
 
@@ -118,26 +134,17 @@ class CarWidget : GlanceAppWidget() {
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
-    // Exact mode: LocalSize.current returns the actual rendered widget dimensions so the
-    // background bitmap can be generated without distortion.
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val isOnLockScreen = isWidgetOnLockScreen(context, id)
 
         provideContent {
-            // Read state inside the composable so Glance observes the DataStore and
-            // automatically re-renders whenever updateAppWidgetState writes new values.
-            // Reading outside provideContent captured a one-time snapshot and caused
-            // "Tap to configure" to persist even after confirmSelection wrote carId.
             val prefs = currentState<Preferences>()
             val carId = prefs[CAR_ID_KEY]
             val hasData = prefs[HAS_DATA_KEY] ?: false
 
             GlanceTheme {
-                // Mirror the approach used by Glance's own Scaffold:
-                // use system_app_widget_background_radius on API 31+, nothing on older devices
-                // (pre-31 launchers don't clip widgets to rounded corners).
                 val cornerMod = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     GlanceModifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
                 } else {
@@ -184,9 +191,6 @@ class CarWidget : GlanceAppWidget() {
                         else -> {
                             val ctx = LocalContext.current
                             val size = LocalSize.current
-                            val density = ctx.resources.displayMetrics.density
-                            val widthPx = (size.width.value * density).toInt().coerceAtLeast(100)
-                            val heightPx = (size.height.value * density).toInt().coerceAtLeast(50)
 
                             val batteryLevel = prefs[BATTERY_LEVEL_KEY] ?: 0
                             val isCharging = prefs[IS_CHARGING_KEY] ?: false
@@ -202,40 +206,144 @@ class CarWidget : GlanceAppWidget() {
                             val chargerCurrent = prefs[CHARGER_CURRENT_KEY]?.takeIf { it >= 0 }
                             val acPhases = prefs[AC_PHASES_KEY]?.takeIf { it >= 0 }
 
-                            // Derive layout flags from widget size and charge state.
-                            // isCompact drives padding/font-size; layout drives which fields appear.
                             val isCompact = size.height.value < COMPACT_HEIGHT_DP
                             val layout = computeWidgetLayout(size.width.value, size.height.value, isCharging)
 
-                            // Home screen at 2×2+: location right, range at top center, no SoC limit
                             val useHomeLayout = !isOnLockScreen && layout.showLocation
 
-                            // Bitmap generated at the exact widget pixel size — FillBounds is safe.
-                            // showTemperatures is passed so the bitmap omits the right-side temp
-                            // text at sizes where it is not part of the spec (1×n widgets).
-                            val bgBitmap = buildBackgroundBitmap(
-                                ctx, prefs, widthPx, heightPx, density, layout.showTemperatures
-                            )
+                            // -- Status bar data --
+                            val exteriorColor = prefs[EXTERIOR_COLOR_KEY]
+                            val state = prefs[STATE_KEY]
+                            val isLocked = prefs[IS_LOCKED_KEY] ?: false
+                            val sentryMode = prefs[SENTRY_MODE_KEY] ?: false
+                            val sentryEventCount = prefs[SENTRY_EVENT_COUNT_KEY] ?: 0
+                            val pluggedIn = prefs[PLUGGED_IN_KEY] ?: false
+                            val isClimateOn = prefs[IS_CLIMATE_ON_KEY] ?: false
+                            val outsideTemp = if (layout.showTemperatures) prefs[OUTSIDE_TEMP_KEY]?.takeIf { !it.isNaN() } else null
+                            val insideTemp = if (layout.showTemperatures) prefs[INSIDE_TEMP_KEY]?.takeIf { !it.isNaN() } else null
+
+                            val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+
+                            val stateLower = state?.lowercase()
+                            val isAwake = stateLower in listOf("online", "charging", "driving", "updating")
+                            val isAsleep = stateLower in listOf("asleep", "suspended")
+                            val isDriving = stateLower == "driving"
+                            val stateIsCharging = stateLower == "charging"
+
+                            // -- Background bitmap (car + glow + scrim only) --
+                            val bgBitmap = buildBackgroundBitmap(ctx, prefs)
                             Image(
                                 provider = ImageProvider(bgBitmap),
                                 contentDescription = null,
                                 modifier = GlanceModifier.fillMaxSize(),
-                                contentScale = ContentScale.FillBounds
+                                contentScale = ContentScale.Crop
                             )
 
-                            // Text overlay: battery data, range/limit and charging details,
-                            // each field gated by the WidgetLayout spec flags.
+                            // -- Status bar + text overlays --
+                            val iconSize = if (isCompact) 14.dp else 16.dp
+                            val iconGap = if (isCompact) 4.dp else 6.dp
+                            val stateColor = if (isAwake) STATUS_SUCCESS
+                                             else palette.onSurfaceVariant.copy(alpha = 0.8f)
+                            val lockColor = if (isLocked) palette.onSurfaceVariant.copy(alpha = 0.85f)
+                                            else STATUS_ERROR_DIM
+                            val variantColor = palette.onSurfaceVariant.copy(alpha = 0.85f)
+
                             Column(
                                 modifier = GlanceModifier
                                     .fillMaxSize()
                                     .padding(
-                                        horizontal = if (isCompact) 10.dp else 16.dp,
-                                        vertical = if (isCompact) 6.dp else 10.dp
+                                        horizontal = if (isCompact) 10.dp else 14.dp,
+                                        vertical = if (isCompact) 5.dp else 8.dp
                                     )
                             ) {
+                                // STATUS BAR ROW
+                                Row(
+                                    modifier = GlanceModifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // State icon
+                                    val stateIconRes = when {
+                                        stateIsCharging -> com.matedroid.R.drawable.ic_bolt
+                                        isAsleep -> com.matedroid.R.drawable.ic_bedtime
+                                        isDriving -> com.matedroid.R.drawable.ic_steering_wheel
+                                        else -> com.matedroid.R.drawable.ic_power_settings_new
+                                    }
+                                    Image(
+                                        provider = ImageProvider(stateIconRes),
+                                        contentDescription = null,
+                                        modifier = GlanceModifier.size(iconSize),
+                                        colorFilter = ColorFilter.tint(ColorProvider(stateColor))
+                                    )
+                                    Spacer(modifier = GlanceModifier.width(iconGap))
+
+                                    // Lock icon
+                                    val lockIconRes = if (isLocked) com.matedroid.R.drawable.ic_lock
+                                                      else com.matedroid.R.drawable.ic_lock_open
+                                    Image(
+                                        provider = ImageProvider(lockIconRes),
+                                        contentDescription = null,
+                                        modifier = GlanceModifier.size(iconSize),
+                                        colorFilter = ColorFilter.tint(ColorProvider(lockColor))
+                                    )
+
+                                    // Sentry dot + event count
+                                    if (sentryMode) {
+                                        Spacer(modifier = GlanceModifier.width(iconGap))
+                                        val dotSize = if (isCompact) 7.dp else 8.dp
+                                        Box(
+                                            modifier = GlanceModifier
+                                                .size(dotSize)
+                                                .background(ColorProvider(STATUS_ERROR))
+                                                .cornerRadius(4.dp)
+                                        ) {}
+                                        if (sentryEventCount > 0) {
+                                            Spacer(modifier = GlanceModifier.width(2.dp))
+                                            Text(
+                                                text = "$sentryEventCount",
+                                                style = TextStyle(
+                                                    color = ColorProvider(STATUS_ERROR),
+                                                    fontSize = if (isCompact) 9.sp else 10.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    // Plug icon (plugged in but not actively charging)
+                                    if (pluggedIn && !stateIsCharging) {
+                                        Spacer(modifier = GlanceModifier.width(iconGap))
+                                        Image(
+                                            provider = ImageProvider(com.matedroid.R.drawable.ic_plug),
+                                            contentDescription = null,
+                                            modifier = GlanceModifier.size(iconSize),
+                                            colorFilter = ColorFilter.tint(ColorProvider(variantColor))
+                                        )
+                                    }
+
+                                    Spacer(modifier = GlanceModifier.defaultWeight())
+
+                                    // Temperatures (right-aligned)
+                                    val tempParts = buildList<String> {
+                                        if (outsideTemp != null) add("Ext: %.0f\u00B0".format(outsideTemp))
+                                        if (insideTemp != null) add("Int: %.0f\u00B0".format(insideTemp))
+                                    }
+                                    if (tempParts.isNotEmpty()) {
+                                        Text(
+                                            text = tempParts.joinToString("  "),
+                                            style = TextStyle(
+                                                color = ColorProvider(
+                                                    if (isClimateOn) STATUS_SUCCESS else variantColor
+                                                ),
+                                                fontSize = if (isCompact) 9.sp else 11.sp,
+                                                fontWeight = if (isClimateOn) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        )
+                                    }
+                                }
+
                                 Spacer(modifier = GlanceModifier.defaultWeight())
 
-                                // Car name — shown at all sizes
+                                // Car name
                                 if (carName.isNotEmpty()) {
                                     Text(
                                         text = carName,
@@ -246,15 +354,15 @@ class CarWidget : GlanceAppWidget() {
                                     )
                                 }
 
-                                // Battery % + AC/DC badge | range + charge limit (right-aligned)
+                                // Battery % + AC/DC badge | range + charge limit
                                 val batteryColor = when {
                                     batteryLevel < 20 -> Color(0xFFEF5350)
                                     batteryLevel < 40 -> Color(0xFFFF9800)
                                     else -> Color.White
                                 }
                                 val batteryFontSize = when {
-                                    isCompact && !layout.showTemperatures -> 16.sp  // 1×1
-                                    isCompact -> 20.sp                              // 2×1
+                                    isCompact && !layout.showTemperatures -> 16.sp
+                                    isCompact -> 20.sp
                                     else -> 24.sp
                                 }
 
@@ -281,8 +389,6 @@ class CarWidget : GlanceAppWidget() {
                                         )
                                     }
                                     if (useHomeLayout && !isCharging && !locationText.isNullOrBlank()) {
-                                        // Home screen, not charging: location right-aligned in SoC row
-                                        // (keeps SoC on the bottom line of the widget).
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         Text(
                                             text = locationText,
@@ -293,7 +399,6 @@ class CarWidget : GlanceAppWidget() {
                                             maxLines = 1
                                         )
                                     } else if (!useHomeLayout && (layout.showMileage || layout.showChargeLimit)) {
-                                        // Lock screen / small sizes: right-aligned range + charge limit
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         val rightParts = buildList<String> {
                                             if (layout.showMileage && ratedRange != null) {
@@ -315,7 +420,7 @@ class CarWidget : GlanceAppWidget() {
                                     }
                                 }
 
-                                // Build charging details text (kWh + time to full, optionally voltage/current).
+                                // Charging details text
                                 val chargingText = if (isCharging) {
                                     val kwhTimePart = buildString {
                                         if (chargeEnergyAdded != null)
@@ -330,7 +435,7 @@ class CarWidget : GlanceAppWidget() {
                                         val voltPart = buildString {
                                             if (chargerVoltage != null) append("${chargerVoltage}V")
                                             if (chargerCurrent != null) append(" ${chargerCurrent}A")
-                                            if (!isDcCharging && acPhases != null) append(" ${acPhases}φ")
+                                            if (!isDcCharging && acPhases != null) append(" ${acPhases}\u03C6")
                                         }.trim()
                                         listOf(voltPart, kwhTimePart)
                                             .filter { it.isNotEmpty() }
@@ -340,10 +445,6 @@ class CarWidget : GlanceAppWidget() {
                                     }
                                 } else ""
 
-                                // Bottom line (only when charging):
-                                //   home 2×2+ → single Row: charge details (left) + location (right, 1 line)
-                                //   lock screen / small → charge details text only
-                                // When not charging, location is already in the SoC row above.
                                 if (isCharging) {
                                     if (useHomeLayout) {
                                         if (chargingText.isNotEmpty() || !locationText.isNullOrBlank()) {
@@ -385,8 +486,7 @@ class CarWidget : GlanceAppWidget() {
                                 }
                             }
 
-                            // Home screen 2×2+: range at top-center, same line as
-                            // status icons and temperatures drawn in the bitmap.
+                            // Range at top center (home screen, 2x2+)
                             if (useHomeLayout && layout.showMileage && ratedRange != null) {
                                 Box(
                                     modifier = GlanceModifier
@@ -403,6 +503,23 @@ class CarWidget : GlanceAppWidget() {
                                     )
                                 }
                             }
+
+                            // Progress bar at the very bottom
+                            val barHeight = if (isCompact) 4.dp else 6.dp
+                            val progressBitmap = buildProgressBarBitmap(
+                                batteryLevel, chargeLimit, isCharging, isDcCharging, palette
+                            )
+                            Box(
+                                modifier = GlanceModifier.fillMaxSize(),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                Image(
+                                    provider = ImageProvider(progressBitmap),
+                                    contentDescription = null,
+                                    modifier = GlanceModifier.fillMaxWidth().height(barHeight),
+                                    contentScale = ContentScale.FillBounds
+                                )
+                            }
                         }
                     }
                 }
@@ -412,7 +529,7 @@ class CarWidget : GlanceAppWidget() {
 
     /**
      * Persists all [CarWidgetDisplayData] fields to Glance preferences and triggers
-     * a redraw. This is the only way to get real data into the widget.
+     * a redraw.
      */
     suspend fun updateWidget(context: Context, glanceId: GlanceId, data: CarWidgetDisplayData) {
         updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
@@ -462,26 +579,24 @@ class CarWidget : GlanceAppWidget() {
     }
 
     // -------------------------------------------------------------------------
-    // Background bitmap generation
+    // Background bitmap — decorative only (car + glow + scrim)
     // -------------------------------------------------------------------------
 
     /**
-     * Generates the full background bitmap at the exact widget pixel size.
+     * Generates the background bitmap at the car image's native resolution.
      * Layers (bottom to top):
      *  1. Palette surface color
      *  2. Car glow (if charging)
-     *  3. Dimmed car image (aspect-ratio correct)
-     *  4. Gradient scrim (dark at top and bottom, transparent in the middle)
-     *  5. Status bar icons (state icon + lock + sentry dot + plug | temps)
-     *  6. Progress bar at the very bottom
+     *  3. Dimmed car image (cover-scaled to fill)
+     *  4. Gradient scrim (dark at top and bottom)
+     *
+     * No status bar or progress bar — those are rendered as Glance composables.
+     * The bitmap is displayed with [ContentScale.Crop] so its dimensions do not
+     * need to match the launcher-reported widget size.
      */
     private fun buildBackgroundBitmap(
         context: Context,
         prefs: Preferences,
-        width: Int,
-        height: Int,
-        density: Float = 2f,
-        showTemperatures: Boolean = true
     ): Bitmap {
         val exteriorColor = prefs[EXTERIOR_COLOR_KEY]
         val model = prefs[MODEL_KEY]
@@ -489,20 +604,14 @@ class CarWidget : GlanceAppWidget() {
         val wheelType = prefs[WHEEL_TYPE_KEY]
         val overrideVariant = prefs[IMAGE_OVERRIDE_VARIANT_KEY]
         val overrideWheel = prefs[IMAGE_OVERRIDE_WHEEL_KEY]
-        val state = prefs[STATE_KEY]
-        val isLocked = prefs[IS_LOCKED_KEY] ?: false
-        val sentryMode = prefs[SENTRY_MODE_KEY] ?: false
-        val sentryEventCount = prefs[SENTRY_EVENT_COUNT_KEY] ?: 0
-        val pluggedIn = prefs[PLUGGED_IN_KEY] ?: false
-        val isClimateOn = prefs[IS_CLIMATE_ON_KEY] ?: false
         val isCharging = prefs[IS_CHARGING_KEY] ?: false
         val isDcCharging = prefs[IS_DC_CHARGING_KEY] ?: false
-        val batteryLevel = prefs[BATTERY_LEVEL_KEY] ?: 0
-        val chargeLimit = prefs[CHARGE_LIMIT_KEY]?.takeIf { it >= 0 }
-        val outsideTemp = if (showTemperatures) prefs[OUTSIDE_TEMP_KEY]?.takeIf { !it.isNaN() } else null
-        val insideTemp  = if (showTemperatures) prefs[INSIDE_TEMP_KEY]?.takeIf  { !it.isNaN() } else null
 
         val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+
+        val carBitmap = loadCarBitmap(context, model, exteriorColor, wheelType, trimBadging, overrideVariant, overrideWheel)
+        val width = carBitmap?.width ?: FALLBACK_BG_W
+        val height = carBitmap?.height ?: FALLBACK_BG_H
 
         val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
@@ -510,23 +619,7 @@ class CarWidget : GlanceAppWidget() {
         // 1. Solid background
         canvas.drawColor(colorToAndroidArgb(palette.surface))
 
-        // Compact (1-cell-tall) mode uses tighter status-bar padding.
-        val isCompact = height.toFloat() / density < COMPACT_HEIGHT_DP
-
-        // Status bar: icon height matches the dashboard's compact icon size (16dp).
-        // Top pad of 8dp and horizontal pad of 12dp keep all content well inside
-        // the 16dp corner radius used by cornerRadius() above, preventing clipping.
-        val iconSzPx = 16f * density
-        val sbTopPadPx = if (isCompact) 5f * density else 8f * density
-        val sbHorzPadPx = if (isCompact) 8f * density else 12f * density
-        val statusBarH = iconSzPx + sbTopPadPx * 2f
-
         // 2 & 3. Car image (glow behind, dimmed car on top)
-        // Cover mode: the car fills the full widget surface at all sizes.
-        // The larger scale factor ensures neither dimension is left uncovered;
-        // overflow is clipped by the canvas bounds.  The status bar, scrim and
-        // progress bar are all drawn on top, so no space needs to be reserved.
-        val carBitmap = loadCarBitmap(context, model, exteriorColor, wheelType, trimBadging, overrideVariant, overrideWheel)
         if (carBitmap != null) {
             val scaleByWidth = width.toFloat() / carBitmap.width
             val scaleByHeight = height.toFloat() / carBitmap.height
@@ -537,7 +630,6 @@ class CarWidget : GlanceAppWidget() {
             val carLeft = (width - scaledW) / 2f
             val carTop = (height - scaledH) / 2f
 
-            // Glow first (behind the car)
             if (isCharging) {
                 val glowColor = if (isDcCharging) palette.dcColor else palette.acColor
                 val glowBitmap = GlowBitmapRenderer.createGlowBitmap(carBitmap, glowColor, 30f)
@@ -554,7 +646,6 @@ class CarWidget : GlanceAppWidget() {
                 glowBitmap.recycle()
             }
 
-            // Dimmed car on top
             val dimmed = GlowBitmapRenderer.createDimmedCarBitmap(carBitmap, 0.35f)
             val scaled = Bitmap.createScaledBitmap(dimmed, scaledW, scaledH, true)
             canvas.drawBitmap(scaled, carLeft, carTop, null)
@@ -563,7 +654,7 @@ class CarWidget : GlanceAppWidget() {
             carBitmap.recycle()
         }
 
-        // 4. Gradient scrim: dark at top (status bar) + dark at bottom (text area)
+        // 4. Gradient scrim
         val scrimPaint = Paint()
         scrimPaint.shader = LinearGradient(
             0f, 0f, 0f, height.toFloat(),
@@ -577,36 +668,49 @@ class CarWidget : GlanceAppWidget() {
         )
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), scrimPaint)
 
-        // 5. Status bar icons (drawn after scrim so they are visible)
-        drawStatusBar(
-            context, canvas, sbTopPadPx, sbHorzPadPx, iconSzPx, width,
-            state, isLocked, sentryMode, sentryEventCount, pluggedIn,
-            isClimateOn, outsideTemp, insideTemp, palette
-        )
+        return result
+    }
 
-        // 6. Progress bar at the very bottom
-        val barH = (height * 0.06f).coerceAtLeast(8f).coerceAtMost(16f)
-        val barTop = height - barH
-        val barRadius = barH / 2f
-        val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    // -------------------------------------------------------------------------
+    // Progress bar bitmap — rendered independently at a fixed reference size
+    // -------------------------------------------------------------------------
+
+    /**
+     * Generates a progress bar bitmap at a fixed [PROGRESS_BAR_W] x [PROGRESS_BAR_H]
+     * resolution.  Displayed with [ContentScale.FillBounds] in a fixed-height box.
+     * Since the content is horizontal solid-colour fills, stretching is invisible.
+     */
+    private fun buildProgressBarBitmap(
+        batteryLevel: Int,
+        chargeLimit: Int?,
+        isCharging: Boolean,
+        isDcCharging: Boolean,
+        palette: CarColorPalette
+    ): Bitmap {
+        val w = PROGRESS_BAR_W
+        val h = PROGRESS_BAR_H
+        val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val r = h / 2f
 
         // Track
-        barPaint.color = android.graphics.Color.argb(80, 255, 255, 255)
-        canvas.drawRoundRect(RectF(0f, barTop, width.toFloat(), height.toFloat()), barRadius, barRadius, barPaint)
+        paint.color = android.graphics.Color.argb(80, 255, 255, 255)
+        canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, paint)
 
-        // Charge limit zone (dimmed colour from current level to limit)
+        // Charge limit zone
         if (chargeLimit != null && chargeLimit > batteryLevel) {
             val dimColor = if (isDcCharging) palette.dcColor else if (isCharging) palette.acColor else palette.accent
-            barPaint.color = android.graphics.Color.argb(
+            paint.color = android.graphics.Color.argb(
                 60,
                 (dimColor.red * 255).toInt(),
                 (dimColor.green * 255).toInt(),
                 (dimColor.blue * 255).toInt()
             )
             canvas.drawRect(
-                width * batteryLevel / 100f, barTop,
-                width * chargeLimit / 100f, height.toFloat(),
-                barPaint
+                w * batteryLevel / 100f, 0f,
+                w * chargeLimit / 100f, h.toFloat(),
+                paint
             )
         }
 
@@ -618,159 +722,23 @@ class CarWidget : GlanceAppWidget() {
             batteryLevel < 40 -> Color(0xFFFF9800)
             else -> palette.accent
         }
-        barPaint.color = android.graphics.Color.argb(
+        paint.color = android.graphics.Color.argb(
             230,
             (fillColor.red * 255).toInt(),
             (fillColor.green * 255).toInt(),
             (fillColor.blue * 255).toInt()
         )
-        val fillW = width * batteryLevel / 100f
+        val fillW = w * batteryLevel / 100f
         if (fillW > 0) {
-            canvas.drawRoundRect(RectF(0f, barTop, fillW, height.toFloat()), barRadius, barRadius, barPaint)
+            canvas.drawRoundRect(RectF(0f, 0f, fillW, h.toFloat()), r, r, paint)
         }
 
         return result
     }
 
     // -------------------------------------------------------------------------
-    // Status bar: drawn into the bitmap to match the dashboard layout exactly.
-    // LEFT side:  state icon → lock icon → sentry dot (if active) → plug (if plugged, not charging)
-    // RIGHT side: "Ext: XX°   Int: XX°" (green + bold when climate on)
-    // -------------------------------------------------------------------------
-
-    private fun drawStatusBar(
-        context: Context,
-        canvas: Canvas,
-        topPad: Float,
-        horzPad: Float,
-        iconSz: Float,
-        bitmapWidth: Int,
-        state: String?,
-        isLocked: Boolean,
-        sentryMode: Boolean,
-        sentryEventCount: Int,
-        pluggedIn: Boolean,
-        isClimateOn: Boolean,
-        outsideTemp: Float?,
-        insideTemp: Float?,
-        palette: CarColorPalette
-    ) {
-        val stateLower = state?.lowercase()
-        val isCharging = stateLower == "charging"
-        val isDriving = stateLower == "driving"
-        val isAsleep = stateLower in listOf("asleep", "suspended")
-        val isAwake = stateLower in listOf("online", "charging", "driving", "updating")
-
-        // State icon colour: StatusSuccess (green) if awake, onSurfaceVariant (grey) otherwise
-        val stateColor = if (isAwake) ANDROID_STATUS_SUCCESS
-        else colorToAndroidArgb(palette.onSurfaceVariant.copy(alpha = 0.8f))
-
-        // onSurfaceVariant as an Android int (for lock + plug)
-        val variantColor = colorToAndroidArgb(palette.onSurfaceVariant.copy(alpha = 0.85f))
-
-        // Lock colour: grey when locked, light red when unlocked
-        val lockColor = if (isLocked) variantColor else ANDROID_STATUS_ERROR_DIM
-
-        val cy = topPad + iconSz / 2f    // vertical centre of the status bar row
-        var cursorX = horzPad
-
-        // --- State icon ---
-        val stateIconRes = when {
-            isCharging -> com.matedroid.R.drawable.ic_bolt
-            isAsleep   -> com.matedroid.R.drawable.ic_bedtime
-            isDriving  -> com.matedroid.R.drawable.ic_steering_wheel
-            else       -> com.matedroid.R.drawable.ic_power_settings_new
-        }
-        drawIcon(context, canvas, stateIconRes, cursorX + iconSz / 2f, cy, iconSz, stateColor)
-        val iconGap = iconSz * 0.5f   // gap between icons, ~8dp
-        cursorX += iconSz + iconGap
-
-        // --- Lock icon ---
-        val lockIconRes = if (isLocked) com.matedroid.R.drawable.ic_lock
-                          else          com.matedroid.R.drawable.ic_lock_open
-        drawIcon(context, canvas, lockIconRes, cursorX + iconSz / 2f, cy, iconSz, lockColor)
-        cursorX += iconSz + iconGap
-
-        // --- Sentry dot (12dp-equivalent red circle, same as dashboard) + event count ---
-        if (sentryMode) {
-            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = ANDROID_STATUS_ERROR
-                style = Paint.Style.FILL
-            }
-            val dotR = iconSz * 0.25f
-            canvas.drawCircle(cursorX + dotR, cy, dotR, dotPaint)
-            cursorX += dotR * 2f
-
-            if (sentryEventCount > 0) {
-                val countPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = ANDROID_STATUS_ERROR
-                    textSize = iconSz * 0.65f
-                    typeface = Typeface.DEFAULT_BOLD
-                    textAlign = Paint.Align.LEFT
-                }
-                val countBaseline = cy + countPaint.textSize * 0.36f
-                val countGap = iconSz * 0.15f
-                canvas.drawText("$sentryEventCount", cursorX + countGap, countBaseline, countPaint)
-                cursorX += countGap + countPaint.measureText("$sentryEventCount")
-            }
-
-            cursorX += iconGap
-        }
-
-        // --- Plug icon (shown when plugged in but not currently charging) ---
-        if (pluggedIn && !isCharging) {
-            drawIcon(context, canvas, com.matedroid.R.drawable.ic_plug,
-                cursorX + iconSz / 2f, cy, iconSz, variantColor)
-        }
-
-        // --- Temperatures (RIGHT side, right-aligned) ---
-        val tempParts = buildList<String> {
-            if (outsideTemp != null) add("Ext: %.0f°".format(outsideTemp))
-            if (insideTemp != null) add("Int: %.0f°".format(insideTemp))
-        }
-        if (tempParts.isNotEmpty()) {
-            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-            textPaint.textSize = iconSz * 0.72f
-            textPaint.textAlign = Paint.Align.RIGHT
-            if (isClimateOn) {
-                textPaint.color = ANDROID_STATUS_SUCCESS
-                textPaint.typeface = Typeface.DEFAULT_BOLD
-            } else {
-                textPaint.color = variantColor
-                textPaint.typeface = Typeface.DEFAULT
-            }
-            // Baseline: centre the text vertically within the icon row
-            val textBaseline = cy + textPaint.textSize * 0.36f
-            canvas.drawText(
-                tempParts.joinToString("  "),
-                bitmapWidth - horzPad,
-                textBaseline,
-                textPaint
-            )
-        }
-    }
-
-    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
-
-    /**
-     * Draws an XML vector drawable centered at (cx, cy) within a sizePx × sizePx box,
-     * tinted to [color]. Uses [ContextCompat] + [DrawableCompat] so it works on API 21+
-     * without requiring the appcompat library directly.
-     */
-    private fun drawIcon(context: Context, canvas: Canvas, resId: Int, cx: Float, cy: Float, sizePx: Float, color: Int) {
-        val drawable = ContextCompat.getDrawable(context, resId)?.mutate() ?: return
-        DrawableCompat.setTint(DrawableCompat.wrap(drawable), color)
-        val half = sizePx / 2f
-        drawable.setBounds(
-            (cx - half).toInt(),
-            (cy - half).toInt(),
-            (cx + half).toInt(),
-            (cy + half).toInt()
-        )
-        drawable.draw(canvas)
-    }
 
     private fun loadCarBitmap(
         context: Context,
@@ -799,7 +767,6 @@ class CarWidget : GlanceAppWidget() {
         }
     }
 
-    /** Converts a Compose [Color] to an Android packed ARGB int. */
     private fun colorToAndroidArgb(color: Color): Int = android.graphics.Color.argb(
         (color.alpha * 255).toInt(),
         (color.red * 255).toInt(),
@@ -807,11 +774,6 @@ class CarWidget : GlanceAppWidget() {
         (color.blue * 255).toInt()
     )
 
-    /**
-     * Detects whether this widget instance is placed on the lock screen (keyguard)
-     * by checking [AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY].
-     * Returns false on pre-API-36 devices or if detection fails.
-     */
     private suspend fun isWidgetOnLockScreen(context: Context, glanceId: GlanceId): Boolean {
         return try {
             val glanceManager = GlanceAppWidgetManager(context)
