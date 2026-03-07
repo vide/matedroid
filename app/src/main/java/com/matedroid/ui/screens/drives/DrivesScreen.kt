@@ -529,7 +529,7 @@ private fun DriveItem(
                 // Max Speed
                 DriveStatCard(
                     icon = Icons.Default.Speed,
-                    value = if (units?.isImperial == true) "${((drive.speedMax ?: 0) * 0.621371).toInt()}" else "${drive.speedMax ?: 0}",
+                    value = "${drive.speedMax ?: 0}",
                     unit = UnitFormatter.getSpeedUnit(units),
                     label = stringResource(R.string.max_speed),
                     modifier = Modifier.weight(1f)
@@ -761,7 +761,7 @@ private fun DrivesChartPage(
                 )
             }
             DrivesChartType.DISTANCE -> chartData.map { data ->
-                val distance = if (isImperial) data.totalDistance * 0.621371 else data.totalDistance
+                val distance = data.totalDistance
                 BarChartData(
                     label = data.label,
                     value = distance,
@@ -769,7 +769,7 @@ private fun DrivesChartPage(
                 )
             }
             DrivesChartType.TOP_SPEED -> chartData.map { data ->
-                val speed = if (isImperial) (data.maxSpeed * 0.621371).toInt() else data.maxSpeed
+                val speed = data.maxSpeed
                 BarChartData(
                     label = data.label,
                     value = speed.toDouble(),
