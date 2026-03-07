@@ -280,21 +280,7 @@ class CarWidget : GlanceAppWidget() {
                                             )
                                         )
                                     }
-                                    if (useHomeLayout) {
-                                        // Home screen 2×2+: location right-aligned, no SoC limit.
-                                        // Range is rendered as a separate top-center overlay (below).
-                                        if (!locationText.isNullOrBlank()) {
-                                            Spacer(modifier = GlanceModifier.defaultWeight())
-                                            Text(
-                                                text = locationText,
-                                                style = TextStyle(
-                                                    color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                                    fontSize = 10.sp
-                                                ),
-                                                maxLines = 2
-                                            )
-                                        }
-                                    } else if (layout.showMileage || layout.showChargeLimit) {
+                                    if (layout.showMileage || layout.showChargeLimit) {
                                         // Lock screen / small sizes: right-aligned range + charge limit
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         val rightParts = buildList<String> {
@@ -349,6 +335,22 @@ class CarWidget : GlanceAppWidget() {
                                                 color = ColorProvider(Color.White.copy(alpha = 0.9f)),
                                                 fontSize = if (isCompact) 9.sp else 11.sp
                                             )
+                                        )
+                                    }
+                                }
+
+                                // Home screen 2×2+: location right-aligned, always at the bottom
+                                // regardless of whether charging details are shown above it.
+                                if (useHomeLayout && !locationText.isNullOrBlank()) {
+                                    Row(modifier = GlanceModifier.fillMaxWidth()) {
+                                        Spacer(modifier = GlanceModifier.defaultWeight())
+                                        Text(
+                                            text = locationText,
+                                            style = TextStyle(
+                                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                                fontSize = 10.sp
+                                            ),
+                                            maxLines = 2
                                         )
                                     }
                                 }
