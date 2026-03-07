@@ -54,4 +54,10 @@
 * The TeslamateApi's parseDateParam function only accepts:
   - RFC3339 format: 2024-12-07T00:00:00Z
   - DateTime format: 2024-12-07 00:00:00
+* **TeslamateAPI pre-converts ALL values to the user's preferred unit system before returning them.**
+  Distance fields (odometer, range, trip distance) are already in km or mi. Speed is already in km/h or mph.
+  Temperature is already in °C or °F. Efficiency is already in Wh/km or Wh/mi.
+  Pressure is already in bar or psi.
+  → `UnitFormatter` must NEVER apply conversion math — it only attaches the correct unit label.
+  → Never multiply by 0.621371, 1.60934, or apply °C→°F formulas on values coming from the API.
 

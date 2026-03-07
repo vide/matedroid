@@ -299,9 +299,8 @@ class CarWidget : GlanceAppWidget() {
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         val rightParts = buildList<String> {
                                             if (layout.showMileage && ratedRange != null) {
-                                                val rangeValue = if (isImperial) (ratedRange * 0.621371f).roundToInt() else ratedRange.roundToInt()
                                                 val rangeUnit = if (isImperial) "mi" else "km"
-                                                add("$rangeValue $rangeUnit")
+                                                add("${ratedRange.roundToInt()} $rangeUnit")
                                             }
                                             if (layout.showChargeLimit && chargeLimit != null)
                                                 add("Limit: $chargeLimit%")
@@ -365,7 +364,7 @@ class CarWidget : GlanceAppWidget() {
                                     contentAlignment = Alignment.TopCenter
                                 ) {
                                     Text(
-                                        text = "${if (isImperial) (ratedRange * 0.621371f).roundToInt() else ratedRange.roundToInt()} ${if (isImperial) "mi" else "km"}",
+                                        text = "${ratedRange.roundToInt()} ${if (isImperial) "mi" else "km"}",
                                         style = TextStyle(
                                             color = ColorProvider(Color.White.copy(alpha = 0.85f)),
                                             fontSize = 12.sp

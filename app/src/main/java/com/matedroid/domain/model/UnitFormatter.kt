@@ -5,35 +5,31 @@ import com.matedroid.data.api.models.Units
 /**
  * Utility object for formatting values based on unit preferences from TeslamateApi.
  * Supports metric (km, °C, bar) and imperial (mi, °F, psi) units.
+ *
+ * IMPORTANT: TeslamateAPI already returns all values pre-converted to the user's preferred
+ * unit system. Do NOT apply any conversion here — just format the number and attach the
+ * correct unit label.
  */
 object UnitFormatter {
 
-    // Conversion constants
-    private const val KM_TO_MI = 0.621371
-    private const val MI_TO_KM = 1.60934
-    private const val WH_PER_KM_TO_WH_PER_MI = 1.60934
-
     /**
-     * Format distance value with appropriate unit label
+     * Format distance value with appropriate unit label.
+     * Value is already in km (metric) or mi (imperial) as returned by the API.
      */
     fun formatDistance(value: Double, units: Units?, decimals: Int = 1): String {
         return if (units?.isImperial == true) {
-            val miles = value * KM_TO_MI
-            "%,.${decimals}f mi".format(miles)
+            "%,.${decimals}f mi".format(value)
         } else {
             "%,.${decimals}f km".format(value)
         }
     }
 
     /**
-     * Format distance value without unit label (just the number)
+     * Format distance value without unit label (just the number).
+     * Value is already in km (metric) or mi (imperial) as returned by the API.
      */
     fun formatDistanceValue(value: Double, units: Units?, decimals: Int = 1): Double {
-        return if (units?.isImperial == true) {
-            value * KM_TO_MI
-        } else {
-            value
-        }
+        return value
     }
 
     /**
@@ -44,26 +40,23 @@ object UnitFormatter {
     }
 
     /**
-     * Format temperature value with appropriate unit label
+     * Format temperature value with appropriate unit label.
+     * Value is already in °C (metric) or °F (imperial) as returned by the API.
      */
-    fun formatTemperature(celsius: Double, units: Units?, decimals: Int = 0): String {
+    fun formatTemperature(value: Double, units: Units?, decimals: Int = 0): String {
         return if (units?.unitOfTemperature == "F") {
-            val fahrenheit = celsius * 9 / 5 + 32
-            "%.${decimals}f°F".format(fahrenheit)
+            "%.${decimals}f°F".format(value)
         } else {
-            "%.${decimals}f°C".format(celsius)
+            "%.${decimals}f°C".format(value)
         }
     }
 
     /**
-     * Format temperature value without unit label
+     * Format temperature value without unit label.
+     * Value is already in the user's preferred unit as returned by the API.
      */
-    fun formatTemperatureValue(celsius: Double, units: Units?): Double {
-        return if (units?.unitOfTemperature == "F") {
-            celsius * 9 / 5 + 32
-        } else {
-            celsius
-        }
+    fun formatTemperatureValue(value: Double, units: Units?): Double {
+        return value
     }
 
     /**
@@ -91,14 +84,14 @@ object UnitFormatter {
     }
 
     /**
-     * Format efficiency (Wh/km or Wh/mi)
+     * Format efficiency (Wh/km or Wh/mi).
+     * Value is already in Wh/km (metric) or Wh/mi (imperial) as returned by the API.
      */
-    fun formatEfficiency(whPerKm: Double, units: Units?, decimals: Int = 1): String {
+    fun formatEfficiency(value: Double, units: Units?, decimals: Int = 1): String {
         return if (units?.isImperial == true) {
-            val whPerMi = whPerKm * WH_PER_KM_TO_WH_PER_MI
-            "%.${decimals}f Wh/mi".format(whPerMi)
+            "%.${decimals}f Wh/mi".format(value)
         } else {
-            "%.${decimals}f Wh/km".format(whPerKm)
+            "%.${decimals}f Wh/km".format(value)
         }
     }
 
@@ -110,14 +103,14 @@ object UnitFormatter {
     }
 
     /**
-     * Format speed value with appropriate unit label
+     * Format speed value with appropriate unit label.
+     * Value is already in km/h (metric) or mph (imperial) as returned by the API.
      */
-    fun formatSpeed(kmh: Double, units: Units?, decimals: Int = 0): String {
+    fun formatSpeed(value: Double, units: Units?, decimals: Int = 0): String {
         return if (units?.isImperial == true) {
-            val mph = kmh * KM_TO_MI
-            "%.${decimals}f mph".format(mph)
+            "%.${decimals}f mph".format(value)
         } else {
-            "%.${decimals}f km/h".format(kmh)
+            "%.${decimals}f km/h".format(value)
         }
     }
 
