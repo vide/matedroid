@@ -55,7 +55,6 @@ import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
-import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.matedroid.domain.model.CarImageResolver
@@ -279,8 +278,37 @@ class CarWidget : GlanceAppWidget() {
                                             )
                                         )
                                     }
-                                    // Lock screen / small sizes: right-aligned range + charge limit
-                                    if (!useHomeLayout && (layout.showMileage || layout.showChargeLimit)) {
+                                    if (useHomeLayout) {
+                                        // Home screen 2×2+: range centered, location right, no SoC limit
+                                        val hasRange = layout.showMileage && ratedRange != null
+                                        val hasLocation = !locationText.isNullOrBlank()
+                                        if (hasRange || hasLocation) {
+                                            Spacer(modifier = GlanceModifier.defaultWeight())
+                                        }
+                                        if (hasRange) {
+                                            Text(
+                                                text = "${ratedRange!!.roundToInt()} km",
+                                                style = TextStyle(
+                                                    color = ColorProvider(Color.White.copy(alpha = 0.85f)),
+                                                    fontSize = 12.sp
+                                                )
+                                            )
+                                        }
+                                        if (hasRange && hasLocation) {
+                                            Spacer(modifier = GlanceModifier.defaultWeight())
+                                        }
+                                        if (hasLocation) {
+                                            Text(
+                                                text = locationText!!,
+                                                style = TextStyle(
+                                                    color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                                    fontSize = 10.sp
+                                                ),
+                                                maxLines = 1
+                                            )
+                                        }
+                                    } else if (layout.showMileage || layout.showChargeLimit) {
+                                        // Lock screen / small sizes: right-aligned range + charge limit
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         val rightParts = buildList<String> {
                                             if (layout.showMileage && ratedRange != null)
@@ -297,33 +325,6 @@ class CarWidget : GlanceAppWidget() {
                                                 )
                                             )
                                         }
-                                    }
-                                }
-
-                                // Home screen at 2×2+: location + centered range
-                                if (useHomeLayout) {
-                                    if (!locationText.isNullOrBlank()) {
-                                        Text(
-                                            text = locationText,
-                                            modifier = GlanceModifier.fillMaxWidth(),
-                                            style = TextStyle(
-                                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                                fontSize = 10.sp,
-                                                textAlign = TextAlign.Center
-                                            ),
-                                            maxLines = 1
-                                        )
-                                    }
-                                    if (ratedRange != null) {
-                                        Text(
-                                            text = "${ratedRange.roundToInt()} km",
-                                            modifier = GlanceModifier.fillMaxWidth(),
-                                            style = TextStyle(
-                                                color = ColorProvider(Color.White.copy(alpha = 0.85f)),
-                                                fontSize = 12.sp,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        )
                                     }
                                 }
 
