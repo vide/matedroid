@@ -1,5 +1,8 @@
 package com.matedroid.widget
 
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
+import android.content.ComponentName
 import android.content.Context
 import android.os.Build
 import android.graphics.Bitmap
@@ -31,6 +34,7 @@ import androidx.glance.LocalSize
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
@@ -51,6 +55,7 @@ import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.matedroid.domain.model.CarImageResolver
@@ -108,6 +113,7 @@ class CarWidget : GlanceAppWidget() {
         val SENTRY_EVENT_COUNT_KEY = intPreferencesKey("sentry_event_count")   // 0 = none
         val IMAGE_OVERRIDE_VARIANT_KEY = stringPreferencesKey("image_override_variant")
         val IMAGE_OVERRIDE_WHEEL_KEY = stringPreferencesKey("image_override_wheel")
+        val LOCATION_TEXT_KEY = stringPreferencesKey("location_text")
     }
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -117,6 +123,8 @@ class CarWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val isOnLockScreen = isWidgetOnLockScreen(context, id)
+
         provideContent {
             // Read state inside the composable so Glance observes the DataStore and
             // automatically re-renders whenever updateAppWidgetState writes new values.
@@ -186,6 +194,7 @@ class CarWidget : GlanceAppWidget() {
                             val carName = prefs[CAR_NAME_KEY] ?: ""
                             val ratedRange = prefs[RATED_RANGE_KEY]?.takeIf { it >= 0f }
                             val chargeLimit = prefs[CHARGE_LIMIT_KEY]?.takeIf { it >= 0 }
+                            val locationText = prefs[LOCATION_TEXT_KEY]
                             val chargeEnergyAdded = prefs[CHARGE_ENERGY_ADDED_KEY]?.takeIf { it >= 0f }
                             val timeToFull = prefs[TIME_TO_FULL_KEY]?.takeIf { it >= 0f }
                             val chargerVoltage = prefs[CHARGER_VOLTAGE_KEY]?.takeIf { it >= 0 }
@@ -244,6 +253,10 @@ class CarWidget : GlanceAppWidget() {
                                     isCompact -> 20.sp                              // 2×1
                                     else -> 24.sp
                                 }
+
+                                // Home screen at 2×2+: range centered, no limit, location shown
+                                val useHomeLayout = !isOnLockScreen && layout.showLocation
+
                                 Row(
                                     modifier = GlanceModifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically
@@ -266,7 +279,8 @@ class CarWidget : GlanceAppWidget() {
                                             )
                                         )
                                     }
-                                    if (layout.showMileage || layout.showChargeLimit) {
+                                    // Lock screen / small sizes: right-aligned range + charge limit
+                                    if (!useHomeLayout && (layout.showMileage || layout.showChargeLimit)) {
                                         Spacer(modifier = GlanceModifier.defaultWeight())
                                         val rightParts = buildList<String> {
                                             if (layout.showMileage && ratedRange != null)
@@ -283,6 +297,33 @@ class CarWidget : GlanceAppWidget() {
                                                 )
                                             )
                                         }
+                                    }
+                                }
+
+                                // Home screen at 2×2+: location + centered range
+                                if (useHomeLayout) {
+                                    if (!locationText.isNullOrBlank()) {
+                                        Text(
+                                            text = locationText,
+                                            modifier = GlanceModifier.fillMaxWidth(),
+                                            style = TextStyle(
+                                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                                fontSize = 10.sp,
+                                                textAlign = TextAlign.Center
+                                            ),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    if (ratedRange != null) {
+                                        Text(
+                                            text = "${ratedRange.roundToInt()} km",
+                                            modifier = GlanceModifier.fillMaxWidth(),
+                                            style = TextStyle(
+                                                color = ColorProvider(Color.White.copy(alpha = 0.85f)),
+                                                fontSize = 12.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        )
                                     }
                                 }
 
@@ -368,6 +409,11 @@ class CarWidget : GlanceAppWidget() {
                 } else {
                     remove(IMAGE_OVERRIDE_VARIANT_KEY)
                     remove(IMAGE_OVERRIDE_WHEEL_KEY)
+                }
+                if (data.locationText != null) {
+                    this[LOCATION_TEXT_KEY] = data.locationText
+                } else {
+                    remove(LOCATION_TEXT_KEY)
                 }
             }
         }
@@ -719,4 +765,30 @@ class CarWidget : GlanceAppWidget() {
         (color.green * 255).toInt(),
         (color.blue * 255).toInt()
     )
+
+    /**
+     * Detects whether this widget instance is placed on the lock screen (keyguard)
+     * by checking [AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY].
+     * Returns false on pre-API-36 devices or if detection fails.
+     */
+    private suspend fun isWidgetOnLockScreen(context: Context, glanceId: GlanceId): Boolean {
+        return try {
+            val glanceManager = GlanceAppWidgetManager(context)
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, CarWidgetReceiver::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            for (appWidgetId in appWidgetIds) {
+                if (glanceManager.getGlanceIdBy(appWidgetId) == glanceId) {
+                    val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+                    return options.getInt(
+                        AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY,
+                        AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
+                    ) == AppWidgetProviderInfo.WIDGET_CATEGORY_KEYGUARD
+                }
+            }
+            false
+        } catch (_: Exception) {
+            false
+        }
+    }
 }

@@ -17,7 +17,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.matedroid.BuildConfig
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.repository.ApiResult
+import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
 import kotlinx.coroutines.flow.firstOrNull
@@ -39,6 +41,7 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
     private val teslamateRepository: TeslamateRepository,
     private val sentryStateRepository: SentryStateRepository,
     private val settingsDataStore: SettingsDataStore,
+    private val geocodingRepository: GeocodingRepository,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -155,9 +158,11 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
                 }
 
                 val sentryEventCount = sentryStateRepository.getEventCount(carId)
+                val locationText = resolveLocationText(status)
                 val displayData = CarWidgetDisplayData.from(car, status).copy(
                     sentryEventCount = sentryEventCount,
-                    imageOverride = imageOverrides[carId]
+                    imageOverride = imageOverrides[carId],
+                    locationText = locationText
                 )
                 CarWidget().updateWidget(appContext, glanceId, displayData)
                 Log.d(TAG, "Updated widget for car $carId (${car.displayName})")
@@ -169,6 +174,30 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
 
         scheduleNextUpdate()
         return Result.success()
+    }
+
+    /**
+     * Resolves the display location text following the same priority as the dashboard:
+     * 1. Geofence name (from TeslaMate)
+     * 2. Reverse-geocoded address (via Nominatim)
+     * 3. Raw coordinates formatted as "lat, lon"
+     */
+    private suspend fun resolveLocationText(status: CarStatus): String? {
+        val geofence = status.geofence?.takeIf { it.isNotBlank() }
+        if (geofence != null) return geofence
+
+        val lat = status.latitude ?: return null
+        val lon = status.longitude ?: return null
+
+        val address = try {
+            geocodingRepository.reverseGeocode(lat, lon)
+        } catch (e: Exception) {
+            Log.w(TAG, "Reverse geocoding failed for widget", e)
+            null
+        }
+        if (address != null) return address
+
+        return "%.5f, %.5f".format(lat, lon)
     }
 
     private fun scheduleNextUpdate() {

@@ -13,6 +13,7 @@ import org.junit.Test
  * | Available mileage        |  ✗  |  ✗  |  ✗           |  not charging     |  always        |
  * | Charge limit             |  ✗  |  ✗  |  charging ✓  |  always           |  always        |
  * | Voltage / current / ph   |  ✗  |  ✗  |  ✗           |  charging ✓       |  charging ✓    |
+ * | Location (home screen)   |  ✗  |  ✗  |  ✗           |  ✓                |  ✓             |
  *
  * Fields always present at every size (not tested here):
  *   car picture, battery SoC % + bar, car name, status icons,
@@ -41,6 +42,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertFalse(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     @Test
@@ -50,6 +52,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertFalse(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     // -------------------------------------------------------------------------
@@ -63,6 +66,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertFalse(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     @Test
@@ -72,6 +76,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertFalse(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     // -------------------------------------------------------------------------
@@ -85,6 +90,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertFalse(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     @Test
@@ -94,6 +100,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertTrue(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertFalse(l.showLocation)
     }
 
     // -------------------------------------------------------------------------
@@ -107,6 +114,7 @@ class WidgetLayoutTest {
         assertTrue(l.showMileage)
         assertTrue(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertTrue(l.showLocation)
     }
 
     @Test
@@ -116,6 +124,7 @@ class WidgetLayoutTest {
         assertFalse(l.showMileage)
         assertTrue(l.showChargeLimit)
         assertTrue(l.showVoltageCurrentPhases)
+        assertTrue(l.showLocation)
     }
 
     // -------------------------------------------------------------------------
@@ -129,6 +138,7 @@ class WidgetLayoutTest {
         assertTrue(l.showMileage)
         assertTrue(l.showChargeLimit)
         assertFalse(l.showVoltageCurrentPhases)
+        assertTrue(l.showLocation)
     }
 
     @Test
@@ -138,5 +148,6 @@ class WidgetLayoutTest {
         assertTrue(l.showMileage)        // unlike 2×2, mileage stays when charging
         assertTrue(l.showChargeLimit)
         assertTrue(l.showVoltageCurrentPhases)
+        assertTrue(l.showLocation)
     }
 }

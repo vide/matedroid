@@ -17,6 +17,8 @@ data class WidgetLayout(
     val showChargeLimit: Boolean,
     /** Charger voltage, current and phase count row. */
     val showVoltageCurrentPhases: Boolean,
+    /** Location text + centered range — 2×2 and 3×2 only (home screen). */
+    val showLocation: Boolean,
 )
 
 /** Width threshold (dp) below which the widget is treated as 1-column wide.
@@ -58,5 +60,6 @@ fun computeWidgetLayout(widthDp: Float, heightDp: Float, isCharging: Boolean): W
         showMileage              = isWide || (!isNarrow && !isCompact && !isCharging),
         showChargeLimit          = !isNarrow && (!isCompact || isCharging),
         showVoltageCurrentPhases = !isNarrow && !isCompact && isCharging,
+        showLocation             = !isNarrow && !isCompact,
     )
 }

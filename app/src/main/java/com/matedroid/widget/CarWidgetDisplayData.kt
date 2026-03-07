@@ -43,6 +43,8 @@ data class CarWidgetDisplayData(
     val sentryEventCount: Int = 0,
     // --- Image override (from car image picker) ---
     val imageOverride: CarImageOverride? = null,
+    // --- Location (pre-resolved for widget display) ---
+    val locationText: String? = null,
 ) {
     companion object {
         fun from(carData: CarData, status: CarStatus): CarWidgetDisplayData {
