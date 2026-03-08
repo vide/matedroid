@@ -821,10 +821,7 @@ private fun TemperatureChartCard(
         fixedMinMax = Pair(yMin, yMax),
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel,
-        convertValue = { value ->
-            if (units?.unitOfTemperature == "F") (value * 9f / 5f + 32f) else value
-        }
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 

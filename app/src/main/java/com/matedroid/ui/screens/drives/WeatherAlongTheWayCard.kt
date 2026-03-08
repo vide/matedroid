@@ -186,6 +186,7 @@ private fun WeatherTableRow(
     units: Units?,
     isLastPoint: Boolean
 ) {
+    val temperature = convertWeatherTemperature(weatherPoint.temperatureCelsius, units)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -214,7 +215,7 @@ private fun WeatherTableRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = UnitFormatter.formatTemperature(weatherPoint.temperatureCelsius, units),
+                text = UnitFormatter.formatTemperature(temperature, units),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -296,5 +297,18 @@ private fun formatWeatherDistance(distanceKm: Double, units: Units?, isLastPoint
         "%,.1f mi".format(miles)
     } else {
         "%,.1f km".format(distanceKm)
+    }
+}
+
+/**
+ * Converts temperature for the weather table.
+ */
+@Composable
+private fun convertWeatherTemperature(tempC: Double, units: Units?): Double {
+    val isFahrenheit = units?.unitOfTemperature == "F"
+    return if (isFahrenheit) {
+        (tempC * 1.8) + 32
+    } else {
+        tempC
     }
 }
