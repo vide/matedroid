@@ -2,15 +2,20 @@ package com.matedroid.ui.screens.mileage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.data.api.models.ChargeData
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.model.Currency
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -25,6 +30,7 @@ data class YearlyMileage(
     val driveCount: Int,
     val totalEnergy: Double,
     val totalBatteryUsage: Double,
+    val totalEnergyCost: Double? = null,
     val drives: List<DriveData>
 )
 
@@ -34,6 +40,7 @@ data class MonthlyMileage(
     val driveCount: Int,
     val totalEnergy: Double,
     val totalBatteryUsage: Double,
+    val totalEnergyCost: Double? = null,
     val drives: List<DriveData>
 )
 
@@ -43,15 +50,20 @@ data class DailyMileage(
     val driveCount: Int,
     val totalEnergy: Double,
     val totalBatteryUsage: Double,
+    val totalEnergyCost: Double? = null,
     val drives: List<DriveData>
 )
 
 data class MileageUiState(
+    // Settings
+    val currencySymbol: String = "€",
+    val units: Units? = null,
+
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val units: Units? = null,
     val allDrives: List<DriveData> = emptyList(),
+    val allCharges: List<ChargeData> = emptyList(),
 
     // Lifetime totals (year overview)
     val yearlyData: List<YearlyMileage> = emptyList(),
@@ -59,6 +71,9 @@ data class MileageUiState(
     val avgYearlyDistance: Double = 0.0,
     val firstDriveDate: LocalDate? = null,
     val totalLifetimeDriveCount: Int = 0,
+    val totalLifetimeEnergy: Double = 0.0,
+    val avgLifetimeEnergyDistance: Double = 0.0,
+    val totalLifetimeEnergyCost: Double? = null,
 
     // Year detail view state
     val selectedYear: Int? = null,
@@ -66,6 +81,9 @@ data class MileageUiState(
     val yearTotalDistance: Double = 0.0,
     val avgMonthlyDistance: Double = 0.0,
     val yearDriveCount: Int = 0,
+    val yearTotalEnergy: Double = 0.0,
+    val avgYearEnergyDistance: Double = 0.0,
+    val yearTotalEnergyCost: Double? = null,
 
     // Month detail view state
     val selectedMonth: YearMonth? = null,
@@ -78,7 +96,8 @@ data class MileageUiState(
 
 @HiltViewModel
 class MileageViewModel @Inject constructor(
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MileageUiState())
@@ -86,10 +105,27 @@ class MileageViewModel @Inject constructor(
 
     private var carId: Int? = null
 
+    init {
+        loadSettings()
+    }
+    private fun loadSettings() {
+        viewModelScope.launch {
+        val settings = settingsDataStore.settings.first()
+        val currency = Currency.findByCode(settings.currencyCode)
+        _uiState.update { it.copy(currencySymbol = currency.symbol) }
+        }
+    }
+
     fun setCarId(id: Int) {
         if (carId != id) {
             carId = id
             loadUnits(id)
+            viewModelScope.launch {
+                val statusResult = repository.getCarStatus(id)
+                if (statusResult is ApiResult.Success) {
+                    _uiState.update { it.copy(units = statusResult.data.units) }
+                }
+            }
             loadAllDrives()
         }
     }
@@ -171,14 +207,24 @@ class MileageViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = true) }
             }
 
-            when (val result = repository.getDrives(id)) {
+            val drivesDeferred = async { repository.getDrives(id) }
+            val chargesDeferred = async { repository.getCharges(id) }
+
+            val drivesResult = drivesDeferred.await()
+            val chargesResult = chargesDeferred.await()
+
+            when (drivesResult) {
                 is ApiResult.Success -> {
-                    val drives = result.data
+                    val charges = when (chargesResult) {
+                        is ApiResult.Success -> chargesResult.data
+                        is ApiResult.Error -> emptyList()
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            allDrives = drives,
+                            allDrives = drivesResult.data,
+                            allCharges = charges,
                             error = null
                         )
                     }
@@ -189,7 +235,7 @@ class MileageViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = result.message
+                            error = drivesResult.message
                         )
                     }
                 }
@@ -199,6 +245,7 @@ class MileageViewModel @Inject constructor(
 
     private fun aggregateByYear() {
         val drives = _uiState.value.allDrives
+        val charges = _uiState.value.allCharges
 
         // Group by year
         val grouped = drives.groupBy { drive ->
@@ -215,6 +262,11 @@ class MileageViewModel @Inject constructor(
                 if (start != null && end != null) (start - end).toDouble() else null
             }
             val totalBatteryUsage = batteryUsages.sum()
+            val totalCost = charges
+                .filter { charge -> parseDateTime(charge.startDate)?.year == year }
+                .mapNotNull { it.cost }
+                .sum()
+                .takeIf { it > 0 }
 
             YearlyMileage(
                 year = year!!,
@@ -222,6 +274,7 @@ class MileageViewModel @Inject constructor(
                 driveCount = yearDrives.size,
                 totalEnergy = totalEnergy,
                 totalBatteryUsage = totalBatteryUsage,
+                totalEnergyCost = totalCost,
                 drives = yearDrives
             )
         }.sortedByDescending { it.year }
@@ -229,6 +282,11 @@ class MileageViewModel @Inject constructor(
         // Calculate lifetime totals
         val totalLifetimeDistance = yearlyData.sumOf { it.totalDistance }
         val totalLifetimeDriveCount = yearlyData.sumOf { it.driveCount }
+        val totalLifetimeEnergy = yearlyData.sumOf { it.totalEnergy }
+        val isImperial = _uiState.value.units?.isImperial == true
+        val distanceForEfficiency = if (isImperial) totalLifetimeDistance * 0.621371 else totalLifetimeDistance
+        val avgLifetimeEnergyDistance = if (distanceForEfficiency > 0) (totalLifetimeEnergy * 1000.0) / distanceForEfficiency else 0.0
+        val totalLifetimeEnergyCost = charges.mapNotNull { it.cost }.sum().takeIf { it > 0 }
 
         // Find the earliest drive date
         val firstDriveDate = drives.mapNotNull { parseDateTime(it.startDate)?.toLocalDate() }
@@ -252,6 +310,9 @@ class MileageViewModel @Inject constructor(
                 totalLifetimeDistance = totalLifetimeDistance,
                 avgYearlyDistance = avgYearlyDistance,
                 firstDriveDate = firstDriveDate,
+                totalLifetimeEnergy = totalLifetimeEnergy,
+                avgLifetimeEnergyDistance = avgLifetimeEnergyDistance,
+                totalLifetimeEnergyCost = totalLifetimeEnergyCost,
                 totalLifetimeDriveCount = totalLifetimeDriveCount
             )
         }
@@ -259,6 +320,7 @@ class MileageViewModel @Inject constructor(
 
     private fun aggregateByMonth(year: Int) {
         val drives = _uiState.value.allDrives
+        val charges = _uiState.value.allCharges
 
         // Filter drives for selected year
         val yearDrives = drives.filter { drive ->
@@ -285,6 +347,14 @@ class MileageViewModel @Inject constructor(
                 if (start != null && end != null) (start - end).toDouble() else null
             }
             val totalBatteryUsage = batteryUsages.sum()
+            val totalCost = charges
+                .filter { charge ->
+                    val dt = parseDateTime(charge.startDate)
+                    dt != null && YearMonth.of(dt.year, dt.month) == yearMonth
+                }
+                .mapNotNull { it.cost }
+                .sum()
+                .takeIf { it > 0 }
 
             MonthlyMileage(
                 yearMonth = yearMonth!!,
@@ -292,6 +362,7 @@ class MileageViewModel @Inject constructor(
                 driveCount = monthDrives.size,
                 totalEnergy = totalEnergy,
                 totalBatteryUsage = totalBatteryUsage,
+                totalEnergyCost = totalCost,
                 drives = monthDrives
             )
         }.sortedByDescending { it.yearMonth }
@@ -300,12 +371,20 @@ class MileageViewModel @Inject constructor(
         val yearTotalDistance = monthlyData.sumOf { it.totalDistance }
         val yearDriveCount = monthlyData.sumOf { it.driveCount }
         val avgMonthlyDistance = if (monthlyData.isNotEmpty()) yearTotalDistance / monthlyData.size else 0.0
+        val yearTotalEnergy = monthlyData.sumOf { it.totalEnergy }
+        val isImperial = _uiState.value.units?.isImperial == true
+        val distanceForEfficiency = if (isImperial) yearTotalDistance * 0.621371 else yearTotalDistance
+        val avgYearEnergyDistance = if (distanceForEfficiency > 0) (yearTotalEnergy * 1000.0) / distanceForEfficiency else 0.0
+        val yearTotalEnergyCost = monthlyData.mapNotNull { it.totalEnergyCost }.sum().takeIf { it > 0 }
 
         _uiState.update {
             it.copy(
                 monthlyData = monthlyData,
                 yearTotalDistance = yearTotalDistance,
                 avgMonthlyDistance = avgMonthlyDistance,
+                yearTotalEnergy = yearTotalEnergy,
+                avgYearEnergyDistance = avgYearEnergyDistance,
+                yearTotalEnergyCost = yearTotalEnergyCost,
                 yearDriveCount = yearDriveCount
             )
         }
@@ -314,6 +393,7 @@ class MileageViewModel @Inject constructor(
     private fun aggregateByDay(yearMonth: YearMonth) {
         val state = _uiState.value
         val drives = state.allDrives
+        val charges = state.allCharges
 
         // Filter drives for selected month
         val monthDrives = drives.filter { drive ->
@@ -336,6 +416,11 @@ class MileageViewModel @Inject constructor(
                 if (start != null && end != null) (start - end).toDouble() else null
             }
             val totalBatteryUsage = batteryUsages.sum()
+            val totalCost = charges
+                .filter { charge -> parseDateTime(charge.startDate)?.toLocalDate() == date }
+                .mapNotNull { it.cost }
+                .sum()
+                .takeIf { it > 0 }
 
             DailyMileage(
                 date = date!!,
@@ -343,6 +428,7 @@ class MileageViewModel @Inject constructor(
                 driveCount = dayDrives.size,
                 totalEnergy = totalEnergy,
                 totalBatteryUsage = totalBatteryUsage,
+                totalEnergyCost = totalCost,
                 drives = dayDrives.sortedByDescending { it.startDate }
             )
         }.sortedByDescending { it.date }
