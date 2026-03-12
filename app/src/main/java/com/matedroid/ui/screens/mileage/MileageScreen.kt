@@ -405,7 +405,7 @@ private fun YearRow(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = UnitFormatter.formatEfficiency(avgEfficiency, null),
+                        Text(text = UnitFormatter.formatEfficiency(avgEfficiency, units),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -648,7 +648,7 @@ private fun MonthRow(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = UnitFormatter.formatEfficiency(avgEfficiency, null),
+                        Text(text = UnitFormatter.formatEfficiency(avgEfficiency, units),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -1285,7 +1285,7 @@ private fun DayTripRow(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = UnitFormatter.formatEfficiency(avgEfficiency, null),
+                            text = UnitFormatter.formatEfficiency(avgEfficiency, units),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
