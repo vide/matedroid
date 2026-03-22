@@ -76,10 +76,7 @@ import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.domain.model.UnitFormatter
-import com.matedroid.ui.components.AnnotationRange
-import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.FullscreenLineChart
-import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
@@ -248,10 +245,10 @@ private fun DriveDetailContent(
                     title = stringResource(R.string.elevation),
                     icon = Icons.Default.Landscape,
                     stats = listOf(
-                        StatItem(stringResource(R.string.maximum), UnitFormatter.formatElevation(s.elevationMax, units)),
-                        StatItem(stringResource(R.string.minimum), UnitFormatter.formatElevation(s.elevationMin, units)),
-                        StatItem(stringResource(R.string.gain), "+" + UnitFormatter.formatElevation(s.elevationGain, units)),
-                        StatItem(stringResource(R.string.loss), "-" + UnitFormatter.formatElevation(s.elevationLoss, units)),
+                        StatItem(stringResource(R.string.maximum), "%,d m".format(s.elevationMax)),
+                        StatItem(stringResource(R.string.minimum), "%,d m".format(s.elevationMin)),
+                        StatItem(stringResource(R.string.gain), "+%,d m".format(s.elevationGain)),
+                        StatItem(stringResource(R.string.loss), "-%,d m".format(s.elevationLoss))
                     )
                 )
             }
@@ -288,11 +285,6 @@ private fun DriveDetailContent(
                     } ?: ""
                 }
 
-                // Compute battery heater annotation ranges
-                val heaterAnnotations = remember(positions) {
-                    computeBatteryHeaterRanges(positions)
-                }
-
                 SpeedChartCard(
                     positions = detail.positions,
                     units = units,
@@ -306,32 +298,24 @@ private fun DriveDetailContent(
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
-                    fractionToTimeLabel = fractionToTimeLabel,
-                    annotationRanges = heaterAnnotations
+                    fractionToTimeLabel = fractionToTimeLabel
                 )
                 BatteryChartCard(
                     positions = detail.positions,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
-                    fractionToTimeLabel = fractionToTimeLabel,
-                    annotationRanges = heaterAnnotations
+                    fractionToTimeLabel = fractionToTimeLabel
                 )
                 if (detail.positions.any { it.elevation != null && it.elevation != 0 }) {
                     ElevationChartCard(
                         positions = detail.positions,
-                        units = units,
                         timeLabels = timeLabels,
                         externalSelectedFraction = sharedXFraction,
                         onXSelected = { sharedXFraction = it },
                         fractionToTimeLabel = fractionToTimeLabel
                     )
                 }
-
-                SpeedHistogramCard(
-                    positions = detail.positions,
-                    units = units
-                )
             }
         }
 
@@ -707,8 +691,7 @@ private fun PowerChartCard(
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null,
-    annotationRanges: List<AnnotationRange> = emptyList()
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val powers = positions.mapNotNull { it.power?.toFloat() }
     if (powers.size < 2) return
@@ -723,8 +706,7 @@ private fun PowerChartCard(
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel,
-        annotationRanges = annotationRanges
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 
@@ -734,11 +716,16 @@ private fun BatteryChartCard(
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null,
-    annotationRanges: List<AnnotationRange> = emptyList()
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     val batteryLevels = positions.mapNotNull { it.batteryLevel?.toFloat() }
     if (batteryLevels.size < 2) return
+    var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+    var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+    if (yMin == yMax) {
+        yMin -= 1
+        yMax += 1
+    }
 
     ChartCard(
         title = stringResource(R.string.battery_level),
@@ -746,19 +733,17 @@ private fun BatteryChartCard(
         data = batteryLevels,
         color = MaterialTheme.colorScheme.secondary,
         unit = "%",
-        fixedMinMax = Pair(0f, 100f),
+        fixedMinMax = Pair(yMin, yMax),
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel,
-        annotationRanges = annotationRanges
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 
 @Composable
 private fun ElevationChartCard(
     positions: List<DrivePosition>,
-    units: Units?,
     timeLabels: List<String>,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
@@ -772,110 +757,12 @@ private fun ElevationChartCard(
         icon = Icons.Default.Landscape,
         data = elevations,
         color = Color(0xFF8B4513), // Brown color for terrain
-        unit = UnitFormatter.getElevationUnit(units),
+        unit = "m",
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel,
-        convertValue = { UnitFormatter.getElevationValue(it, units) }
+        fractionToTimeLabel = fractionToTimeLabel
     )
-}
-
-@Composable
-private fun SpeedHistogramCard(
-    positions: List<DrivePosition>,
-    units: Units?
-) {
-    val speeds = positions.mapNotNull { it.speed }
-    if (speeds.size < 2) return
-
-    val isImperial = units?.isImperial == true
-    val bucketSize = if (isImperial) 5 else 10
-    val speedUnit = UnitFormatter.getSpeedUnit(units)
-
-    val histogramData = remember(speeds, bucketSize) {
-        buildSpeedHistogram(speeds, bucketSize)
-    }
-
-    if (histogramData.isEmpty()) return
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Speed,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.speed_distribution),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            InteractiveBarChart(
-                data = histogramData,
-                barColor = MaterialTheme.colorScheme.primary,
-                showEveryNthLabel = if (histogramData.size > 8) 2 else 1,
-                valueFormatter = { pct ->
-                    if (pct < 10.0) "%.1f%%".format(pct) else "%.0f%%".format(pct)
-                },
-                yAxisFormatter = { pct ->
-                    if (pct < 10.0) "%.1f%%".format(pct) else "%.0f%%".format(pct)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-/**
- * Builds speed histogram data with buckets of [bucketSize] units.
- * Returns bar chart data with percentage values.
- *
- * Note: The TeslaMate API pre-converts speed to the user's unit system,
- * so speeds are already in km/h or mph — no conversion needed here.
- */
-private fun buildSpeedHistogram(
-    speeds: List<Int>,
-    bucketSize: Int
-): List<BarChartData> {
-    if (speeds.isEmpty()) return emptyList()
-
-    val minSpeed = (speeds.min() / bucketSize) * bucketSize
-    val maxSpeed = ((speeds.max() / bucketSize) + 1) * bucketSize
-    val total = speeds.size.toDouble()
-
-    val buckets = mutableListOf<BarChartData>()
-    var bucketStart = minSpeed
-    while (bucketStart < maxSpeed) {
-        val bucketEnd = bucketStart + bucketSize
-        val count = speeds.count { it >= bucketStart && it < bucketEnd }
-        val pct = (count / total) * 100.0
-        buckets.add(
-            BarChartData(
-                label = "$bucketStart",
-                value = pct,
-                displayValue = if (pct < 10.0) "%.1f%%".format(pct) else "%.0f%%".format(pct)
-            )
-        )
-        bucketStart = bucketEnd
-    }
-
-    return buckets
 }
 
 @Composable
@@ -891,8 +778,7 @@ private fun ChartCard(
     convertValue: (Float) -> Float = { it },
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null,
-    annotationRanges: List<AnnotationRange> = emptyList()
+    fractionToTimeLabel: ((Float) -> String)? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -932,7 +818,6 @@ private fun ChartCard(
                 externalSelectedFraction = externalSelectedFraction,
                 onXSelected = onXSelected,
                 fractionToTimeLabel = fractionToTimeLabel,
-                annotationRanges = annotationRanges,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -992,61 +877,4 @@ private fun formatDuration(minutes: Int): String {
     val hours = minutes / 60
     val mins = minutes % 60
     return "%d:%02d".format(hours, mins)
-}
-
-/**
- * Computes annotation ranges for periods where the battery heater was active.
- *
- * The battery_heater field tends to flap (single-point true surrounded by false/null gaps
- * of ~30-60 positions) because the heater cycles on/off rapidly. To produce clean Grafana-style
- * bands, nearby true-runs separated by gaps smaller than [mergeGap] positions are merged
- * into a single continuous range.
- *
- * Returns fractional ranges (0.0–1.0) suitable for chart annotation overlays.
- */
-private fun computeBatteryHeaterRanges(
-    positions: List<DrivePosition>,
-    mergeGap: Int = 80
-): List<AnnotationRange> {
-    if (positions.size < 2) return emptyList()
-
-    // Collect indices where heater is on
-    val heaterIndices = positions.indices.filter { positions[it].isBatteryHeaterOn }
-    if (heaterIndices.isEmpty()) return emptyList()
-
-    val heaterColor = Color(0xFFFF9800) // Material Orange
-    val lastIndex = positions.lastIndex.toFloat()
-
-    // Merge nearby indices into contiguous ranges
-    val ranges = mutableListOf<AnnotationRange>()
-    var rangeStart = heaterIndices[0]
-    var rangeEnd = heaterIndices[0]
-
-    for (i in 1 until heaterIndices.size) {
-        if (heaterIndices[i] - rangeEnd <= mergeGap) {
-            // Close enough — extend current range
-            rangeEnd = heaterIndices[i]
-        } else {
-            // Gap too large — emit current range and start a new one
-            ranges.add(
-                AnnotationRange(
-                    startFraction = rangeStart / lastIndex,
-                    endFraction = rangeEnd / lastIndex,
-                    color = heaterColor
-                )
-            )
-            rangeStart = heaterIndices[i]
-            rangeEnd = heaterIndices[i]
-        }
-    }
-    // Emit last range
-    ranges.add(
-        AnnotationRange(
-            startFraction = rangeStart / lastIndex,
-            endFraction = rangeEnd / lastIndex,
-            color = heaterColor
-        )
-    )
-
-    return ranges
 }

@@ -406,7 +406,8 @@ fun DrawScope.drawGlowIndicator(center: Offset, color: Color) {
 }
 
 /**
- * Draws Y-axis labels at 4 positions: 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%).
+ * Draws Y-axis labels at 5 positions (including max), with automatic decimal
+ * precision when the range is too small to differentiate integer values.
  */
 fun DrawScope.drawYAxisLabels(
     surfaceColor: Color,
@@ -421,19 +422,21 @@ fun DrawScope.drawYAxisLabels(
             isAntiAlias = true
         }
 
-        val labelPositions = listOf(1, 2, 3, 4)
         val gridLineCount = 4
 
-        for (i in labelPositions) {
+        val rawValues = (0..gridLineCount).map { i ->
+            chartData.maxValue - (chartData.range * i / gridLineCount)
+        }
+        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
+            "%.0f".format(a) == "%.0f".format(b)
+        }
+        val format = if (needsDecimal) "%.1f" else "%.0f"
+
+        for (i in 0..gridLineCount) {
             val y = height * i / gridLineCount
-            val value = chartData.maxValue - (chartData.range * i / gridLineCount)
-            val label = "%.0f".format(value) + " $unit"
-
-            val textY = when (i) {
-                gridLineCount -> y - 4f
-                else -> y + textPaint.textSize / 3
-            }
-
+            val label = format.format(rawValues[i]) + " $unit"
+            // Position the label above line
+            val textY = y - 4f
             drawText(label, 8f, textY, textPaint)
         }
     }
@@ -457,20 +460,21 @@ fun DrawScope.drawDualYAxisLabels(
             isAntiAlias = true
             textAlign = if (isLeft) Paint.Align.LEFT else Paint.Align.RIGHT
         }
-
-        val labelPositions = listOf(1, 2, 3, 4)
         val gridLineCount = 4
 
-        for (i in labelPositions) {
+        val rawValues = (0..gridLineCount).map { i ->
+            chartData.maxValue - (chartData.range * i / gridLineCount)
+        }
+        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
+            "%.0f".format(a) == "%.0f".format(b)
+        }
+        val format = if (needsDecimal) "%.1f" else "%.0f"
+
+        for (i in 0..gridLineCount) {
             val y = height * i / gridLineCount
-            val value = chartData.maxValue - (chartData.range * i / gridLineCount)
-            val label = "%.0f".format(value) + " $unit"
-
-            val textY = when (i) {
-                gridLineCount -> y - 4f
-                else -> y + textPaint.textSize / 3
-            }
-
+            val label = format.format(rawValues[i]) + " $unit"
+            // Position the label above line
+            val textY = y - 4f
             val x = if (isLeft) 8f else width - 8f
             drawText(label, x, textY, textPaint)
         }

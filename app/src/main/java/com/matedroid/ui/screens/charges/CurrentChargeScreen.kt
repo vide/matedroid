@@ -326,11 +326,17 @@ private fun CurrentChargeContent(
             icon = Icons.Default.BatteryChargingFull
         ) {
             if (batteryLevels.size >= 2) {
+                var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+                var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+                if (yMin == yMax) {
+                    yMin -= 1
+                    yMax += 1
+                }
                 FullscreenLineChart(
                     data = batteryLevels,
                     color = MaterialTheme.colorScheme.primary,
                     unit = "%",
-                    fixedMinMax = Pair(0f, 100f),
+                    fixedMinMax = Pair(yMin, yMax),
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
