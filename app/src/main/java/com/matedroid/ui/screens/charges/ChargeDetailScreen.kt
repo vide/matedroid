@@ -805,7 +805,12 @@ private fun TemperatureChartCard(
 ) {
     val temps = chargePoints.mapNotNull { it.outsideTemp?.toFloat() }
     if (temps.size < 2) return
-
+    var yMin = (kotlin.math.floor(temps.min() ) ).toFloat()
+    var yMax = (kotlin.math.ceil(temps.max() ) ).toFloat()
+    if (yMin == yMax) {
+        yMin -= 1
+        yMax += 1
+    }
     ChartCard(
         title = title,
         icon = Icons.Default.DeviceThermostat,
@@ -813,6 +818,7 @@ private fun TemperatureChartCard(
         color = Color(0xFFFF9800),
         unit = UnitFormatter.getTemperatureUnit(units),
         timeLabels = timeLabels,
+        fixedMinMax = Pair(yMin, yMax),
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
         fractionToTimeLabel = fractionToTimeLabel,
