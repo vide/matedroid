@@ -1705,7 +1705,7 @@ private fun LocationCard(
                 Icon(
                     imageVector = Icons.Filled.History,
                     contentDescription = null,
-                    tint = palette.onSurfaceVariant,
+                    tint = palette.accent,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))

@@ -1117,9 +1117,9 @@
     <string name="notification_permission_grant">Activar notificaciones</string>
 
     <!-- ==================== Where Was I Screen ==================== -->
-    <string name="where_was_i_title">Donde estaba ese dia?</string>
+    <string name="where_was_i_title">¿Dónde estaba ese día?</string>
     <string name="where_was_i_hint">Elige una fecha</string>
-    <string name="where_was_i_screen_title">Donde estaba?</string>
+    <string name="where_was_i_screen_title">¿Dónde estaba?</string>
     <string name="where_was_i_driving">Conduciendo</string>
     <string name="where_was_i_charging">Cargando</string>
     <string name="where_was_i_parked">Aparcado</string>
