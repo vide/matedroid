@@ -97,6 +97,7 @@ data class CarStatus(
     val chargeEnergyAdded: Double? get() = chargingDetails?.chargeEnergyAdded
     val chargeLimitSoc: Int? get() = chargingDetails?.chargeLimitSoc
     val chargerPower: Int? get() = chargingDetails?.chargerPower
+    val chargerVoltage: Int? get() = chargingDetails?.chargerVoltage
     //val chargerPhases: Int? get() = chargingDetails?.chargerPhases
     val acPhases: Int? get() = chargingDetails?.acPhases
     val chargerActualCurrent: Int? get() = chargingDetails?.chargerActualCurrent
