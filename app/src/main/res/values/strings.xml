@@ -989,6 +989,12 @@
     <string name="debug_tpms_run_now">Run TPMS Check Now</string>
     <!-- Debug: simulate a sentry event for testing notifications -->
     <string name="debug_sentry_simulate_event">Simulate Sentry Event</string>
+    <!-- Debug: toggle a mock charging notification preview without real charging -->
+    <string name="debug_charging_preview_toggle_title">Charging Preview Notification</string>
+    <string name="debug_charging_preview_toggle_hint">Show/hide a mock charging live update for UI testing</string>
+    <string name="debug_charging_preview_enabled">Charging preview enabled</string>
+    <string name="debug_charging_preview_disabled">Charging preview disabled</string>
+    <string name="debug_charging_preview_car_name">Preview Car</string>
 
     <!-- ==================== Charging Notifications ==================== -->
     <!-- Notification channel name for charging session alerts -->

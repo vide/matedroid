@@ -132,7 +132,8 @@ fun SettingsScreen(
                 onSimulateTpmsWarning = viewModel::simulateTpmsWarning,
                 onClearTpmsWarning = viewModel::clearTpmsWarning,
                 onRunTpmsCheckNow = viewModel::runTpmsCheckNow,
-                onSimulateSentryEvent = viewModel::simulateSentryEvent
+                onSimulateSentryEvent = viewModel::simulateSentryEvent,
+                onChargingPreviewToggle = viewModel::setChargingPreviewEnabled
             )
         }
     }
@@ -214,7 +215,8 @@ private fun SettingsContent(
     onSimulateTpmsWarning: (TirePosition) -> Unit = {},
     onClearTpmsWarning: () -> Unit = {},
     onRunTpmsCheckNow: () -> Unit = {},
-    onSimulateSentryEvent: () -> Unit = {}
+    onSimulateSentryEvent: () -> Unit = {},
+    onChargingPreviewToggle: (Boolean) -> Unit = {}
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
@@ -624,6 +626,7 @@ private fun SettingsContent(
         // Debug: Palette Preview button (only visible in debug builds)
         if (com.matedroid.BuildConfig.DEBUG) {
             var tpmsDropdownExpanded by remember { mutableStateOf(false) }
+            var chargingPreviewEnabled by rememberSaveable { mutableStateOf(false) }
 
             Spacer(modifier = Modifier.height(32.dp))
             OutlinedButton(
@@ -631,6 +634,32 @@ private fun SettingsContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_palette_preview))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.debug_charging_preview_toggle_title),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = stringResource(R.string.debug_charging_preview_toggle_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = chargingPreviewEnabled,
+                    onCheckedChange = {
+                        chargingPreviewEnabled = it
+                        onChargingPreviewToggle(it)
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
