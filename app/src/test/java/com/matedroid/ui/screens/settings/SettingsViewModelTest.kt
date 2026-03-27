@@ -11,6 +11,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
+import com.matedroid.notification.ChargingNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.SyncManager
 import io.mockk.coEvery
@@ -45,6 +46,7 @@ class SettingsViewModelTest {
     private lateinit var syncManager: SyncManager
     private lateinit var tpmsStateRepository: TpmsStateRepository
     private lateinit var sentryStateRepository: SentryStateRepository
+    private lateinit var chargingNotificationManager: ChargingNotificationManager
     private lateinit var sentryNotificationManager: SentryNotificationManager
     private lateinit var workManager: WorkManager
     private lateinit var viewModel: SettingsViewModel
@@ -58,6 +60,7 @@ class SettingsViewModelTest {
         syncManager = mockk()
         tpmsStateRepository = mockk(relaxed = true)
         sentryStateRepository = mockk(relaxed = true)
+        chargingNotificationManager = mockk(relaxed = true)
         sentryNotificationManager = mockk(relaxed = true)
         workManager = mockk(relaxed = true)
 
@@ -75,7 +78,16 @@ class SettingsViewModelTest {
     }
 
     private fun createViewModel(): SettingsViewModel {
-        return SettingsViewModel(context, settingsDataStore, repository, syncManager, tpmsStateRepository, sentryStateRepository, sentryNotificationManager)
+        return SettingsViewModel(
+            context,
+            settingsDataStore,
+            repository,
+            syncManager,
+            tpmsStateRepository,
+            sentryStateRepository,
+            chargingNotificationManager,
+            sentryNotificationManager
+        )
     }
 
     @Test
