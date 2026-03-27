@@ -20,6 +20,13 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
+import com.matedroid.data.api.models.BatteryDetails
+import com.matedroid.data.api.models.CarData
+import com.matedroid.data.api.models.CarDetails
+import com.matedroid.data.api.models.CarExterior
+import com.matedroid.data.api.models.CarStatus
+import com.matedroid.data.api.models.ChargingDetails
+import com.matedroid.notification.ChargingNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
@@ -81,8 +88,12 @@ class SettingsViewModel @Inject constructor(
     private val syncManager: SyncManager,
     private val tpmsStateRepository: TpmsStateRepository,
     private val sentryStateRepository: SentryStateRepository,
+    private val chargingNotificationManager: ChargingNotificationManager,
     private val sentryNotificationManager: SentryNotificationManager
 ) : ViewModel() {
+    companion object {
+        private const val PREVIEW_CAR_ID = 909
+    }
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -463,5 +474,58 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             successMessage = "TPMS check triggered - check logcat for TpmsPressureWorker"
         )
+    }
+
+    /**
+     * Toggle mock charging notification preview for quick UI testing without real charging.
+     */
+    fun setChargingPreviewEnabled(enabled: Boolean) {
+        if (enabled) {
+            val previewCar = CarData(
+                carId = PREVIEW_CAR_ID,
+                name = context.getString(R.string.debug_charging_preview_car_name),
+                carDetails = CarDetails(
+                    model = "3",
+                    trimBadging = "74D"
+                ),
+                carExterior = CarExterior(
+                    exteriorColor = "PearlWhiteMultiCoat",
+                    wheelType = "Pinwheel18CapKit"
+                )
+            )
+            val previewStatus = CarStatus(
+                batteryDetails = BatteryDetails(
+                    batteryLevel = 99,
+                    usableBatteryLevel = 99,
+                    ratedBatteryRange = 410.0
+                ),
+                chargingDetails = ChargingDetails(
+                    pluggedIn = true,
+                    chargingState = "Charging",
+                    chargeLimitSoc = 100,
+                    chargerPower = 7,
+                    chargerVoltage = 226,
+                    chargerActualCurrent = 31,
+                    chargerPhases = 1,
+                    timeToFullCharge = 0.5,
+                    chargeEnergyAdded = 1.2
+                )
+            )
+
+            chargingNotificationManager.showChargingNotification(
+                car = previewCar,
+                status = previewStatus,
+                liveChargeAvailable = true
+            )
+
+            _uiState.value = _uiState.value.copy(
+                successMessage = context.getString(R.string.debug_charging_preview_enabled)
+            )
+        } else {
+            chargingNotificationManager.cancelNotification(PREVIEW_CAR_ID)
+            _uiState.value = _uiState.value.copy(
+                successMessage = context.getString(R.string.debug_charging_preview_disabled)
+            )
+        }
     }
 }

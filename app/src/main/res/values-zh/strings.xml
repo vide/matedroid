@@ -989,6 +989,12 @@
     <string name="debug_tpms_run_now">立即检查胎压</string>
     <!-- Debug: simulate a sentry event for testing notifications -->
     <string name="debug_sentry_simulate_event">模拟哨兵事件</string>
+    <!-- Debug: toggle a mock charging notification preview without real charging -->
+    <string name="debug_charging_preview_toggle_title">模拟充电预览通知</string>
+    <string name="debug_charging_preview_toggle_hint">无需真实充电，显示/关闭一条模拟实时充电通知</string>
+    <string name="debug_charging_preview_enabled">已开启模拟充电预览</string>
+    <string name="debug_charging_preview_disabled">已关闭模拟充电预览</string>
+    <string name="debug_charging_preview_car_name">预览车辆</string>
 
     <!-- ==================== Charging Notifications ==================== -->
     <!-- Notification channel name for charging session alerts -->
