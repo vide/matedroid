@@ -1000,6 +1000,13 @@
     <!-- Notification title during charging. %s is car name -->
     <string name="charging_notification_title">%s - Charging</string>
     <string name="charging_notification_loading">Checking charging status…</string>
+    <string name="charging_status_active">Charging</string>
+    <string name="charging_remaining">Remaining %1$s</string>
+    <string name="charging_time_h_m">%1$d hr %2$d min</string>
+    <string name="charging_time_h">%1$d hr</string>
+    <string name="charging_time_m">%1$d min</string>
+    <string name="charging_soc_format">%1$d%% → %2$d%%</string>
+    <string name="charging_power_format">%1$d kW %2$s</string>
 
     <!-- ==================== Sentry Notifications ==================== -->
     <!-- Notification channel name for sentry mode alerts -->
