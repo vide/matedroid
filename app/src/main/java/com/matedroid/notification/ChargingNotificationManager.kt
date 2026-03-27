@@ -83,14 +83,9 @@ class ChargingNotificationManager @Inject constructor(
             chargeLimit = chargeLimit,
             timeToFullCharge = timeToFullCharge
         )
-        val secondaryLine = buildSecondaryLine(
-            car = car,
-            status = status,
-            batteryLevel = batteryLevel,
-            chargeLimit = chargeLimit
-        )
+        val secondaryLine = buildSecondaryLine(status)
         val contentText = buildContentText(primaryLine, secondaryLine)
-        val detailText = buildElectricalDetailText(status)
+        val detailText = ""
 
         return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
@@ -161,14 +156,9 @@ class ChargingNotificationManager @Inject constructor(
 
     /**
      * Build second body line:
-     * "7 kW AC · 10 km/h · +10 km"
+     * "7 kW AC · 226V · 31A"
      */
-    private fun buildSecondaryLine(
-        car: CarData,
-        status: CarStatus,
-        batteryLevel: Int,
-        chargeLimit: Int
-    ): String {
+    private fun buildSecondaryLine(status: CarStatus): String {
         val chargerPower = status.chargerPower ?: 0
         val chargeType = if (status.isDcCharging) {
             context.getString(R.string.charging_dc)
@@ -181,20 +171,20 @@ class ChargingNotificationManager @Inject constructor(
             context.getString(R.string.charging_power_unknown_format, chargeType)
         }
 
-        val speedPart = calculateRatedChargeSpeedKmh(status, car, batteryLevel, chargeLimit)
-            ?.takeIf { it > 0.0 }
-            ?.let { context.getString(R.string.charging_speed_format, it.roundToInt()) }
-            ?: context.getString(R.string.charging_speed_unknown)
+        val voltagePart = status.chargerVoltage
+            ?.takeIf { it > 0 }
+            ?.let { context.getString(R.string.charging_voltage_format, it) }
+            ?: context.getString(R.string.charging_voltage_unknown)
 
-        val addedRangePart = calculateAddedRangeKm(status, car)
-            ?.takeIf { it > 0.0 }
-            ?.let { context.getString(R.string.charging_added_range_format, it.roundToInt()) }
-            ?: context.getString(R.string.charging_added_range_unknown)
+        val currentPart = status.chargerActualCurrent
+            ?.takeIf { it > 0 }
+            ?.let { context.getString(R.string.charging_current_format, it) }
+            ?: context.getString(R.string.charging_current_unknown)
 
         val parts = mutableListOf<String>()
         parts.add(powerPart)
-        parts.add(speedPart)
-        parts.add(addedRangePart)
+        parts.add(voltagePart)
+        parts.add(currentPart)
         return parts.joinToString(" \u2022 ")
     }
 
@@ -203,61 +193,6 @@ class ChargingNotificationManager @Inject constructor(
      */
     private fun buildContentText(primaryLine: String, secondaryLine: String): String {
         return if (secondaryLine.isNotBlank()) "$primaryLine\n$secondaryLine" else primaryLine
-    }
-
-    /**
-     * Build compact electrical details (voltage/current).
-     */
-    private fun buildElectricalDetailText(status: CarStatus): String {
-        val details = mutableListOf<String>()
-
-        status.chargerVoltage?.takeIf { it > 0 }?.let {
-            details.add("${it}V")
-        }
-        status.chargerActualCurrent?.takeIf { it > 0 }?.let {
-            details.add("${it}A")
-        }
-
-        return details.joinToString(" \u2022 ")
-    }
-
-    /**
-     * Rated-range charge speed (km/h):
-     * 1) Prefer power / rated_efficiency
-     * 2) Fallback to ETA + target delta estimate when efficiency is unavailable
-     */
-    private fun calculateRatedChargeSpeedKmh(
-        status: CarStatus,
-        car: CarData,
-        batteryLevel: Int,
-        chargeLimit: Int
-    ): Double? {
-        val efficiencyWhKm = car.carDetails?.efficiency?.takeIf { it > 0 }
-        val powerKw = status.chargerPower?.toDouble()?.takeIf { it > 0 }
-        if (efficiencyWhKm != null && powerKw != null) {
-            return (powerKw * 1000.0) / efficiencyWhKm
-        }
-
-        val etaHours = status.timeToFullCharge?.takeIf { it > 0 } ?: return null
-        val currentSoc = batteryLevel.takeIf { it > 0 } ?: return null
-        val targetSoc = chargeLimit.takeIf { it > currentSoc } ?: return null
-        val currentRatedRangeKm = status.ratedBatteryRangeKm?.takeIf { it > 0 } ?: return null
-
-        val estimatedFullRatedRangeKm = currentRatedRangeKm / (currentSoc / 100.0)
-        val remainingToTargetKm =
-            (estimatedFullRatedRangeKm * (targetSoc - currentSoc) / 100.0).coerceAtLeast(0.0)
-        if (remainingToTargetKm <= 0.0) return null
-
-        return remainingToTargetKm / etaHours
-    }
-
-    /**
-     * Added range in current session, inferred from energy added and rated efficiency.
-     */
-    private fun calculateAddedRangeKm(status: CarStatus, car: CarData): Double? {
-        val energyAddedKWh = status.chargeEnergyAdded?.takeIf { it > 0 } ?: return null
-        val efficiencyWhKm = car.carDetails?.efficiency?.takeIf { it > 0 } ?: return null
-        return (energyAddedKWh * 1000.0) / efficiencyWhKm
     }
 
     /**

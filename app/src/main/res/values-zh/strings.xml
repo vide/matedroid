@@ -1009,6 +1009,10 @@
     <string name="charging_eta_complete">预计 %1$s 完成</string>
     <string name="charging_power_format">%1$d kW %2$s</string>
     <string name="charging_power_unknown_format">-- kW %1$s</string>
+    <string name="charging_voltage_format">%1$dV</string>
+    <string name="charging_voltage_unknown">--V</string>
+    <string name="charging_current_format">%1$dA</string>
+    <string name="charging_current_unknown">--A</string>
     <string name="charging_speed_format">%1$d km/h</string>
     <string name="charging_speed_unknown">-- km/h</string>
     <string name="charging_added_range_format">+%1$d km</string>
