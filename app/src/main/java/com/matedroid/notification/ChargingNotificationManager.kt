@@ -13,7 +13,6 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.matedroid.R
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
@@ -22,6 +21,7 @@ import com.matedroid.ui.theme.CarColorPalettes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToInt
 
 /**
  * Manager for charging session notifications.
@@ -78,12 +78,14 @@ class ChargingNotificationManager @Inject constructor(
             chargeLimit = chargeLimit,
             timeToFullCharge = timeToFullCharge
         )
+        val detailText = buildDetailText(status)
 
         return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
                 car = car,
                 title = title,
                 contentText = contentText,
+                detailText = detailText,
                 batteryLevel = batteryLevel,
                 chargeLimit = chargeLimit,
                 liveChargeAvailable = liveChargeAvailable
@@ -93,6 +95,7 @@ class ChargingNotificationManager @Inject constructor(
                 carId = car.carId,
                 title = title,
                 contentText = contentText,
+                detailText = detailText,
                 batteryLevel = batteryLevel,
                 liveChargeAvailable = liveChargeAvailable
             )
@@ -139,29 +142,47 @@ class ChargingNotificationManager @Inject constructor(
         val parts = mutableListOf<String>()
         parts.add("$batteryLevel% \u2192 $chargeLimit%")
 
-        // Add estimated finish time with relative day (e.g., "today at 15:30")
+        // Add remaining time (e.g., "1h 24m")
         timeToFullCharge?.let { hours ->
             if (hours > 0) {
-                val finishTime = java.util.Calendar.getInstance().apply {
-                    add(java.util.Calendar.MINUTE, (hours * 60).toInt())
-                }
-                val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
-                val formattedTime = timeFormat.format(finishTime.time)
-
-                // Determine relative day using DateUtils
-                val relativeDateTime = android.text.format.DateUtils.getRelativeDateTimeString(
-                    context,
-                    finishTime.timeInMillis,
-                    android.text.format.DateUtils.DAY_IN_MILLIS,
-                    android.text.format.DateUtils.DAY_IN_MILLIS,
-                    0
-                ).toString()
-
-                parts.add("\uD83D\uDD52 $relativeDateTime")
+                parts.add("\u23F1 ${formatTimeRemaining(hours)}")
             }
         }
 
         return parts.joinToString(" \u2022 ")
+    }
+
+    /**
+     * Build secondary detail text (range/voltage/current/energy added).
+     */
+    private fun buildDetailText(status: CarStatus): String {
+        val details = mutableListOf<String>()
+
+        status.ratedBatteryRangeKm?.takeIf { it > 0 }?.let {
+            details.add("${it.roundToInt()} km")
+        }
+        status.chargerVoltage?.takeIf { it > 0 }?.let {
+            details.add("${it}V")
+        }
+        status.chargerActualCurrent?.takeIf { it > 0 }?.let {
+            details.add("${it}A")
+        }
+        status.chargeEnergyAdded?.takeIf { it > 0 }?.let {
+            details.add("+${"%.1f".format(it)} kWh")
+        }
+
+        return details.joinToString(" \u2022 ")
+    }
+
+    private fun formatTimeRemaining(hours: Double): String {
+        val totalMinutes = (hours * 60).roundToInt().coerceAtLeast(1)
+        val h = totalMinutes / 60
+        val m = totalMinutes % 60
+        return when {
+            h > 0 && m > 0 -> "${h}h ${m}m"
+            h > 0 -> "${h}h"
+            else -> "${m}m"
+        }
     }
 
     /**
@@ -173,6 +194,7 @@ class ChargingNotificationManager @Inject constructor(
         car: CarData,
         title: String,
         contentText: String,
+        detailText: String,
         batteryLevel: Int,
         chargeLimit: Int,
         liveChargeAvailable: Boolean
@@ -221,13 +243,17 @@ class ChargingNotificationManager @Inject constructor(
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(createContentIntent(car.carId, liveChargeAvailable))
 
+        if (detailText.isNotBlank()) {
+            builder.setSubText(detailText)
+        }
+
         // Add car image as large icon if available
         carBitmap?.let { bitmap ->
             builder.setLargeIcon(bitmap)
         }
 
-        // Request promoted ongoing status (Live Update)
-        builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        requestPromotedOngoing(builder)
+        setShortCriticalTextIfAvailable(builder, soc)
 
         return builder.build()
     }
@@ -239,20 +265,52 @@ class ChargingNotificationManager @Inject constructor(
         carId: Int,
         title: String,
         contentText: String,
+        detailText: String,
         batteryLevel: Int,
         liveChargeAvailable: Boolean
     ): Notification {
+        val fullText = if (detailText.isNotBlank()) "$contentText\n$detailText" else contentText
+
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
             .setProgress(100, batteryLevel, false)
-            .setOngoing(false)  // Dismissable on older Android
+            .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Show on lock screen
             .setContentIntent(createContentIntent(carId, liveChargeAvailable))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(fullText))
             .build()
+    }
+
+    @RequiresApi(36)
+    private fun requestPromotedOngoing(builder: Notification.Builder) {
+        val requestedViaMethod = runCatching {
+            val method = Notification.Builder::class.java.getMethod(
+                "setRequestPromotedOngoing",
+                Boolean::class.javaPrimitiveType
+            )
+            method.invoke(builder, true)
+            true
+        }.getOrElse { false }
+
+        if (!requestedViaMethod) {
+            // Fallback for older preview SDKs where only extras key was available.
+            builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        }
+    }
+
+    @RequiresApi(36)
+    private fun setShortCriticalTextIfAvailable(builder: Notification.Builder, soc: Int) {
+        runCatching {
+            val method = Notification.Builder::class.java.getMethod(
+                "setShortCriticalText",
+                String::class.java
+            )
+            method.invoke(builder, "${soc}%")
+        }
     }
 
     /**
