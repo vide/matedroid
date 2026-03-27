@@ -300,13 +300,34 @@ class ChargingNotificationManager @Inject constructor(
         // Clamp values to safe ranges
         val soc = batteryLevel.coerceIn(0, 100)
         val limit = chargeLimit.coerceIn(soc, 100)
-        Log.d(TAG, "Fallback progress only: soc=$soc, limit=$limit, colorizedFallback=$colorizedFallback")
+        val chargedColor = android.graphics.Color.argb(255, 245, 245, 245)    // white-ish
+        val toLimitColor = android.graphics.Color.argb(200, 165, 165, 165)    // light gray
+        val beyondLimitColor = android.graphics.Color.argb(130, 90, 90, 90)   // dark gray
+
+        Log.d(
+            TAG,
+            "ProgressStyle(A): soc=$soc, limit=$limit, colorizedFallback=$colorizedFallback"
+        )
+
+        val progressStyle = Notification.ProgressStyle()
+            .setProgress(soc)
+            .setStyledByProgress(true)
+            .setProgressStartIcon(null)
+            .setProgressTrackerIcon(null)
+            .setProgressEndIcon(null)
+            .setProgressSegments(
+                listOfNotNull(
+                    if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(chargedColor) else null,
+                    if (limit - soc > 0) Notification.ProgressStyle.Segment(limit - soc).setColor(toLimitColor) else null,
+                    if (100 - limit > 0) Notification.ProgressStyle.Segment(100 - limit).setColor(beyondLimitColor) else null,
+                )
+            )
 
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
-            .setProgress(100, soc, false)
+            .setStyle(progressStyle)
             .setColor(accentArgb)
             .setColorized(colorizedFallback)
             .setOngoing(true)
