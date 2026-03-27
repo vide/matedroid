@@ -10,15 +10,12 @@ import com.matedroid.MainActivity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.matedroid.R
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
@@ -249,16 +246,6 @@ class ChargingNotificationManager @Inject constructor(
         return out
     }
 
-    private fun withAlpha(color: Int, alphaFraction: Float): Int {
-        val alpha = (255f * alphaFraction).roundToInt().coerceIn(0, 255)
-        return android.graphics.Color.argb(
-            alpha,
-            android.graphics.Color.red(color),
-            android.graphics.Color.green(color),
-            android.graphics.Color.blue(color)
-        )
-    }
-
     private fun resolveAccentColor(car: CarData): Int {
         val palette = CarColorPalettes.forExteriorColor(
             car.carExterior?.exteriorColor,
@@ -307,38 +294,27 @@ class ChargingNotificationManager @Inject constructor(
         liveChargeAvailable: Boolean
     ): Notification {
         val accentArgb = resolveAccentColor(car)
-        val accentDimArgb = withAlpha(accentArgb, 0.72f)
-        val grayArgb = android.graphics.Color.argb(140, 128, 128, 128)
         val largeIcon = loadPreparedLargeIcon(car)
         val colorizedFallback = shouldEnableColorizedFallback()
 
         // Clamp values to safe ranges
         val soc = batteryLevel.coerceIn(0, 100)
         val limit = chargeLimit.coerceIn(soc, 100)
-        val teslaRingIcon = buildTeslaRingIcon(soc, limit)
 
         Log.d(
             TAG,
             "ProgressStyle: soc=$soc, limit=$limit, colorizedFallback=$colorizedFallback"
         )
 
-        // 3 segments: charged (accent, bright) | charging-to-limit (accent, dimmed) | beyond limit (gray, dimmed)
-        val segments = listOfNotNull(
-            if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(accentArgb) else null,
-            if (limit - soc > 0) Notification.ProgressStyle.Segment(limit - soc).setColor(accentDimArgb) else null,
-            if (100 - limit > 0) Notification.ProgressStyle.Segment(100 - limit).setColor(grayArgb) else null,
-        )
-
         val progressStyle = Notification.ProgressStyle()
             .setProgress(soc)
             .setStyledByProgress(true)
-            .setProgressTrackerIcon(teslaRingIcon)
-            .setProgressSegments(segments)
+        // keep the expanded progress bar simple: no custom tracker icon/ring
 
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(teslaRingIcon)
+            .setSmallIcon(R.drawable.ic_notification)
             .setProgress(100, soc, false)
             .setStyle(progressStyle)
             .setColor(accentArgb)
@@ -380,7 +356,7 @@ class ChargingNotificationManager @Inject constructor(
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
-            .setSmallIcon(R.drawable.ic_tesla_logo)
+            .setSmallIcon(R.drawable.ic_notification)
             .setProgress(100, batteryLevel, false)
             .setColor(accentArgb)
             .setColorized(true)
@@ -394,59 +370,6 @@ class ChargingNotificationManager @Inject constructor(
         largeIcon?.let { builder.setLargeIcon(it) }
 
         return builder.build()
-    }
-
-    /**
-     * Build a Tesla logo icon with medium-thickness green progress ring.
-     * Progress is based on current SOC toward charge limit.
-     */
-    @RequiresApi(36)
-    private fun buildTeslaRingIcon(soc: Int, limit: Int): Icon {
-        val sizePx = 96
-        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        val stroke = sizePx * 0.11f
-        val ringInset = stroke / 2f + (sizePx * 0.04f)
-        val ringRect = RectF(ringInset, ringInset, sizePx - ringInset, sizePx - ringInset)
-
-        val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = stroke
-            strokeCap = Paint.Cap.ROUND
-            color = Color.argb(110, 95, 95, 95)
-        }
-        val progressPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = stroke
-            strokeCap = Paint.Cap.ROUND
-            color = Color.parseColor("#1DE9B6")
-        }
-        val centerBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = Color.BLACK
-        }
-
-        canvas.drawArc(ringRect, 0f, 360f, false, trackPaint)
-
-        val denominator = limit.coerceAtLeast(1)
-        val progress = (soc.toFloat() / denominator).coerceIn(0f, 1f)
-        canvas.drawArc(ringRect, -90f, 360f * progress, false, progressPaint)
-
-        val centerRadius = sizePx * 0.34f
-        canvas.drawCircle(sizePx / 2f, sizePx / 2f, centerRadius, centerBgPaint)
-
-        val logo = ContextCompat.getDrawable(context, R.drawable.ic_tesla_logo)
-        if (logo != null) {
-            val logoHalf = (sizePx * 0.25f).roundToInt()
-            val cx = sizePx / 2
-            val cy = sizePx / 2
-            logo.setBounds(cx - logoHalf, cy - logoHalf, cx + logoHalf, cy + logoHalf)
-            logo.setTint(Color.WHITE)
-            logo.draw(canvas)
-        }
-
-        return Icon.createWithBitmap(bitmap)
     }
 
     @RequiresApi(36)
