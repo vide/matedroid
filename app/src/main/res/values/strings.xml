@@ -1006,7 +1006,13 @@
     <string name="charging_time_h">%1$d hr</string>
     <string name="charging_time_m">%1$d min</string>
     <string name="charging_soc_format">%1$d%% → %2$d%%</string>
+    <string name="charging_eta_complete">ETA %1$s</string>
     <string name="charging_power_format">%1$d kW %2$s</string>
+    <string name="charging_power_unknown_format">-- kW %1$s</string>
+    <string name="charging_speed_format">%1$d km/h</string>
+    <string name="charging_speed_unknown">-- km/h</string>
+    <string name="charging_added_range_format">+%1$d km</string>
+    <string name="charging_added_range_unknown">+-- km</string>
 
     <!-- ==================== Sentry Notifications ==================== -->
     <!-- Notification channel name for sentry mode alerts -->

@@ -24,6 +24,9 @@ import com.matedroid.ui.theme.CarColorPalettes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -72,18 +75,22 @@ class ChargingNotificationManager @Inject constructor(
         val carName = car.displayName
         val batteryLevel = status.batteryLevel ?: 0
         val chargeLimit = status.chargeLimitSoc ?: 80
-        val chargerPower = status.chargerPower ?: 0
-        val isDcCharging = status.isDcCharging
         val timeToFullCharge = status.timeToFullCharge
 
         val title = buildTitle(carName, timeToFullCharge)
-        val contentText = buildContentText(
+        val primaryLine = buildPrimaryLine(
             batteryLevel = batteryLevel,
             chargeLimit = chargeLimit,
-            chargerPower = chargerPower,
-            isDcCharging = isDcCharging
+            timeToFullCharge = timeToFullCharge
         )
-        val detailText = buildDetailText(status)
+        val secondaryLine = buildSecondaryLine(
+            car = car,
+            status = status,
+            batteryLevel = batteryLevel,
+            chargeLimit = chargeLimit
+        )
+        val contentText = buildContentText(primaryLine, secondaryLine)
+        val detailText = buildElectricalDetailText(status)
 
         return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
@@ -125,7 +132,9 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
-     * Build title for the notification (e.g., "Elysa · Remaining 25 min").
+     * Build title for the notification:
+     * Line 1 = car name
+     * Line 2 = remaining time (or charging status)
      */
     private fun buildTitle(
         carName: String,
@@ -133,51 +142,135 @@ class ChargingNotificationManager @Inject constructor(
     ): String {
         val remaining = buildRemainingLabel(timeToFullCharge)
         val status = remaining ?: context.getString(R.string.charging_status_active)
-        return "$carName \u00B7 $status"
+        return "$carName\n$status"
     }
 
     /**
-     * Build content text for the notification.
+     * Build first body line:
+     * "89% → 100% · ETA 10:35"
      */
-    private fun buildContentText(
+    private fun buildPrimaryLine(
         batteryLevel: Int,
         chargeLimit: Int,
-        chargerPower: Int,
-        isDcCharging: Boolean
+        timeToFullCharge: Double?
     ): String {
-        val parts = mutableListOf<String>()
-        if (chargerPower > 0) {
-            val chargeType = if (isDcCharging) {
-                context.getString(R.string.charging_dc)
-            } else {
-                context.getString(R.string.charging_ac)
-            }
-            parts.add(context.getString(R.string.charging_power_format, chargerPower, chargeType))
+        val socPart = context.getString(R.string.charging_soc_format, batteryLevel, chargeLimit)
+        val etaPart = buildEtaLabel(timeToFullCharge)
+        return if (etaPart.isNullOrBlank()) socPart else "$socPart \u00B7 $etaPart"
+    }
+
+    /**
+     * Build second body line:
+     * "7 kW AC · 10 km/h · +10 km"
+     */
+    private fun buildSecondaryLine(
+        car: CarData,
+        status: CarStatus,
+        batteryLevel: Int,
+        chargeLimit: Int
+    ): String {
+        val chargerPower = status.chargerPower ?: 0
+        val chargeType = if (status.isDcCharging) {
+            context.getString(R.string.charging_dc)
+        } else {
+            context.getString(R.string.charging_ac)
         }
-        parts.add(context.getString(R.string.charging_soc_format, batteryLevel, chargeLimit))
+        val powerPart = if (chargerPower > 0) {
+            context.getString(R.string.charging_power_format, chargerPower, chargeType)
+        } else {
+            context.getString(R.string.charging_power_unknown_format, chargeType)
+        }
+
+        val speedPart = calculateRatedChargeSpeedKmh(status, car, batteryLevel, chargeLimit)
+            ?.takeIf { it > 0.0 }
+            ?.let { context.getString(R.string.charging_speed_format, it.roundToInt()) }
+            ?: context.getString(R.string.charging_speed_unknown)
+
+        val addedRangePart = calculateAddedRangeKm(status, car)
+            ?.takeIf { it > 0.0 }
+            ?.let { context.getString(R.string.charging_added_range_format, it.roundToInt()) }
+            ?: context.getString(R.string.charging_added_range_unknown)
+
+        val parts = mutableListOf<String>()
+        parts.add(powerPart)
+        parts.add(speedPart)
+        parts.add(addedRangePart)
         return parts.joinToString(" \u2022 ")
     }
 
     /**
-     * Build secondary detail text (range/voltage/current/energy added).
+     * Build body text from one or two lines.
      */
-    private fun buildDetailText(status: CarStatus): String {
+    private fun buildContentText(primaryLine: String, secondaryLine: String): String {
+        return if (secondaryLine.isNotBlank()) "$primaryLine\n$secondaryLine" else primaryLine
+    }
+
+    /**
+     * Build compact electrical details (voltage/current).
+     */
+    private fun buildElectricalDetailText(status: CarStatus): String {
         val details = mutableListOf<String>()
 
-        status.ratedBatteryRangeKm?.takeIf { it > 0 }?.let {
-            details.add("${it.roundToInt()} km")
-        }
         status.chargerVoltage?.takeIf { it > 0 }?.let {
             details.add("${it}V")
         }
         status.chargerActualCurrent?.takeIf { it > 0 }?.let {
             details.add("${it}A")
         }
-        status.chargeEnergyAdded?.takeIf { it > 0 }?.let {
-            details.add("+${"%.1f".format(it)} kWh")
-        }
 
         return details.joinToString(" \u2022 ")
+    }
+
+    /**
+     * Rated-range charge speed (km/h):
+     * 1) Prefer power / rated_efficiency
+     * 2) Fallback to ETA + target delta estimate when efficiency is unavailable
+     */
+    private fun calculateRatedChargeSpeedKmh(
+        status: CarStatus,
+        car: CarData,
+        batteryLevel: Int,
+        chargeLimit: Int
+    ): Double? {
+        val efficiencyWhKm = car.carDetails?.efficiency?.takeIf { it > 0 }
+        val powerKw = status.chargerPower?.toDouble()?.takeIf { it > 0 }
+        if (efficiencyWhKm != null && powerKw != null) {
+            return (powerKw * 1000.0) / efficiencyWhKm
+        }
+
+        val etaHours = status.timeToFullCharge?.takeIf { it > 0 } ?: return null
+        val currentSoc = batteryLevel.takeIf { it > 0 } ?: return null
+        val targetSoc = chargeLimit.takeIf { it > currentSoc } ?: return null
+        val currentRatedRangeKm = status.ratedBatteryRangeKm?.takeIf { it > 0 } ?: return null
+
+        val estimatedFullRatedRangeKm = currentRatedRangeKm / (currentSoc / 100.0)
+        val remainingToTargetKm =
+            (estimatedFullRatedRangeKm * (targetSoc - currentSoc) / 100.0).coerceAtLeast(0.0)
+        if (remainingToTargetKm <= 0.0) return null
+
+        return remainingToTargetKm / etaHours
+    }
+
+    /**
+     * Added range in current session, inferred from energy added and rated efficiency.
+     */
+    private fun calculateAddedRangeKm(status: CarStatus, car: CarData): Double? {
+        val energyAddedKWh = status.chargeEnergyAdded?.takeIf { it > 0 } ?: return null
+        val efficiencyWhKm = car.carDetails?.efficiency?.takeIf { it > 0 } ?: return null
+        return (energyAddedKWh * 1000.0) / efficiencyWhKm
+    }
+
+    /**
+     * Build ETA label in clock format (e.g., "ETA 10:35").
+     */
+    private fun buildEtaLabel(timeToFullCharge: Double?): String? {
+        val hours = timeToFullCharge ?: return null
+        if (hours <= 0) return null
+        val totalMinutes = (hours * 60).roundToInt().coerceAtLeast(1)
+        val eta = ZonedDateTime.now()
+            .plusMinutes(totalMinutes.toLong())
+            .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+        return context.getString(R.string.charging_eta_complete, eta)
     }
 
     private fun formatTimeRemaining(hours: Double): String {
@@ -276,15 +369,19 @@ class ChargingNotificationManager @Inject constructor(
         liveChargeAvailable: Boolean
     ): Notification {
         val accentArgb = resolveAccentColor(car)
-        val accentDimArgb = withAlpha(accentArgb, 0.45f)
-        val grayArgb = android.graphics.Color.argb(80, 128, 128, 128)
+        val accentDimArgb = withAlpha(accentArgb, 0.72f)
+        val grayArgb = android.graphics.Color.argb(140, 128, 128, 128)
         val largeIcon = loadPreparedLargeIcon(car)
+        val colorizedFallback = shouldEnableColorizedFallback()
 
         // Clamp values to safe ranges
         val soc = batteryLevel.coerceIn(0, 100)
         val limit = chargeLimit.coerceIn(soc, 100)
 
-        Log.d(TAG, "ProgressStyle: soc=$soc, limit=$limit (segments: $soc, ${limit - soc}, ${100 - limit})")
+        Log.d(
+            TAG,
+            "ProgressStyle: soc=$soc, limit=$limit, colorizedFallback=$colorizedFallback"
+        )
 
         // 3 segments: charged (accent, bright) | charging-to-limit (accent, dimmed) | beyond limit (gray, dimmed)
         val segments = listOfNotNull(
@@ -308,9 +405,11 @@ class ChargingNotificationManager @Inject constructor(
             .setProgress(100, soc, false)
             .setStyle(progressStyle)
             .setColor(accentArgb)
+            .setColorized(colorizedFallback)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setCategory(Notification.CATEGORY_PROGRESS)
             .setContentIntent(createContentIntent(car.carId, liveChargeAvailable))
 
         if (detailText.isNotBlank()) {
@@ -375,6 +474,23 @@ class ChargingNotificationManager @Inject constructor(
             // Fallback for older preview SDKs where only extras key was available.
             builder.extras.putBoolean("android.requestPromotedOngoing", true)
         }
+    }
+
+    /**
+     * Best-effort color strategy:
+     * - If promoted ongoing is likely available, avoid colorized (eligibility requirement).
+     * - If promoted ongoing is not available, enable colorized as fallback to improve OEM rendering.
+     */
+    private fun shouldEnableColorizedFallback(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        if (Build.VERSION.SDK_INT < 36) return true
+
+        val canPostPromoted = runCatching {
+            val method = NotificationManager::class.java.getMethod("canPostPromotedNotifications")
+            (method.invoke(notificationManager) as? Boolean) ?: false
+        }.getOrElse { false }
+
+        return !canPostPromoted
     }
 
     @RequiresApi(36)
