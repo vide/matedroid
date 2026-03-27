@@ -312,6 +312,9 @@ class ChargingNotificationManager @Inject constructor(
         val progressStyle = Notification.ProgressStyle()
             .setProgress(soc)
             .setStyledByProgress(true)
+            .setProgressStartIcon(null)
+            .setProgressTrackerIcon(null)
+            .setProgressEndIcon(null)
             .setProgressSegments(
                 listOfNotNull(
                     if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(chargedColor) else null,
