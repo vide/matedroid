@@ -16,7 +16,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.matedroid"
+        applicationId = "com.gehbfarr5.matedroid"
         minSdk = 28
         targetSdk = 36
         versionCode = 177409706
