@@ -300,6 +300,9 @@ class ChargingNotificationManager @Inject constructor(
         // Clamp values to safe ranges
         val soc = batteryLevel.coerceIn(0, 100)
         val limit = chargeLimit.coerceIn(soc, 100)
+        val chargedColor = android.graphics.Color.argb(255, 245, 245, 245)    // white-ish
+        val toLimitColor = android.graphics.Color.argb(190, 170, 170, 170)    // light gray
+        val beyondLimitColor = android.graphics.Color.argb(120, 95, 95, 95)   // dark gray
 
         Log.d(
             TAG,
@@ -309,13 +312,19 @@ class ChargingNotificationManager @Inject constructor(
         val progressStyle = Notification.ProgressStyle()
             .setProgress(soc)
             .setStyledByProgress(true)
-        // keep the expanded progress bar simple: no custom tracker icon/ring
+            .setProgressSegments(
+                listOfNotNull(
+                    if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(chargedColor) else null,
+                    if (limit - soc > 0) Notification.ProgressStyle.Segment(limit - soc).setColor(toLimitColor) else null,
+                    if (100 - limit > 0) Notification.ProgressStyle.Segment(100 - limit).setColor(beyondLimitColor) else null,
+                )
+            )
+        // keep progress simple: no custom tracker icon/ring
 
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
-            .setProgress(100, soc, false)
             .setStyle(progressStyle)
             .setColor(accentArgb)
             .setColorized(colorizedFallback)
