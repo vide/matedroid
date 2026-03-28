@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -227,23 +228,85 @@ class ChargingNotificationManager @Inject constructor(
 
     /**
      * Prepare car image for square notification icon slot without distortion.
-     * Keeps transparency and applies a subtle zoom so the car appears less tiny.
+     *
+     * Why: Tesla compositor assets contain lots of transparent padding. Some OEM skins
+     * (e.g. MIUI/HyperOS) render transparent large-icon pixels over a white tile, which
+     * makes the car look like it has a white background. We first trim transparent padding,
+     * then render into a square icon with small inset.
      */
     private fun prepareLargeIcon(raw: Bitmap): Bitmap {
-        val size = maxOf(raw.width, raw.height)
+        val trimmed = trimTransparentPadding(raw)
+        val size = maxOf(trimmed.width, trimmed.height)
         val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-        val zoom = 1.12f
-        val fitScale = min(size / raw.width.toFloat(), size / raw.height.toFloat()) * zoom
-        val dstW = raw.width * fitScale
-        val dstH = raw.height * fitScale
+        // Keep a little margin so edges don't get clipped by OEM icon masks.
+        val insetScale = 0.92f
+        val fitScale = min(size / trimmed.width.toFloat(), size / trimmed.height.toFloat()) * insetScale
+        val dstW = trimmed.width * fitScale
+        val dstH = trimmed.height * fitScale
         val left = (size - dstW) / 2f
         val top = (size - dstH) / 2f
 
-        canvas.drawBitmap(raw, null, RectF(left, top, left + dstW, top + dstH), paint)
+        canvas.drawBitmap(trimmed, null, RectF(left, top, left + dstW, top + dstH), paint)
         return out
+    }
+
+    /**
+     * Trim mostly-transparent outer padding from compositor assets.
+     */
+    private fun trimTransparentPadding(
+        source: Bitmap,
+        alphaThreshold: Int = 10
+    ): Bitmap {
+        val width = source.width
+        val height = source.height
+        if (width <= 0 || height <= 0) return source
+
+        val pixels = IntArray(width * height)
+        source.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var left = width
+        var top = height
+        var right = -1
+        var bottom = -1
+
+        for (y in 0 until height) {
+            val row = y * width
+            for (x in 0 until width) {
+                val alpha = pixels[row + x] ushr 24
+                if (alpha >= alphaThreshold) {
+                    if (x < left) left = x
+                    if (x > right) right = x
+                    if (y < top) top = y
+                    if (y > bottom) bottom = y
+                }
+            }
+        }
+
+        // No non-transparent pixels found.
+        if (right < left || bottom < top) return source
+
+        // Add a tiny safety padding around the detected bounds.
+        val contentWidth = right - left + 1
+        val contentHeight = bottom - top + 1
+        val padX = (contentWidth * 0.04f).toInt().coerceAtLeast(1)
+        val padY = (contentHeight * 0.04f).toInt().coerceAtLeast(1)
+
+        val cropLeft = (left - padX).coerceAtLeast(0)
+        val cropTop = (top - padY).coerceAtLeast(0)
+        val cropRight = (right + padX).coerceAtMost(width - 1)
+        val cropBottom = (bottom + padY).coerceAtMost(height - 1)
+
+        val cropWidth = cropRight - cropLeft + 1
+        val cropHeight = cropBottom - cropTop + 1
+
+        return if (cropWidth == width && cropHeight == height) {
+            source
+        } else {
+            Bitmap.createBitmap(source, cropLeft, cropTop, cropWidth, cropHeight)
+        }
     }
 
     private fun resolveAccentColor(car: CarData): Int {
@@ -342,7 +405,7 @@ class ChargingNotificationManager @Inject constructor(
 
         // Add car image as large icon if available
         largeIcon?.let { bitmap ->
-            builder.setLargeIcon(bitmap)
+            builder.setLargeIcon(Icon.createWithAdaptiveBitmap(bitmap))
         }
 
         requestPromotedOngoing(builder)
