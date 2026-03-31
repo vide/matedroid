@@ -362,6 +362,8 @@
     <!-- Filter location -->
     <string name="filter_location">Ubicación</string>
     <string name="search">Buscar</string>
+    <string name="select_all">Seleccionar todo</string>
+    <string name="deselect_all">Deseleccionar todo</string>
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">No se encontraron cargas para el período seleccionado</string>

@@ -47,6 +47,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -956,6 +957,35 @@ private fun LocationFilterDropdown(
             val filtered = availableLocations.filter {
                 it.contains(searchText, ignoreCase = true)
             }
+            val allFilteredSelected = filtered.isNotEmpty() && filtered.all { it in selectedLocations }
+
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        if (allFilteredSelected)
+                            stringResource(R.string.deselect_all)
+                        else
+                            stringResource(R.string.select_all),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        if (allFilteredSelected) Icons.Default.Clear
+                        else Icons.Default.Check,
+                        contentDescription = null,
+                        tint = palette.accent
+                    )
+                },
+                onClick = {
+                    if (allFilteredSelected) {
+                        filtered.forEach { onLocationToggled(it) }
+                    } else {
+                        filtered.filter { it !in selectedLocations }.forEach { onLocationToggled(it) }
+                    }
+                }
+            )
+            HorizontalDivider()
             filtered.forEach { location ->
                 val isSelected = location in selectedLocations
                 DropdownMenuItem(
