@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.trips
 
 import android.graphics.Paint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.BuildConfig
@@ -252,78 +254,71 @@ private fun TripDetailContent(
 private fun RouteHeaderCard(
     trip: Trip,
     countries: List<TripCountry>,
-    onCountryClick: () -> Unit
+    @Suppress("UNUSED_PARAMETER") onCountryClick: () -> Unit
 ) {
+    val startFlag = countries.firstOrNull()?.flagEmoji
+    val endFlag = countries.lastOrNull()?.flagEmoji
+    val midFlags = if (countries.size > 2) countries.subList(1, countries.size - 1) else emptyList()
+    val lineColor = MaterialTheme.colorScheme.primary
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Country flags
-            if (countries.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Route timeline with flags as markers
+            Row(modifier = Modifier.fillMaxWidth()) {
+                // Vertical timeline rail
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(32.dp)
                 ) {
-                    countries.forEach { country ->
-                        Text(
-                            text = country.flagEmoji,
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.clickable(onClick = onCountryClick)
+                    // Start marker
+                    TimelineFlag(startFlag, fallbackColor = StatusSuccess)
+                    // Line segment
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(if (midFlags.isEmpty()) 20.dp else 8.dp)
+                            .background(lineColor.copy(alpha = 0.3f))
+                    )
+                    // Intermediate country flags
+                    midFlags.forEach { country ->
+                        TimelineFlag(country.flagEmoji, size = 20)
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(8.dp)
+                                .background(lineColor.copy(alpha = 0.3f))
                         )
                     }
+                    // End marker
+                    TimelineFlag(endFlag, fallbackColor = StatusError)
                 }
-            }
 
-            // Start location
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.from),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
+
+                // City labels aligned with start/end markers
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Start city — aligned with first flag
                     Text(
                         text = extractCity(trip.startAddress),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 36.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-            )
-
-            // End location
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.tertiary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.to),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    // Spacer to push end city down to align with end flag
+                    Spacer(
+                        modifier = Modifier.height(
+                            if (midFlags.isEmpty()) 16.dp
+                            else (16 + midFlags.size * 28).dp
+                        )
                     )
+                    // End city
                     Text(
                         text = extractCity(trip.endAddress),
                         style = MaterialTheme.typography.bodyLarge,
@@ -333,62 +328,60 @@ private fun RouteHeaderCard(
                 }
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 36.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Start time
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Date and duration — compact row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     Icons.Default.Schedule,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.started),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = formatDateTime(trip.startDate),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            // End time
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = formatDateTime(trip.startDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.ended),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = formatDateTime(trip.endDate),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = stringResource(R.string.duration_label, formatDuration(trip.totalDurationMin)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                }
+                Text(
+                    text = "  ·  ",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+                )
+                Text(
+                    text = formatDuration(trip.totalDurationMin),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun TimelineFlag(
+    flag: String?,
+    size: Int = 24,
+    fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary
+) {
+    if (flag != null) {
+        Text(
+            text = flag,
+            fontSize = size.sp,
+            modifier = Modifier.padding(vertical = 2.dp)
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(size.dp)
+                .padding(2.dp)
+                .background(fallbackColor, shape = RoundedCornerShape(50))
+        )
     }
 }
 

@@ -103,39 +103,42 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
-            // Show trip info immediately, map + countries load in background
+            // Resolve countries from drive edge coordinates (fast, Room-only)
+            val countries = resolveCountriesFromDriveEdges(trip)
+
+            // Show trip info + countries immediately, map loads in background
             _uiState.update {
-                it.copy(isLoading = false, trip = trip, markers = markers)
+                it.copy(isLoading = false, trip = trip, markers = markers, countries = countries)
             }
 
-            // Fetch GPS positions for all drives in parallel
+            // Fetch GPS positions for all drives in parallel (for the map)
             loadRoutePositions(carId, trip)
         }
     }
 
     /**
-     * Resolve countries touched by the trip using the start and end GPS points
-     * of each drive leg. Looks up coordinates in the geocode cache.
+     * Resolve countries from drive start coordinates in Room (no API needed).
+     * Uses the geocode cache grid lookup on each drive's start lat/lon.
      * Preserves route order (first appearance of each country).
      */
-    private suspend fun resolveCountries(
-        segments: List<TripRouteSegment>
-    ): List<TripCountry> {
+    private suspend fun resolveCountriesFromDriveEdges(trip: Trip): List<TripCountry> {
+        val driveIds = trip.drives.map { it.driveId }
+        val driveCoords = aggregateDao.getDriveCoordinates(driveIds)
+        // Keep drive order
+        val orderedCoords = driveIds.mapNotNull { id ->
+            driveCoords.find { it.driveId == id }
+        }
+
         val seen = mutableSetOf<String>()
         val countries = mutableListOf<TripCountry>()
 
-        for (segment in segments) {
-            if (segment.points.isEmpty()) continue
-            // Check start and end of each drive leg
-            val endpoints = listOf(segment.points.first(), segment.points.last())
-            for (point in endpoints) {
-                val gridLat = (point.latitude * 100).roundToInt()
-                val gridLon = (point.longitude * 100).roundToInt()
-                val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
-                val code = cached.countryCode ?: continue
-                if (seen.add(code)) {
-                    countries.add(TripCountry(code, countryCodeToFlag(code)))
-                }
+        for (coord in orderedCoords) {
+            val gridLat = (coord.startLatitude * 100).roundToInt()
+            val gridLon = (coord.startLongitude * 100).roundToInt()
+            val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
+            val code = cached.countryCode ?: continue
+            if (seen.add(code)) {
+                countries.add(TripCountry(code, countryCodeToFlag(code)))
             }
         }
         return countries
@@ -183,13 +186,10 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
-            val countries = resolveCountries(segments)
-
             _uiState.update {
                 it.copy(
                     routeSegments = segments,
                     markers = markers,
-                    countries = countries,
                     isMapLoading = false
                 )
             }
