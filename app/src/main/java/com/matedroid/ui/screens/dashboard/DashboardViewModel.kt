@@ -8,6 +8,7 @@ import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.TripCountCache
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.domain.TripDetector
@@ -75,7 +76,8 @@ class DashboardViewModel @Inject constructor(
     private val sentryStateRepository: SentryStateRepository,
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
-    private val tripDetector: TripDetector
+    private val tripDetector: TripDetector,
+    private val tripCountCache: TripCountCache
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -315,10 +317,16 @@ class DashboardViewModel @Inject constructor(
 
     private fun loadTripCount(carId: Int) {
         viewModelScope.launch {
+            // Show cached value instantly
+            tripCountCache.get(carId)?.let { cached ->
+                _uiState.update { it.copy(totalTrips = cached) }
+            }
+            // Recompute in background and update cache
             val drives = driveSummaryDao.getAllChronological(carId)
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
             val count = tripDetector.detectTrips(drives, dcCharges).size
             _uiState.update { it.copy(totalTrips = count) }
+            tripCountCache.set(carId, count)
         }
     }
 
