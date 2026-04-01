@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
@@ -47,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +74,10 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,70 +158,10 @@ private fun TripDetailContent(
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Route header
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                )
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = extractCity(trip.startAddress),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.padding(start = 28.dp, top = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "→",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = extractCity(trip.endAddress),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Text(
-                            text = formatDate(trip.startDate),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 28.dp, top = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
+        // Route header — matches DriveDetailScreen RouteHeaderCard
+        item { RouteHeaderCard(trip) }
 
         // Map
         item {
@@ -228,14 +173,41 @@ private fun TripDetailContent(
             )
         }
 
-        // Summary stats — palette-colored summary card
+        // Stats — StatsSectionCard pattern from DriveDetailScreen
         item {
-            SummaryStatsCard(trip = trip, units = units, palette = palette)
+            StatsSectionCard(
+                title = stringResource(R.string.trip_summary),
+                icon = Icons.Filled.Route,
+                stats = listOfNotNull(
+                    StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(trip.totalDistance, units)),
+                    StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
+                    StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
+                    StatItem(stringResource(R.string.trip_charge_stops), "${trip.charges.size}")
+                )
+            )
+        }
+
+        item {
+            StatsSectionCard(
+                title = stringResource(R.string.battery),
+                icon = Icons.Filled.BatteryChargingFull,
+                stats = listOfNotNull(
+                    StatItem(stringResource(R.string.start), "${trip.startBatteryLevel}%"),
+                    StatItem(stringResource(R.string.end), "${trip.endBatteryLevel}%"),
+                    StatItem(stringResource(R.string.trip_energy_consumed), "%.1f kWh".format(trip.totalEnergyConsumed)),
+                    StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
+                    trip.avgEfficiency?.let {
+                        StatItem(stringResource(R.string.efficiency), "%.0f %s".format(it, UnitFormatter.getEfficiencyUnit(units)))
+                    },
+                    trip.totalChargeCost?.let {
+                        StatItem(stringResource(R.string.trip_charge_cost), "%.2f".format(it))
+                    }
+                )
+            )
         }
 
         // Legs header
         item {
-            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.trip_legs),
                 style = MaterialTheme.typography.titleMedium,
@@ -256,6 +228,223 @@ private fun TripDetailContent(
     }
 }
 
+// === Route Header — matches DriveDetailScreen ===
+
+@Composable
+private fun RouteHeaderCard(trip: Trip) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Start location
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.from),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = extractCity(trip.startAddress),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 36.dp),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+            )
+
+            // End location
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.LocationOn,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.tertiary
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.to),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = extractCity(trip.endAddress),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 36.dp),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+            )
+
+            // Start time
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.started),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = formatDateTime(trip.startDate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            // End time
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.ended),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = formatDateTime(trip.endDate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = stringResource(R.string.duration_label, formatDuration(trip.totalDurationMin)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// === Stats — StatsSectionCard pattern from DriveDetailScreen ===
+
+private data class StatItem(val label: String, val value: String)
+
+@Composable
+private fun StatsSectionCard(
+    title: String,
+    icon: ImageVector,
+    stats: List<StatItem>
+) {
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val columnCount = when {
+        screenWidth > 600 -> 4
+        screenWidth > 340 -> 3
+        else -> 2
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            val chunked = stats.chunked(columnCount)
+            chunked.forEachIndexed { index, row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    row.forEach { stat ->
+                        StatItemView(
+                            label = stat.label,
+                            value = stat.value,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    val emptySlots = columnCount - row.size
+                    if (emptySlots > 0) {
+                        repeat(emptySlots) { Spacer(modifier = Modifier.weight(1f)) }
+                    }
+                }
+                if (index < chunked.size - 1) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItemView(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+// === Map ===
+
 @Composable
 private fun TripMapCard(
     routeSegments: List<TripRouteSegment>,
@@ -266,7 +455,6 @@ private fun TripMapCard(
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
     val endColorArgb = StatusError.toArgb()
-    // Odd/even leg colors: accent at full opacity vs slightly lighter
     val oddLegColorArgb = palette.accent.toArgb()
     val evenLegColorArgb = palette.accent.copy(alpha = 0.55f)
         .compositeOver(androidx.compose.ui.graphics.Color.White)
@@ -308,7 +496,6 @@ private fun TripMapCard(
                                 setTileSource(TileSourceFactory.MAPNIK)
                                 setMultiTouchControls(true)
 
-                                // One polyline per drive leg, alternating colors
                                 routeSegments.forEachIndexed { index, segment ->
                                     val geoPoints = segment.points.map {
                                         GeoPoint(it.latitude, it.longitude)
@@ -327,7 +514,6 @@ private fun TripMapCard(
                                     }
                                 }
 
-                                // Markers on top of polylines
                                 markers.forEach { point ->
                                     val color = when (point.type) {
                                         TripMapPointType.START -> startColorArgb
@@ -335,23 +521,15 @@ private fun TripMapCard(
                                         TripMapPointType.END -> endColorArgb
                                     }
                                     val marker = Marker(this).apply {
-                                        position =
-                                            GeoPoint(point.latitude, point.longitude)
-                                        setAnchor(
-                                            Marker.ANCHOR_CENTER,
-                                            Marker.ANCHOR_BOTTOM
-                                        )
+                                        position = GeoPoint(point.latitude, point.longitude)
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         title = point.label
-                                        icon = createPinMarkerDrawable(
-                                            mapCtx.resources, color
-                                        )
+                                        icon = createPinMarkerDrawable(mapCtx.resources, color)
                                     }
                                     overlays.add(marker)
                                 }
 
-                                // Zoom to fit all segments
-                                val allPoints =
-                                    routeSegments.flatMap { it.points }
+                                val allPoints = routeSegments.flatMap { it.points }
                                 if (allPoints.isNotEmpty()) {
                                     val north = allPoints.maxOf { it.latitude }
                                     val south = allPoints.minOf { it.latitude }
@@ -378,132 +556,8 @@ private fun TripMapCard(
     }
 }
 
-@Composable
-private fun SummaryStatsCard(trip: Trip, units: Units?, palette: CarColorPalette) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = palette.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(R.string.trip_summary),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+// === Trip Legs ===
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PaletteSummaryItem(
-                    icon = Icons.Filled.Speed,
-                    label = stringResource(R.string.distance),
-                    value = UnitFormatter.formatDistance(trip.totalDistance, units),
-                    palette = palette,
-                    modifier = Modifier.weight(1.2f)
-                )
-                PaletteSummaryItem(
-                    icon = Icons.Filled.Schedule,
-                    label = stringResource(R.string.trip_total_time),
-                    value = formatDuration(trip.totalDurationMin),
-                    palette = palette,
-                    modifier = Modifier.weight(0.8f)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PaletteSummaryItem(
-                    icon = Icons.Filled.Schedule,
-                    label = stringResource(R.string.trip_driving_time),
-                    value = formatDuration(trip.totalDrivingDurationMin),
-                    palette = palette,
-                    modifier = Modifier.weight(1.2f)
-                )
-                PaletteSummaryItem(
-                    icon = Icons.Filled.ElectricBolt,
-                    label = stringResource(R.string.trip_charge_stops),
-                    value = "${trip.charges.size}",
-                    palette = palette,
-                    modifier = Modifier.weight(0.8f)
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PaletteSummaryItem(
-                    icon = Icons.Filled.ElectricBolt,
-                    label = stringResource(R.string.trip_energy_consumed),
-                    value = "%.1f kWh".format(trip.totalEnergyConsumed),
-                    palette = palette,
-                    modifier = Modifier.weight(1.2f)
-                )
-                PaletteSummaryItem(
-                    icon = Icons.Filled.ElectricBolt,
-                    label = stringResource(R.string.trip_energy_charged),
-                    value = "%.1f kWh".format(trip.totalEnergyCharged),
-                    palette = palette,
-                    modifier = Modifier.weight(0.8f)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                PaletteSummaryItem(
-                    icon = Icons.Filled.BatteryChargingFull,
-                    label = stringResource(R.string.battery),
-                    value = "${trip.startBatteryLevel}% → ${trip.endBatteryLevel}%",
-                    palette = palette,
-                    modifier = Modifier.weight(1.2f)
-                )
-                trip.avgEfficiency?.let { eff ->
-                    PaletteSummaryItem(
-                        icon = Icons.Filled.Speed,
-                        label = stringResource(R.string.efficiency),
-                        value = "%.0f %s".format(eff, UnitFormatter.getEfficiencyUnit(units)),
-                        palette = palette,
-                        modifier = Modifier.weight(0.8f)
-                    )
-                } ?: Spacer(modifier = Modifier.weight(0.8f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun PaletteSummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-        }
-    }
-}
-
-// Leg types for the interleaved legs list
 private sealed class TripLeg {
     data class Drive(
         val index: Int,
@@ -646,18 +700,22 @@ private fun ChargeLegCard(
     }
 }
 
+// === Formatting ===
+
 private fun formatDuration(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return if (h > 0) "${h}h ${m}m" else "${m}m"
 }
 
-private fun formatDate(dateStr: String): String {
+private fun formatDateTime(dateStr: String): String {
     return try {
-        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
-        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
-        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
-        dateTime.format(outputFormatter)
+        val dt = try {
+            OffsetDateTime.parse(dateStr).toLocalDateTime()
+        } catch (e: DateTimeParseException) {
+            LocalDateTime.parse(dateStr.replace("Z", ""))
+        }
+        dt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
     } catch (e: Exception) {
         dateStr
     }
