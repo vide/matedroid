@@ -1,9 +1,7 @@
 package com.matedroid.ui.screens.trips
 
-import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
@@ -17,17 +15,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
-
-enum class TripDateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
-    LAST_90_DAYS(R.string.filter_last_90_days, 90),
-    LAST_YEAR(R.string.filter_last_year, 365),
-    ALL_TIME(R.string.filter_all_time, null)
-}
 
 data class TripsUiState(
     val isLoading: Boolean = true,
@@ -35,7 +26,8 @@ data class TripsUiState(
     val totalDistance: Double = 0.0,
     val totalDrivingMin: Int = 0,
     val totalEnergyCharged: Double = 0.0,
-    val dateFilter: TripDateFilter = TripDateFilter.ALL_TIME,
+    val availableYears: List<Int> = emptyList(),
+    val selectedYear: Int? = null,
     val units: Units? = null
 )
 
@@ -60,8 +52,8 @@ class TripsViewModel @Inject constructor(
         loadUnits(id)
     }
 
-    fun setDateFilter(filter: TripDateFilter) {
-        _uiState.update { it.copy(dateFilter = filter) }
+    fun setYear(year: Int?) {
+        _uiState.update { it.copy(selectedYear = year) }
         applyFilter()
     }
 
@@ -80,21 +72,21 @@ class TripsViewModel @Inject constructor(
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
             allTrips = tripDetector.detectTrips(drives, dcCharges).reversed()
 
-            _uiState.update { it.copy(isLoading = false) }
+            val years = allTrips.mapNotNull { parseYear(it.startDate) }
+                .distinct()
+                .sortedDescending()
+
+            _uiState.update { it.copy(isLoading = false, availableYears = years) }
             applyFilter()
         }
     }
 
     private fun applyFilter() {
-        val filter = _uiState.value.dateFilter
-        val filtered = if (filter.days == null) {
+        val year = _uiState.value.selectedYear
+        val filtered = if (year == null) {
             allTrips
         } else {
-            val cutoff = LocalDate.now().minusDays(filter.days)
-            allTrips.filter { trip ->
-                val tripDate = parseDate(trip.startDate)
-                tripDate != null && !tripDate.isBefore(cutoff)
-            }
+            allTrips.filter { parseYear(it.startDate) == year }
         }
 
         _uiState.update {
@@ -107,12 +99,12 @@ class TripsViewModel @Inject constructor(
         }
     }
 
-    private fun parseDate(dateStr: String): LocalDate? {
+    private fun parseYear(dateStr: String): Int? {
         return try {
-            OffsetDateTime.parse(dateStr).toLocalDate()
+            OffsetDateTime.parse(dateStr).year
         } catch (e: DateTimeParseException) {
             try {
-                LocalDateTime.parse(dateStr.replace("Z", "")).toLocalDate()
+                LocalDateTime.parse(dateStr.replace("Z", "")).year
             } catch (e2: Exception) {
                 null
             }

@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -268,12 +269,13 @@ private fun RouteHeaderCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Start stop: flag + city
+            // Start stop: flag + city + time
             TimelineStop(
                 flag = startFlag,
                 fallbackColor = StatusSuccess,
                 city = extractCity(trip.startAddress),
-                label = stringResource(R.string.from)
+                label = stringResource(R.string.from),
+                time = formatDateTime(trip.startDate)
             )
 
             // Line + intermediate countries
@@ -292,57 +294,27 @@ private fun RouteHeaderCard(
                 TimelineLine(lineColor, height = 8)
             }
 
-            // End stop: flag + city
+            // End stop: flag + city + time
             TimelineStop(
                 flag = endFlag,
                 fallbackColor = StatusError,
                 city = extractCity(trip.endAddress),
-                label = stringResource(R.string.to)
+                label = stringResource(R.string.to),
+                time = formatDateTime(trip.endDate)
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Date and duration
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = formatDateTime(trip.startDate),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = "  ·  ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
-                )
-                Text(
-                    text = formatDuration(trip.totalDurationMin),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
-            }
         }
     }
 }
 
-/** A single stop on the timeline: flag marker + optional city label, in one Row. */
+/** A single stop on the timeline: flag marker + city label + optional right-aligned time. */
 @Composable
 private fun TimelineStop(
     flag: String?,
     flagSize: Int = 24,
     fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
     city: String?,
-    label: String?
+    label: String?,
+    time: String? = null
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -365,7 +337,7 @@ private fun TimelineStop(
         }
         if (city != null) {
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 if (label != null) {
                     Text(
                         text = label,
@@ -378,6 +350,15 @@ private fun TimelineStop(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            if (time != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    textAlign = TextAlign.End
                 )
             }
         }

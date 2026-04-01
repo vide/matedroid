@@ -138,8 +138,9 @@ fun TripsScreen(
                         totalDistance = uiState.totalDistance,
                         totalDrivingMin = uiState.totalDrivingMin,
                         totalEnergyCharged = uiState.totalEnergyCharged,
-                        dateFilter = uiState.dateFilter,
-                        onDateFilterSelected = { viewModel.setDateFilter(it) },
+                        availableYears = uiState.availableYears,
+                        selectedYear = uiState.selectedYear,
+                        onYearSelected = { viewModel.setYear(it) },
                         units = uiState.units,
                         palette = palette,
                         onTripClick = onNavigateToTripDetail
@@ -156,8 +157,9 @@ private fun TripsContent(
     totalDistance: Double,
     totalDrivingMin: Int,
     totalEnergyCharged: Double,
-    dateFilter: TripDateFilter,
-    onDateFilterSelected: (TripDateFilter) -> Unit,
+    availableYears: List<Int>,
+    selectedYear: Int?,
+    onYearSelected: (Int?) -> Unit,
     units: Units?,
     palette: CarColorPalette,
     onTripClick: (Int) -> Unit
@@ -167,13 +169,16 @@ private fun TripsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Date filter chips
-        item {
-            DateFilterChips(
-                selectedFilter = dateFilter,
-                palette = palette,
-                onFilterSelected = onDateFilterSelected
-            )
+        // Year filter chips
+        if (availableYears.size > 1) {
+            item {
+                YearFilterChips(
+                    years = availableYears,
+                    selectedYear = selectedYear,
+                    palette = palette,
+                    onYearSelected = onYearSelected
+                )
+            }
         }
 
         // Summary card
@@ -468,19 +473,31 @@ private fun TripStatCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateFilterChips(
-    selectedFilter: TripDateFilter,
+private fun YearFilterChips(
+    years: List<Int>,
+    selectedYear: Int?,
     palette: CarColorPalette,
-    onFilterSelected: (TripDateFilter) -> Unit
+    onYearSelected: (Int?) -> Unit
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(TripDateFilter.entries.toList()) { filter ->
+        item {
             FilterChip(
-                selected = filter == selectedFilter,
-                onClick = { onFilterSelected(filter) },
-                label = { Text(stringResource(filter.labelRes)) },
+                selected = selectedYear == null,
+                onClick = { onYearSelected(null) },
+                label = { Text(stringResource(R.string.filter_all_time)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
+                )
+            )
+        }
+        items(years) { year ->
+            FilterChip(
+                selected = year == selectedYear,
+                onClick = { onYearSelected(year) },
+                label = { Text(year.toString()) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = palette.surface,
                     selectedLabelColor = palette.onSurface
