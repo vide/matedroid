@@ -10,6 +10,8 @@ import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.TripDetector
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +19,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class TripMapPoint(
+data class TripRoutePoint(
+    val latitude: Double,
+    val longitude: Double
+)
+
+data class TripMapMarker(
     val latitude: Double,
     val longitude: Double,
     val type: TripMapPointType,
@@ -29,7 +36,9 @@ enum class TripMapPointType { START, CHARGE, END }
 data class TripDetailUiState(
     val isLoading: Boolean = true,
     val trip: Trip? = null,
-    val mapPoints: List<TripMapPoint> = emptyList(),
+    val routePoints: List<TripRoutePoint> = emptyList(),
+    val markers: List<TripMapMarker> = emptyList(),
+    val isMapLoading: Boolean = true,
     val units: Units? = null
 )
 
@@ -51,11 +60,10 @@ class TripDetailViewModel @Inject constructor(
         loaded = true
 
         viewModelScope.launch {
-            // Load units in parallel
             launch {
                 when (val result = repository.getCarStatus(carId)) {
                     is ApiResult.Success -> _uiState.update { it.copy(units = result.data.units) }
-                    is ApiResult.Error -> { /* default to metric */ }
+                    is ApiResult.Error -> {}
                 }
             }
 
@@ -65,41 +73,64 @@ class TripDetailViewModel @Inject constructor(
 
             val trip = trips.getOrNull(tripIndex)
             if (trip == null) {
-                _uiState.update { it.copy(isLoading = false) }
+                _uiState.update { it.copy(isLoading = false, isMapLoading = false) }
                 return@launch
             }
 
-            val mapPoints = mutableListOf<TripMapPoint>()
-
-            val driveIds = trip.drives.map { it.driveId }
-            val driveCoords = aggregateDao.getDriveCoordinates(driveIds)
-                .associateBy { it.driveId }
-
-            // Trip start
-            driveCoords[trip.drives.first().driveId]?.let { coord ->
-                mapPoints.add(
-                    TripMapPoint(
-                        coord.startLatitude, coord.startLongitude,
-                        TripMapPointType.START, trip.startAddress
-                    )
-                )
-            }
-
-            // Charge stops
+            // Build markers from known coordinates
+            val markers = mutableListOf<TripMapMarker>()
             trip.charges.forEach { charge ->
-                mapPoints.add(
-                    TripMapPoint(
+                markers.add(
+                    TripMapMarker(
                         charge.latitude, charge.longitude,
                         TripMapPointType.CHARGE, charge.address
                     )
                 )
             }
 
-            // Trip end — use last drive's start coordinate as approximation
-            driveCoords[trip.drives.last().driveId]?.let { coord ->
-                mapPoints.add(
-                    TripMapPoint(
-                        coord.startLatitude, coord.startLongitude,
+            // Show trip info immediately, map loads in background
+            _uiState.update {
+                it.copy(isLoading = false, trip = trip, markers = markers)
+            }
+
+            // Fetch GPS positions for all drives in parallel
+            loadRoutePositions(carId, trip)
+        }
+    }
+
+    private fun loadRoutePositions(carId: Int, trip: Trip) {
+        viewModelScope.launch {
+            val deferreds = trip.drives.map { drive ->
+                async {
+                    when (val result = repository.getDriveDetail(carId, drive.driveId)) {
+                        is ApiResult.Success -> {
+                            result.data.positions
+                                ?.filter { it.latitude != null && it.longitude != null }
+                                ?.map { TripRoutePoint(it.latitude!!, it.longitude!!) }
+                                ?: emptyList()
+                        }
+                        is ApiResult.Error -> emptyList()
+                    }
+                }
+            }
+
+            val allPositions = deferreds.awaitAll().flatten()
+
+            // Add start/end markers from actual GPS data
+            val markers = _uiState.value.markers.toMutableList()
+            if (allPositions.isNotEmpty()) {
+                val first = allPositions.first()
+                val last = allPositions.last()
+                markers.add(
+                    0,
+                    TripMapMarker(
+                        first.latitude, first.longitude,
+                        TripMapPointType.START, trip.startAddress
+                    )
+                )
+                markers.add(
+                    TripMapMarker(
+                        last.latitude, last.longitude,
                         TripMapPointType.END, trip.endAddress
                     )
                 )
@@ -107,9 +138,9 @@ class TripDetailViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isLoading = false,
-                    trip = trip,
-                    mapPoints = mapPoints
+                    routePoints = allPositions,
+                    markers = markers,
+                    isMapLoading = false
                 )
             }
         }

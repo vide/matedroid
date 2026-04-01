@@ -127,7 +127,9 @@ fun TripDetailScreen(
                 val trip = uiState.trip!!
                 TripDetailContent(
                     trip = trip,
-                    mapPoints = uiState.mapPoints,
+                    routePoints = uiState.routePoints,
+                    markers = uiState.markers,
+                    isMapLoading = uiState.isMapLoading,
                     units = uiState.units,
                     palette = palette,
                     modifier = Modifier.padding(padding)
@@ -140,7 +142,9 @@ fun TripDetailScreen(
 @Composable
 private fun TripDetailContent(
     trip: Trip,
-    mapPoints: List<TripMapPoint>,
+    routePoints: List<TripRoutePoint>,
+    markers: List<TripMapMarker>,
+    isMapLoading: Boolean,
     units: Units?,
     palette: CarColorPalette,
     modifier: Modifier = Modifier
@@ -214,10 +218,13 @@ private fun TripDetailContent(
         }
 
         // Map
-        if (mapPoints.size >= 2) {
-            item {
-                TripMapCard(mapPoints = mapPoints, palette = palette)
-            }
+        item {
+            TripMapCard(
+                routePoints = routePoints,
+                markers = markers,
+                isMapLoading = isMapLoading,
+                palette = palette
+            )
         }
 
         // Summary stats — palette-colored summary card
@@ -250,14 +257,15 @@ private fun TripDetailContent(
 
 @Composable
 private fun TripMapCard(
-    mapPoints: List<TripMapPoint>,
+    routePoints: List<TripRoutePoint>,
+    markers: List<TripMapMarker>,
+    isMapLoading: Boolean,
     palette: CarColorPalette
 ) {
-    val ctx = LocalContext.current
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
     val endColorArgb = StatusError.toArgb()
-    val lineColorArgb = palette.accent.copy(alpha = 0.6f).toArgb()
+    val routeColorArgb = palette.accent.toArgb()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -278,72 +286,80 @@ private fun TripMapCard(
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                DisposableEffect(Unit) {
-                    Configuration.getInstance().userAgentValue =
-                        "MateDroid/${BuildConfig.VERSION_NAME}"
-                    onDispose { }
-                }
-                AndroidView(
-                    factory = { mapCtx ->
-                        MapView(mapCtx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
+                if (isMapLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
+                } else if (routePoints.isNotEmpty()) {
+                    DisposableEffect(Unit) {
+                        Configuration.getInstance().userAgentValue =
+                            "MateDroid/${BuildConfig.VERSION_NAME}"
+                        onDispose { }
+                    }
+                    AndroidView(
+                        factory = { mapCtx ->
+                            MapView(mapCtx).apply {
+                                setTileSource(TileSourceFactory.MAPNIK)
+                                setMultiTouchControls(true)
 
-                            val geoPoints =
-                                mapPoints.map { GeoPoint(it.latitude, it.longitude) }
-
-                            if (geoPoints.size >= 2) {
+                                // Route polyline from actual GPS positions
+                                val geoPoints = routePoints.map {
+                                    GeoPoint(it.latitude, it.longitude)
+                                }
                                 val polyline = Polyline().apply {
                                     setPoints(geoPoints)
-                                    outlinePaint.color = lineColorArgb
-                                    outlinePaint.strokeWidth = 6f
+                                    outlinePaint.color = routeColorArgb
+                                    outlinePaint.strokeWidth = 8f
                                     outlinePaint.strokeCap = Paint.Cap.ROUND
                                     outlinePaint.strokeJoin = Paint.Join.ROUND
-                                    outlinePaint.pathEffect =
-                                        android.graphics.DashPathEffect(
-                                            floatArrayOf(20f, 10f), 0f
-                                        )
                                 }
                                 overlays.add(polyline)
-                            }
 
-                            mapPoints.forEach { point ->
-                                val color = when (point.type) {
-                                    TripMapPointType.START -> startColorArgb
-                                    TripMapPointType.CHARGE -> chargeColorArgb
-                                    TripMapPointType.END -> endColorArgb
+                                // Markers for start, charges, end
+                                markers.forEach { point ->
+                                    val color = when (point.type) {
+                                        TripMapPointType.START -> startColorArgb
+                                        TripMapPointType.CHARGE -> chargeColorArgb
+                                        TripMapPointType.END -> endColorArgb
+                                    }
+                                    val marker = Marker(this).apply {
+                                        position =
+                                            GeoPoint(point.latitude, point.longitude)
+                                        setAnchor(
+                                            Marker.ANCHOR_CENTER,
+                                            Marker.ANCHOR_BOTTOM
+                                        )
+                                        title = point.label
+                                        icon = createPinMarkerDrawable(
+                                            mapCtx.resources, color
+                                        )
+                                    }
+                                    overlays.add(marker)
                                 }
-                                val marker = Marker(this).apply {
-                                    position = GeoPoint(point.latitude, point.longitude)
-                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                    title = point.label
-                                    icon = createPinMarkerDrawable(
-                                        mapCtx.resources, color
+
+                                // Zoom to fit route
+                                if (geoPoints.isNotEmpty()) {
+                                    val north = geoPoints.maxOf { it.latitude }
+                                    val south = geoPoints.minOf { it.latitude }
+                                    val east = geoPoints.maxOf { it.longitude }
+                                    val west = geoPoints.minOf { it.longitude }
+                                    val latPad = (north - south) * 0.15
+                                    val lonPad = (east - west) * 0.15
+                                    val bb = BoundingBox(
+                                        north + latPad, east + lonPad,
+                                        south - latPad, west - lonPad
                                     )
-                                }
-                                overlays.add(marker)
-                            }
-
-                            if (geoPoints.isNotEmpty()) {
-                                val north = geoPoints.maxOf { it.latitude }
-                                val south = geoPoints.minOf { it.latitude }
-                                val east = geoPoints.maxOf { it.longitude }
-                                val west = geoPoints.minOf { it.longitude }
-                                val latPad = (north - south) * 0.15
-                                val lonPad = (east - west) * 0.15
-                                val bb = BoundingBox(
-                                    north + latPad, east + lonPad,
-                                    south - latPad, west - lonPad
-                                )
-                                post {
-                                    zoomToBoundingBox(bb, false)
-                                    invalidate()
+                                    post {
+                                        zoomToBoundingBox(bb, false)
+                                        invalidate()
+                                    }
                                 }
                             }
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
