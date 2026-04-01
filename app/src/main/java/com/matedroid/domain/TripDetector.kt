@@ -84,8 +84,10 @@ class TripDetector @Inject constructor() {
                     lastEventEnd = parseDateTime(event.endDate)
                     lastWasDrive = true
                 }
-                // drive → drive: max 30min gap (rest stop, toll booth, etc.)
-                lastWasDrive && event is Event.Drive && gapMin <= MAX_DRIVE_TO_DRIVE_GAP_MIN -> {
+                // drive → drive: max 30min gap, only if trip already has a DC charge
+                // (avoids chaining unrelated commute drives into false trips)
+                lastWasDrive && event is Event.Drive && gapMin <= MAX_DRIVE_TO_DRIVE_GAP_MIN
+                    && currentCharges.isNotEmpty() -> {
                     currentDrives.add(event.drive)
                     lastEventEnd = parseDateTime(event.endDate)
                     lastWasDrive = true
