@@ -257,7 +257,7 @@ private fun RouteHeaderCard(
     @Suppress("UNUSED_PARAMETER") onCountryClick: () -> Unit
 ) {
     val startFlag = countries.firstOrNull()?.flagEmoji
-    val endFlag = countries.lastOrNull()?.flagEmoji
+    val endFlag = if (countries.size >= 2) countries.last().flagEmoji else startFlag
     val midFlags = if (countries.size > 2) countries.subList(1, countries.size - 1) else emptyList()
     val lineColor = MaterialTheme.colorScheme.primary
 
@@ -268,69 +268,41 @@ private fun RouteHeaderCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Route timeline with flags as markers
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // Vertical timeline rail
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(32.dp)
-                ) {
-                    // Start marker
-                    TimelineFlag(startFlag, fallbackColor = StatusSuccess)
-                    // Line segment
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(if (midFlags.isEmpty()) 20.dp else 8.dp)
-                            .background(lineColor.copy(alpha = 0.3f))
-                    )
-                    // Intermediate country flags
-                    midFlags.forEach { country ->
-                        TimelineFlag(country.flagEmoji, size = 20)
-                        Box(
-                            modifier = Modifier
-                                .width(2.dp)
-                                .height(8.dp)
-                                .background(lineColor.copy(alpha = 0.3f))
-                        )
-                    }
-                    // End marker
-                    TimelineFlag(endFlag, fallbackColor = StatusError)
-                }
+            // Start stop: flag + city
+            TimelineStop(
+                flag = startFlag,
+                fallbackColor = StatusSuccess,
+                city = extractCity(trip.startAddress),
+                label = stringResource(R.string.from)
+            )
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // City labels aligned with start/end markers
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    // Start city — aligned with first flag
-                    Text(
-                        text = extractCity(trip.startAddress),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    // Spacer to push end city down to align with end flag
-                    Spacer(
-                        modifier = Modifier.height(
-                            if (midFlags.isEmpty()) 16.dp
-                            else (16 + midFlags.size * 28).dp
-                        )
-                    )
-                    // End city
-                    Text(
-                        text = extractCity(trip.endAddress),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+            // Line + intermediate countries
+            if (midFlags.isEmpty()) {
+                TimelineLine(lineColor, height = 16)
+            } else {
+                midFlags.forEach { country ->
+                    TimelineLine(lineColor, height = 8)
+                    TimelineStop(
+                        flag = country.flagEmoji,
+                        flagSize = 20,
+                        city = null,
+                        label = null
                     )
                 }
+                TimelineLine(lineColor, height = 8)
             }
+
+            // End stop: flag + city
+            TimelineStop(
+                flag = endFlag,
+                fallbackColor = StatusError,
+                city = extractCity(trip.endAddress),
+                label = stringResource(R.string.to)
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Date and duration — compact row
+            // Date and duration
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -363,24 +335,70 @@ private fun RouteHeaderCard(
     }
 }
 
+/** A single stop on the timeline: flag marker + optional city label, in one Row. */
 @Composable
-private fun TimelineFlag(
+private fun TimelineStop(
     flag: String?,
-    size: Int = 24,
-    fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary
+    flagSize: Int = 24,
+    fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    city: String?,
+    label: String?
 ) {
-    if (flag != null) {
-        Text(
-            text = flag,
-            fontSize = size.sp,
-            modifier = Modifier.padding(vertical = 2.dp)
-        )
-    } else {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Flag or colored dot, centered in 32dp column
+        Box(
+            modifier = Modifier.width(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (flag != null) {
+                Text(text = flag, fontSize = flagSize.sp)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size((flagSize - 4).dp)
+                        .background(fallbackColor, shape = RoundedCornerShape(50))
+                )
+            }
+        }
+        if (city != null) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                if (label != null) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                }
+                Text(
+                    text = city,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+    }
+}
+
+/** Vertical connecting line between timeline stops. */
+@Composable
+private fun TimelineLine(
+    color: androidx.compose.ui.graphics.Color,
+    height: Int = 16
+) {
+    Box(
+        modifier = Modifier.width(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             modifier = Modifier
-                .size(size.dp)
-                .padding(2.dp)
-                .background(fallbackColor, shape = RoundedCornerShape(50))
+                .width(2.dp)
+                .height(height.dp)
+                .background(color.copy(alpha = 0.3f))
         )
     }
 }

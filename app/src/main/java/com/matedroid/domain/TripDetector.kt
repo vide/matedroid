@@ -30,6 +30,7 @@ class TripDetector @Inject constructor() {
 
     companion object {
         private const val MICRO_DRIVE_THRESHOLD_KM = 1.0
+        private const val MIN_TRIP_DISTANCE_KM = 300.0
         private const val MAX_DRIVE_TO_CHARGE_GAP_MIN = 15L
         private const val MAX_CHARGE_TO_DRIVE_GAP_MIN = 45L
         private const val MAX_DRIVE_TO_DRIVE_GAP_MIN = 30L
@@ -125,6 +126,7 @@ class TripDetector @Inject constructor() {
         if (drives.size < 2 || charges.isEmpty()) return
 
         val totalDistance = drives.sumOf { it.distance }
+        if (totalDistance < MIN_TRIP_DISTANCE_KM) return
         val totalDrivingMin = drives.sumOf { it.durationMin }
         val firstStart = parseDateTime(drives.first().startDate)
         val lastEnd = parseDateTime(drives.last().endDate)

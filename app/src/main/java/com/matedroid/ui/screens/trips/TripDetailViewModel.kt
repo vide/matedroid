@@ -117,24 +117,47 @@ class TripDetailViewModel @Inject constructor(
     }
 
     /**
-     * Resolve countries from drive start coordinates in Room (no API needed).
-     * Uses the geocode cache grid lookup on each drive's start lat/lon.
-     * Preserves route order (first appearance of each country).
+     * Resolve countries from drive start coordinates AND charge coordinates.
+     * Uses Room-only data (drive aggregates + charge summaries + geocode cache).
+     *
+     * Interleaves drive starts and charge locations in chronological order
+     * to catch all border crossings, including the last leg's destination
+     * (via charge coords sitting between drives).
+     *
+     * For the very last drive's end, we also check the last charge if it
+     * comes after the last drive-start — and we include all charge coords
+     * as they represent real stops along the route.
      */
     private suspend fun resolveCountriesFromDriveEdges(trip: Trip): List<TripCountry> {
         val driveIds = trip.drives.map { it.driveId }
         val driveCoords = aggregateDao.getDriveCoordinates(driveIds)
-        // Keep drive order
-        val orderedCoords = driveIds.mapNotNull { id ->
-            driveCoords.find { it.driveId == id }
+        val driveCoordsMap = driveCoords.associateBy { it.driveId }
+
+        // Build ordered list of lat/lon points: drive starts + charge locations
+        data class GeoEvent(val lat: Double, val lon: Double, val sortDate: String)
+
+        val events = mutableListOf<GeoEvent>()
+
+        // Drive start coordinates
+        for (drive in trip.drives) {
+            val coord = driveCoordsMap[drive.driveId] ?: continue
+            events.add(GeoEvent(coord.startLatitude, coord.startLongitude, drive.startDate))
         }
+
+        // Charge coordinates (these sit between drives and catch border crossings)
+        for (charge in trip.charges) {
+            events.add(GeoEvent(charge.latitude, charge.longitude, charge.startDate))
+        }
+
+        // Sort chronologically
+        events.sortBy { it.sortDate }
 
         val seen = mutableSetOf<String>()
         val countries = mutableListOf<TripCountry>()
 
-        for (coord in orderedCoords) {
-            val gridLat = (coord.startLatitude * 100).roundToInt()
-            val gridLon = (coord.startLongitude * 100).roundToInt()
+        for (event in events) {
+            val gridLat = (event.lat * 100).roundToInt()
+            val gridLon = (event.lon * 100).roundToInt()
             val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
             val code = cached.countryCode ?: continue
             if (seen.add(code)) {
