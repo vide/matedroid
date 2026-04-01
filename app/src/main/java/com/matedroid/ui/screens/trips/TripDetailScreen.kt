@@ -137,19 +137,20 @@ fun TripDetailScreen(
             }
             else -> {
                 val trip = uiState.trip!!
-                TripDetailContent(
-                    trip = trip,
-                    routeSegments = uiState.routeSegments,
-                    markers = uiState.markers,
-                    isMapLoading = uiState.isMapLoading,
-                    countries = uiState.countries,
-                    units = uiState.units,
-                    palette = palette,
-                    onDriveClick = onNavigateToDriveDetail,
-                    onChargeClick = onNavigateToChargeDetail,
-                    onCountryClick = onNavigateToCountryStats,
-                    modifier = Modifier.padding(padding)
-                )
+                Box(modifier = Modifier.padding(padding)) {
+                    TripDetailContent(
+                        trip = trip,
+                        routeSegments = uiState.routeSegments,
+                        markers = uiState.markers,
+                        isMapLoading = uiState.isMapLoading,
+                        countries = uiState.countries,
+                        units = uiState.units,
+                        palette = palette,
+                        onDriveClick = onNavigateToDriveDetail,
+                        onChargeClick = onNavigateToChargeDetail,
+                        onCountryClick = onNavigateToCountryStats
+                    )
+                }
             }
         }
     }

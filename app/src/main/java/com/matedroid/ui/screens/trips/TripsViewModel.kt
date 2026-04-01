@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
-import com.matedroid.data.local.dao.SyncStateDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.TripDetector
@@ -24,7 +23,6 @@ data class TripsUiState(
     val totalDistance: Double = 0.0,
     val totalDrivingMin: Int = 0,
     val totalEnergyCharged: Double = 0.0,
-    val syncWarning: Boolean = false,
     val units: Units? = null
 )
 
@@ -32,7 +30,6 @@ data class TripsUiState(
 class TripsViewModel @Inject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
-    private val syncStateDao: SyncStateDao,
     private val tripDetector: TripDetector,
     private val repository: TeslamateRepository
 ) : ViewModel() {
@@ -64,17 +61,13 @@ class TripsViewModel @Inject constructor(
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
             val trips = tripDetector.detectTrips(drives, dcCharges).reversed()
 
-            val syncState = syncStateDao.get(carId)
-            val syncWarning = syncState?.detailsSynced != true
-
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     trips = trips,
                     totalDistance = trips.sumOf { t -> t.totalDistance },
                     totalDrivingMin = trips.sumOf { t -> t.totalDrivingDurationMin },
-                    totalEnergyCharged = trips.sumOf { t -> t.totalEnergyCharged },
-                    syncWarning = syncWarning
+                    totalEnergyCharged = trips.sumOf { t -> t.totalEnergyCharged }
                 )
             }
         }

@@ -124,24 +124,21 @@ fun TripsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        if (uiState.syncWarning) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SyncWarningText()
-                        }
                     }
                 }
             }
             else -> {
-                TripsContent(
-                    trips = uiState.trips,
-                    totalDistance = uiState.totalDistance,
-                    totalDrivingMin = uiState.totalDrivingMin,
-                    totalEnergyCharged = uiState.totalEnergyCharged,
-                    syncWarning = uiState.syncWarning,
-                    units = uiState.units,
-                    palette = palette,
-                    onTripClick = onNavigateToTripDetail
-                )
+                Box(modifier = Modifier.padding(padding)) {
+                    TripsContent(
+                        trips = uiState.trips,
+                        totalDistance = uiState.totalDistance,
+                        totalDrivingMin = uiState.totalDrivingMin,
+                        totalEnergyCharged = uiState.totalEnergyCharged,
+                        units = uiState.units,
+                        palette = palette,
+                        onTripClick = onNavigateToTripDetail
+                    )
+                }
             }
         }
     }
@@ -153,7 +150,6 @@ private fun TripsContent(
     totalDistance: Double,
     totalDrivingMin: Int,
     totalEnergyCharged: Double,
-    syncWarning: Boolean,
     units: Units?,
     palette: CarColorPalette,
     onTripClick: (Int) -> Unit
@@ -163,34 +159,6 @@ private fun TripsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (syncWarning) {
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.trips_sync_warning),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-            }
-        }
-
         // Summary card — same style as DrivesScreen SummaryCard
         item {
             SummaryCard(
@@ -479,16 +447,6 @@ private fun TripStatCard(
             )
         }
     }
-}
-
-@Composable
-private fun SyncWarningText() {
-    Text(
-        text = stringResource(R.string.trips_sync_warning),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-        textAlign = TextAlign.Center
-    )
 }
 
 /** Extract city name from address like "Ionity Montpellier, Saint-Aunès" → "Saint-Aunès". */
