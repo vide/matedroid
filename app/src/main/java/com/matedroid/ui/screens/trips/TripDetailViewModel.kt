@@ -127,43 +127,79 @@ class TripDetailViewModel @Inject constructor(
      * comes after the last drive-start — and we include all charge coords
      * as they represent real stops along the route.
      */
+    /**
+     * Returns [startCountry, ...intermediate..., endCountry].
+     * Start and end are always present (if resolvable).
+     * Intermediates are deduplicated and exclude start/end codes.
+     * A trip DE→FR→ES→FR returns [DE, ES, FR] (FR is the real endpoint).
+     */
     private suspend fun resolveCountriesFromDriveEdges(trip: Trip): List<TripCountry> {
         val driveIds = trip.drives.map { it.driveId }
         val driveCoords = aggregateDao.getDriveCoordinates(driveIds)
         val driveCoordsMap = driveCoords.associateBy { it.driveId }
 
-        // Build ordered list of lat/lon points: drive starts + charge locations
         data class GeoEvent(val lat: Double, val lon: Double, val sortDate: String)
 
         val events = mutableListOf<GeoEvent>()
-
-        // Drive start coordinates
         for (drive in trip.drives) {
             val coord = driveCoordsMap[drive.driveId] ?: continue
             events.add(GeoEvent(coord.startLatitude, coord.startLongitude, drive.startDate))
         }
-
-        // Charge coordinates (these sit between drives and catch border crossings)
         for (charge in trip.charges) {
             events.add(GeoEvent(charge.latitude, charge.longitude, charge.startDate))
         }
-
-        // Sort chronologically
         events.sortBy { it.sortDate }
 
-        val seen = mutableSetOf<String>()
-        val countries = mutableListOf<TripCountry>()
-
+        // Resolve all events to country codes in order (with duplicates)
+        val allCodes = mutableListOf<String>()
         for (event in events) {
             val gridLat = (event.lat * 100).toInt()
             val gridLon = (event.lon * 100).toInt()
             val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
             val code = cached.countryCode ?: continue
-            if (seen.add(code)) {
-                countries.add(TripCountry(code, countryCodeToFlag(code)))
+            allCodes.add(code)
+        }
+
+        // Also resolve the trip's actual endpoint: last drive's end position.
+        // Drive aggregates only store start coords, so fetch the last drive's
+        // detail to get the final GPS point. This is 1 API call, not N.
+        val lastDrive = trip.drives.lastOrNull()
+        if (lastDrive != null) {
+            val carId = lastDrive.carId
+            when (val result = repository.getDriveDetail(carId, lastDrive.driveId)) {
+                is ApiResult.Success -> {
+                    val lastPos = result.data.positions
+                        ?.lastOrNull { it.latitude != null && it.longitude != null }
+                    if (lastPos != null) {
+                        val gridLat = (lastPos.latitude!! * 100).toInt()
+                        val gridLon = (lastPos.longitude!! * 100).toInt()
+                        val cached = geocodeCacheDao.get(gridLat, gridLon)
+                        val code = cached?.countryCode
+                        if (code != null) allCodes.add(code)
+                    }
+                }
+                is ApiResult.Error -> {}
             }
         }
-        return countries
+
+        if (allCodes.isEmpty()) return emptyList()
+
+        val startCode = allCodes.first()
+        val endCode = allCodes.last()
+
+        // Build result: start + unique intermediates (excl start/end) + end
+        val result = mutableListOf(startCode)
+        val seen = mutableSetOf(startCode, endCode)
+        for (code in allCodes) {
+            if (seen.add(code)) {
+                result.add(code)
+            }
+        }
+        if (endCode != startCode || allCodes.size > 1) {
+            result.add(endCode)
+        }
+
+        return result.map { code -> TripCountry(code, countryCodeToFlag(code)) }
     }
 
     private fun loadRoutePositions(carId: Int, trip: Trip) {
