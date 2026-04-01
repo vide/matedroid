@@ -116,90 +116,77 @@ class TripDetailViewModel @Inject constructor(
     }
 
     /**
-     * Resolve countries from drive start coordinates AND charge coordinates.
-     * Uses Room-only data (drive aggregates + charge summaries + geocode cache).
+     * Resolve the trip's country sequence: [start, ...intermediates..., end].
      *
-     * Interleaves drive starts and charge locations in chronological order
-     * to catch all border crossings, including the last leg's destination
-     * (via charge coords sitting between drives).
+     * Collects all leg edge points (each drive's start + end, each charge's location),
+     * resolves each to a country via geocode cache, then:
+     *   - first leg start  → trip start country
+     *   - last leg end     → trip end country
+     *   - everything else  → deduplicated intermediates (excl start & end)
      *
-     * For the very last drive's end, we also check the last charge if it
-     * comes after the last drive-start — and we include all charge coords
-     * as they represent real stops along the route.
-     */
-    /**
-     * Returns [startCountry, ...intermediate..., endCountry].
-     * Start and end are always present (if resolvable).
-     * Intermediates are deduplicated and exclude start/end codes.
-     * A trip DE→FR→ES→FR returns [DE, ES, FR] (FR is the real endpoint).
+     * Drive aggregates only store start coords; for end coords we use the
+     * next charge's location as proxy, and fetch the last drive's end from
+     * the API (1 call).
      */
     private suspend fun resolveCountriesFromDriveEdges(trip: Trip): List<TripCountry> {
-        val driveIds = trip.drives.map { it.driveId }
-        val driveCoords = aggregateDao.getDriveCoordinates(driveIds)
-        val driveCoordsMap = driveCoords.associateBy { it.driveId }
+        // 1. Collect all edge points in chronological order
+        data class EdgePoint(val lat: Double, val lon: Double, val time: String)
 
-        data class GeoEvent(val lat: Double, val lon: Double, val sortDate: String)
+        val points = mutableListOf<EdgePoint>()
 
-        val events = mutableListOf<GeoEvent>()
+        val driveCoords = aggregateDao.getDriveCoordinates(trip.drives.map { it.driveId })
+            .associateBy { it.driveId }
+
+        // Drive start points
         for (drive in trip.drives) {
-            val coord = driveCoordsMap[drive.driveId] ?: continue
-            events.add(GeoEvent(coord.startLatitude, coord.startLongitude, drive.startDate))
+            val coord = driveCoords[drive.driveId] ?: continue
+            points.add(EdgePoint(coord.startLatitude, coord.startLongitude, drive.startDate))
         }
+
+        // Charge locations (= drive end / next drive start proxy)
         for (charge in trip.charges) {
-            events.add(GeoEvent(charge.latitude, charge.longitude, charge.startDate))
-        }
-        events.sortBy { it.sortDate }
-
-        // Resolve all events to country codes in order (with duplicates)
-        val allCodes = mutableListOf<String>()
-        for (event in events) {
-            val gridLat = (event.lat * 100).toInt()
-            val gridLon = (event.lon * 100).toInt()
-            val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
-            val code = cached.countryCode ?: continue
-            allCodes.add(code)
+            points.add(EdgePoint(charge.latitude, charge.longitude, charge.startDate))
         }
 
-        // Also resolve the trip's actual endpoint: last drive's end position.
-        // Drive aggregates only store start coords, so fetch the last drive's
-        // detail to get the final GPS point. This is 1 API call, not N.
+        // Last drive's actual end point (1 API call)
         val lastDrive = trip.drives.lastOrNull()
         if (lastDrive != null) {
-            val carId = lastDrive.carId
-            when (val result = repository.getDriveDetail(carId, lastDrive.driveId)) {
+            when (val result = repository.getDriveDetail(lastDrive.carId, lastDrive.driveId)) {
                 is ApiResult.Success -> {
-                    val lastPos = result.data.positions
+                    result.data.positions
                         ?.lastOrNull { it.latitude != null && it.longitude != null }
-                    if (lastPos != null) {
-                        val gridLat = (lastPos.latitude!! * 100).toInt()
-                        val gridLon = (lastPos.longitude!! * 100).toInt()
-                        val cached = geocodeCacheDao.get(gridLat, gridLon)
-                        val code = cached?.countryCode
-                        if (code != null) allCodes.add(code)
-                    }
+                        ?.let { points.add(EdgePoint(it.latitude!!, it.longitude!!, lastDrive.endDate)) }
                 }
                 is ApiResult.Error -> {}
             }
         }
 
-        if (allCodes.isEmpty()) return emptyList()
+        points.sortBy { it.time }
 
-        val startCode = allCodes.first()
-        val endCode = allCodes.last()
-
-        // Build result: start + unique intermediates (excl start/end) + end
-        val result = mutableListOf(startCode)
-        val seen = mutableSetOf(startCode, endCode)
-        for (code in allCodes) {
-            if (seen.add(code)) {
-                result.add(code)
-            }
+        // 2. Resolve each point to a country code
+        val codes = points.mapNotNull { pt ->
+            val cached = geocodeCacheDao.get((pt.lat * 100).toInt(), (pt.lon * 100).toInt())
+            cached?.countryCode
         }
-        if (endCode != startCode || allCodes.size > 1) {
+
+        if (codes.isEmpty()) return emptyList()
+
+        // 3. Build result: start + deduplicated intermediates + end
+        val startCode = codes.first()
+        val endCode = codes.last()
+
+        val intermediates = codes
+            .drop(1).dropLast(1)              // exclude first and last
+            .filter { it != startCode && it != endCode }  // exclude start & end countries
+            .distinct()                        // dedup, preserving first-seen order
+
+        val result = mutableListOf(startCode)
+        result.addAll(intermediates)
+        if (endCode != startCode || intermediates.isNotEmpty()) {
             result.add(endCode)
         }
 
-        return result.map { code -> TripCountry(code, countryCodeToFlag(code)) }
+        return result.map { TripCountry(it, countryCodeToFlag(it)) }
     }
 
     private fun loadRoutePositions(carId: Int, trip: Trip) {
