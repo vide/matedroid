@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.dao.AggregateDao
-import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
+import com.matedroid.data.local.dao.SyncStateDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.TripDetector
@@ -32,7 +32,7 @@ data class TripsUiState(
 class TripsViewModel @Inject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
-    private val chargeSummaryDao: ChargeSummaryDao,
+    private val syncStateDao: SyncStateDao,
     private val tripDetector: TripDetector,
     private val repository: TeslamateRepository
 ) : ViewModel() {
@@ -64,9 +64,8 @@ class TripsViewModel @Inject constructor(
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
             val trips = tripDetector.detectTrips(drives, dcCharges).reversed()
 
-            val totalCharges = chargeSummaryDao.count(carId)
-            val processedCharges = aggregateDao.countChargeAggregates(carId)
-            val syncWarning = processedCharges < totalCharges
+            val syncState = syncStateDao.get(carId)
+            val syncWarning = syncState?.detailsSynced != true
 
             _uiState.update {
                 it.copy(
