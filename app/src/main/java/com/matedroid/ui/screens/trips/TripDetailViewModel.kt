@@ -9,7 +9,6 @@ import com.matedroid.data.local.dao.GeocodeCacheDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.countryCodeToFlag
-import kotlin.math.roundToInt
 import com.matedroid.domain.TripDetector
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -156,8 +155,8 @@ class TripDetailViewModel @Inject constructor(
         val countries = mutableListOf<TripCountry>()
 
         for (event in events) {
-            val gridLat = (event.lat * 100).roundToInt()
-            val gridLon = (event.lon * 100).roundToInt()
+            val gridLat = (event.lat * 100).toInt()
+            val gridLon = (event.lon * 100).toInt()
             val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
             val code = cached.countryCode ?: continue
             if (seen.add(code)) {
