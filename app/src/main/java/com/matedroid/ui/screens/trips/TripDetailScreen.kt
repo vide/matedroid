@@ -182,6 +182,7 @@ private fun TripDetailContent(
                     StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(trip.totalDistance, units)),
                     StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
                     StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
+                    StatItem(stringResource(R.string.trip_legs), "${trip.drives.size + trip.charges.size}"),
                     StatItem(stringResource(R.string.trip_charge_stops), "${trip.charges.size}")
                 )
             )
@@ -192,8 +193,6 @@ private fun TripDetailContent(
                 title = stringResource(R.string.battery),
                 icon = Icons.Filled.BatteryChargingFull,
                 stats = listOfNotNull(
-                    StatItem(stringResource(R.string.start), "${trip.startBatteryLevel}%"),
-                    StatItem(stringResource(R.string.end), "${trip.endBatteryLevel}%"),
                     StatItem(stringResource(R.string.trip_energy_consumed), "%.1f kWh".format(trip.totalEnergyConsumed)),
                     StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
                     trip.avgEfficiency?.let {
