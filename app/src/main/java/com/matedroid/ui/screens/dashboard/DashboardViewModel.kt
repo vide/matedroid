@@ -8,6 +8,9 @@ import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.dao.AggregateDao
+import com.matedroid.data.local.dao.DriveSummaryDao
+import com.matedroid.domain.TripDetector
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
@@ -39,7 +42,8 @@ data class DashboardUiState(
     val carImageOverride: CarImageOverride? = null,
     val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     val isCurrentChargeAvailable: Boolean = false,
-    val sentryEventCount: Int = 0
+    val sentryEventCount: Int = 0,
+    val totalTrips: Int? = null
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -68,7 +72,10 @@ class DashboardViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val geocodingRepository: GeocodingRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val sentryStateRepository: SentryStateRepository
+    private val sentryStateRepository: SentryStateRepository,
+    private val driveSummaryDao: DriveSummaryDao,
+    private val aggregateDao: AggregateDao,
+    private val tripDetector: TripDetector
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -231,6 +238,7 @@ class DashboardViewModel @Inject constructor(
                 totalDrives = selectedCar?.teslamateStats?.totalDrives
             )
         }
+        loadTripCount(carId)
     }
 
     private fun fetchAddressIfNeeded(status: CarStatus) {
@@ -302,6 +310,15 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val count = sentryStateRepository.getEventCount(carId)
             _uiState.update { it.copy(sentryEventCount = count) }
+        }
+    }
+
+    private fun loadTripCount(carId: Int) {
+        viewModelScope.launch {
+            val drives = driveSummaryDao.getAllChronological(carId)
+            val dcCharges = aggregateDao.getDcChargeSummaries(carId)
+            val count = tripDetector.detectTrips(drives, dcCharges).size
+            _uiState.update { it.copy(totalTrips = count) }
         }
     }
 
