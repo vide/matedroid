@@ -5,8 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
+import com.matedroid.data.local.dao.GeocodeCacheDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.repository.countryCodeToFlag
+import kotlin.math.roundToInt
 import com.matedroid.domain.TripDetector
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,12 +41,18 @@ data class TripRouteSegment(
     val points: List<TripRoutePoint>
 )
 
+data class TripCountry(
+    val countryCode: String,
+    val flagEmoji: String
+)
+
 data class TripDetailUiState(
     val isLoading: Boolean = true,
     val trip: Trip? = null,
     val routeSegments: List<TripRouteSegment> = emptyList(),
     val markers: List<TripMapMarker> = emptyList(),
     val isMapLoading: Boolean = true,
+    val countries: List<TripCountry> = emptyList(),
     val units: Units? = null
 )
 
@@ -51,6 +60,7 @@ data class TripDetailUiState(
 class TripDetailViewModel @Inject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
+    private val geocodeCacheDao: GeocodeCacheDao,
     private val tripDetector: TripDetector,
     private val repository: TeslamateRepository
 ) : ViewModel() {
@@ -93,7 +103,7 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
-            // Show trip info immediately, map loads in background
+            // Show trip info immediately, map + countries load in background
             _uiState.update {
                 it.copy(isLoading = false, trip = trip, markers = markers)
             }
@@ -101,6 +111,34 @@ class TripDetailViewModel @Inject constructor(
             // Fetch GPS positions for all drives in parallel
             loadRoutePositions(carId, trip)
         }
+    }
+
+    /**
+     * Resolve countries touched by the trip using the start and end GPS points
+     * of each drive leg. Looks up coordinates in the geocode cache.
+     * Preserves route order (first appearance of each country).
+     */
+    private suspend fun resolveCountries(
+        segments: List<TripRouteSegment>
+    ): List<TripCountry> {
+        val seen = mutableSetOf<String>()
+        val countries = mutableListOf<TripCountry>()
+
+        for (segment in segments) {
+            if (segment.points.isEmpty()) continue
+            // Check start and end of each drive leg
+            val endpoints = listOf(segment.points.first(), segment.points.last())
+            for (point in endpoints) {
+                val gridLat = (point.latitude * 100).roundToInt()
+                val gridLon = (point.longitude * 100).roundToInt()
+                val cached = geocodeCacheDao.get(gridLat, gridLon) ?: continue
+                val code = cached.countryCode ?: continue
+                if (seen.add(code)) {
+                    countries.add(TripCountry(code, countryCodeToFlag(code)))
+                }
+            }
+        }
+        return countries
     }
 
     private fun loadRoutePositions(carId: Int, trip: Trip) {
@@ -145,10 +183,13 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
+            val countries = resolveCountries(segments)
+
             _uiState.update {
                 it.copy(
                     routeSegments = segments,
                     markers = markers,
+                    countries = countries,
                     isMapLoading = false
                 )
             }

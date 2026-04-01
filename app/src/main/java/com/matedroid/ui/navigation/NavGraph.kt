@@ -697,6 +697,9 @@ fun NavGraph(
                 },
                 onNavigateToChargeDetail = { chargeId ->
                     navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
+                },
+                onNavigateToCountryStats = {
+                    navController.navigate(Screen.CountriesVisited.createRoute(carId, exteriorColor))
                 }
             )
         }

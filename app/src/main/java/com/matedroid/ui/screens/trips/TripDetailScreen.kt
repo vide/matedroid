@@ -90,6 +90,7 @@ fun TripDetailScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToDriveDetail: (driveId: Int) -> Unit = {},
     onNavigateToChargeDetail: (chargeId: Int) -> Unit = {},
+    onNavigateToCountryStats: () -> Unit = {},
     viewModel: TripDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -140,10 +141,12 @@ fun TripDetailScreen(
                     routeSegments = uiState.routeSegments,
                     markers = uiState.markers,
                     isMapLoading = uiState.isMapLoading,
+                    countries = uiState.countries,
                     units = uiState.units,
                     palette = palette,
                     onDriveClick = onNavigateToDriveDetail,
                     onChargeClick = onNavigateToChargeDetail,
+                    onCountryClick = onNavigateToCountryStats,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -157,10 +160,12 @@ private fun TripDetailContent(
     routeSegments: List<TripRouteSegment>,
     markers: List<TripMapMarker>,
     isMapLoading: Boolean,
+    countries: List<TripCountry>,
     units: Units?,
     palette: CarColorPalette,
     onDriveClick: (driveId: Int) -> Unit,
     onChargeClick: (chargeId: Int) -> Unit,
+    onCountryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -169,7 +174,7 @@ private fun TripDetailContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Route header — matches DriveDetailScreen RouteHeaderCard
-        item { RouteHeaderCard(trip) }
+        item { RouteHeaderCard(trip, countries, onCountryClick) }
 
         // Map
         item {
@@ -242,7 +247,11 @@ private fun TripDetailContent(
 // === Route Header — matches DriveDetailScreen ===
 
 @Composable
-private fun RouteHeaderCard(trip: Trip) {
+private fun RouteHeaderCard(
+    trip: Trip,
+    countries: List<TripCountry>,
+    onCountryClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -253,6 +262,22 @@ private fun RouteHeaderCard(trip: Trip) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Country flags
+            if (countries.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    countries.forEach { country ->
+                        Text(
+                            text = country.flagEmoji,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.clickable(onClick = onCountryClick)
+                        )
+                    }
+                }
+            }
+
             // Start location
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
