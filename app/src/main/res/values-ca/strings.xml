@@ -1029,6 +1029,23 @@
     <string name="sentry_history_today">Avui</string>
     <string name="sentry_history_yesterday">Ahir</string>
 
+    <string name="nav_trips">Viatges</string>
+    <string name="trips_title">Viatges</string>
+    <string name="trips_empty">No s\'han detectat viatges.\nUn viatge requereix almenys 2 trajectes connectats per una càrrega DC.</string>
+    <string name="trips_sync_warning">Sincronització en curs — alguns viatges podrien no aparèixer fins que les dades de càrrega estiguin completament processades.</string>
+    <string name="trip_detail_title">Detalls del viatge</string>
+    <string name="trip_summary">Resum del viatge</string>
+    <string name="trip_legs">Etapes del viatge</string>
+    <string name="trip_route_map">Mapa de ruta</string>
+    <string name="trip_charge_stops">Parades de càrrega</string>
+    <string name="trip_driving_time">Temps de conducció</string>
+    <string name="trip_total_time">Temps total</string>
+    <string name="trip_energy_consumed">Energia consumida</string>
+    <string name="trip_energy_charged">Energia carregada</string>
+    <string name="trip_charge_cost">Cost de càrrega</string>
+    <string name="trip_leg_drive">Trajecte %1$d</string>
+    <string name="trip_leg_charge">Càrrega %1$d</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Selecciona l\'aspecte del cotxe</string>

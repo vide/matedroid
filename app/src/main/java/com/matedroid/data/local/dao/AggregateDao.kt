@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.matedroid.data.local.entity.ChargeDetailAggregate
+import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveDetailAggregate
 
 @Dao
@@ -781,6 +782,26 @@ interface AggregateDao {
         startDate: String,
         endDate: String
     ): List<DriveLocationResult>
+
+    // === Trip Detection Queries ===
+
+    /** All DC charge summaries for a car (for trip detection). */
+    @Query("""
+        SELECT c.* FROM charges_summary c
+        INNER JOIN charge_detail_aggregates a ON c.chargeId = a.chargeId
+        WHERE c.carId = :carId AND a.isFastCharger = 1
+        ORDER BY c.startDate ASC
+    """)
+    suspend fun getDcChargeSummaries(carId: Int): List<ChargeSummary>
+
+    /** Drive start coordinates for trip map markers. */
+    @Query("""
+        SELECT driveId, startLatitude, startLongitude
+        FROM drive_detail_aggregates
+        WHERE driveId IN (:driveIds)
+        AND startLatitude IS NOT NULL AND startLongitude IS NOT NULL
+    """)
+    suspend fun getDriveCoordinates(driveIds: List<Int>): List<DriveCoordinateResult>
 }
 
 /**
@@ -883,4 +904,12 @@ data class ChargeLocationResult(
     val startDate: String,
     val isFastCharger: Boolean,
     val address: String
+)
+
+// === Trip Detection Queries ===
+
+data class DriveCoordinateResult(
+    val driveId: Int,
+    val startLatitude: Double,
+    val startLongitude: Double
 )

@@ -1030,6 +1030,23 @@
     <string name="sentry_history_today">今天</string>
     <string name="sentry_history_yesterday">昨天</string>
 
+    <string name="nav_trips">行程</string>
+    <string name="trips_title">行程</string>
+    <string name="trips_empty">尚未检测到公路旅行。\n行程需要至少 2 段驾驶和 1 次直流充电。</string>
+    <string name="trips_sync_warning">同步进行中 — 部分行程可能在充电数据完全处理后才会显示。</string>
+    <string name="trip_detail_title">行程详情</string>
+    <string name="trip_summary">行程概览</string>
+    <string name="trip_legs">行程段落</string>
+    <string name="trip_route_map">路线地图</string>
+    <string name="trip_charge_stops">充电站</string>
+    <string name="trip_driving_time">驾驶时间</string>
+    <string name="trip_total_time">总时间</string>
+    <string name="trip_energy_consumed">消耗能量</string>
+    <string name="trip_energy_charged">充入能量</string>
+    <string name="trip_charge_cost">充电费用</string>
+    <string name="trip_leg_drive">行驶 %1$d</string>
+    <string name="trip_leg_charge">充电 %1$d</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">选择车辆外观</string>

@@ -1038,6 +1038,40 @@
     <!-- Relative date label for yesterday -->
     <string name="sentry_history_yesterday">Yesterday</string>
 
+    <!-- ==================== Trips ==================== -->
+    <!-- Navigation button label -->
+    <string name="nav_trips">Trips</string>
+    <!-- Trips list screen title -->
+    <string name="trips_title">Trips</string>
+    <!-- Empty state when no trips detected -->
+    <string name="trips_empty">No road trips detected yet.\nA trip requires at least 2 drives connected by a DC charge stop.</string>
+    <!-- Warning when deep sync is incomplete -->
+    <string name="trips_sync_warning">Sync in progress — some trips may not appear until charge data is fully processed.</string>
+    <!-- Trip detail screen title -->
+    <string name="trip_detail_title">Trip Details</string>
+    <!-- Trip summary section header -->
+    <string name="trip_summary">Trip Summary</string>
+    <!-- Trip legs section header -->
+    <string name="trip_legs">Trip Legs</string>
+    <!-- Trip route map header -->
+    <string name="trip_route_map">Route Map</string>
+    <!-- Number of charge stops -->
+    <string name="trip_charge_stops">Charge stops</string>
+    <!-- Driving time label -->
+    <string name="trip_driving_time">Driving time</string>
+    <!-- Total time (wall clock) label -->
+    <string name="trip_total_time">Total time</string>
+    <!-- Energy consumed label -->
+    <string name="trip_energy_consumed">Energy used</string>
+    <!-- Energy charged label -->
+    <string name="trip_energy_charged">Energy charged</string>
+    <!-- Charge cost label -->
+    <string name="trip_charge_cost">Charge cost</string>
+    <!-- Drive leg label with number -->
+    <string name="trip_leg_drive">Drive %1$d</string>
+    <!-- Charge leg label with number -->
+    <string name="trip_leg_charge">Charge %1$d</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

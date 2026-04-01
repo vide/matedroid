@@ -1029,6 +1029,23 @@
     <string name="sentry_history_today">Hoy</string>
     <string name="sentry_history_yesterday">Ayer</string>
 
+    <string name="nav_trips">Viajes</string>
+    <string name="trips_title">Viajes</string>
+    <string name="trips_empty">No se detectaron viajes.\nUn viaje requiere al menos 2 trayectos conectados por una carga DC.</string>
+    <string name="trips_sync_warning">Sincronización en curso — algunos viajes podrían no aparecer hasta que los datos de carga estén completamente procesados.</string>
+    <string name="trip_detail_title">Detalles del viaje</string>
+    <string name="trip_summary">Resumen del viaje</string>
+    <string name="trip_legs">Etapas del viaje</string>
+    <string name="trip_route_map">Mapa de ruta</string>
+    <string name="trip_charge_stops">Paradas de carga</string>
+    <string name="trip_driving_time">Tiempo de conducción</string>
+    <string name="trip_total_time">Tiempo total</string>
+    <string name="trip_energy_consumed">Energía consumida</string>
+    <string name="trip_energy_charged">Energía cargada</string>
+    <string name="trip_charge_cost">Coste de carga</string>
+    <string name="trip_leg_drive">Trayecto %1$d</string>
+    <string name="trip_leg_charge">Carga %1$d</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Seleccionar aspecto del coche</string>

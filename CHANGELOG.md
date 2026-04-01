@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Trip grouping**: Automatically detects highway/road trips (drives connected by DC charging stops) and groups them into unified trips. Dedicated Trips screen with list and detail view including route map, summary stats, and per-leg breakdown.
 - **Sentry alert history**: Persistent on-device log of sentry alert events. Tap the red sentry dot on the dashboard or widget to view current session alerts and past alerts grouped by day. Sentry notifications also deep-link to the history screen.
 
 ## [1.3.0] - 2026-03-30

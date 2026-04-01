@@ -38,6 +38,8 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import com.matedroid.ui.screens.sentry.SentryHistoryScreen
+import com.matedroid.ui.screens.trips.TripDetailScreen
+import com.matedroid.ui.screens.trips.TripsScreen
 import com.matedroid.ui.screens.updates.SoftwareVersionsScreen
 import com.matedroid.ui.screens.wherewasi.WhereWasIScreen
 import com.matedroid.domain.model.YearFilter
@@ -162,6 +164,18 @@ sealed class Screen(val route: String) {
             val params = mutableListOf("timestamp=$encodedTimestamp")
             if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
             return "wherewasi/$carId?${params.joinToString("&")}"
+        }
+    }
+    data object Trips : Screen("trips/{carId}?exteriorColor={exteriorColor}") {
+        fun createRoute(carId: Int, exteriorColor: String? = null): String {
+            return if (exteriorColor != null) "trips/$carId?exteriorColor=$exteriorColor"
+            else "trips/$carId"
+        }
+    }
+    data object TripDetail : Screen("trips/{carId}/detail/{tripIndex}?exteriorColor={exteriorColor}") {
+        fun createRoute(carId: Int, tripIndex: Int, exteriorColor: String? = null): String {
+            return if (exteriorColor != null) "trips/$carId/detail/$tripIndex?exteriorColor=$exteriorColor"
+            else "trips/$carId/detail/$tripIndex"
         }
     }
     data object SentryHistory : Screen("sentry/{carId}?exteriorColor={exteriorColor}") {
@@ -293,6 +307,9 @@ fun NavGraph(
                 },
                 onNavigateToSentryHistory = { carId, exteriorColor ->
                     navController.navigate(Screen.SentryHistory.createRoute(carId, exteriorColor))
+                },
+                onNavigateToTrips = { carId, exteriorColor ->
+                    navController.navigate(Screen.Trips.createRoute(carId, exteriorColor))
                 }
             )
         }
@@ -629,6 +646,52 @@ fun NavGraph(
                 onNavigateToCountriesVisited = {
                     navController.navigate(Screen.CountriesVisited.createRoute(carId, exteriorColor))
                 }
+            )
+        }
+
+        composable(
+            route = Screen.Trips.route,
+            arguments = listOf(
+                navArgument("carId") { type = NavType.IntType },
+                navArgument("exteriorColor") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
+            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+            TripsScreen(
+                carId = carId,
+                exteriorColor = exteriorColor,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTripDetail = { tripIndex ->
+                    navController.navigate(Screen.TripDetail.createRoute(carId, tripIndex, exteriorColor))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.TripDetail.route,
+            arguments = listOf(
+                navArgument("carId") { type = NavType.IntType },
+                navArgument("tripIndex") { type = NavType.IntType },
+                navArgument("exteriorColor") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
+            val tripIndex = backStackEntry.arguments?.getInt("tripIndex") ?: return@composable
+            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+            TripDetailScreen(
+                carId = carId,
+                tripIndex = tripIndex,
+                exteriorColor = exteriorColor,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
