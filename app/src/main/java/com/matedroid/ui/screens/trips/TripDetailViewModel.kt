@@ -33,10 +33,15 @@ data class TripMapMarker(
 
 enum class TripMapPointType { START, CHARGE, END }
 
+/** One drive leg's GPS points, kept separate for alternating colors on the map. */
+data class TripRouteSegment(
+    val points: List<TripRoutePoint>
+)
+
 data class TripDetailUiState(
     val isLoading: Boolean = true,
     val trip: Trip? = null,
-    val routePoints: List<TripRoutePoint> = emptyList(),
+    val routeSegments: List<TripRouteSegment> = emptyList(),
     val markers: List<TripMapMarker> = emptyList(),
     val isMapLoading: Boolean = true,
     val units: Units? = null
@@ -114,13 +119,17 @@ class TripDetailViewModel @Inject constructor(
                 }
             }
 
-            val allPositions = deferreds.awaitAll().flatten()
+            val segments = deferreds.awaitAll()
+                .map { TripRouteSegment(it) }
+                .filter { it.points.isNotEmpty() }
+
+            val allPoints = segments.flatMap { it.points }
 
             // Add start/end markers from actual GPS data
             val markers = _uiState.value.markers.toMutableList()
-            if (allPositions.isNotEmpty()) {
-                val first = allPositions.first()
-                val last = allPositions.last()
+            if (allPoints.isNotEmpty()) {
+                val first = allPoints.first()
+                val last = allPoints.last()
                 markers.add(
                     0,
                     TripMapMarker(
@@ -138,7 +147,7 @@ class TripDetailViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    routePoints = allPositions,
+                    routeSegments = segments,
                     markers = markers,
                     isMapLoading = false
                 )

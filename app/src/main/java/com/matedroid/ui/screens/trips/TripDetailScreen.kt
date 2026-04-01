@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -127,7 +128,7 @@ fun TripDetailScreen(
                 val trip = uiState.trip!!
                 TripDetailContent(
                     trip = trip,
-                    routePoints = uiState.routePoints,
+                    routeSegments = uiState.routeSegments,
                     markers = uiState.markers,
                     isMapLoading = uiState.isMapLoading,
                     units = uiState.units,
@@ -142,7 +143,7 @@ fun TripDetailScreen(
 @Composable
 private fun TripDetailContent(
     trip: Trip,
-    routePoints: List<TripRoutePoint>,
+    routeSegments: List<TripRouteSegment>,
     markers: List<TripMapMarker>,
     isMapLoading: Boolean,
     units: Units?,
@@ -220,7 +221,7 @@ private fun TripDetailContent(
         // Map
         item {
             TripMapCard(
-                routePoints = routePoints,
+                routeSegments = routeSegments,
                 markers = markers,
                 isMapLoading = isMapLoading,
                 palette = palette
@@ -257,7 +258,7 @@ private fun TripDetailContent(
 
 @Composable
 private fun TripMapCard(
-    routePoints: List<TripRoutePoint>,
+    routeSegments: List<TripRouteSegment>,
     markers: List<TripMapMarker>,
     isMapLoading: Boolean,
     palette: CarColorPalette
@@ -265,7 +266,11 @@ private fun TripMapCard(
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
     val endColorArgb = StatusError.toArgb()
-    val routeColorArgb = palette.accent.toArgb()
+    // Odd/even leg colors: accent at full opacity vs slightly lighter
+    val oddLegColorArgb = palette.accent.toArgb()
+    val evenLegColorArgb = palette.accent.copy(alpha = 0.55f)
+        .compositeOver(androidx.compose.ui.graphics.Color.White)
+        .toArgb()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -291,7 +296,7 @@ private fun TripMapCard(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
-                } else if (routePoints.isNotEmpty()) {
+                } else if (routeSegments.isNotEmpty()) {
                     DisposableEffect(Unit) {
                         Configuration.getInstance().userAgentValue =
                             "MateDroid/${BuildConfig.VERSION_NAME}"
@@ -303,20 +308,26 @@ private fun TripMapCard(
                                 setTileSource(TileSourceFactory.MAPNIK)
                                 setMultiTouchControls(true)
 
-                                // Route polyline from actual GPS positions
-                                val geoPoints = routePoints.map {
-                                    GeoPoint(it.latitude, it.longitude)
+                                // One polyline per drive leg, alternating colors
+                                routeSegments.forEachIndexed { index, segment ->
+                                    val geoPoints = segment.points.map {
+                                        GeoPoint(it.latitude, it.longitude)
+                                    }
+                                    if (geoPoints.size >= 2) {
+                                        val polyline = Polyline().apply {
+                                            setPoints(geoPoints)
+                                            outlinePaint.color =
+                                                if (index % 2 == 0) oddLegColorArgb
+                                                else evenLegColorArgb
+                                            outlinePaint.strokeWidth = 8f
+                                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                                            outlinePaint.strokeJoin = Paint.Join.ROUND
+                                        }
+                                        overlays.add(polyline)
+                                    }
                                 }
-                                val polyline = Polyline().apply {
-                                    setPoints(geoPoints)
-                                    outlinePaint.color = routeColorArgb
-                                    outlinePaint.strokeWidth = 8f
-                                    outlinePaint.strokeCap = Paint.Cap.ROUND
-                                    outlinePaint.strokeJoin = Paint.Join.ROUND
-                                }
-                                overlays.add(polyline)
 
-                                // Markers for start, charges, end
+                                // Markers on top of polylines
                                 markers.forEach { point ->
                                     val color = when (point.type) {
                                         TripMapPointType.START -> startColorArgb
@@ -338,12 +349,14 @@ private fun TripMapCard(
                                     overlays.add(marker)
                                 }
 
-                                // Zoom to fit route
-                                if (geoPoints.isNotEmpty()) {
-                                    val north = geoPoints.maxOf { it.latitude }
-                                    val south = geoPoints.minOf { it.latitude }
-                                    val east = geoPoints.maxOf { it.longitude }
-                                    val west = geoPoints.minOf { it.longitude }
+                                // Zoom to fit all segments
+                                val allPoints =
+                                    routeSegments.flatMap { it.points }
+                                if (allPoints.isNotEmpty()) {
+                                    val north = allPoints.maxOf { it.latitude }
+                                    val south = allPoints.minOf { it.latitude }
+                                    val east = allPoints.maxOf { it.longitude }
+                                    val west = allPoints.minOf { it.longitude }
                                     val latPad = (north - south) * 0.15
                                     val lonPad = (east - west) * 0.15
                                     val bb = BoundingBox(
