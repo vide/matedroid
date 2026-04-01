@@ -18,7 +18,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
@@ -86,6 +88,8 @@ fun TripDetailScreen(
     tripIndex: Int,
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit = {},
+    onNavigateToDriveDetail: (driveId: Int) -> Unit = {},
+    onNavigateToChargeDetail: (chargeId: Int) -> Unit = {},
     viewModel: TripDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -138,6 +142,8 @@ fun TripDetailScreen(
                     isMapLoading = uiState.isMapLoading,
                     units = uiState.units,
                     palette = palette,
+                    onDriveClick = onNavigateToDriveDetail,
+                    onChargeClick = onNavigateToChargeDetail,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -153,6 +159,8 @@ private fun TripDetailContent(
     isMapLoading: Boolean,
     units: Units?,
     palette: CarColorPalette,
+    onDriveClick: (driveId: Int) -> Unit,
+    onChargeClick: (chargeId: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -218,8 +226,12 @@ private fun TripDetailContent(
         val legs = buildLegList(trip)
         itemsIndexed(legs) { _, leg ->
             when (leg) {
-                is TripLeg.Drive -> DriveLegCard(leg, units, palette)
-                is TripLeg.Charge -> ChargeLegCard(leg, palette)
+                is TripLeg.Drive -> DriveLegCard(leg, units, palette) {
+                    onDriveClick(leg.drive.driveId)
+                }
+                is TripLeg.Charge -> ChargeLegCard(leg, palette) {
+                    onChargeClick(leg.charge.chargeId)
+                }
             }
         }
 
@@ -596,10 +608,13 @@ private fun buildLegList(trip: Trip): List<TripLeg> {
 private fun DriveLegCard(
     leg: TripLeg.Drive,
     units: Units?,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         )
@@ -643,6 +658,12 @@ private fun DriveLegCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -650,10 +671,13 @@ private fun DriveLegCard(
 @Composable
 private fun ChargeLegCard(
     leg: TripLeg.Charge,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = palette.dcColor.copy(alpha = 0.1f)
         )
@@ -695,6 +719,12 @@ private fun ChargeLegCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
