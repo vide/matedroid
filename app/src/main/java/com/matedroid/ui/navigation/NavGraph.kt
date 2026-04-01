@@ -172,10 +172,11 @@ sealed class Screen(val route: String) {
             else "trips/$carId"
         }
     }
-    data object TripDetail : Screen("trips/{carId}/detail/{tripIndex}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, tripIndex: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) "trips/$carId/detail/$tripIndex?exteriorColor=$exteriorColor"
-            else "trips/$carId/detail/$tripIndex"
+    data object TripDetail : Screen("trips/{carId}/detail/{tripStartDate}?exteriorColor={exteriorColor}") {
+        fun createRoute(carId: Int, tripStartDate: String, exteriorColor: String? = null): String {
+            val encoded = java.net.URLEncoder.encode(tripStartDate, "UTF-8")
+            return if (exteriorColor != null) "trips/$carId/detail/$encoded?exteriorColor=$exteriorColor"
+            else "trips/$carId/detail/$encoded"
         }
     }
     data object SentryHistory : Screen("sentry/{carId}?exteriorColor={exteriorColor}") {
@@ -666,8 +667,8 @@ fun NavGraph(
                 carId = carId,
                 exteriorColor = exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToTripDetail = { tripIndex ->
-                    navController.navigate(Screen.TripDetail.createRoute(carId, tripIndex, exteriorColor))
+                onNavigateToTripDetail = { tripStartDate ->
+                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
                 }
             )
         }
@@ -676,7 +677,7 @@ fun NavGraph(
             route = Screen.TripDetail.route,
             arguments = listOf(
                 navArgument("carId") { type = NavType.IntType },
-                navArgument("tripIndex") { type = NavType.IntType },
+                navArgument("tripStartDate") { type = NavType.StringType },
                 navArgument("exteriorColor") {
                     type = NavType.StringType
                     nullable = true
@@ -685,11 +686,11 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val tripIndex = backStackEntry.arguments?.getInt("tripIndex") ?: return@composable
+            val tripStartDate = backStackEntry.arguments?.getString("tripStartDate") ?: return@composable
             val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
             TripDetailScreen(
                 carId = carId,
-                tripIndex = tripIndex,
+                tripStartDate = tripStartDate,
                 exteriorColor = exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->

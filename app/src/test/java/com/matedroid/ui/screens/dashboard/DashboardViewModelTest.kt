@@ -101,7 +101,10 @@ class DashboardViewModelTest {
     }
 
     private fun createViewModel(): DashboardViewModel {
-        return DashboardViewModel(repository, geocodingRepository, settingsDataStore, sentryStateRepository)
+        return DashboardViewModel(
+            repository, geocodingRepository, settingsDataStore, sentryStateRepository,
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)
+        )
     }
 
     /**

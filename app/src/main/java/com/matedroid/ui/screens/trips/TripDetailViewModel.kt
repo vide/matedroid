@@ -69,7 +69,7 @@ class TripDetailViewModel @Inject constructor(
 
     private var loaded = false
 
-    fun loadTrip(carId: Int, tripIndex: Int) {
+    fun loadTrip(carId: Int, tripStartDate: String) {
         if (loaded) return
         loaded = true
 
@@ -83,9 +83,9 @@ class TripDetailViewModel @Inject constructor(
 
             val drives = driveSummaryDao.getAllChronological(carId)
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
-            val trips = tripDetector.detectTrips(drives, dcCharges).reversed()
+            val trips = tripDetector.detectTrips(drives, dcCharges)
 
-            val trip = trips.getOrNull(tripIndex)
+            val trip = trips.find { it.startDate == tripStartDate }
             if (trip == null) {
                 _uiState.update { it.copy(isLoading = false, isMapLoading = false) }
                 return@launch
@@ -171,22 +171,36 @@ class TripDetailViewModel @Inject constructor(
 
         if (codes.isEmpty()) return emptyList()
 
-        // 3. Build result: start + deduplicated intermediates + end
-        val startCode = codes.first()
-        val endCode = codes.last()
+        return buildCountrySequence(codes).map { TripCountry(it, countryCodeToFlag(it)) }
+    }
 
-        val intermediates = codes
-            .drop(1).dropLast(1)              // exclude first and last
-            .filter { it != startCode && it != endCode }  // exclude start & end countries
-            .distinct()                        // dedup, preserving first-seen order
+    companion object {
+        /**
+         * Build [start, ...intermediates..., end] from an ordered list of country codes.
+         * - First code = trip start
+         * - Last code = trip end
+         * - Everything in between: deduplicated, excluding start & end countries
+         */
+        internal fun buildCountrySequence(codes: List<String>): List<String> {
+            if (codes.isEmpty()) return emptyList()
+            if (codes.size == 1) return listOf(codes.first())
 
-        val result = mutableListOf(startCode)
-        result.addAll(intermediates)
-        if (endCode != startCode || intermediates.isNotEmpty()) {
-            result.add(endCode)
+            val startCode = codes.first()
+            val endCode = codes.last()
+
+            val intermediates = codes
+                .drop(1).dropLast(1)
+                .filter { it != startCode && it != endCode }
+                .distinct()
+
+            val result = mutableListOf(startCode)
+            result.addAll(intermediates)
+            if (endCode != startCode || intermediates.isNotEmpty()) {
+                result.add(endCode)
+            }
+
+            return result
         }
-
-        return result.map { TripCountry(it, countryCodeToFlag(it)) }
     }
 
     private fun loadRoutePositions(carId: Int, trip: Trip) {

@@ -89,7 +89,7 @@ import java.time.format.FormatStyle
 @Composable
 fun TripDetailScreen(
     carId: Int,
-    tripIndex: Int,
+    tripStartDate: String,
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToDriveDetail: (driveId: Int) -> Unit = {},
@@ -101,7 +101,7 @@ fun TripDetailScreen(
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
-    LaunchedEffect(carId, tripIndex) { viewModel.loadTrip(carId, tripIndex) }
+    LaunchedEffect(carId, tripStartDate) { viewModel.loadTrip(carId, tripStartDate) }
 
     Scaffold(
         topBar = {

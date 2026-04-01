@@ -70,7 +70,7 @@ fun TripsScreen(
     carId: Int,
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit = {},
-    onNavigateToTripDetail: (tripIndex: Int) -> Unit = {},
+    onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
     viewModel: TripsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -162,7 +162,7 @@ private fun TripsContent(
     onYearSelected: (Int?) -> Unit,
     units: Units?,
     palette: CarColorPalette,
-    onTripClick: (Int) -> Unit
+    onTripClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -208,7 +208,7 @@ private fun TripsContent(
             TripItem(
                 trip = trip,
                 units = units,
-                onClick = { onTripClick(index) }
+                onClick = { onTripClick(trip.startDate) }
             )
         }
     }
