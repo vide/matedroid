@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +32,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -134,6 +138,8 @@ fun TripsScreen(
                         totalDistance = uiState.totalDistance,
                         totalDrivingMin = uiState.totalDrivingMin,
                         totalEnergyCharged = uiState.totalEnergyCharged,
+                        dateFilter = uiState.dateFilter,
+                        onDateFilterSelected = { viewModel.setDateFilter(it) },
                         units = uiState.units,
                         palette = palette,
                         onTripClick = onNavigateToTripDetail
@@ -150,6 +156,8 @@ private fun TripsContent(
     totalDistance: Double,
     totalDrivingMin: Int,
     totalEnergyCharged: Double,
+    dateFilter: TripDateFilter,
+    onDateFilterSelected: (TripDateFilter) -> Unit,
     units: Units?,
     palette: CarColorPalette,
     onTripClick: (Int) -> Unit
@@ -159,7 +167,16 @@ private fun TripsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Summary card — same style as DrivesScreen SummaryCard
+        // Date filter chips
+        item {
+            DateFilterChips(
+                selectedFilter = dateFilter,
+                palette = palette,
+                onFilterSelected = onDateFilterSelected
+            )
+        }
+
+        // Summary card
         item {
             SummaryCard(
                 tripCount = trips.size,
@@ -444,6 +461,30 @@ private fun TripStatCard(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateFilterChips(
+    selectedFilter: TripDateFilter,
+    palette: CarColorPalette,
+    onFilterSelected: (TripDateFilter) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(TripDateFilter.entries.toList()) { filter ->
+            FilterChip(
+                selected = filter == selectedFilter,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(stringResource(filter.labelRes)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = palette.surface,
+                    selectedLabelColor = palette.onSurface
+                )
             )
         }
     }

@@ -1,7 +1,9 @@
 package com.matedroid.ui.screens.trips
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
@@ -15,7 +17,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import javax.inject.Inject
+
+enum class TripDateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
+    LAST_90_DAYS(R.string.filter_last_90_days, 90),
+    LAST_YEAR(R.string.filter_last_year, 365),
+    ALL_TIME(R.string.filter_all_time, null)
+}
 
 data class TripsUiState(
     val isLoading: Boolean = true,
@@ -23,6 +35,7 @@ data class TripsUiState(
     val totalDistance: Double = 0.0,
     val totalDrivingMin: Int = 0,
     val totalEnergyCharged: Double = 0.0,
+    val dateFilter: TripDateFilter = TripDateFilter.ALL_TIME,
     val units: Units? = null
 )
 
@@ -38,6 +51,7 @@ class TripsViewModel @Inject constructor(
     val uiState: StateFlow<TripsUiState> = _uiState.asStateFlow()
 
     private var carId: Int? = null
+    private var allTrips: List<Trip> = emptyList()
 
     fun setCarId(id: Int) {
         if (carId == id) return
@@ -46,11 +60,16 @@ class TripsViewModel @Inject constructor(
         loadUnits(id)
     }
 
+    fun setDateFilter(filter: TripDateFilter) {
+        _uiState.update { it.copy(dateFilter = filter) }
+        applyFilter()
+    }
+
     private fun loadUnits(carId: Int) {
         viewModelScope.launch {
             when (val result = repository.getCarStatus(carId)) {
                 is ApiResult.Success -> _uiState.update { it.copy(units = result.data.units) }
-                is ApiResult.Error -> { /* default to metric */ }
+                is ApiResult.Error -> {}
             }
         }
     }
@@ -59,16 +78,43 @@ class TripsViewModel @Inject constructor(
         viewModelScope.launch {
             val drives = driveSummaryDao.getAllChronological(carId)
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
-            val trips = tripDetector.detectTrips(drives, dcCharges).reversed()
+            allTrips = tripDetector.detectTrips(drives, dcCharges).reversed()
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    trips = trips,
-                    totalDistance = trips.sumOf { t -> t.totalDistance },
-                    totalDrivingMin = trips.sumOf { t -> t.totalDrivingDurationMin },
-                    totalEnergyCharged = trips.sumOf { t -> t.totalEnergyCharged }
-                )
+            _uiState.update { it.copy(isLoading = false) }
+            applyFilter()
+        }
+    }
+
+    private fun applyFilter() {
+        val filter = _uiState.value.dateFilter
+        val filtered = if (filter.days == null) {
+            allTrips
+        } else {
+            val cutoff = LocalDate.now().minusDays(filter.days)
+            allTrips.filter { trip ->
+                val tripDate = parseDate(trip.startDate)
+                tripDate != null && !tripDate.isBefore(cutoff)
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                trips = filtered,
+                totalDistance = filtered.sumOf { t -> t.totalDistance },
+                totalDrivingMin = filtered.sumOf { t -> t.totalDrivingDurationMin },
+                totalEnergyCharged = filtered.sumOf { t -> t.totalEnergyCharged }
+            )
+        }
+    }
+
+    private fun parseDate(dateStr: String): LocalDate? {
+        return try {
+            OffsetDateTime.parse(dateStr).toLocalDate()
+        } catch (e: DateTimeParseException) {
+            try {
+                LocalDateTime.parse(dateStr.replace("Z", "")).toLocalDate()
+            } catch (e2: Exception) {
+                null
             }
         }
     }
