@@ -64,6 +64,7 @@ import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.components.createPinMarkerDrawable
+import com.matedroid.ui.components.createZapMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusError
@@ -556,11 +557,15 @@ private fun TripMapCard(
                                         TripMapPointType.CHARGE -> chargeColorArgb
                                         TripMapPointType.END -> endColorArgb
                                     }
+                                    val markerIcon = when (point.type) {
+                                        TripMapPointType.CHARGE -> createZapMarkerDrawable(mapCtx.resources, color)
+                                        else -> createPinMarkerDrawable(mapCtx.resources, color)
+                                    }
                                     val marker = Marker(this).apply {
                                         position = GeoPoint(point.latitude, point.longitude)
                                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         title = point.label
-                                        icon = createPinMarkerDrawable(mapCtx.resources, color)
+                                        icon = markerIcon
                                     }
                                     overlays.add(marker)
                                 }
