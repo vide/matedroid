@@ -1,9 +1,11 @@
 package com.matedroid.ui.screens.trips
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +19,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
@@ -49,6 +53,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -65,7 +70,8 @@ fun TripsScreen(
     viewModel: TripsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+    val isDarkTheme = isSystemInDarkTheme()
+    val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
     LaunchedEffect(carId) { viewModel.setCarId(carId) }
 
@@ -75,7 +81,10 @@ fun TripsScreen(
                 title = { Text(stringResource(R.string.trips_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -87,13 +96,18 @@ fun TripsScreen(
         when {
             uiState.isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator() }
             }
             uiState.trips.isEmpty() -> {
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(32.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -112,121 +126,158 @@ fun TripsScreen(
                         )
                         if (uiState.syncWarning) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = stringResource(R.string.trips_sync_warning),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center
-                            )
+                            SyncWarningText()
                         }
                     }
                 }
             }
             else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Sync warning
-                    if (uiState.syncWarning) {
-                        item {
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Filled.Info,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = stringResource(R.string.trips_sync_warning),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Summary card
-                    item {
-                        TripsSummaryCard(
-                            tripCount = uiState.trips.size,
-                            totalDistance = uiState.totalDistance,
-                            totalDrivingMin = uiState.totalDrivingMin,
-                            totalEnergyCharged = uiState.totalEnergyCharged,
-                            units = uiState.units
-                        )
-                    }
-
-                    // Trip cards
-                    itemsIndexed(uiState.trips, key = { _, trip -> trip.startDate }) { index, trip ->
-                        TripCard(
-                            trip = trip,
-                            units = uiState.units,
-                            onClick = { onNavigateToTripDetail(index) }
-                        )
-                    }
-                }
+                TripsContent(
+                    trips = uiState.trips,
+                    totalDistance = uiState.totalDistance,
+                    totalDrivingMin = uiState.totalDrivingMin,
+                    totalEnergyCharged = uiState.totalEnergyCharged,
+                    syncWarning = uiState.syncWarning,
+                    units = uiState.units,
+                    palette = palette,
+                    onTripClick = onNavigateToTripDetail
+                )
             }
         }
     }
 }
 
 @Composable
-private fun TripsSummaryCard(
+private fun TripsContent(
+    trips: List<Trip>,
+    totalDistance: Double,
+    totalDrivingMin: Int,
+    totalEnergyCharged: Double,
+    syncWarning: Boolean,
+    units: Units?,
+    palette: CarColorPalette,
+    onTripClick: (Int) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (syncWarning) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.trips_sync_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
+        // Summary card — same style as DrivesScreen SummaryCard
+        item {
+            SummaryCard(
+                tripCount = trips.size,
+                totalDistance = totalDistance,
+                totalDrivingMin = totalDrivingMin,
+                totalEnergyCharged = totalEnergyCharged,
+                units = units,
+                palette = palette
+            )
+        }
+
+        // Section header
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.trips_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Trip cards
+        itemsIndexed(trips, key = { _, trip -> trip.startDate }) { index, trip ->
+            TripItem(
+                trip = trip,
+                units = units,
+                onClick = { onTripClick(index) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCard(
     tripCount: Int,
     totalDistance: Double,
     totalDrivingMin: Int,
     totalEnergyCharged: Double,
-    units: Units?
+    units: Units?,
+    palette: CarColorPalette
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SummaryItem(
-                icon = Icons.Filled.Route,
-                label = stringResource(R.string.trips_title),
-                value = "$tripCount",
-                modifier = Modifier.weight(1f)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.trip_summary),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurface
             )
-            SummaryItem(
-                icon = Icons.Filled.Speed,
-                label = stringResource(R.string.distance),
-                value = "%.0f %s".format(
-                    UnitFormatter.formatDistanceValue(totalDistance, units, 0),
-                    UnitFormatter.getDistanceUnit(units)
-                ),
-                modifier = Modifier.weight(1f)
-            )
-            SummaryItem(
-                icon = Icons.Filled.Schedule,
-                label = stringResource(R.string.trip_driving_time),
-                value = formatDuration(totalDrivingMin),
-                modifier = Modifier.weight(1f)
-            )
-            SummaryItem(
-                icon = Icons.Filled.ElectricBolt,
-                label = stringResource(R.string.trip_energy_charged),
-                value = "%.1f kWh".format(totalEnergyCharged),
-                modifier = Modifier.weight(1f)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.Route,
+                    label = stringResource(R.string.trips_title),
+                    value = "%,d".format(tripCount),
+                    palette = palette,
+                    modifier = Modifier.weight(1.2f)
+                )
+                SummaryItem(
+                    icon = Icons.Filled.Speed,
+                    label = stringResource(R.string.total_distance),
+                    value = UnitFormatter.formatDistance(totalDistance, units),
+                    palette = palette,
+                    modifier = Modifier.weight(0.8f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.Schedule,
+                    label = stringResource(R.string.trip_driving_time),
+                    value = formatDuration(totalDrivingMin),
+                    palette = palette,
+                    modifier = Modifier.weight(1.2f)
+                )
+                SummaryItem(
+                    icon = Icons.Filled.ElectricBolt,
+                    label = stringResource(R.string.trip_energy_charged),
+                    value = "%.1f kWh".format(totalEnergyCharged),
+                    palette = palette,
+                    modifier = Modifier.weight(0.8f)
+                )
+            }
         }
     }
 }
@@ -236,42 +287,46 @@ private fun SummaryItem(
     icon: ImageVector,
     label: String,
     value: String,
+    palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.padding(4.dp)
     ) {
         Icon(
-            icon,
+            imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(20.dp),
+            tint = palette.accent
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurface
+            )
+        }
     }
 }
 
 @Composable
-private fun TripCard(
+private fun TripItem(
     trip: Trip,
     units: Units?,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
@@ -280,7 +335,7 @@ private fun TripCard(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Route header
+            // Route header card — same style as DriveItem
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -288,18 +343,20 @@ private fun TripCard(
                 )
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Filled.Route,
+                            imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = trip.startAddress,
+                            text = extractCity(trip.startAddress),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f)
@@ -316,7 +373,7 @@ private fun TripCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = trip.endAddress,
+                            text = extractCity(trip.endAddress),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -330,24 +387,23 @@ private fun TripCard(
                 }
             }
 
-            // Stats row
+            // Stats — 2x2 grid, same DriveStatCard pattern
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TripStatCard(
-                    label = stringResource(R.string.distance),
-                    value = "%.1f %s".format(
-                        UnitFormatter.formatDistanceValue(trip.totalDistance, units, 1),
-                        UnitFormatter.getDistanceUnit(units)
-                    ),
                     icon = Icons.Filled.Speed,
+                    value = "%.1f".format(UnitFormatter.formatDistanceValue(trip.totalDistance, units)),
+                    unit = UnitFormatter.getDistanceUnit(units),
+                    label = stringResource(R.string.distance),
                     modifier = Modifier.weight(1f)
                 )
                 TripStatCard(
-                    label = stringResource(R.string.trip_total_time),
-                    value = formatDuration(trip.totalDurationMin),
                     icon = Icons.Filled.Schedule,
+                    value = formatDuration(trip.totalDurationMin),
+                    unit = "",
+                    label = stringResource(R.string.trip_total_time),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -356,15 +412,17 @@ private fun TripCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TripStatCard(
-                    label = stringResource(R.string.trip_charge_stops),
-                    value = "${trip.charges.size}",
                     icon = Icons.Filled.ElectricBolt,
+                    value = "${trip.charges.size}",
+                    unit = "",
+                    label = stringResource(R.string.trip_charge_stops),
                     modifier = Modifier.weight(1f)
                 )
                 TripStatCard(
-                    label = stringResource(R.string.battery),
-                    value = "${trip.startBatteryLevel}% → ${trip.endBatteryLevel}%",
                     icon = Icons.Filled.BatteryChargingFull,
+                    value = "${trip.startBatteryLevel}% → ${trip.endBatteryLevel}%",
+                    unit = "",
+                    label = stringResource(R.string.battery),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -374,9 +432,10 @@ private fun TripCard(
 
 @Composable
 private fun TripStatCard(
-    label: String,
-    value: String,
     icon: ImageVector,
+    value: String,
+    unit: String,
+    label: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -385,32 +444,57 @@ private fun TripStatCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                icon,
+                imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.width(6.dp))
-            Column {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (unit.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = unit,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
+}
+
+@Composable
+private fun SyncWarningText() {
+    Text(
+        text = stringResource(R.string.trips_sync_warning),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        textAlign = TextAlign.Center
+    )
+}
+
+/** Extract city name from address like "Ionity Montpellier, Saint-Aunès" → "Saint-Aunès". */
+internal fun extractCity(address: String): String {
+    val parts = address.split(", ")
+    return if (parts.size >= 2) parts.last() else address
 }
 
 private fun formatDuration(minutes: Int): String {
@@ -421,12 +505,10 @@ private fun formatDuration(minutes: Int): String {
 
 private fun formatDate(dateStr: String): String {
     return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
+        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
+        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
+        dateTime.format(outputFormatter)
     } catch (e: Exception) {
         dateStr
     }

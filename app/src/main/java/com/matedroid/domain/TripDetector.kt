@@ -13,17 +13,26 @@ import javax.inject.Singleton
 /**
  * Detects highway/road trips from drive and DC charge data.
  *
- * A trip is: drive → DC charge → drive [→ DC charge → drive ...]
- * - Max 15min gap between drive end and charge start
- * - Max 45min gap between charge end and next drive start
- * - Minimum 2 drives + 1 DC charge to qualify
+ * A trip is a sequence of drives connected by DC charge stops.
+ * Micro-drives (< 1 km, e.g. parking maneuvers at charger locations) are
+ * filtered out before detection to avoid breaking chains.
+ *
+ * Gap thresholds:
+ * - drive → charge: max 15 min
+ * - charge → drive: max 45 min
+ * - drive → drive:  max 30 min (e.g. highway rest stop without charging)
+ * - charge → charge: max 45 min (charger hop at same location)
+ *
+ * Minimum: 2 real drives + 1 DC charge.
  */
 @Singleton
 class TripDetector @Inject constructor() {
 
     companion object {
+        private const val MICRO_DRIVE_THRESHOLD_KM = 1.0
         private const val MAX_DRIVE_TO_CHARGE_GAP_MIN = 15L
         private const val MAX_CHARGE_TO_DRIVE_GAP_MIN = 45L
+        private const val MAX_DRIVE_TO_DRIVE_GAP_MIN = 30L
     }
 
     private sealed class Event(val startDate: String, val endDate: String) {
@@ -31,17 +40,14 @@ class TripDetector @Inject constructor() {
         class Charge(val charge: ChargeSummary) : Event(charge.startDate, charge.endDate)
     }
 
-    /**
-     * Detect trips from chronologically sorted drives and DC-only charges.
-     * Both lists must be sorted by startDate ASC.
-     */
     fun detectTrips(
         drives: List<DriveSummary>,
         dcCharges: List<ChargeSummary>
     ): List<Trip> {
-        // Merge into a single timeline sorted by startDate
+        val realDrives = drives.filter { it.distance >= MICRO_DRIVE_THRESHOLD_KM }
+
         val events = mutableListOf<Event>()
-        drives.forEach { events.add(Event.Drive(it)) }
+        realDrives.forEach { events.add(Event.Drive(it)) }
         dcCharges.forEach { events.add(Event.Charge(it)) }
         events.sortBy { parseDateTime(it.startDate) ?: LocalDateTime.MIN }
 
@@ -78,14 +84,19 @@ class TripDetector @Inject constructor() {
                     lastEventEnd = parseDateTime(event.endDate)
                     lastWasDrive = true
                 }
-                // charge → charge within 45min (supercharger hop)
+                // drive → drive: max 30min gap (rest stop, toll booth, etc.)
+                lastWasDrive && event is Event.Drive && gapMin <= MAX_DRIVE_TO_DRIVE_GAP_MIN -> {
+                    currentDrives.add(event.drive)
+                    lastEventEnd = parseDateTime(event.endDate)
+                    lastWasDrive = true
+                }
+                // charge → charge: max 45min gap (charger hop at same location)
                 !lastWasDrive && event is Event.Charge && gapMin <= MAX_CHARGE_TO_DRIVE_GAP_MIN -> {
                     currentCharges.add(event.charge)
                     lastEventEnd = parseDateTime(event.endDate)
                     lastWasDrive = false
                 }
                 else -> {
-                    // Gap too large or wrong sequence — finalize and restart
                     emitTrip(currentDrives, currentCharges, trips)
                     currentDrives = mutableListOf()
                     currentCharges = mutableListOf()
