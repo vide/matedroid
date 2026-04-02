@@ -325,7 +325,7 @@ private fun TripItem(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Route header card — same style as DriveItem
+            // Route header — single line
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -346,26 +346,11 @@ private fun TripItem(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = extractCity(trip.startAddress),
+                            text = "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.padding(start = 28.dp, top = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "→",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = extractCity(trip.endAddress),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1
                         )
                     }
                     Text(
@@ -409,10 +394,10 @@ private fun TripItem(
                     modifier = Modifier.weight(1f)
                 )
                 TripStatCard(
-                    icon = Icons.Filled.BatteryChargingFull,
-                    value = "${trip.startBatteryLevel}% → ${trip.endBatteryLevel}%",
-                    unit = "",
-                    label = stringResource(R.string.battery),
+                    icon = Icons.Filled.ElectricBolt,
+                    value = "%.1f".format(trip.totalEnergyConsumed),
+                    unit = "kWh",
+                    label = stringResource(R.string.trip_energy_consumed),
                     modifier = Modifier.weight(1f)
                 )
             }
