@@ -170,7 +170,8 @@ class TripDetailViewModel @Inject constructor(
         }
 
         // Fallback: if the last drive has no cached end coords, fetch from API (1 call).
-        // This covers aggregates computed before V9 added endLatitude/endLongitude.
+        // SchemaVersion V5 triggers re-sync to populate end coords, but the sync may
+        // not have completed yet when the user first opens the trip detail after update.
         val lastDrive = trip.drives.lastOrNull()
         val lastCoord = lastDrive?.let { driveCoords[it.driveId] }
         if (lastDrive != null && (lastCoord == null || lastCoord.endLatitude == null)) {
