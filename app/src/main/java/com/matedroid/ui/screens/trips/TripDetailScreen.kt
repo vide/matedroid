@@ -648,6 +648,7 @@ private fun TripMapCard(
                                     }
                                 }
 
+                                val mapView = this
                                 markers.forEach { point ->
                                     val color = when (point.type) {
                                         TripMapPointType.START -> startColorArgb
@@ -658,21 +659,23 @@ private fun TripMapCard(
                                         TripMapPointType.CHARGE -> createZapMarkerDrawable(mapCtx.resources, color)
                                         else -> createPinMarkerDrawable(mapCtx.resources, color)
                                     }
-                                    val marker = Marker(this).apply {
+                                    val marker = Marker(mapView).apply {
                                         position = GeoPoint(point.latitude, point.longitude)
                                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         title = point.label
                                         icon = markerIcon
                                         if (point.chargeId != null) {
-                                            setOnMarkerClickListener { m, mapView ->
-                                                if (m.isInfoWindowShown) {
-                                                    m.closeInfoWindow()
-                                                    onChargeClick(point.chargeId)
-                                                } else {
-                                                    org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(mapView)
-                                                    m.showInfoWindow()
+                                            val cid = point.chargeId
+                                            infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                                                org.osmdroid.library.R.layout.bonuspack_bubble, mapView
+                                            ) {
+                                                override fun onOpen(item: Any?) {
+                                                    super.onOpen(item)
+                                                    view?.setOnClickListener {
+                                                        close()
+                                                        onChargeClick(cid)
+                                                    }
                                                 }
-                                                true
                                             }
                                         }
                                     }
