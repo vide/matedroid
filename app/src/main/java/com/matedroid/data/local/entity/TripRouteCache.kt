@@ -1,17 +1,21 @@
 package com.matedroid.data.local.entity
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
 /**
- * Caches GPS route segments for a trip so subsequent views skip API calls.
+ * Caches one drive leg's GPS route for a trip so subsequent views skip API calls.
  *
- * The tripKey is a hash of the sorted, concatenated drive IDs that make up the trip,
- * ensuring cache invalidation if trip composition changes.
+ * Each row holds one segment (drive leg). The tripKey groups all segments for a trip
+ * and is a hash of the sorted drive IDs, ensuring cache invalidation if trip
+ * composition changes. segmentIndex preserves the original leg order.
  */
-@Entity(tableName = "trip_route_cache")
+@Entity(
+    tableName = "trip_route_cache",
+    primaryKeys = ["tripKey", "segmentIndex"]
+)
 data class TripRouteCache(
-    @PrimaryKey val tripKey: String,
-    val routeJson: String,      // JSON-serialized List<TripRouteSegment>
+    val tripKey: String,
+    val segmentIndex: Int,
+    val segmentJson: String,    // JSON array of {lat, lon} objects for one segment
     val createdAt: Long         // System.currentTimeMillis()
 )

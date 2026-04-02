@@ -226,18 +226,22 @@ class TripDetailViewModel @Inject constructor(
             val tripKey = computeTripKey(trip)
 
             // Try cache first
-            val cached = tripRouteCacheDao.get(tripKey)
-            val segments = if (cached != null) {
-                deserializeSegments(cached.routeJson)
+            val cachedRows = tripRouteCacheDao.getSegments(tripKey)
+            val segments = if (cachedRows.isNotEmpty()) {
+                cachedRows.map { row -> deserializeSegment(row.segmentJson) }
             } else {
                 val fetched = fetchRouteFromApi(carId, trip)
                 if (fetched.isNotEmpty()) {
-                    tripRouteCacheDao.insert(
-                        TripRouteCache(
-                            tripKey = tripKey,
-                            routeJson = serializeSegments(fetched),
-                            createdAt = System.currentTimeMillis()
-                        )
+                    val now = System.currentTimeMillis()
+                    tripRouteCacheDao.insertAll(
+                        fetched.mapIndexed { index, segment ->
+                            TripRouteCache(
+                                tripKey = tripKey,
+                                segmentIndex = index,
+                                segmentJson = serializeSegment(segment),
+                                createdAt = now
+                            )
+                        }
                     )
                 }
                 fetched
@@ -301,28 +305,21 @@ class TripDetailViewModel @Inject constructor(
         return digest.joinToString("") { "%02x".format(it) }
     }
 
-    private fun serializeSegments(segments: List<TripRouteSegment>): String {
+    private fun serializeSegment(segment: TripRouteSegment): String {
         val arr = JSONArray()
-        for (segment in segments) {
-            val pts = JSONArray()
-            for (pt in segment.points) {
-                pts.put(JSONObject().put("lat", pt.latitude).put("lon", pt.longitude))
-            }
-            arr.put(pts)
+        for (pt in segment.points) {
+            arr.put(JSONObject().put("lat", pt.latitude).put("lon", pt.longitude))
         }
         return arr.toString()
     }
 
-    private fun deserializeSegments(json: String): List<TripRouteSegment> {
+    private fun deserializeSegment(json: String): TripRouteSegment {
         val arr = JSONArray(json)
-        return (0 until arr.length()).map { i ->
-            val pts = arr.getJSONArray(i)
-            TripRouteSegment(
-                (0 until pts.length()).map { j ->
-                    val obj = pts.getJSONObject(j)
-                    TripRoutePoint(obj.getDouble("lat"), obj.getDouble("lon"))
-                }
-            )
-        }
+        return TripRouteSegment(
+            (0 until arr.length()).map { j ->
+                val obj = arr.getJSONObject(j)
+                TripRoutePoint(obj.getDouble("lat"), obj.getDouble("lon"))
+            }
+        )
     }
 }

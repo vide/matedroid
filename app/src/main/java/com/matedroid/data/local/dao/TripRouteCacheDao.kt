@@ -9,9 +9,9 @@ import com.matedroid.data.local.entity.TripRouteCache
 @Dao
 interface TripRouteCacheDao {
 
-    @Query("SELECT * FROM trip_route_cache WHERE tripKey = :tripKey LIMIT 1")
-    suspend fun get(tripKey: String): TripRouteCache?
+    @Query("SELECT * FROM trip_route_cache WHERE tripKey = :tripKey ORDER BY segmentIndex ASC")
+    suspend fun getSegments(tripKey: String): List<TripRouteCache>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(cache: TripRouteCache)
+    suspend fun insertAll(segments: List<TripRouteCache>)
 }

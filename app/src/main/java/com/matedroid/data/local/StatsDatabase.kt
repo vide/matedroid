@@ -174,14 +174,16 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        /** Migration from V6 to V7: Add trip route cache table */
+        /** Migration from V6 to V7: Add trip route cache table (one row per segment) */
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS trip_route_cache (
-                        tripKey TEXT NOT NULL PRIMARY KEY,
-                        routeJson TEXT NOT NULL,
-                        createdAt INTEGER NOT NULL
+                        tripKey TEXT NOT NULL,
+                        segmentIndex INTEGER NOT NULL,
+                        segmentJson TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY (tripKey, segmentIndex)
                     )
                 """)
             }
