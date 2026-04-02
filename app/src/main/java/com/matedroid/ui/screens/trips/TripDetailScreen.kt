@@ -45,6 +45,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -586,6 +589,15 @@ private fun TripMapCard(
     palette: CarColorPalette,
     onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
+    // Bridge: Android View click → Compose state → Compose navigation
+    var pendingChargeNav by remember { mutableIntStateOf(0) }
+    LaunchedEffect(pendingChargeNav) {
+        if (pendingChargeNav != 0) {
+            onChargeClick(pendingChargeNav)
+            pendingChargeNav = 0
+        }
+    }
+
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
     val endColorArgb = StatusError.toArgb()
@@ -673,7 +685,7 @@ private fun TripMapCard(
                                                     super.onOpen(item)
                                                     view?.setOnClickListener {
                                                         close()
-                                                        onChargeClick(cid)
+                                                        pendingChargeNav = cid
                                                     }
                                                 }
                                             }
