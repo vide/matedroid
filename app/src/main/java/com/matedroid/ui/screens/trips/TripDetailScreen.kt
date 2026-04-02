@@ -184,7 +184,7 @@ private fun TripDetailContent(
         item { RouteHeaderCard(trip, countries, onCountryClick) }
 
         // Map
-        item {
+        item(key = "map") {
             TripMapCard(
                 routeSegments = routeSegments,
                 markers = markers,
@@ -664,14 +664,15 @@ private fun TripMapCard(
                                         title = point.label
                                         icon = markerIcon
                                         if (point.chargeId != null) {
-                                            setOnMarkerClickListener { m, _ ->
+                                            setOnMarkerClickListener { m, mapView ->
                                                 if (m.isInfoWindowShown) {
+                                                    m.closeInfoWindow()
                                                     onChargeClick(point.chargeId)
-                                                    true
                                                 } else {
+                                                    org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(mapView)
                                                     m.showInfoWindow()
-                                                    true
                                                 }
+                                                true
                                             }
                                         }
                                     }
