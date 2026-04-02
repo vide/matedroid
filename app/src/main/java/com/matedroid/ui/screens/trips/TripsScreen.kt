@@ -394,7 +394,7 @@ private fun TripItem(
                     modifier = Modifier.weight(1f)
                 )
                 TripStatCard(
-                    icon = Icons.Filled.ElectricBolt,
+                    icon = Icons.Filled.BatteryChargingFull,
                     value = "%.1f".format(trip.totalEnergyConsumed),
                     unit = "kWh",
                     label = stringResource(R.string.trip_energy_consumed),
