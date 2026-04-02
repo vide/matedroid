@@ -683,9 +683,16 @@ private fun TripMapCard(
                                             ) {
                                                 override fun onOpen(item: Any?) {
                                                     super.onOpen(item)
-                                                    view?.setOnClickListener {
+                                                    // Set click on every child so any tap on the bubble navigates
+                                                    val clickListener = android.view.View.OnClickListener {
                                                         close()
                                                         pendingChargeNav = cid
+                                                    }
+                                                    view?.setOnClickListener(clickListener)
+                                                    (view as? android.view.ViewGroup)?.let { vg ->
+                                                        for (i in 0 until vg.childCount) {
+                                                            vg.getChildAt(i).setOnClickListener(clickListener)
+                                                        }
                                                     }
                                                 }
                                             }
