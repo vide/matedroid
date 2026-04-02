@@ -699,8 +699,9 @@ fun NavGraph(
                 onNavigateToChargeDetail = { chargeId ->
                     navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
                 },
-                onNavigateToCountryStats = {
-                    navController.navigate(Screen.CountriesVisited.createRoute(carId, exteriorColor))
+                onNavigateToCountryStats = { countryCode ->
+                    val countryName = java.util.Locale("", countryCode).displayCountry
+                    navController.navigate(Screen.RegionsVisited.createRoute(carId, countryCode, countryName, exteriorColor))
                 }
             )
         }

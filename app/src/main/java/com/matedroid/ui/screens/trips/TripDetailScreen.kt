@@ -94,7 +94,7 @@ fun TripDetailScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToDriveDetail: (driveId: Int) -> Unit = {},
     onNavigateToChargeDetail: (chargeId: Int) -> Unit = {},
-    onNavigateToCountryStats: () -> Unit = {},
+    onNavigateToCountryStats: (countryCode: String) -> Unit = {},
     viewModel: TripDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -170,7 +170,7 @@ private fun TripDetailContent(
     palette: CarColorPalette,
     onDriveClick: (driveId: Int) -> Unit,
     onChargeClick: (chargeId: Int) -> Unit,
-    onCountryClick: () -> Unit,
+    onCountryClick: (countryCode: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -255,7 +255,7 @@ private fun TripDetailContent(
 private fun RouteHeaderCard(
     trip: Trip,
     countries: List<TripCountry>,
-    @Suppress("UNUSED_PARAMETER") onCountryClick: () -> Unit
+    onCountryClick: (countryCode: String) -> Unit
 ) {
     val startFlag = countries.firstOrNull()?.flagEmoji
     val endFlag = if (countries.size >= 2) countries.last().flagEmoji else startFlag
@@ -270,12 +270,14 @@ private fun RouteHeaderCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Start stop: flag + city + time
+            val startCountry = countries.firstOrNull()
             TimelineStop(
-                flag = startFlag,
+                flag = startCountry?.flagEmoji,
                 fallbackColor = StatusSuccess,
                 city = extractCity(trip.startAddress),
                 label = stringResource(R.string.from),
-                time = formatDateTime(trip.startDate)
+                time = formatDateTime(trip.startDate),
+                onFlagClick = startCountry?.let { { onCountryClick(it.countryCode) } }
             )
 
             // Line + intermediate countries
@@ -288,19 +290,22 @@ private fun RouteHeaderCard(
                         flag = country.flagEmoji,
                         flagSize = 20,
                         city = null,
-                        label = null
+                        label = null,
+                        onFlagClick = { onCountryClick(country.countryCode) }
                     )
                 }
                 TimelineLine(lineColor, height = 8)
             }
 
             // End stop: flag + city + time
+            val endCountry = if (countries.size >= 2) countries.last() else startCountry
             TimelineStop(
-                flag = endFlag,
+                flag = endCountry?.flagEmoji,
                 fallbackColor = StatusError,
                 city = extractCity(trip.endAddress),
                 label = stringResource(R.string.to),
-                time = formatDateTime(trip.endDate)
+                time = formatDateTime(trip.endDate),
+                onFlagClick = endCountry?.let { { onCountryClick(it.countryCode) } }
             )
         }
     }
@@ -314,7 +319,8 @@ private fun TimelineStop(
     fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
     city: String?,
     label: String?,
-    time: String? = null
+    time: String? = null,
+    onFlagClick: (() -> Unit)? = null
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -322,7 +328,9 @@ private fun TimelineStop(
     ) {
         // Flag or colored dot, centered in 32dp column
         Box(
-            modifier = Modifier.width(32.dp),
+            modifier = Modifier
+                .width(32.dp)
+                .then(if (onFlagClick != null) Modifier.clickable(onClick = onFlagClick) else Modifier),
             contentAlignment = Alignment.Center
         ) {
             if (flag != null) {
