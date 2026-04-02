@@ -49,7 +49,7 @@ import com.matedroid.data.local.entity.TripRouteCache
         SentryAlertLog::class,
         TripRouteCache::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -189,6 +189,22 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+        /** Migration from V7 to V8: Recreate trip_route_cache with composite PK */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS trip_route_cache")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS trip_route_cache (
+                        tripKey TEXT NOT NULL,
+                        segmentIndex INTEGER NOT NULL,
+                        segmentJson TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY (tripKey, segmentIndex)
+                    )
+                """)
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
     }
 }
