@@ -12,6 +12,7 @@ import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
 import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
+import com.matedroid.data.local.dao.TripCountryCacheDao
 import com.matedroid.data.local.dao.TripRouteCacheDao
 import com.matedroid.data.local.entity.ChargeDetailAggregate
 import com.matedroid.data.local.entity.ChargeSummary
@@ -22,6 +23,7 @@ import com.matedroid.data.local.entity.GeocodeProgress
 import com.matedroid.data.local.entity.GeocodeQueueItem
 import com.matedroid.data.local.entity.SentryAlertLog
 import com.matedroid.data.local.entity.SyncState
+import com.matedroid.data.local.entity.TripCountryCache
 import com.matedroid.data.local.entity.TripRouteCache
 
 /**
@@ -47,9 +49,10 @@ import com.matedroid.data.local.entity.TripRouteCache
         GeocodeQueueItem::class,
         GeocodeProgress::class,
         SentryAlertLog::class,
-        TripRouteCache::class
+        TripRouteCache::class,
+        TripCountryCache::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -63,6 +66,7 @@ abstract class StatsDatabase : RoomDatabase() {
     abstract fun geocodeProgressDao(): GeocodeProgressDao
     abstract fun sentryAlertLogDao(): SentryAlertLogDao
     abstract fun tripRouteCacheDao(): TripRouteCacheDao
+    abstract fun tripCountryCacheDao(): TripCountryCacheDao
 
     companion object {
         const val DATABASE_NAME = "matedroid_stats.db"
@@ -227,6 +231,20 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+        /** Migration from V9 to V10: Add trip country cache table */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS trip_country_cache (
+                        tripKey TEXT NOT NULL,
+                        countries TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY (tripKey)
+                    )
+                """)
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
     }
 }

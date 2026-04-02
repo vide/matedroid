@@ -11,6 +11,7 @@ import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
 import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
+import com.matedroid.data.local.dao.TripCountryCacheDao
 import com.matedroid.data.local.dao.TripRouteCacheDao
 import dagger.Module
 import dagger.Provides
@@ -90,5 +91,11 @@ object DatabaseModule {
     @Singleton
     fun provideTripRouteCacheDao(database: StatsDatabase): TripRouteCacheDao {
         return database.tripRouteCacheDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTripCountryCacheDao(database: StatsDatabase): TripCountryCacheDao {
+        return database.tripCountryCacheDao()
     }
 }
