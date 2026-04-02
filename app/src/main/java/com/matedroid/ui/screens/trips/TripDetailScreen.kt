@@ -151,7 +151,8 @@ fun TripDetailScreen(
                         palette = palette,
                         onDriveClick = onNavigateToDriveDetail,
                         onChargeClick = onNavigateToChargeDetail,
-                        onCountryClick = onNavigateToCountryStats
+                        onCountryClick = onNavigateToCountryStats,
+                        currencySymbol = uiState.currencySymbol
                     )
                 }
             }
@@ -171,6 +172,7 @@ private fun TripDetailContent(
     onDriveClick: (driveId: Int) -> Unit,
     onChargeClick: (chargeId: Int) -> Unit,
     onCountryClick: (countryCode: String) -> Unit,
+    currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -187,7 +189,8 @@ private fun TripDetailContent(
                 routeSegments = routeSegments,
                 markers = markers,
                 isMapLoading = isMapLoading,
-                palette = palette
+                palette = palette,
+                onChargeClick = onChargeClick
             )
         }
 
@@ -206,6 +209,13 @@ private fun TripDetailContent(
             )
         }
 
+        // Charge cost card (only if any charge has cost data)
+        if (trip.totalChargeCost != null) {
+            item {
+                ChargeCostCard(trip = trip, currencySymbol = currencySymbol, onChargeClick = onChargeClick)
+            }
+        }
+
         item {
             StatsSectionCard(
                 title = stringResource(R.string.battery),
@@ -215,9 +225,6 @@ private fun TripDetailContent(
                     StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
                     trip.avgEfficiency?.let {
                         StatItem(stringResource(R.string.efficiency), "%.0f %s".format(it, UnitFormatter.getEfficiencyUnit(units)))
-                    },
-                    trip.totalChargeCost?.let {
-                        StatItem(stringResource(R.string.trip_charge_cost), "%.2f".format(it))
                     }
                 )
             )
@@ -392,6 +399,94 @@ private fun TimelineLine(
     }
 }
 
+// === Charge Cost Card ===
+
+@Composable
+private fun ChargeCostCard(
+    trip: Trip,
+    currencySymbol: String,
+    onChargeClick: (chargeId: Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.ElectricBolt,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.trip_charge_cost),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                trip.totalChargeCost?.let {
+                    Text(
+                        text = "%.2f %s".format(it, currencySymbol),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            // Per-charge breakdown
+            trip.charges.filter { it.cost != null }.forEach { charge ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onChargeClick(charge.chargeId) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = extractCity(charge.address),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "+%.1f kWh · %dm".format(charge.energyAdded, charge.durationMin),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = "%.2f %s".format(charge.cost, currencySymbol),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 // === Stats — StatsSectionCard pattern from DriveDetailScreen ===
 
 private data class StatItem(val label: String, val value: String)
@@ -488,7 +583,8 @@ private fun TripMapCard(
     routeSegments: List<TripRouteSegment>,
     markers: List<TripMapMarker>,
     isMapLoading: Boolean,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
@@ -567,6 +663,17 @@ private fun TripMapCard(
                                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         title = point.label
                                         icon = markerIcon
+                                        if (point.chargeId != null) {
+                                            setOnMarkerClickListener { m, _ ->
+                                                if (m.isInfoWindowShown) {
+                                                    onChargeClick(point.chargeId)
+                                                    true
+                                                } else {
+                                                    m.showInfoWindow()
+                                                    true
+                                                }
+                                            }
+                                        }
                                     }
                                     overlays.add(marker)
                                 }

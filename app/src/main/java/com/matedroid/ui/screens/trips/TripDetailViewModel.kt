@@ -3,9 +3,11 @@ package com.matedroid.ui.screens.trips
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
+import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.countryCodeToFlag
@@ -13,6 +15,7 @@ import com.matedroid.domain.TripDetector
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +33,8 @@ data class TripMapMarker(
     val latitude: Double,
     val longitude: Double,
     val type: TripMapPointType,
-    val label: String
+    val label: String,
+    val chargeId: Int? = null
 )
 
 enum class TripMapPointType { START, CHARGE, END }
@@ -52,7 +56,8 @@ data class TripDetailUiState(
     val markers: List<TripMapMarker> = emptyList(),
     val isMapLoading: Boolean = true,
     val countries: List<TripCountry> = emptyList(),
-    val units: Units? = null
+    val units: Units? = null,
+    val currencySymbol: String = "€"
 )
 
 @HiltViewModel
@@ -61,7 +66,8 @@ class TripDetailViewModel @Inject constructor(
     private val aggregateDao: AggregateDao,
     private val geocodeCacheDao: GeocodeCacheDao,
     private val tripDetector: TripDetector,
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TripDetailUiState())
@@ -80,6 +86,11 @@ class TripDetailViewModel @Inject constructor(
                     is ApiResult.Error -> {}
                 }
             }
+            launch {
+                val settings = settingsDataStore.settings.first()
+                val symbol = Currency.findByCode(settings.currencyCode).symbol
+                _uiState.update { it.copy(currencySymbol = symbol) }
+            }
 
             val drives = driveSummaryDao.getAllChronological(carId)
             val dcCharges = aggregateDao.getDcChargeSummaries(carId)
@@ -97,7 +108,8 @@ class TripDetailViewModel @Inject constructor(
                 markers.add(
                     TripMapMarker(
                         charge.latitude, charge.longitude,
-                        TripMapPointType.CHARGE, charge.address
+                        TripMapPointType.CHARGE, charge.address,
+                        chargeId = charge.chargeId
                     )
                 )
             }
