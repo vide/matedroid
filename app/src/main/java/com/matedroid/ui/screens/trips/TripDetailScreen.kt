@@ -42,11 +42,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -583,6 +586,9 @@ private fun TripMapCard(
         }
     }
 
+    // Track when the map has zoomed to the route — hides the world-view flash
+    var mapReady by remember { mutableStateOf(false) }
+
     val startColorArgb = StatusSuccess.toArgb()
     val chargeColorArgb = palette.accent.toArgb()
     val endColorArgb = StatusError.toArgb()
@@ -696,18 +702,29 @@ private fun TripMapCard(
                             mapView.post {
                                 mapView.zoomToBoundingBox(bb, false)
                                 mapView.invalidate()
+                                mapReady = true
                             }
                         }
                     },
                     modifier = Modifier.fillMaxSize()
                 )
-                if (isMapLoading) {
+                // Opaque cover hides the world-view zoom until route is drawn
+                val overlayAlpha by animateFloatAsState(
+                    targetValue = if (mapReady) 0f else 1f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "mapOverlay"
+                )
+                if (overlayAlpha > 0f) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = overlayAlpha)),
                         contentAlignment = Alignment.Center
-                    ) { CircularProgressIndicator(modifier = Modifier.size(32.dp)) }
+                    ) {
+                        if (isMapLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                        }
+                    }
                 }
             }
         }
