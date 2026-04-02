@@ -72,6 +72,11 @@ data class DriveDetailAggregate(
     val startRegionName: String? = null,    // State/region (e.g., "Lazio", "California") (V4)
     val startCity: String? = null,          // City/town (e.g., "Rome", "San Francisco") (V4)
 
+    // === End location (V9) ===
+    // Coordinates from last position (for trip country resolution without API call)
+    val endLatitude: Double? = null,
+    val endLongitude: Double? = null,
+
     // === Future extensibility ===
     // Store experimental data without schema changes
     val extraJson: String? = null

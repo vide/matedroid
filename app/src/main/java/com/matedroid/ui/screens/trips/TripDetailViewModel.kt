@@ -13,6 +13,7 @@ import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.countryCodeToFlag
+import com.matedroid.domain.RouteSimplifier
 import com.matedroid.domain.TripDetector
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,8 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.json.JSONArray
-import org.json.JSONObject
+import java.nio.ByteBuffer
 import java.security.MessageDigest
 import javax.inject.Inject
 
@@ -72,6 +72,7 @@ class TripDetailViewModel @Inject constructor(
     private val geocodeCacheDao: GeocodeCacheDao,
     private val tripRouteCacheDao: TripRouteCacheDao,
     private val tripDetector: TripDetector,
+    private val tripCache: TripCache,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
@@ -98,11 +99,13 @@ class TripDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(currencySymbol = symbol) }
             }
 
-            val drives = driveSummaryDao.getAllChronological(carId)
-            val dcCharges = aggregateDao.getDcChargeSummaries(carId)
-            val trips = tripDetector.detectTrips(drives, dcCharges)
-
-            val trip = trips.find { it.startDate == tripStartDate }
+            // Fast path: use cached trip from list screen (avoids full re-detection)
+            val trip = tripCache.take(tripStartDate) ?: run {
+                val drives = driveSummaryDao.getAllChronological(carId)
+                val dcCharges = aggregateDao.getDcChargeSummaries(carId)
+                val trips = tripDetector.detectTrips(drives, dcCharges)
+                trips.find { it.startDate == tripStartDate }
+            }
             if (trip == null) {
                 _uiState.update { it.copy(isLoading = false, isMapLoading = false) }
                 return@launch
@@ -120,12 +123,15 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
-            // Resolve countries from drive edge coordinates (fast, Room-only)
-            val countries = resolveCountriesFromDriveEdges(trip)
-
-            // Show trip info + countries immediately, map loads in background
+            // Show trip info immediately — countries and map load in background
             _uiState.update {
-                it.copy(isLoading = false, trip = trip, markers = markers, countries = countries)
+                it.copy(isLoading = false, trip = trip, markers = markers)
+            }
+
+            // Resolve countries in background (may involve 1 API call)
+            launch {
+                val countries = resolveCountriesFromDriveEdges(trip)
+                _uiState.update { it.copy(countries = countries) }
             }
 
             // Fetch GPS positions for all drives in parallel (for the map)
@@ -152,31 +158,21 @@ class TripDetailViewModel @Inject constructor(
 
         val points = mutableListOf<EdgePoint>()
 
-        val driveCoords = aggregateDao.getDriveCoordinates(trip.drives.map { it.driveId })
+        val driveCoords = aggregateDao.getDriveEdgeCoordinates(trip.drives.map { it.driveId })
             .associateBy { it.driveId }
 
-        // Drive start points
+        // Drive start + end points from cached coordinates (no API call needed)
         for (drive in trip.drives) {
             val coord = driveCoords[drive.driveId] ?: continue
             points.add(EdgePoint(coord.startLatitude, coord.startLongitude, drive.startDate))
+            if (coord.endLatitude != null && coord.endLongitude != null) {
+                points.add(EdgePoint(coord.endLatitude, coord.endLongitude, drive.endDate))
+            }
         }
 
-        // Charge locations (= drive end / next drive start proxy)
+        // Charge locations
         for (charge in trip.charges) {
             points.add(EdgePoint(charge.latitude, charge.longitude, charge.startDate))
-        }
-
-        // Last drive's actual end point (1 API call)
-        val lastDrive = trip.drives.lastOrNull()
-        if (lastDrive != null) {
-            when (val result = repository.getDriveDetail(lastDrive.carId, lastDrive.driveId)) {
-                is ApiResult.Success -> {
-                    result.data.positions
-                        ?.lastOrNull { it.latitude != null && it.longitude != null }
-                        ?.let { points.add(EdgePoint(it.latitude!!, it.longitude!!, lastDrive.endDate)) }
-                }
-                is ApiResult.Error -> {}
-            }
         }
 
         points.sortBy { it.time }
@@ -228,7 +224,7 @@ class TripDetailViewModel @Inject constructor(
             // Try cache first
             val cachedRows = tripRouteCacheDao.getSegments(tripKey)
             val segments = if (cachedRows.isNotEmpty()) {
-                cachedRows.map { row -> deserializeSegment(row.segmentJson) }
+                cachedRows.map { row -> deserializeSegment(row.segmentData) }
             } else {
                 val fetched = fetchRouteFromApi(carId, trip)
                 if (fetched.isNotEmpty()) {
@@ -238,7 +234,7 @@ class TripDetailViewModel @Inject constructor(
                             TripRouteCache(
                                 tripKey = tripKey,
                                 segmentIndex = index,
-                                segmentJson = serializeSegment(segment),
+                                segmentData = serializeSegment(segment),
                                 createdAt = now
                             )
                         }
@@ -247,7 +243,19 @@ class TripDetailViewModel @Inject constructor(
                 fetched
             }
 
-            val allPoints = segments.flatMap { it.points }
+            // Simplify for display — keeps route shape, reduces rendering work
+            val simplified = segments.map { segment ->
+                TripRouteSegment(
+                    RouteSimplifier.simplify(
+                        segment.points,
+                        epsilon = 0.0001,
+                        lat = { it.latitude },
+                        lon = { it.longitude }
+                    )
+                )
+            }
+
+            val allPoints = simplified.flatMap { it.points }
 
             // Add start/end markers from actual GPS data
             val markers = _uiState.value.markers.toMutableList()
@@ -271,7 +279,7 @@ class TripDetailViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    routeSegments = segments,
+                    routeSegments = simplified,
                     markers = markers,
                     isMapLoading = false
                 )
@@ -305,20 +313,22 @@ class TripDetailViewModel @Inject constructor(
         return digest.joinToString("") { "%02x".format(it) }
     }
 
-    private fun serializeSegment(segment: TripRouteSegment): String {
-        val arr = JSONArray()
+    /** Pack points as big-endian doubles: [lat0, lon0, lat1, lon1, ...] */
+    private fun serializeSegment(segment: TripRouteSegment): ByteArray {
+        val buf = ByteBuffer.allocate(segment.points.size * 16) // 2 doubles × 8 bytes
         for (pt in segment.points) {
-            arr.put(JSONObject().put("lat", pt.latitude).put("lon", pt.longitude))
+            buf.putDouble(pt.latitude)
+            buf.putDouble(pt.longitude)
         }
-        return arr.toString()
+        return buf.array()
     }
 
-    private fun deserializeSegment(json: String): TripRouteSegment {
-        val arr = JSONArray(json)
+    private fun deserializeSegment(data: ByteArray): TripRouteSegment {
+        val buf = ByteBuffer.wrap(data)
+        val count = data.size / 16
         return TripRouteSegment(
-            (0 until arr.length()).map { j ->
-                val obj = arr.getJSONObject(j)
-                TripRoutePoint(obj.getDouble("lat"), obj.getDouble("lon"))
+            (0 until count).map {
+                TripRoutePoint(buf.getDouble(), buf.getDouble())
             }
         )
     }

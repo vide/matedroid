@@ -384,9 +384,11 @@ class SyncRepository @Inject constructor(
         val endElevation = lastPosition?.elevation
         val hasElevationData = maxElevation != null
 
-        // Extract start coordinates for geocoding
+        // Extract start/end coordinates for geocoding and trip country resolution
         val startLatitude = firstPosition?.latitude
         val startLongitude = firstPosition?.longitude
+        val endLatitude = lastPosition?.latitude
+        val endLongitude = lastPosition?.longitude
 
         return DriveDetailAggregate(
             driveId = detail.driveId,
@@ -420,7 +422,10 @@ class SyncRepository @Inject constructor(
             startCountryCode = null,
             startCountryName = null,
             startRegionName = null,
-            startCity = null
+            startCity = null,
+
+            endLatitude = endLatitude,
+            endLongitude = endLongitude
         )
     }
 

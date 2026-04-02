@@ -802,6 +802,15 @@ interface AggregateDao {
         AND startLatitude IS NOT NULL AND startLongitude IS NOT NULL
     """)
     suspend fun getDriveCoordinates(driveIds: List<Int>): List<DriveCoordinateResult>
+
+    /** Drive start + end coordinates for trip country resolution. */
+    @Query("""
+        SELECT driveId, startLatitude, startLongitude, endLatitude, endLongitude
+        FROM drive_detail_aggregates
+        WHERE driveId IN (:driveIds)
+        AND startLatitude IS NOT NULL AND startLongitude IS NOT NULL
+    """)
+    suspend fun getDriveEdgeCoordinates(driveIds: List<Int>): List<DriveEdgeCoordinateResult>
 }
 
 /**
@@ -912,4 +921,12 @@ data class DriveCoordinateResult(
     val driveId: Int,
     val startLatitude: Double,
     val startLongitude: Double
+)
+
+data class DriveEdgeCoordinateResult(
+    val driveId: Int,
+    val startLatitude: Double,
+    val startLongitude: Double,
+    val endLatitude: Double?,
+    val endLongitude: Double?
 )

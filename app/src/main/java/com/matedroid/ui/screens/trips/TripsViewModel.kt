@@ -36,7 +36,8 @@ class TripsViewModel @Inject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
     private val tripDetector: TripDetector,
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val tripCache: TripCache
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TripsUiState())
@@ -50,6 +51,11 @@ class TripsViewModel @Inject constructor(
         carId = id
         loadTrips(id)
         loadUnits(id)
+    }
+
+    /** Cache the trip before navigating to detail, avoiding re-detection. */
+    fun cacheTrip(trip: Trip) {
+        tripCache.put(trip)
     }
 
     fun setYear(year: Int?) {

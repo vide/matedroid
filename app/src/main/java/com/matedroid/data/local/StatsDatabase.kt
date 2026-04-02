@@ -49,7 +49,7 @@ import com.matedroid.data.local.entity.TripRouteCache
         SentryAlertLog::class,
         TripRouteCache::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -205,6 +205,28 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+        /**
+         * Migration from V8 to V9:
+         * - Recreate trip_route_cache with binary BLOB instead of JSON text
+         * - Add end coordinates to drive_detail_aggregates for trip country resolution
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS trip_route_cache")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS trip_route_cache (
+                        tripKey TEXT NOT NULL,
+                        segmentIndex INTEGER NOT NULL,
+                        segmentData BLOB NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        PRIMARY KEY (tripKey, segmentIndex)
+                    )
+                """)
+                db.execSQL("ALTER TABLE drive_detail_aggregates ADD COLUMN endLatitude REAL")
+                db.execSQL("ALTER TABLE drive_detail_aggregates ADD COLUMN endLongitude REAL")
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
     }
 }

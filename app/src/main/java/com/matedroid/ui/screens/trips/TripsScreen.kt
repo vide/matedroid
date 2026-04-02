@@ -143,7 +143,10 @@ fun TripsScreen(
                         onYearSelected = { viewModel.setYear(it) },
                         units = uiState.units,
                         palette = palette,
-                        onTripClick = onNavigateToTripDetail
+                        onTripClick = { trip ->
+                            viewModel.cacheTrip(trip)
+                            onNavigateToTripDetail(trip.startDate)
+                        }
                     )
                 }
             }
@@ -162,7 +165,7 @@ private fun TripsContent(
     onYearSelected: (Int?) -> Unit,
     units: Units?,
     palette: CarColorPalette,
-    onTripClick: (String) -> Unit
+    onTripClick: (Trip) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -208,7 +211,7 @@ private fun TripsContent(
             TripItem(
                 trip = trip,
                 units = units,
-                onClick = { onTripClick(trip.startDate) }
+                onClick = { onTripClick(trip) }
             )
         }
     }
