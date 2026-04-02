@@ -7,6 +7,8 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
+import com.matedroid.data.local.dao.TripRouteCacheDao
+import com.matedroid.data.local.entity.TripRouteCache
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
@@ -22,6 +24,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.security.MessageDigest
 import javax.inject.Inject
 
 data class TripRoutePoint(
@@ -65,6 +70,7 @@ class TripDetailViewModel @Inject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
     private val geocodeCacheDao: GeocodeCacheDao,
+    private val tripRouteCacheDao: TripRouteCacheDao,
     private val tripDetector: TripDetector,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore
@@ -217,23 +223,25 @@ class TripDetailViewModel @Inject constructor(
 
     private fun loadRoutePositions(carId: Int, trip: Trip) {
         viewModelScope.launch {
-            val deferreds = trip.drives.map { drive ->
-                async {
-                    when (val result = repository.getDriveDetail(carId, drive.driveId)) {
-                        is ApiResult.Success -> {
-                            result.data.positions
-                                ?.filter { it.latitude != null && it.longitude != null }
-                                ?.map { TripRoutePoint(it.latitude!!, it.longitude!!) }
-                                ?: emptyList()
-                        }
-                        is ApiResult.Error -> emptyList()
-                    }
-                }
-            }
+            val tripKey = computeTripKey(trip)
 
-            val segments = deferreds.awaitAll()
-                .map { TripRouteSegment(it) }
-                .filter { it.points.isNotEmpty() }
+            // Try cache first
+            val cached = tripRouteCacheDao.get(tripKey)
+            val segments = if (cached != null) {
+                deserializeSegments(cached.routeJson)
+            } else {
+                val fetched = fetchRouteFromApi(carId, trip)
+                if (fetched.isNotEmpty()) {
+                    tripRouteCacheDao.insert(
+                        TripRouteCache(
+                            tripKey = tripKey,
+                            routeJson = serializeSegments(fetched),
+                            createdAt = System.currentTimeMillis()
+                        )
+                    )
+                }
+                fetched
+            }
 
             val allPoints = segments.flatMap { it.points }
 
@@ -264,6 +272,57 @@ class TripDetailViewModel @Inject constructor(
                     isMapLoading = false
                 )
             }
+        }
+    }
+
+    private suspend fun fetchRouteFromApi(carId: Int, trip: Trip): List<TripRouteSegment> {
+        val deferreds = trip.drives.map { drive ->
+            viewModelScope.async {
+                when (val result = repository.getDriveDetail(carId, drive.driveId)) {
+                    is ApiResult.Success -> {
+                        result.data.positions
+                            ?.filter { it.latitude != null && it.longitude != null }
+                            ?.map { TripRoutePoint(it.latitude!!, it.longitude!!) }
+                            ?: emptyList()
+                    }
+                    is ApiResult.Error -> emptyList()
+                }
+            }
+        }
+        return deferreds.awaitAll()
+            .map { TripRouteSegment(it) }
+            .filter { it.points.isNotEmpty() }
+    }
+
+    /** SHA-256 hash of sorted drive IDs, used as cache key. */
+    private fun computeTripKey(trip: Trip): String {
+        val ids = trip.drives.map { it.driveId }.sorted().joinToString(",")
+        val digest = MessageDigest.getInstance("SHA-256").digest(ids.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun serializeSegments(segments: List<TripRouteSegment>): String {
+        val arr = JSONArray()
+        for (segment in segments) {
+            val pts = JSONArray()
+            for (pt in segment.points) {
+                pts.put(JSONObject().put("lat", pt.latitude).put("lon", pt.longitude))
+            }
+            arr.put(pts)
+        }
+        return arr.toString()
+    }
+
+    private fun deserializeSegments(json: String): List<TripRouteSegment> {
+        val arr = JSONArray(json)
+        return (0 until arr.length()).map { i ->
+            val pts = arr.getJSONArray(i)
+            TripRouteSegment(
+                (0 until pts.length()).map { j ->
+                    val obj = pts.getJSONObject(j)
+                    TripRoutePoint(obj.getDouble("lat"), obj.getDouble("lon"))
+                }
+            )
         }
     }
 }

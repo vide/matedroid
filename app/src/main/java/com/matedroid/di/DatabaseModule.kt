@@ -11,6 +11,7 @@ import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
 import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
+import com.matedroid.data.local.dao.TripRouteCacheDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -83,5 +84,11 @@ object DatabaseModule {
     @Singleton
     fun provideSentryAlertLogDao(database: StatsDatabase): SentryAlertLogDao {
         return database.sentryAlertLogDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTripRouteCacheDao(database: StatsDatabase): TripRouteCacheDao {
+        return database.tripRouteCacheDao()
     }
 }

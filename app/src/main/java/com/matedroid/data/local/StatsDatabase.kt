@@ -12,6 +12,7 @@ import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
 import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
+import com.matedroid.data.local.dao.TripRouteCacheDao
 import com.matedroid.data.local.entity.ChargeDetailAggregate
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveDetailAggregate
@@ -21,6 +22,7 @@ import com.matedroid.data.local.entity.GeocodeProgress
 import com.matedroid.data.local.entity.GeocodeQueueItem
 import com.matedroid.data.local.entity.SentryAlertLog
 import com.matedroid.data.local.entity.SyncState
+import com.matedroid.data.local.entity.TripRouteCache
 
 /**
  * Room database for storing stats data locally.
@@ -44,9 +46,10 @@ import com.matedroid.data.local.entity.SyncState
         GeocodeCache::class,
         GeocodeQueueItem::class,
         GeocodeProgress::class,
-        SentryAlertLog::class
+        SentryAlertLog::class,
+        TripRouteCache::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -59,6 +62,7 @@ abstract class StatsDatabase : RoomDatabase() {
     abstract fun geocodeQueueDao(): GeocodeQueueDao
     abstract fun geocodeProgressDao(): GeocodeProgressDao
     abstract fun sentryAlertLogDao(): SentryAlertLogDao
+    abstract fun tripRouteCacheDao(): TripRouteCacheDao
 
     companion object {
         const val DATABASE_NAME = "matedroid_stats.db"
@@ -170,6 +174,19 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        /** Migration from V6 to V7: Add trip route cache table */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS trip_route_cache (
+                        tripKey TEXT NOT NULL PRIMARY KEY,
+                        routeJson TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
     }
 }
