@@ -148,9 +148,8 @@ class TripDetailViewModel @Inject constructor(
      *   - last leg end     → trip end country
      *   - everything else  → deduplicated intermediates (excl start & end)
      *
-     * Drive aggregates only store start coords; for end coords we use the
-     * next charge's location as proxy, and fetch the last drive's end from
-     * the API (1 call).
+     * Drive aggregates store start + end coords (V9+). For aggregates computed
+     * before V9, the last drive's end is fetched from the API as fallback (1 call).
      */
     private suspend fun resolveCountriesFromDriveEdges(trip: Trip): List<TripCountry> {
         // 1. Collect all edge points in chronological order
@@ -161,12 +160,27 @@ class TripDetailViewModel @Inject constructor(
         val driveCoords = aggregateDao.getDriveEdgeCoordinates(trip.drives.map { it.driveId })
             .associateBy { it.driveId }
 
-        // Drive start + end points from cached coordinates (no API call needed)
+        // Drive start + end points from cached coordinates
         for (drive in trip.drives) {
             val coord = driveCoords[drive.driveId] ?: continue
             points.add(EdgePoint(coord.startLatitude, coord.startLongitude, drive.startDate))
             if (coord.endLatitude != null && coord.endLongitude != null) {
                 points.add(EdgePoint(coord.endLatitude, coord.endLongitude, drive.endDate))
+            }
+        }
+
+        // Fallback: if the last drive has no cached end coords, fetch from API (1 call).
+        // This covers aggregates computed before V9 added endLatitude/endLongitude.
+        val lastDrive = trip.drives.lastOrNull()
+        val lastCoord = lastDrive?.let { driveCoords[it.driveId] }
+        if (lastDrive != null && (lastCoord == null || lastCoord.endLatitude == null)) {
+            when (val result = repository.getDriveDetail(lastDrive.carId, lastDrive.driveId)) {
+                is ApiResult.Success -> {
+                    result.data.positions
+                        ?.lastOrNull { it.latitude != null && it.longitude != null }
+                        ?.let { points.add(EdgePoint(it.latitude!!, it.longitude!!, lastDrive.endDate)) }
+                }
+                is ApiResult.Error -> {}
             }
         }
 
