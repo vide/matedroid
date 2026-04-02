@@ -3,7 +3,9 @@ package com.matedroid.ui.screens.trips
 import android.graphics.Paint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -178,73 +180,59 @@ private fun TripDetailContent(
     currencySymbol: String,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Route header — matches DriveDetailScreen RouteHeaderCard
-        item { RouteHeaderCard(trip, countries, onCountryClick) }
+        RouteHeaderCard(trip, countries, onCountryClick)
 
-        // Map
-        item(key = "map") {
-            TripMapCard(
-                routeSegments = routeSegments,
-                markers = markers,
-                isMapLoading = isMapLoading,
-                palette = palette,
-                onChargeClick = onChargeClick
+        TripMapCard(
+            routeSegments = routeSegments,
+            markers = markers,
+            isMapLoading = isMapLoading,
+            palette = palette,
+            onChargeClick = onChargeClick
+        )
+
+        StatsSectionCard(
+            title = stringResource(R.string.trip_summary),
+            icon = Icons.Filled.Route,
+            stats = listOfNotNull(
+                StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(trip.totalDistance, units)),
+                StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
+                StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
+                StatItem(stringResource(R.string.trip_legs), "${trip.drives.size + trip.charges.size}"),
+                StatItem(stringResource(R.string.trip_charge_stops), "${trip.charges.size}")
             )
-        }
+        )
 
-        // Stats — StatsSectionCard pattern from DriveDetailScreen
-        item {
-            StatsSectionCard(
-                title = stringResource(R.string.trip_summary),
-                icon = Icons.Filled.Route,
-                stats = listOfNotNull(
-                    StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(trip.totalDistance, units)),
-                    StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
-                    StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
-                    StatItem(stringResource(R.string.trip_legs), "${trip.drives.size + trip.charges.size}"),
-                    StatItem(stringResource(R.string.trip_charge_stops), "${trip.charges.size}")
-                )
-            )
-        }
-
-        // Charge cost card (only if any charge has cost data)
         if (trip.totalChargeCost != null) {
-            item {
-                ChargeCostCard(trip = trip, currencySymbol = currencySymbol, onChargeClick = onChargeClick)
-            }
+            ChargeCostCard(trip = trip, currencySymbol = currencySymbol, onChargeClick = onChargeClick)
         }
 
-        item {
-            StatsSectionCard(
-                title = stringResource(R.string.battery),
-                icon = Icons.Filled.BatteryChargingFull,
-                stats = listOfNotNull(
-                    StatItem(stringResource(R.string.trip_energy_consumed), "%.1f kWh".format(trip.totalEnergyConsumed)),
-                    StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
-                    trip.avgEfficiency?.let {
-                        StatItem(stringResource(R.string.efficiency), "%.0f %s".format(it, UnitFormatter.getEfficiencyUnit(units)))
-                    }
-                )
+        StatsSectionCard(
+            title = stringResource(R.string.battery),
+            icon = Icons.Filled.BatteryChargingFull,
+            stats = listOfNotNull(
+                StatItem(stringResource(R.string.trip_energy_consumed), "%.1f kWh".format(trip.totalEnergyConsumed)),
+                StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
+                trip.avgEfficiency?.let {
+                    StatItem(stringResource(R.string.efficiency), "%.0f %s".format(it, UnitFormatter.getEfficiencyUnit(units)))
+                }
             )
-        }
+        )
 
-        // Legs header
-        item {
-            Text(
-                text = stringResource(R.string.trip_legs),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        Text(
+            text = stringResource(R.string.trip_legs),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
 
-        // Interleaved legs
         val legs = buildLegList(trip)
-        itemsIndexed(legs) { _, leg ->
+        legs.forEach { leg ->
             when (leg) {
                 is TripLeg.Drive -> DriveLegCard(leg, units, palette) {
                     onDriveClick(leg.drive.driveId)
@@ -255,7 +243,7 @@ private fun TripDetailContent(
             }
         }
 
-        item { Spacer(modifier = Modifier.height(8.dp)) }
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
