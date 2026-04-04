@@ -400,8 +400,14 @@ class SettingsViewModel @Inject constructor(
     fun simulateSentryEvent() {
         viewModelScope.launch {
             val carId = 1
-            // Bypass debounce — directly increment the counter
-            val count = sentryStateRepository.forceIncrementEventCount(carId)
+            // Fetch current position so simulated events get an address
+            val statusResult = repository.getCarStatus(carId)
+            val status = (statusResult as? ApiResult.Success)?.data?.status
+            val count = sentryStateRepository.forceIncrementEventCount(
+                carId,
+                latitude = status?.latitude,
+                longitude = status?.longitude
+            )
 
             sentryNotificationManager.showSentryAlert(
                 carName = "Test Car",
