@@ -327,16 +327,18 @@ private fun SentryHeatmap(
             }
         }
 
-        // Hour scale: 12 cols × 2h = 24h, show markers at 00, 06, 12, 18
+        // Hour scale: 12 cols × 2h = 24h, locale-aware time format
+        val hourFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 48.dp, top = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            for (h in listOf(0, 6, 12, 18)) {
+            for (h in listOf(0, 6, 12, 18, 23)) {
+                val label = java.time.LocalTime.of(h, 0).format(hourFormatter)
                 Text(
-                    text = "%02d".format(h),
+                    text = label,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                     color = palette.onSurfaceVariant.copy(alpha = 0.5f)
                 )
