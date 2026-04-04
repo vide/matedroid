@@ -247,16 +247,14 @@ fun SentryHistoryScreen(
 
 // -- Heatmap --
 
-private val HeatmapRed = Color(0xFFE53935)
-
-private fun heatmapColor(count: Int, emptyColor: Color): Color {
+private fun heatmapColor(count: Int, emptyColor: Color, fullColor: Color): Color {
     if (count <= 0) return emptyColor
     val fraction = (count.coerceAtMost(20) / 20f)
     return Color(
-        red = emptyColor.red + (HeatmapRed.red - emptyColor.red) * fraction,
-        green = emptyColor.green + (HeatmapRed.green - emptyColor.green) * fraction,
-        blue = emptyColor.blue + (HeatmapRed.blue - emptyColor.blue) * fraction,
-        alpha = 1f
+        red = emptyColor.red + (fullColor.red - emptyColor.red) * fraction,
+        green = emptyColor.green + (fullColor.green - emptyColor.green) * fraction,
+        blue = emptyColor.blue + (fullColor.blue - emptyColor.blue) * fraction,
+        alpha = emptyColor.alpha + (fullColor.alpha - emptyColor.alpha) * fraction
     )
 }
 
@@ -277,6 +275,7 @@ private fun SentryHeatmap(
     ) {
         val cellShape = RoundedCornerShape(3.dp)
         val emptyColor = palette.onSurfaceVariant.copy(alpha = 0.1f)
+        val fullColor = StatusError
         val today = LocalDate.now(zone)
 
         // Each row = one calendar day (midnight-aligned)
@@ -317,7 +316,7 @@ private fun SentryHeatmap(
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .clip(cellShape)
-                                .background(heatmapColor(count, emptyColor))
+                                .background(heatmapColor(count, emptyColor, fullColor))
                                 .clickable { onHourTapped(index) }
                         )
                     }
