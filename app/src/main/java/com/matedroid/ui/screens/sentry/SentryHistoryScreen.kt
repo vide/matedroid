@@ -5,11 +5,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -269,44 +271,57 @@ private fun SentryHeatmap(
     val zone = ZoneId.systemDefault()
     val startInstant = Instant.ofEpochMilli(heatmapStartMillis)
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
+        // Cell size = (available width - label width - gaps) / 12
+        val labelWidth = 48.dp
+        val gapWidth = 2.dp * (HEATMAP_COLS - 1)
+        val cellSizeDp = (maxWidth - labelWidth - gapWidth) / HEATMAP_COLS
+
+    Column(modifier = Modifier.fillMaxWidth()) {
         // Day labels on the left, grid on the right
         val cellShape = RoundedCornerShape(3.dp)
-        val gridLineColor = palette.surface
+
+        // Pre-compute the date for each row so we know which days span 2 rows
+        val today = LocalDate.now(zone)
+        val rowDates = (0 until HEATMAP_ROWS).map { row ->
+            startInstant.plusMillis((row * HEATMAP_COLS).toLong() * 3_600_000L)
+                .atZone(zone).toLocalDate()
+        }
 
         for (row in 0 until HEATMAP_ROWS) {
             val hourOffset = row * HEATMAP_COLS
-            // Label: show the date for the start of this row
-            val rowStartInstant = startInstant.plusMillis(hourOffset * 3_600_000L)
-            val rowDate = rowStartInstant.atZone(zone).toLocalDate()
-            val rowHour = rowStartInstant.atZone(zone).hour
-            val today = LocalDate.now(zone)
+            val rowDate = rowDates[row]
+            val isFirstRowOfDay = row == 0 || rowDate != rowDates[row - 1]
+            val daySpansTwoRows = isFirstRowOfDay &&
+                row + 1 < HEATMAP_ROWS && rowDates[row + 1] == rowDate
 
-            val dayLabel = when {
-                row == 0 || (row > 0 && rowDate != startInstant.plusMillis((hourOffset - HEATMAP_COLS).toLong() * 3_600_000L).atZone(zone).toLocalDate()) -> {
-                    when (rowDate) {
-                        today -> stringResource(R.string.sentry_history_today)
-                        today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
-                        else -> rowDate.format(DateTimeFormatter.ofPattern("MMM d"))
-                    }
+            val dayLabel = if (isFirstRowOfDay) {
+                when (rowDate) {
+                    today -> stringResource(R.string.sentry_history_today)
+                    today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
+                    else -> rowDate.format(DateTimeFormatter.ofPattern("MMM d"))
                 }
-                else -> ""
-            }
+            } else ""
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Day label
+                // Day label — offset down by half a row + gap when the day uses 2 rows
                 Text(
                     text = dayLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.width(48.dp),
+                    modifier = Modifier
+                        .width(48.dp)
+                        .then(
+                            if (daySpansTwoRows) Modifier.offset(y = cellSizeDp / 2 + 1.dp)
+                            else Modifier
+                        ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -353,7 +368,8 @@ private fun SentryHeatmap(
                 )
             }
         }
-    }
+    } // Column
+    } // BoxWithConstraints
 }
 
 // -- Section / Day headers --
