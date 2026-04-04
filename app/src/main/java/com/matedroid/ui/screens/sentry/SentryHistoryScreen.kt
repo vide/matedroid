@@ -277,6 +277,8 @@ private fun SentryHeatmap(
         val emptyColor = palette.onSurfaceVariant.copy(alpha = 0.1f)
         val fullColor = StatusError
         val today = LocalDate.now(zone)
+        // Index of the current 2h bucket — blocks after this are in the future
+        val nowIndex = ((System.currentTimeMillis() - heatmapStartMillis) / HEATMAP_BUCKET_MS).toInt()
 
         // Each row = one calendar day (midnight-aligned)
         for (row in 0 until HEATMAP_ROWS) {
@@ -309,16 +311,26 @@ private fun SentryHeatmap(
                 ) {
                     for (col in 0 until HEATMAP_COLS) {
                         val index = blockOffset + col
-                        val count = if (index in counts.indices) counts[index] else 0
+                        val isFuture = index > nowIndex
 
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(cellShape)
-                                .background(heatmapColor(count, emptyColor, fullColor))
-                                .clickable { onHourTapped(index) }
-                        )
+                        if (isFuture) {
+                            // Future block: transparent placeholder to keep layout
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                            )
+                        } else {
+                            val count = if (index in counts.indices) counts[index] else 0
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(cellShape)
+                                    .background(heatmapColor(count, emptyColor, fullColor))
+                                    .clickable { onHourTapped(index) }
+                            )
+                        }
                     }
                 }
             }
