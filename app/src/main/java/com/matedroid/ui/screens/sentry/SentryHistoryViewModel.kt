@@ -158,7 +158,17 @@ class SentryHistoryViewModel @Inject constructor(
             if (alert.address == null && alert.latitude != null && alert.longitude != null && alert.id !in geocodedIds) {
                 geocodedIds.add(alert.id)
                 viewModelScope.launch {
-                    val address = geocodingRepository.reverseGeocode(alert.latitude, alert.longitude)
+                    // Try the geocode cache first -- sentry position is the end of the
+                    // last drive, so it should already be cached from drive geocoding.
+                    val cached = geocodingRepository.getFromCache(alert.latitude, alert.longitude)
+                    val address = if (cached != null) {
+                        listOfNotNull(cached.city, cached.regionName)
+                            .joinToString(", ")
+                            .ifBlank { null }
+                    } else {
+                        // Fall back to Nominatim API if not in cache
+                        geocodingRepository.reverseGeocode(alert.latitude, alert.longitude)
+                    }
                     if (address != null) {
                         sentryAlertLogDao.updateAddress(alert.id, address)
                     }
