@@ -16,5 +16,8 @@ data class SentryAlertLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val carId: Int,
     val detectedAt: Long,
-    val sessionStartedAt: Long
+    val sessionStartedAt: Long,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val address: String? = null
 )

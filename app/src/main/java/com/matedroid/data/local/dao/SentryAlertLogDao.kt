@@ -19,4 +19,22 @@ interface SentryAlertLogDao {
     /** Delete all alerts for a car. */
     @Query("DELETE FROM sentry_alert_log WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)
+
+    /** Update the address for a specific alert. */
+    @Query("UPDATE sentry_alert_log SET address = :address WHERE id = :id")
+    suspend fun updateAddress(id: Long, address: String)
+
+    /** Count alerts per hour bucket within a time range. Returns pairs of (hourBucket, count). */
+    @Query("""
+        SELECT (detectedAt / 3600000) AS hourBucket, COUNT(*) AS cnt
+        FROM sentry_alert_log
+        WHERE carId = :carId AND detectedAt >= :sinceMillis
+        GROUP BY hourBucket
+    """)
+    suspend fun countByHour(carId: Int, sinceMillis: Long): List<HourlyCount>
 }
+
+data class HourlyCount(
+    val hourBucket: Long,
+    val cnt: Int
+)
