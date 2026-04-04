@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -285,6 +286,8 @@ private fun SentryHeatmap(
     var selectedIndex by remember { mutableIntStateOf(-1) }
     // Cell positions in px relative to the grid Column, keyed by block index
     val cellBounds = remember { mutableMapOf<Int, androidx.compose.ui.geometry.Rect>() }
+    // Measured tooltip height for "above" placement
+    var tooltipHeightPx by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
 
     Column(
         modifier = Modifier
@@ -387,36 +390,29 @@ private fun SentryHeatmap(
                         R.plurals.sentry_notification_body, count, count
                     )
 
-                    // Place below the cell; if in the bottom half of the grid, place above
+                    // Place below the cell for top rows, above for bottom rows
                     val row = selectedIndex / HEATMAP_COLS
                     val placeAbove = row >= HEATMAP_ROWS / 2
+                    val gap = with(density) { 4.dp.roundToPx() }
 
                     Popup(
                         alignment = Alignment.TopStart,
-                        offset = with(density) {
-                            IntOffset(
-                                x = bounds.center.x.toInt(),
-                                y = if (placeAbove)
-                                    bounds.top.toInt() - 4.dp.roundToPx()
-                                else
-                                    bounds.bottom.toInt() + 4.dp.roundToPx()
-                            )
-                        },
+                        offset = IntOffset(
+                            x = bounds.center.x.toInt(),
+                            y = if (placeAbove)
+                                (bounds.top - tooltipHeightPx - gap).toInt()
+                            else
+                                (bounds.bottom + gap).toInt()
+                        ),
                         onDismissRequest = { selectedIndex = -1 },
                         properties = PopupProperties(focusable = true)
                     ) {
-                        // Anchor point is the cell center-x; use a transform
-                        // to shift left by half the tooltip width
-                        Box(
-                            modifier = Modifier
-                                .onGloballyPositioned { /* measured by intrinsic */ }
-                                .then(
-                                    if (placeAbove) Modifier // Popup grows upward from anchor
-                                    else Modifier
-                                )
-                        ) {
+                        Box {
                             Column(
                                 modifier = Modifier
+                                    .onGloballyPositioned { coords ->
+                                        tooltipHeightPx = coords.size.height.toFloat()
+                                    }
                                     .background(
                                         color = MaterialTheme.colorScheme.inverseSurface,
                                         shape = RoundedCornerShape(8.dp)
