@@ -45,13 +45,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
@@ -253,6 +259,33 @@ fun SentryHistoryScreen(
 
 // -- Heatmap --
 
+/**
+ * Positions the tooltip centered horizontally on the anchor cell,
+ * either above or below it with a pixel gap. Clamps horizontally
+ * to stay within the window.
+ */
+private class HeatmapTooltipPosition(
+    private val placeAbove: Boolean,
+    private val gapPx: Int
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+        // Center horizontally on anchor, clamp to window edges
+        val x = (anchorBounds.left + anchorBounds.width / 2 - popupContentSize.width / 2)
+            .coerceIn(0, (windowSize.width - popupContentSize.width).coerceAtLeast(0))
+        val y = if (placeAbove) {
+            anchorBounds.top - popupContentSize.height - gapPx
+        } else {
+            anchorBounds.bottom + gapPx
+        }
+        return IntOffset(x, y)
+    }
+}
+
 private fun heatmapColor(count: Int, emptyColor: Color, fullColor: Color): Color {
     if (count <= 0) return emptyColor
     val fraction = (count.coerceAtMost(20) / 20f)
@@ -287,6 +320,7 @@ private fun SentryHeatmap(
         val cellShape = RoundedCornerShape(3.dp)
         val emptyColor = palette.onSurfaceVariant.copy(alpha = 0.1f)
         val fullColor = StatusError
+        val gapPx = with(LocalDensity.current) { 4.dp.roundToPx() }
         val today = LocalDate.now(zone)
         val nowIndex = ((System.currentTimeMillis() - heatmapStartMillis) / HEATMAP_BUCKET_MS).toInt()
 
@@ -363,7 +397,10 @@ private fun SentryHeatmap(
                                     )
 
                                     Popup(
-                                        alignment = if (placeAbove) Alignment.TopCenter else Alignment.BottomCenter,
+                                        popupPositionProvider = HeatmapTooltipPosition(
+                                            placeAbove = placeAbove,
+                                            gapPx = gapPx
+                                        ),
                                         onDismissRequest = { selectedIndex = -1 },
                                         properties = PopupProperties(focusable = true)
                                     ) {
