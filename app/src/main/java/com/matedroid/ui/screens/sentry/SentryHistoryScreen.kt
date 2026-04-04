@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -37,16 +38,27 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.entity.SentryAlertLog
@@ -267,6 +279,14 @@ private fun SentryHeatmap(
 ) {
     val zone = ZoneId.systemDefault()
     val startInstant = Instant.ofEpochMilli(heatmapStartMillis)
+    val density = LocalDensity.current
+    val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+
+    // Tooltip state: -1 = none selected
+    var selectedIndex by remember { mutableIntStateOf(-1) }
+    // Cell positions in px relative to the grid Column, keyed by block index
+    val cellBounds = remember { mutableMapOf<Int, androidx.compose.ui.geometry.Rect>() }
 
     Column(
         modifier = Modifier
@@ -277,71 +297,145 @@ private fun SentryHeatmap(
         val emptyColor = palette.onSurfaceVariant.copy(alpha = 0.1f)
         val fullColor = StatusError
         val today = LocalDate.now(zone)
-        // Index of the current 2h bucket — blocks after this are in the future
         val nowIndex = ((System.currentTimeMillis() - heatmapStartMillis) / HEATMAP_BUCKET_MS).toInt()
 
-        // Each row = one calendar day (midnight-aligned)
-        for (row in 0 until HEATMAP_ROWS) {
-            val blockOffset = row * HEATMAP_COLS
-            val rowDate = startInstant.plusMillis(blockOffset.toLong() * HEATMAP_BUCKET_MS)
-                .atZone(zone).toLocalDate()
+        // Grid + tooltip overlay
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                for (row in 0 until HEATMAP_ROWS) {
+                    val blockOffset = row * HEATMAP_COLS
+                    val rowDate = startInstant.plusMillis(blockOffset.toLong() * HEATMAP_BUCKET_MS)
+                        .atZone(zone).toLocalDate()
 
-            val dayLabel = when (rowDate) {
-                today -> stringResource(R.string.sentry_history_today)
-                today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
-                else -> rowDate.format(DateTimeFormatter.ofPattern("EEE d"))
-            }
+                    val dayLabel = when (rowDate) {
+                        today -> stringResource(R.string.sentry_history_today)
+                        today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
+                        else -> rowDate.format(DateTimeFormatter.ofPattern("EEE d"))
+                    }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = dayLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.width(48.dp),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = dayLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.width(48.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
 
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    for (col in 0 until HEATMAP_COLS) {
-                        val index = blockOffset + col
-                        val isFuture = index > nowIndex
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            for (col in 0 until HEATMAP_COLS) {
+                                val index = blockOffset + col
+                                val isFuture = index > nowIndex
 
-                        if (isFuture) {
-                            // Future block: transparent placeholder to keep layout
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                            )
-                        } else {
-                            val count = if (index in counts.indices) counts[index] else 0
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(cellShape)
-                                    .background(heatmapColor(count, emptyColor, fullColor))
-                                    .clickable { onHourTapped(index) }
-                            )
+                                if (isFuture) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                    )
+                                } else {
+                                    val count = if (index in counts.indices) counts[index] else 0
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .clip(cellShape)
+                                            .background(heatmapColor(count, emptyColor, fullColor))
+                                            .onGloballyPositioned { coords ->
+                                                cellBounds[index] = coords.boundsInParent()
+                                            }
+                                            .clickable {
+                                                selectedIndex = if (selectedIndex == index) -1 else index
+                                            }
+                                    )
+                                }
+                            }
                         }
+                    }
+
+                    if (row < HEATMAP_ROWS - 1) {
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
                 }
             }
 
-            if (row < HEATMAP_ROWS - 1) {
-                Spacer(modifier = Modifier.height(2.dp))
+            // Tooltip popup
+            if (selectedIndex >= 0 && selectedIndex in counts.indices) {
+                val bounds = cellBounds[selectedIndex]
+                if (bounds != null) {
+                    val count = counts[selectedIndex]
+                    val blockStart = startInstant.plusMillis(selectedIndex.toLong() * HEATMAP_BUCKET_MS)
+                        .atZone(zone)
+                    val blockEnd = blockStart.plusHours(HEATMAP_BUCKET_HOURS.toLong())
+                    val dateLine = blockStart.toLocalDate().format(dateFormatter)
+                    val timeLine = "${blockStart.toLocalTime().format(timeFormatter)} – ${blockEnd.toLocalTime().format(timeFormatter)}"
+                    val eventsLine = pluralStringResource(
+                        R.plurals.sentry_notification_body, count, count
+                    )
+
+                    // Position: center horizontally on the cell, above it
+                    Popup(
+                        alignment = Alignment.TopStart,
+                        offset = with(density) {
+                            IntOffset(
+                                x = bounds.center.x.toInt(),
+                                y = bounds.top.toInt()
+                            )
+                        },
+                        onDismissRequest = { selectedIndex = -1 },
+                        properties = PopupProperties(focusable = true)
+                    ) {
+                        // Shift left by half width via a wrapper that measures itself
+                        Box(
+                            modifier = Modifier
+                                .width(IntrinsicSize.Min)
+                                .onGloballyPositioned { coords ->
+                                    // no-op: intrinsic sizing handles it
+                                }
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.inverseSurface,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        val idx = selectedIndex
+                                        selectedIndex = -1
+                                        onHourTapped(idx)
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "$dateLine\n$timeLine",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = eventsLine,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
         // Hour scale: 12 cols × 2h = 24h, locale-aware time format
-        val hourFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -349,7 +443,7 @@ private fun SentryHeatmap(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             for (h in listOf(0, 6, 12, 18, 23)) {
-                val label = java.time.LocalTime.of(h, 0).format(hourFormatter)
+                val label = java.time.LocalTime.of(h, 0).format(timeFormatter)
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
