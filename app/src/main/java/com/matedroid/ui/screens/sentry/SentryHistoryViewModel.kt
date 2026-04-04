@@ -86,10 +86,12 @@ class SentryHistoryViewModel @Inject constructor(
 
     private fun loadHeatmap(carId: Int) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            // Floor to the start of the current 2-hour bucket
-            val currentBucketStart = (now / HEATMAP_BUCKET_MS) * HEATMAP_BUCKET_MS
-            val heatmapStart = currentBucketStart - (HEATMAP_BLOCKS - 1) * HEATMAP_BUCKET_MS
+            // Align to midnight: each row = one calendar day, 6 rows = 6 days
+            val todayMidnight = java.time.LocalDate.now()
+                .atStartOfDay(java.time.ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            val heatmapStart = todayMidnight - (HEATMAP_ROWS - 1).toLong() * 24 * 3_600_000L
 
             val hourlyCounts = sentryAlertLogDao.countByHour(carId, heatmapStart)
             // Map 1-hour buckets from the DAO into our 2-hour blocks
