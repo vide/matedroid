@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -52,7 +51,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -342,17 +340,26 @@ private fun SentryHeatmap(
                                     )
                                 } else {
                                     val count = if (index in counts.indices) counts[index] else 0
+                                    val isSelected = selectedIndex == index
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .aspectRatio(1f)
                                             .clip(cellShape)
                                             .background(heatmapColor(count, emptyColor, fullColor))
+                                            .then(
+                                                if (isSelected) Modifier.border(
+                                                    2.dp,
+                                                    palette.onSurface,
+                                                    cellShape
+                                                )
+                                                else Modifier
+                                            )
                                             .onGloballyPositioned { coords ->
                                                 cellBounds[index] = coords.boundsInParent()
                                             }
                                             .clickable {
-                                                selectedIndex = if (selectedIndex == index) -1 else index
+                                                selectedIndex = if (isSelected) -1 else index
                                             }
                                     )
                                 }
@@ -380,28 +387,35 @@ private fun SentryHeatmap(
                         R.plurals.sentry_notification_body, count, count
                     )
 
-                    // Position: center horizontally on the cell, above it
+                    // Place below the cell; if in the bottom half of the grid, place above
+                    val row = selectedIndex / HEATMAP_COLS
+                    val placeAbove = row >= HEATMAP_ROWS / 2
+
                     Popup(
                         alignment = Alignment.TopStart,
                         offset = with(density) {
                             IntOffset(
                                 x = bounds.center.x.toInt(),
-                                y = bounds.top.toInt()
+                                y = if (placeAbove)
+                                    bounds.top.toInt() - 4.dp.roundToPx()
+                                else
+                                    bounds.bottom.toInt() + 4.dp.roundToPx()
                             )
                         },
                         onDismissRequest = { selectedIndex = -1 },
                         properties = PopupProperties(focusable = true)
                     ) {
-                        // Shift left by half width via a wrapper that measures itself
+                        // Anchor point is the cell center-x; use a transform
+                        // to shift left by half the tooltip width
                         Box(
                             modifier = Modifier
-                                .width(IntrinsicSize.Min)
-                                .onGloballyPositioned { coords ->
-                                    // no-op: intrinsic sizing handles it
-                                }
+                                .onGloballyPositioned { /* measured by intrinsic */ }
+                                .then(
+                                    if (placeAbove) Modifier // Popup grows upward from anchor
+                                    else Modifier
+                                )
                         ) {
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .background(
                                         color = MaterialTheme.colorScheme.inverseSurface,
@@ -412,21 +426,26 @@ private fun SentryHeatmap(
                                         selectedIndex = -1
                                         onHourTapped(idx)
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 Text(
-                                    text = "$dateLine\n$timeLine",
+                                    text = dateLine,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    textAlign = TextAlign.Center
+                                    maxLines = 1
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = timeLine,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    maxLines = 1
+                                )
                                 Text(
                                     text = eventsLine,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    textAlign = TextAlign.Center
+                                    maxLines = 1
                                 )
                             }
                         }
