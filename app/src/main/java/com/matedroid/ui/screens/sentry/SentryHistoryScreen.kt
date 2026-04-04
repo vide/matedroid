@@ -1,5 +1,6 @@
 package com.matedroid.ui.screens.sentry
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -112,7 +113,8 @@ fun SentryHistoryScreen(
 ) {
     viewModel.setCarId(carId)
     val uiState by viewModel.uiState.collectAsState()
-    val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+    val isDarkTheme = isSystemInDarkTheme()
+    val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -245,16 +247,15 @@ fun SentryHistoryScreen(
 
 // -- Heatmap --
 
-private val HeatmapWhite = Color(0xFF2A2A2A)
 private val HeatmapRed = Color(0xFFE53935)
 
-private fun heatmapColor(count: Int): Color {
-    if (count <= 0) return HeatmapWhite
+private fun heatmapColor(count: Int, emptyColor: Color): Color {
+    if (count <= 0) return emptyColor
     val fraction = (count.coerceAtMost(20) / 20f)
     return Color(
-        red = HeatmapWhite.red + (HeatmapRed.red - HeatmapWhite.red) * fraction,
-        green = HeatmapWhite.green + (HeatmapRed.green - HeatmapWhite.green) * fraction,
-        blue = HeatmapWhite.blue + (HeatmapRed.blue - HeatmapWhite.blue) * fraction,
+        red = emptyColor.red + (HeatmapRed.red - emptyColor.red) * fraction,
+        green = emptyColor.green + (HeatmapRed.green - emptyColor.green) * fraction,
+        blue = emptyColor.blue + (HeatmapRed.blue - emptyColor.blue) * fraction,
         alpha = 1f
     )
 }
@@ -275,6 +276,7 @@ private fun SentryHeatmap(
             .padding(vertical = 8.dp)
     ) {
         val cellShape = RoundedCornerShape(3.dp)
+        val emptyColor = palette.onSurfaceVariant.copy(alpha = 0.1f)
         val today = LocalDate.now(zone)
 
         // Each row = one calendar day (midnight-aligned)
@@ -315,7 +317,7 @@ private fun SentryHeatmap(
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .clip(cellShape)
-                                .background(heatmapColor(count))
+                                .background(heatmapColor(count, emptyColor))
                                 .clickable { onHourTapped(index) }
                         )
                     }
