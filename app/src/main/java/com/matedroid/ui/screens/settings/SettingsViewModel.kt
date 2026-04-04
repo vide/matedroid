@@ -406,7 +406,8 @@ class SettingsViewModel @Inject constructor(
             val count = sentryStateRepository.forceIncrementEventCount(
                 carId,
                 latitude = status?.latitude,
-                longitude = status?.longitude
+                longitude = status?.longitude,
+                geofence = status?.geofence
             )
 
             sentryNotificationManager.showSentryAlert(

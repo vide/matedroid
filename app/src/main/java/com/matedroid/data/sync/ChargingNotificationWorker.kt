@@ -220,7 +220,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
         val sentryMode = status.sentryMode ?: false
         val isSentryAlerted = status.isSentryAlerted
 
-        when (val event = sentryStateRepository.processStatus(carId, sentryMode, isSentryAlerted, status.latitude, status.longitude)) {
+        when (val event = sentryStateRepository.processStatus(carId, sentryMode, isSentryAlerted, status.latitude, status.longitude, status.geofence)) {
             is SentryEvent.AlertDetected -> {
                 Log.d(TAG, "Sentry alert #${event.count} for car $carId (notify=${event.shouldNotify})")
                 sentryNotificationManager.showSentryAlert(
