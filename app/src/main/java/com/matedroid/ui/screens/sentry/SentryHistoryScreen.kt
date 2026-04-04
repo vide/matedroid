@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -57,6 +56,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.entity.SentryAlertLog
@@ -375,7 +376,7 @@ private fun SentryHeatmap(
                 }
             }
 
-            // Tooltip overlay (not a Popup — uses same coordinate space as grid)
+            // Tooltip popup
             if (selectedIndex >= 0 && selectedIndex in counts.indices) {
                 val bounds = cellBounds[selectedIndex]
                 if (bounds != null) {
@@ -389,72 +390,61 @@ private fun SentryHeatmap(
                         R.plurals.sentry_notification_body, count, count
                     )
 
+                    // Place below the cell for top rows, above for bottom rows
                     val row = selectedIndex / HEATMAP_COLS
                     val placeAbove = row >= HEATMAP_ROWS / 2
-                    val gapDp = 4.dp
+                    val gap = with(density) { 4.dp.roundToPx() }
 
-                    // Invisible scrim to dismiss on outside tap
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                            ) { selectedIndex = -1 }
-                    )
-
-                    // Tooltip content measured then positioned
-                    var tooltipWidthPx by remember { mutableFloatStateOf(0f) }
-
-                    val offsetX = with(density) {
-                        // Center on cell, but clamp to grid bounds
-                        val centered = bounds.center.x - tooltipWidthPx / 2
-                        centered.coerceAtLeast(0f)
-                    }
-                    val offsetY = with(density) {
-                        if (placeAbove)
-                            bounds.top - tooltipHeightPx - gapDp.toPx()
-                        else
-                            bounds.bottom + gapDp.toPx()
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .offset { IntOffset(offsetX.toInt(), offsetY.toInt()) }
-                            .onGloballyPositioned { coords ->
-                                tooltipHeightPx = coords.size.height.toFloat()
-                                tooltipWidthPx = coords.size.width.toFloat()
-                            }
-                            .background(
-                                color = MaterialTheme.colorScheme.inverseSurface,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .clickable {
-                                val idx = selectedIndex
-                                selectedIndex = -1
-                                onHourTapped(idx)
-                            }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    Popup(
+                        alignment = Alignment.TopStart,
+                        offset = IntOffset(
+                            x = bounds.center.x.toInt(),
+                            y = if (placeAbove)
+                                (bounds.top - tooltipHeightPx - gap).toInt()
+                            else
+                                (bounds.bottom + gap).toInt()
+                        ),
+                        onDismissRequest = { selectedIndex = -1 },
+                        properties = PopupProperties(focusable = true)
                     ) {
-                        Text(
-                            text = dateLine,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.inverseOnSurface,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = timeLine,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.inverseOnSurface,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = eventsLine,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.inverseOnSurface,
-                            maxLines = 1
-                        )
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .onGloballyPositioned { coords ->
+                                        tooltipHeightPx = coords.size.height.toFloat()
+                                    }
+                                    .background(
+                                        color = MaterialTheme.colorScheme.inverseSurface,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .clickable {
+                                        val idx = selectedIndex
+                                        selectedIndex = -1
+                                        onHourTapped(idx)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = dateLine,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = timeLine,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = eventsLine,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
             }
