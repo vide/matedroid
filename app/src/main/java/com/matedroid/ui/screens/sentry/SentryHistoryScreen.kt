@@ -37,7 +37,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,14 +45,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
@@ -278,16 +273,11 @@ private fun SentryHeatmap(
 ) {
     val zone = ZoneId.systemDefault()
     val startInstant = Instant.ofEpochMilli(heatmapStartMillis)
-    val density = LocalDensity.current
     val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
     val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
     // Tooltip state: -1 = none selected
     var selectedIndex by remember { mutableIntStateOf(-1) }
-    // Cell positions in px relative to the grid Column, keyed by block index
-    val cellBounds = remember { mutableMapOf<Int, androidx.compose.ui.geometry.Rect>() }
-    // Measured tooltip height for "above" placement
-    var tooltipHeightPx by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
 
     Column(
         modifier = Modifier
@@ -300,153 +290,126 @@ private fun SentryHeatmap(
         val today = LocalDate.now(zone)
         val nowIndex = ((System.currentTimeMillis() - heatmapStartMillis) / HEATMAP_BUCKET_MS).toInt()
 
-        // Grid + tooltip overlay
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                for (row in 0 until HEATMAP_ROWS) {
-                    val blockOffset = row * HEATMAP_COLS
-                    val rowDate = startInstant.plusMillis(blockOffset.toLong() * HEATMAP_BUCKET_MS)
-                        .atZone(zone).toLocalDate()
+        for (row in 0 until HEATMAP_ROWS) {
+            val blockOffset = row * HEATMAP_COLS
+            val rowDate = startInstant.plusMillis(blockOffset.toLong() * HEATMAP_BUCKET_MS)
+                .atZone(zone).toLocalDate()
 
-                    val dayLabel = when (rowDate) {
-                        today -> stringResource(R.string.sentry_history_today)
-                        today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
-                        else -> rowDate.format(DateTimeFormatter.ofPattern("EEE d"))
-                    }
+            val dayLabel = when (rowDate) {
+                today -> stringResource(R.string.sentry_history_today)
+                today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
+                else -> rowDate.format(DateTimeFormatter.ofPattern("EEE d"))
+            }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = dayLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.width(48.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = dayLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.width(48.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            for (col in 0 until HEATMAP_COLS) {
-                                val index = blockOffset + col
-                                val isFuture = index > nowIndex
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    for (col in 0 until HEATMAP_COLS) {
+                        val index = blockOffset + col
+                        val isFuture = index > nowIndex
 
-                                if (isFuture) {
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
+                        if (isFuture) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                            )
+                        } else {
+                            val count = if (index in counts.indices) counts[index] else 0
+                            val isSelected = selectedIndex == index
+                            val placeAbove = row >= HEATMAP_ROWS / 2
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(cellShape)
+                                    .background(heatmapColor(count, emptyColor, fullColor))
+                                    .then(
+                                        if (isSelected) Modifier.border(
+                                            2.dp,
+                                            palette.onSurface,
+                                            cellShape
+                                        )
+                                        else Modifier
                                     )
-                                } else {
-                                    val count = if (index in counts.indices) counts[index] else 0
-                                    val isSelected = selectedIndex == index
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
-                                            .clip(cellShape)
-                                            .background(heatmapColor(count, emptyColor, fullColor))
-                                            .then(
-                                                if (isSelected) Modifier.border(
-                                                    2.dp,
-                                                    palette.onSurface,
-                                                    cellShape
+                                    .clickable {
+                                        selectedIndex = if (isSelected) -1 else index
+                                    }
+                            ) {
+                                // Tooltip anchored to this cell
+                                if (isSelected) {
+                                    val blockStart = startInstant.plusMillis(index.toLong() * HEATMAP_BUCKET_MS)
+                                        .atZone(zone)
+                                    val blockEnd = blockStart.plusHours(HEATMAP_BUCKET_HOURS.toLong())
+                                    val dateLine = blockStart.toLocalDate().format(dateFormatter)
+                                    val timeLine = "${blockStart.toLocalTime().format(timeFormatter)} – ${blockEnd.toLocalTime().format(timeFormatter)}"
+                                    val eventsLine = pluralStringResource(
+                                        R.plurals.sentry_notification_body, count, count
+                                    )
+
+                                    Popup(
+                                        alignment = if (placeAbove) Alignment.TopCenter else Alignment.BottomCenter,
+                                        onDismissRequest = { selectedIndex = -1 },
+                                        properties = PopupProperties(focusable = true)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = MaterialTheme.colorScheme.inverseSurface,
+                                                    shape = RoundedCornerShape(8.dp)
                                                 )
-                                                else Modifier
+                                                .clickable {
+                                                    val idx = selectedIndex
+                                                    selectedIndex = -1
+                                                    onHourTapped(idx)
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        ) {
+                                            Text(
+                                                text = dateLine,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                                maxLines = 1
                                             )
-                                            .onGloballyPositioned { coords ->
-                                                cellBounds[index] = coords.boundsInParent()
-                                            }
-                                            .clickable {
-                                                selectedIndex = if (isSelected) -1 else index
-                                            }
-                                    )
+                                            Text(
+                                                text = timeLine,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                                maxLines = 1
+                                            )
+                                            Text(
+                                                text = eventsLine,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.inverseOnSurface,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-
-                    if (row < HEATMAP_ROWS - 1) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                    }
                 }
             }
 
-            // Tooltip popup
-            if (selectedIndex >= 0 && selectedIndex in counts.indices) {
-                val bounds = cellBounds[selectedIndex]
-                if (bounds != null) {
-                    val count = counts[selectedIndex]
-                    val blockStart = startInstant.plusMillis(selectedIndex.toLong() * HEATMAP_BUCKET_MS)
-                        .atZone(zone)
-                    val blockEnd = blockStart.plusHours(HEATMAP_BUCKET_HOURS.toLong())
-                    val dateLine = blockStart.toLocalDate().format(dateFormatter)
-                    val timeLine = "${blockStart.toLocalTime().format(timeFormatter)} – ${blockEnd.toLocalTime().format(timeFormatter)}"
-                    val eventsLine = pluralStringResource(
-                        R.plurals.sentry_notification_body, count, count
-                    )
-
-                    // Place below the cell for top rows, above for bottom rows
-                    val row = selectedIndex / HEATMAP_COLS
-                    val placeAbove = row >= HEATMAP_ROWS / 2
-                    val gap = with(density) { 4.dp.roundToPx() }
-
-                    Popup(
-                        alignment = Alignment.TopStart,
-                        offset = IntOffset(
-                            x = bounds.center.x.toInt(),
-                            y = if (placeAbove)
-                                (bounds.top - tooltipHeightPx - gap).toInt()
-                            else
-                                (bounds.bottom + gap).toInt()
-                        ),
-                        onDismissRequest = { selectedIndex = -1 },
-                        properties = PopupProperties(focusable = true)
-                    ) {
-                        Box {
-                            Column(
-                                modifier = Modifier
-                                    .onGloballyPositioned { coords ->
-                                        tooltipHeightPx = coords.size.height.toFloat()
-                                    }
-                                    .background(
-                                        color = MaterialTheme.colorScheme.inverseSurface,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable {
-                                        val idx = selectedIndex
-                                        selectedIndex = -1
-                                        onHourTapped(idx)
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text(
-                                    text = dateLine,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = timeLine,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = eventsLine,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    }
-                }
+            if (row < HEATMAP_ROWS - 1) {
+                Spacer(modifier = Modifier.height(2.dp))
             }
         }
 
