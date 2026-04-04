@@ -28,7 +28,7 @@ data class SentryHistoryUiState(
     val currentSessionAlerts: List<SentryAlertLog> = emptyList(),
     val pastAlertsByDay: List<DayGroup> = emptyList(),
     /** 72-element array: index 0 = oldest hour (72h ago), index 71 = current hour */
-    val heatmapCounts: IntArray = IntArray(HEATMAP_HOURS),
+    val heatmapCounts: IntArray = IntArray(HEATMAP_BLOCKS),
     /** Epoch millis of the start of the heatmap window (floored to hour boundary) */
     val heatmapStartMillis: Long = 0L
 ) {
@@ -56,9 +56,12 @@ data class SentryHistoryUiState(
     }
 }
 
-const val HEATMAP_HOURS = 72
+const val HEATMAP_BLOCKS = 72
 const val HEATMAP_COLS = 12
 const val HEATMAP_ROWS = 6
+/** Each block covers 2 hours → 72 blocks = 144 hours = 6 days */
+const val HEATMAP_BUCKET_HOURS = 2
+const val HEATMAP_BUCKET_MS = HEATMAP_BUCKET_HOURS * 3_600_000L
 
 @HiltViewModel
 class SentryHistoryViewModel @Inject constructor(
@@ -84,18 +87,18 @@ class SentryHistoryViewModel @Inject constructor(
     private fun loadHeatmap(carId: Int) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            // Floor to the start of current hour
-            val currentHourStart = (now / 3_600_000L) * 3_600_000L
-            val heatmapStart = currentHourStart - (HEATMAP_HOURS - 1) * 3_600_000L
+            // Floor to the start of the current 2-hour bucket
+            val currentBucketStart = (now / HEATMAP_BUCKET_MS) * HEATMAP_BUCKET_MS
+            val heatmapStart = currentBucketStart - (HEATMAP_BLOCKS - 1) * HEATMAP_BUCKET_MS
 
             val hourlyCounts = sentryAlertLogDao.countByHour(carId, heatmapStart)
-            val startBucket = heatmapStart / 3_600_000L
-
-            val counts = IntArray(HEATMAP_HOURS)
+            // Map 1-hour buckets from the DAO into our 2-hour blocks
+            val counts = IntArray(HEATMAP_BLOCKS)
             for (hc in hourlyCounts) {
-                val index = (hc.hourBucket - startBucket).toInt()
+                val alertMillis = hc.hourBucket * 3_600_000L
+                val index = ((alertMillis - heatmapStart) / HEATMAP_BUCKET_MS).toInt()
                 if (index in counts.indices) {
-                    counts[index] = hc.cnt
+                    counts[index] += hc.cnt
                 }
             }
 

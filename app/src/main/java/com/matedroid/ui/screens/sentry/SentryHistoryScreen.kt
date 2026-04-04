@@ -79,7 +79,7 @@ private fun findAlertIndexForTimestamp(
         index++ // empty card
     } else {
         for (alert in uiState.currentSessionAlerts) {
-            if (alert.detectedAt >= targetMillis && alert.detectedAt < targetMillis + 3_600_000L) {
+            if (alert.detectedAt >= targetMillis && alert.detectedAt < targetMillis + HEATMAP_BUCKET_MS) {
                 return index
             }
             index++
@@ -93,7 +93,7 @@ private fun findAlertIndexForTimestamp(
         for (dayGroup in uiState.pastAlertsByDay) {
             index++ // day header
             for (alert in dayGroup.alerts) {
-                if (alert.detectedAt >= targetMillis && alert.detectedAt < targetMillis + 3_600_000L) {
+                if (alert.detectedAt >= targetMillis && alert.detectedAt < targetMillis + HEATMAP_BUCKET_MS) {
                     return index
                 }
                 index++
@@ -167,7 +167,7 @@ fun SentryHistoryScreen(
                         heatmapStartMillis = uiState.heatmapStartMillis,
                         palette = palette,
                         onHourTapped = { hourIndex ->
-                            val targetMillis = uiState.heatmapStartMillis + hourIndex * 3_600_000L
+                            val targetMillis = uiState.heatmapStartMillis + hourIndex * HEATMAP_BUCKET_MS
                             val itemIndex = findAlertIndexForTimestamp(uiState, targetMillis)
                             if (itemIndex >= 0) {
                                 coroutineScope.launch {
@@ -288,7 +288,7 @@ private fun SentryHeatmap(
         // Pre-compute the date for each row so we know which days span 2 rows
         val today = LocalDate.now(zone)
         val rowDates = (0 until HEATMAP_ROWS).map { row ->
-            startInstant.plusMillis((row * HEATMAP_COLS).toLong() * 3_600_000L)
+            startInstant.plusMillis((row * HEATMAP_COLS).toLong() * HEATMAP_BUCKET_MS)
                 .atZone(zone).toLocalDate()
         }
 
