@@ -38,7 +38,7 @@ class ChargingMonitorService : Service() {
 
     companion object {
         private const val TAG = "ChargingMonitorService"
-        private const val UPDATE_INTERVAL_MS = 30_000L  // 30 seconds
+        private const val UPDATE_INTERVAL_MS = 10_000L  // 10 seconds for near real-time updates
         private const val INITIAL_NOTIFICATION_ID = 3999  // Temporary ID for initial foreground
 
         fun start(context: Context) {

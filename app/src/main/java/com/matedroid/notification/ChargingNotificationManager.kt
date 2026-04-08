@@ -9,11 +9,14 @@ import android.content.Intent
 import com.matedroid.MainActivity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.matedroid.R
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
@@ -22,6 +25,11 @@ import com.matedroid.ui.theme.CarColorPalettes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Manager for charging session notifications.
@@ -68,31 +76,34 @@ class ChargingNotificationManager @Inject constructor(
         val carName = car.displayName
         val batteryLevel = status.batteryLevel ?: 0
         val chargeLimit = status.chargeLimitSoc ?: 80
-        val chargerPower = status.chargerPower ?: 0
-        val isDcCharging = status.isDcCharging
         val timeToFullCharge = status.timeToFullCharge
 
-        val title = buildTitle(carName, chargerPower, isDcCharging)
-        val contentText = buildContentText(
+        val title = buildTitle(carName, timeToFullCharge)
+        val primaryLine = buildPrimaryLine(
             batteryLevel = batteryLevel,
             chargeLimit = chargeLimit,
             timeToFullCharge = timeToFullCharge
         )
+        val secondaryLine = buildSecondaryLine(status)
+        val contentText = buildContentText(primaryLine, secondaryLine)
+        val detailText = ""
 
         return if (Build.VERSION.SDK_INT >= 36) {
             buildProgressStyleNotification(
                 car = car,
                 title = title,
                 contentText = contentText,
+                detailText = detailText,
                 batteryLevel = batteryLevel,
                 chargeLimit = chargeLimit,
                 liveChargeAvailable = liveChargeAvailable
             )
         } else {
             buildFallbackNotification(
-                carId = car.carId,
+                car = car,
                 title = title,
                 contentText = contentText,
+                detailText = detailText,
                 batteryLevel = batteryLevel,
                 liveChargeAvailable = liveChargeAvailable
             )
@@ -117,51 +128,218 @@ class ChargingNotificationManager @Inject constructor(
     }
 
     /**
-     * Build title for the notification (e.g., "Elysa ⚡ 5kW AC").
+     * Build title for the notification:
+     * Line 1 = car name
+     * Line 2 = remaining time (or charging status)
      */
     private fun buildTitle(
         carName: String,
-        chargerPower: Int,
-        isDcCharging: Boolean
+        timeToFullCharge: Double?
     ): String {
-        val chargeType = if (isDcCharging) "DC" else "AC"
-        return "$carName \u26A1 $chargerPower kW $chargeType"
+        val remaining = buildRemainingLabel(timeToFullCharge)
+        val status = remaining ?: context.getString(R.string.charging_status_active)
+        return "$carName\n$status"
     }
 
     /**
-     * Build content text for the notification.
+     * Build first body line:
+     * "89% → 100% · ETA 10:35"
      */
-    private fun buildContentText(
+    private fun buildPrimaryLine(
         batteryLevel: Int,
         chargeLimit: Int,
         timeToFullCharge: Double?
     ): String {
+        val socPart = context.getString(R.string.charging_soc_format, batteryLevel, chargeLimit)
+        val etaPart = buildEtaLabel(timeToFullCharge)
+        return if (etaPart.isNullOrBlank()) socPart else "$socPart \u00B7 $etaPart"
+    }
+
+    /**
+     * Build second body line:
+     * "7 kW AC · 226V · 31A"
+     */
+    private fun buildSecondaryLine(status: CarStatus): String {
+        val chargerPower = status.chargerPower ?: 0
+        val chargeType = if (status.isDcCharging) {
+            context.getString(R.string.charging_dc)
+        } else {
+            context.getString(R.string.charging_ac)
+        }
+        val powerPart = if (chargerPower > 0) {
+            context.getString(R.string.charging_power_format, chargerPower, chargeType)
+        } else {
+            context.getString(R.string.charging_power_unknown_format, chargeType)
+        }
+
+        val voltagePart = status.chargerVoltage
+            ?.takeIf { it > 0 }
+            ?.let { context.getString(R.string.charging_voltage_format, it) }
+            ?: context.getString(R.string.charging_voltage_unknown)
+
+        val currentPart = status.chargerActualCurrent
+            ?.takeIf { it > 0 }
+            ?.let { context.getString(R.string.charging_current_format, it) }
+            ?: context.getString(R.string.charging_current_unknown)
+
         val parts = mutableListOf<String>()
-        parts.add("$batteryLevel% \u2192 $chargeLimit%")
+        parts.add(powerPart)
+        parts.add(voltagePart)
+        parts.add(currentPart)
+        return parts.joinToString(" \u2022 ")
+    }
 
-        // Add estimated finish time with relative day (e.g., "today at 15:30")
-        timeToFullCharge?.let { hours ->
-            if (hours > 0) {
-                val finishTime = java.util.Calendar.getInstance().apply {
-                    add(java.util.Calendar.MINUTE, (hours * 60).toInt())
+    /**
+     * Build body text from one or two lines.
+     */
+    private fun buildContentText(primaryLine: String, secondaryLine: String): String {
+        return if (secondaryLine.isNotBlank()) "$primaryLine\n$secondaryLine" else primaryLine
+    }
+
+    /**
+     * Build ETA label in clock format (e.g., "ETA 10:35").
+     */
+    private fun buildEtaLabel(timeToFullCharge: Double?): String? {
+        val hours = timeToFullCharge ?: return null
+        if (hours <= 0) return null
+        val totalMinutes = (hours * 60).roundToInt().coerceAtLeast(1)
+        val eta = ZonedDateTime.now()
+            .plusMinutes(totalMinutes.toLong())
+            .format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+        return context.getString(R.string.charging_eta_complete, eta)
+    }
+
+    private fun formatTimeRemaining(hours: Double): String {
+        val totalMinutes = (hours * 60).roundToInt().coerceAtLeast(1)
+        val h = totalMinutes / 60
+        val m = totalMinutes % 60
+        return when {
+            h > 0 && m > 0 -> context.getString(R.string.charging_time_h_m, h, m)
+            h > 0 -> context.getString(R.string.charging_time_h, h)
+            else -> context.getString(R.string.charging_time_m, m)
+        }
+    }
+
+    private fun buildRemainingLabel(timeToFullCharge: Double?): String? {
+        val hours = timeToFullCharge ?: return null
+        if (hours <= 0) return null
+        return context.getString(R.string.charging_remaining, formatTimeRemaining(hours))
+    }
+
+    /**
+     * Prepare car image for square notification icon slot without distortion.
+     *
+     * Why: Tesla compositor assets contain lots of transparent padding. Some OEM skins
+     * (e.g. MIUI/HyperOS) render transparent large-icon pixels over a white tile, which
+     * makes the car look like it has a white background. We first trim transparent padding,
+     * then render into a square icon with small inset.
+     */
+    private fun prepareLargeIcon(raw: Bitmap): Bitmap {
+        val trimmed = trimTransparentPadding(raw)
+        val size = maxOf(trimmed.width, trimmed.height)
+        val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+
+        // Keep a little margin so edges don't get clipped by OEM icon masks.
+        val insetScale = 0.92f
+        val fitScale = min(size / trimmed.width.toFloat(), size / trimmed.height.toFloat()) * insetScale
+        val dstW = trimmed.width * fitScale
+        val dstH = trimmed.height * fitScale
+        val left = (size - dstW) / 2f
+        val top = (size - dstH) / 2f
+
+        canvas.drawBitmap(trimmed, null, RectF(left, top, left + dstW, top + dstH), paint)
+        return out
+    }
+
+    /**
+     * Trim mostly-transparent outer padding from compositor assets.
+     */
+    private fun trimTransparentPadding(
+        source: Bitmap,
+        alphaThreshold: Int = 10
+    ): Bitmap {
+        val width = source.width
+        val height = source.height
+        if (width <= 0 || height <= 0) return source
+
+        val pixels = IntArray(width * height)
+        source.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var left = width
+        var top = height
+        var right = -1
+        var bottom = -1
+
+        for (y in 0 until height) {
+            val row = y * width
+            for (x in 0 until width) {
+                val alpha = pixels[row + x] ushr 24
+                if (alpha >= alphaThreshold) {
+                    if (x < left) left = x
+                    if (x > right) right = x
+                    if (y < top) top = y
+                    if (y > bottom) bottom = y
                 }
-                val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
-                val formattedTime = timeFormat.format(finishTime.time)
-
-                // Determine relative day using DateUtils
-                val relativeDateTime = android.text.format.DateUtils.getRelativeDateTimeString(
-                    context,
-                    finishTime.timeInMillis,
-                    android.text.format.DateUtils.DAY_IN_MILLIS,
-                    android.text.format.DateUtils.DAY_IN_MILLIS,
-                    0
-                ).toString()
-
-                parts.add("\uD83D\uDD52 $relativeDateTime")
             }
         }
 
-        return parts.joinToString(" \u2022 ")
+        // No non-transparent pixels found.
+        if (right < left || bottom < top) return source
+
+        // Add a tiny safety padding around the detected bounds.
+        val contentWidth = right - left + 1
+        val contentHeight = bottom - top + 1
+        val padX = (contentWidth * 0.04f).toInt().coerceAtLeast(1)
+        val padY = (contentHeight * 0.04f).toInt().coerceAtLeast(1)
+
+        val cropLeft = (left - padX).coerceAtLeast(0)
+        val cropTop = (top - padY).coerceAtLeast(0)
+        val cropRight = (right + padX).coerceAtMost(width - 1)
+        val cropBottom = (bottom + padY).coerceAtMost(height - 1)
+
+        val cropWidth = cropRight - cropLeft + 1
+        val cropHeight = cropBottom - cropTop + 1
+
+        return if (cropWidth == width && cropHeight == height) {
+            source
+        } else {
+            Bitmap.createBitmap(source, cropLeft, cropTop, cropWidth, cropHeight)
+        }
+    }
+
+    private fun resolveAccentColor(car: CarData): Int {
+        val palette = CarColorPalettes.forExteriorColor(
+            car.carExterior?.exteriorColor,
+            darkTheme = false
+        )
+        return palette.accent.toArgb()
+    }
+
+    private fun loadPreparedLargeIcon(car: CarData): Bitmap? {
+        val raw = loadCarImage(car) ?: return null
+        return prepareLargeIcon(raw)
+    }
+
+    private fun buildSummaryText(contentText: String, detailText: String): String {
+        return if (detailText.isNotBlank()) "$contentText\n$detailText" else contentText
+    }
+
+    private fun buildFallbackStyle(
+        contentText: String,
+        detailText: String,
+        largeIcon: Bitmap?
+    ): NotificationCompat.Style {
+        val summary = buildSummaryText(contentText, detailText)
+        return if (largeIcon != null) {
+            NotificationCompat.BigPictureStyle()
+                .bigPicture(largeIcon)
+                .bigLargeIcon(null as Bitmap?)
+                .setSummaryText(summary)
+        } else {
+            NotificationCompat.BigTextStyle().bigText(summary)
+        }
     }
 
     /**
@@ -173,61 +351,65 @@ class ChargingNotificationManager @Inject constructor(
         car: CarData,
         title: String,
         contentText: String,
+        detailText: String,
         batteryLevel: Int,
         chargeLimit: Int,
         liveChargeAvailable: Boolean
     ): Notification {
-        // Get car palette accent color
-        val palette = CarColorPalettes.forExteriorColor(
-            car.carExterior?.exteriorColor,
-            darkTheme = false  // Use light theme colors for notification
-        )
-
-        // Load car image
-        val carBitmap = loadCarImage(car)
-
-        val accentArgb = palette.accent.toArgb()
-        val grayArgb = android.graphics.Color.argb(80, 128, 128, 128)
+        val accentArgb = resolveAccentColor(car)
+        val largeIcon = loadPreparedLargeIcon(car)
+        val colorizedFallback = shouldEnableColorizedFallback()
 
         // Clamp values to safe ranges
         val soc = batteryLevel.coerceIn(0, 100)
         val limit = chargeLimit.coerceIn(soc, 100)
+        val chargedColor = android.graphics.Color.argb(255, 245, 245, 245)    // white-ish
+        val toLimitColor = android.graphics.Color.argb(200, 165, 165, 165)    // light gray
+        val beyondLimitColor = android.graphics.Color.argb(130, 90, 90, 90)   // dark gray
 
-        Log.d(TAG, "ProgressStyle: soc=$soc, limit=$limit (segments: $soc, ${limit - soc}, ${100 - limit})")
-
-        // 3 segments: charged (accent, bright) | charging-to-limit (accent, dimmed) | beyond limit (gray, dimmed)
-        val segments = listOfNotNull(
-            if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(accentArgb) else null,
-            if (limit - soc > 0) Notification.ProgressStyle.Segment(limit - soc).setColor(accentArgb) else null,
-            if (100 - limit > 0) Notification.ProgressStyle.Segment(100 - limit).setColor(grayArgb) else null,
+        Log.d(
+            TAG,
+            "ProgressStyle(A): soc=$soc, limit=$limit, colorizedFallback=$colorizedFallback"
         )
 
         val progressStyle = Notification.ProgressStyle()
             .setProgress(soc)
             .setStyledByProgress(true)
-            .setProgressTrackerIcon(
-                android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_bolt)
+            .setProgressStartIcon(null)
+            .setProgressTrackerIcon(null)
+            .setProgressEndIcon(null)
+            .setProgressSegments(
+                listOfNotNull(
+                    if (soc > 0) Notification.ProgressStyle.Segment(soc).setColor(chargedColor) else null,
+                    if (limit - soc > 0) Notification.ProgressStyle.Segment(limit - soc).setColor(toLimitColor) else null,
+                    if (100 - limit > 0) Notification.ProgressStyle.Segment(100 - limit).setColor(beyondLimitColor) else null,
+                )
             )
-            .setProgressSegments(segments)
 
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
-            .setProgress(100, soc, false)
             .setStyle(progressStyle)
+            .setColor(accentArgb)
+            .setColorized(colorizedFallback)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setCategory(Notification.CATEGORY_PROGRESS)
             .setContentIntent(createContentIntent(car.carId, liveChargeAvailable))
 
-        // Add car image as large icon if available
-        carBitmap?.let { bitmap ->
-            builder.setLargeIcon(bitmap)
+        if (detailText.isNotBlank()) {
+            builder.setSubText(detailText)
         }
 
-        // Request promoted ongoing status (Live Update)
-        builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        // Add car image as large icon if available
+        largeIcon?.let { bitmap ->
+            builder.setLargeIcon(Icon.createWithAdaptiveBitmap(bitmap))
+        }
+
+        requestPromotedOngoing(builder)
+        setShortCriticalTextIfAvailable(builder, soc)
 
         return builder.build()
     }
@@ -236,23 +418,77 @@ class ChargingNotificationManager @Inject constructor(
      * Build fallback notification for Android < 16.
      */
     private fun buildFallbackNotification(
-        carId: Int,
+        car: CarData,
         title: String,
         contentText: String,
+        detailText: String,
         batteryLevel: Int,
         liveChargeAvailable: Boolean
     ): Notification {
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        val accentArgb = resolveAccentColor(car)
+        val largeIcon = loadPreparedLargeIcon(car)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_notification)
             .setProgress(100, batteryLevel, false)
-            .setOngoing(false)  // Dismissable on older Android
+            .setColor(accentArgb)
+            .setColorized(true)
+            .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setAutoCancel(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)  // Show on lock screen
-            .setContentIntent(createContentIntent(carId, liveChargeAvailable))
-            .build()
+            .setContentIntent(createContentIntent(car.carId, liveChargeAvailable))
+            .setStyle(buildFallbackStyle(contentText, detailText, largeIcon))
+
+        largeIcon?.let { builder.setLargeIcon(it) }
+
+        return builder.build()
+    }
+
+    @RequiresApi(36)
+    private fun requestPromotedOngoing(builder: Notification.Builder) {
+        val requestedViaMethod = runCatching {
+            val method = Notification.Builder::class.java.getMethod(
+                "setRequestPromotedOngoing",
+                Boolean::class.javaPrimitiveType
+            )
+            method.invoke(builder, true)
+            true
+        }.getOrElse { false }
+
+        if (!requestedViaMethod) {
+            // Fallback for older preview SDKs where only extras key was available.
+            builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        }
+    }
+
+    /**
+     * Best-effort color strategy:
+     * - If promoted ongoing is likely available, avoid colorized (eligibility requirement).
+     * - If promoted ongoing is not available, enable colorized as fallback to improve OEM rendering.
+     */
+    private fun shouldEnableColorizedFallback(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        if (Build.VERSION.SDK_INT < 36) return true
+
+        val canPostPromoted = runCatching {
+            val method = NotificationManager::class.java.getMethod("canPostPromotedNotifications")
+            (method.invoke(notificationManager) as? Boolean) ?: false
+        }.getOrElse { false }
+
+        return !canPostPromoted
+    }
+
+    @RequiresApi(36)
+    private fun setShortCriticalTextIfAvailable(builder: Notification.Builder, soc: Int) {
+        runCatching {
+            val method = Notification.Builder::class.java.getMethod(
+                "setShortCriticalText",
+                String::class.java
+            )
+            method.invoke(builder, "${soc}%")
+        }
     }
 
     /**
