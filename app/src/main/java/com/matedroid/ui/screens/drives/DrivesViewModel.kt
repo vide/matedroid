@@ -263,7 +263,6 @@ class DrivesViewModel @Inject constructor(
             // 2006-01-02T15:04:05Z for UTC time
             // 2006-01-02T15:04:05+nn:00 for local time, with nn the timezone offset
             val zoneId = java.time.ZoneId.systemDefault()
-            val offsetFormatter = DateTimeFormatter.ofPattern("xxx") // format: +01:00
             val startDateStr = startDate?.let {
                 val offset = zoneId.rules.getOffset(it.atStartOfDay())
                 "${it}T00:00:00${offset.toString()}"
