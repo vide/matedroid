@@ -1686,7 +1686,12 @@ private fun LocationCard(
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                return utcTimeMillis <= System.currentTimeMillis()
+                val zoneId = java.time.ZoneId.systemDefault()
+                val todayStart = java.time.LocalDate.now(zoneId)
+                    .atStartOfDay(zoneId)
+                    .toInstant()
+                    .toEpochMilli()
+                return utcTimeMillis <= todayStart
             }
         }
     )
@@ -1840,14 +1845,20 @@ private fun LocationCard(
                 TextButton(onClick = {
                     showTimePicker = false
                     val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
+
                     val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneId.systemDefault())
+                        .atZone(java.time.ZoneOffset.UTC)
                         .toLocalDate()
-                    val timestamp = "%sT%02d:%02d:00Z".format(
-                        selectedDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
+
+                    val localDateTime = selectedDate.atTime(
                         timePickerState.hour,
                         timePickerState.minute
                     )
+                    val timestamp = java.time.OffsetDateTime.of(
+                        selectedDate,
+                        java.time.LocalTime.of(timePickerState.hour, timePickerState.minute),
+                        java.time.ZoneOffset.UTC
+                    ).toString()
                     onNavigateToWhereWasI(timestamp)
                 }) {
                     Text(stringResource(R.string.where_was_i_go))
@@ -1862,7 +1873,7 @@ private fun LocationCard(
                 val selectedMillis = datePickerState.selectedDateMillis
                 val dateText = if (selectedMillis != null) {
                     val date = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneId.systemDefault())
+                        .atZone(java.time.ZoneOffset.UTC)
                         .toLocalDate()
                     date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
                 } else ""
