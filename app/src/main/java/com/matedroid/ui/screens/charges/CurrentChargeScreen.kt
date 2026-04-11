@@ -556,16 +556,16 @@ private fun CurrentChargeHeaderCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            LiveChargeTypeBadge(isDcCharge = isDcCharge)
                             if (instantPower != null) {
-                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "$instantPower kW",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                             }
+                            LiveChargeTypeBadge(isDcCharge = isDcCharge)
                         }
                         Text(
                             text = stringResource(R.string.soc_instant_power),
