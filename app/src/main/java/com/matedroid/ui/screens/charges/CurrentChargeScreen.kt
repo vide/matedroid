@@ -552,35 +552,9 @@ private fun CurrentChargeHeaderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Energy added as "+NN% (MM,NN kWh)"
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = solidGreen
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        val socAdded = currentLevel - startLevel
-                        val kwhAdded = detail.chargeEnergyAdded ?: 0.0
-                        Text(
-                            text = "+%d%% (%.2f kWh)".format(socAdded, kwhAdded),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = solidGreen
-                        )
-                        Text(
-                            text = stringResource(R.string.soc_energy_added),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-
                 // Instant power with AC/DC badge
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LiveChargeTypeBadge(isDcCharge = isDcCharge)
                             if (instantPower != null) {
@@ -595,6 +569,25 @@ private fun CurrentChargeHeaderCard(
                         }
                         Text(
                             text = stringResource(R.string.soc_instant_power),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                // Energy added as "+NN% (MM,NN kWh)"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        val socAdded = currentLevel - startLevel
+                        val kwhAdded = detail.chargeEnergyAdded ?: 0.0
+                        Text(
+                            text = "+%d%% (%.2f kWh)".format(socAdded, kwhAdded),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = solidGreen
+                        )
+                        Text(
+                            text = stringResource(R.string.soc_energy_added),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
