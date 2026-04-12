@@ -259,10 +259,13 @@ private fun CurrentChargeContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        val accentColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
+
         // Header card
         CurrentChargeHeaderCard(
             detail = detail,
             isDcCharge = isDcCharge,
+            accentColor = accentColor,
             timeToFullCharge = timeToFullCharge,
             chargeLimitSoc = chargeLimitSoc,
             chronologicalPoints = chronologicalPoints
@@ -308,7 +311,7 @@ private fun CurrentChargeContent(
                 }
                 FullscreenLineChart(
                     data = powers,
-                    color = Color(0xFF4CAF50),
+                    color = accentColor,
                     unit = "kW",
                     fixedMinMax = Pair(yMin, yMax),
                     timeLabels = timeLabels,
@@ -384,6 +387,7 @@ private fun CurrentChargeContent(
 private fun CurrentChargeHeaderCard(
     detail: ChargeDetail,
     isDcCharge: Boolean,
+    accentColor: Color,
     timeToFullCharge: Double?,
     chargeLimitSoc: Int?,
     chronologicalPoints: List<ChargePoint>
@@ -401,7 +405,6 @@ private fun CurrentChargeHeaderCard(
     val startLevel = detail.startBatteryLevel ?: 0
     val currentLevel = detail.currentOrEndBatteryLevel ?: 0
     val targetLevel = chargeLimitSoc ?: 100
-    val solidGreen = Color(0xFF4CAF50)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -447,19 +450,19 @@ private fun CurrentChargeHeaderCard(
                             imageVector = Icons.Default.Bolt,
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
-                            tint = solidGreen
+                            tint = accentColor
                         )
                         Text(
                             text = "$currentLevel%",
                             style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.ExtraBold,
-                            color = solidGreen
+                            color = accentColor
                         )
                     }
                     Text(
                         text = stringResource(R.string.soc_now),
                         style = MaterialTheme.typography.labelSmall,
-                        color = solidGreen
+                        color = accentColor
                     )
                 }
 
@@ -487,6 +490,7 @@ private fun CurrentChargeHeaderCard(
                 currentLevel = currentLevel,
                 startLevel = startLevel,
                 targetLevel = targetLevel,
+                accentColor = accentColor,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -584,7 +588,7 @@ private fun CurrentChargeHeaderCard(
                             text = "+%d%% (%.2f kWh)".format(socAdded, kwhAdded),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = solidGreen
+                            color = accentColor
                         )
                         Text(
                             text = stringResource(R.string.soc_energy_added),
@@ -635,13 +639,12 @@ private fun LiveSocProgressBar(
     currentLevel: Int,
     startLevel: Int,
     targetLevel: Int,
+    accentColor: Color,
     modifier: Modifier = Modifier
 ) {
     val currentFraction = currentLevel / 100f
     val startFraction = startLevel / 100f
     val targetFraction = targetLevel / 100f
-    val solidGreen = Color(0xFF4CAF50)
-    val dimmedGreen = Color(0xFF4CAF50).copy(alpha = 0.3f)
     val trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
     val startMarkerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
 
@@ -656,10 +659,10 @@ private fun LiveSocProgressBar(
         // Background track
         drawRect(color = trackColor, size = size)
 
-        // Dimmed green for target area (from current to target)
+        // Dimmed accent for target area (from current to target)
         if (targetFraction > currentFraction) {
             drawRect(
-                color = dimmedGreen,
+                color = accentColor.copy(alpha = 0.3f),
                 topLeft = androidx.compose.ui.geometry.Offset(width * currentFraction, 0f),
                 size = androidx.compose.ui.geometry.Size(
                     width * (targetFraction - currentFraction), height
@@ -667,9 +670,9 @@ private fun LiveSocProgressBar(
             )
         }
 
-        // Solid green for current charge level
+        // Solid accent for current charge level
         drawRect(
-            color = solidGreen,
+            color = accentColor,
             size = androidx.compose.ui.geometry.Size(width * currentFraction, height)
         )
 
