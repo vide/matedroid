@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -693,7 +692,8 @@ private fun LiveSocProgressBar(
 private fun ElapsedTimeCounter(
     startDate: String?,
     unknownLabel: String,
-    textColor: Color? = null
+    textColor: Color? = null,
+    prefix: String = ""
 ) {
     val startEpochMs = remember(startDate) {
         if (startDate == null) return@remember null
@@ -726,11 +726,12 @@ private fun ElapsedTimeCounter(
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60
-        if (hours > 0) {
+        val time = if (hours > 0) {
             "%d:%02d:%02d".format(hours, minutes, seconds)
         } else {
             "%d:%02d".format(minutes, seconds)
         }
+        "$prefix$time"
     }
 
     Text(
@@ -753,13 +754,6 @@ private fun DcUnplugWarningBanner(dcFinishedSince: String?) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                modifier = Modifier.size(32.dp),
-                tint = Color.White
-            )
-            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.dc_unplug_warning_title),
@@ -778,7 +772,8 @@ private fun DcUnplugWarningBanner(dcFinishedSince: String?) {
                 ElapsedTimeCounter(
                     startDate = dcFinishedSince,
                     unknownLabel = "",
-                    textColor = Color.White
+                    textColor = Color.White,
+                    prefix = "! "
                 )
             }
         }
