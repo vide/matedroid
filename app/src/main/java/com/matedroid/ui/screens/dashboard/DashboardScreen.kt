@@ -1612,6 +1612,13 @@ private fun DcUnplugWarningBanner(dcFinishedSince: String?) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.dc_unplug_warning_title),
@@ -1628,7 +1635,7 @@ private fun DcUnplugWarningBanner(dcFinishedSince: String?) {
             if (elapsedText != null) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "! $elapsedText",
+                    text = elapsedText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
