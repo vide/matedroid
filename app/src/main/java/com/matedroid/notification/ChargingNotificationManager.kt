@@ -90,9 +90,16 @@ class ChargingNotificationManager @Inject constructor(
         val effectiveLiveCharge: Boolean
 
         if (dcFinishedPluggedIn) {
-            title = context.getString(R.string.charging_notification_dc_finished_title, carName)
+            val elapsedPrefix = chronometerBaseMs?.let { base ->
+                val elapsed = System.currentTimeMillis() - base
+                val totalSec = (elapsed / 1000).coerceAtLeast(0)
+                val h = totalSec / 3600; val m = (totalSec % 3600) / 60; val s = totalSec % 60
+                val time = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+                "! $time  \u2022  "
+            } ?: "! "
+            title = elapsedPrefix + context.getString(R.string.charging_notification_dc_finished_title, carName)
             contentText = context.getString(R.string.charging_notification_dc_finished_content)
-            smallIconRes = R.drawable.ic_notification_warning
+            smallIconRes = R.drawable.ic_notification
             effectiveLiveCharge = false // Navigate to main dashboard, not charge screen
         } else {
             title = buildTitle(carName, chargerPower, isDcCharging)
@@ -255,8 +262,8 @@ class ChargingNotificationManager @Inject constructor(
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(createContentIntent(car.carId, liveChargeAvailable))
 
-        // Show live elapsed timer in the status bar
-        if (chronometerBaseMs != null) {
+        // Show live elapsed timer in the status bar (not for DC finished — timer is in the title)
+        if (chronometerBaseMs != null && !dcFinishedPluggedIn) {
             builder.setUsesChronometer(true)
             builder.setShowWhen(true)
             builder.setWhen(chronometerBaseMs)
@@ -268,7 +275,9 @@ class ChargingNotificationManager @Inject constructor(
         }
 
         // Request promoted ongoing status (Live Update)
-        builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        if (!dcFinishedPluggedIn) {
+            builder.extras.putBoolean("android.requestPromotedOngoing", true)
+        }
 
         return builder.build()
     }
