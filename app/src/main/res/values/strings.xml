@@ -1095,6 +1095,21 @@
     <!-- Charge leg label with number -->
     <string name="trip_leg_charge">Charge %1$d</string>
 
+    <!-- Section title for the horizontal trip timeline bar under the map, visualizes durations of drive/charge/parking segments -->
+    <string name="trip_timeline_title">Timeline</string>
+
+    <!-- Tooltip label for a drive segment on the trip timeline -->
+    <string name="trip_timeline_driving">Driving</string>
+
+    <!-- Tooltip label for a DC fast-charge segment on the trip timeline. DC is a technical unit and MUST NOT be translated. -->
+    <string name="trip_timeline_charging_dc">DC Charging</string>
+
+    <!-- Tooltip label for an AC charge segment on the trip timeline. AC is a technical unit and MUST NOT be translated. -->
+    <string name="trip_timeline_charging_ac">AC Charging</string>
+
+    <!-- Tooltip label for a parking gap segment on the trip timeline (time between legs when the car is idle) -->
+    <string name="trip_timeline_parked">Parked</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

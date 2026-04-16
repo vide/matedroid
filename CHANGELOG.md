@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Trip timeline**: Horizontal timeline bar on the trip detail screen, under the map, visualizing each drive, charge, and parking gap as a colored segment proportional to its duration. Drives use the car's accent color, charges use the established AC/DC palette (green/orange, harmonized with the car's theme), parking gaps use a muted neutral. Tap any segment to see its details; multi-day parking stretches are compressed with a sqrt curve so driving and charging stay readable.
+
 ## [1.5.0] - 2026-04-15
 
 ### Added

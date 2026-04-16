@@ -72,6 +72,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.ui.components.TripTimeline
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.components.createZapMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalette
@@ -195,6 +196,13 @@ private fun TripDetailContent(
             isMapLoading = isMapLoading,
             palette = palette,
             onChargeClick = onChargeClick
+        )
+
+        TripTimeline(
+            segments = remember(trip) { buildTimelineSegments(trip) },
+            startDate = trip.startDate,
+            endDate = trip.endDate,
+            palette = palette
         )
 
         StatsSectionCard(

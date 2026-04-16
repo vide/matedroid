@@ -1069,6 +1069,12 @@
     <string name="trip_leg_drive">行驶 %1$d</string>
     <string name="trip_leg_charge">充电 %1$d</string>
 
+    <string name="trip_timeline_title">时间轴</string>
+    <string name="trip_timeline_driving">行驶中</string>
+    <string name="trip_timeline_charging_dc">DC 充电</string>
+    <string name="trip_timeline_charging_ac">AC 充电</string>
+    <string name="trip_timeline_parked">已停车</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">选择车辆外观</string>
