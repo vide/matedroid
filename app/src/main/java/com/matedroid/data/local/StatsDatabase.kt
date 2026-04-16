@@ -10,6 +10,7 @@ import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
 import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
+import com.matedroid.data.local.dao.SavedTripDao
 import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
 import com.matedroid.data.local.dao.TripCountryCacheDao
@@ -21,6 +22,9 @@ import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.data.local.entity.GeocodeCache
 import com.matedroid.data.local.entity.GeocodeProgress
 import com.matedroid.data.local.entity.GeocodeQueueItem
+import com.matedroid.data.local.entity.SavedTrip
+import com.matedroid.data.local.entity.SavedTripConsumedFingerprint
+import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.local.entity.SentryAlertLog
 import com.matedroid.data.local.entity.SyncState
 import com.matedroid.data.local.entity.TripCountryCache
@@ -50,9 +54,12 @@ import com.matedroid.data.local.entity.TripRouteCache
         GeocodeProgress::class,
         SentryAlertLog::class,
         TripRouteCache::class,
-        TripCountryCache::class
+        TripCountryCache::class,
+        SavedTrip::class,
+        SavedTripLeg::class,
+        SavedTripConsumedFingerprint::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -67,6 +74,7 @@ abstract class StatsDatabase : RoomDatabase() {
     abstract fun sentryAlertLogDao(): SentryAlertLogDao
     abstract fun tripRouteCacheDao(): TripRouteCacheDao
     abstract fun tripCountryCacheDao(): TripCountryCacheDao
+    abstract fun savedTripDao(): SavedTripDao
 
     companion object {
         const val DATABASE_NAME = "matedroid_stats.db"
@@ -254,6 +262,61 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+        /**
+         * Migration from V11 to V12: Add saved trip persistence tables.
+         *
+         * - saved_trips: first-class trip entity (metrics derived from legs at read time)
+         * - saved_trip_legs: ordered DRIVE/CHARGE references per trip (ON DELETE CASCADE)
+         * - saved_trip_consumed_fingerprints: suppresses auto-detector output already
+         *   represented by a saved trip (ON DELETE CASCADE → releases when trip is deleted)
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS saved_trips (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        carId INTEGER NOT NULL,
+                        name TEXT,
+                        source TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_saved_trips_carId
+                    ON saved_trips (carId)
+                """)
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS saved_trip_legs (
+                        tripId INTEGER NOT NULL,
+                        position INTEGER NOT NULL,
+                        legType TEXT NOT NULL,
+                        legId INTEGER NOT NULL,
+                        PRIMARY KEY (tripId, position),
+                        FOREIGN KEY (tripId) REFERENCES saved_trips(id) ON DELETE CASCADE
+                    )
+                """)
+                db.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_saved_trip_legs_legType_legId
+                    ON saved_trip_legs (legType, legId)
+                """)
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS saved_trip_consumed_fingerprints (
+                        savedTripId INTEGER NOT NULL,
+                        fingerprint TEXT NOT NULL,
+                        PRIMARY KEY (savedTripId, fingerprint),
+                        FOREIGN KEY (savedTripId) REFERENCES saved_trips(id) ON DELETE CASCADE
+                    )
+                """)
+                db.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_saved_trip_consumed_fingerprints_fingerprint
+                    ON saved_trip_consumed_fingerprints (fingerprint)
+                """)
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
     }
 }

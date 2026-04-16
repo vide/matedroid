@@ -122,44 +122,9 @@ class TripDetector @Inject constructor() {
         trips: MutableList<Trip>
     ) {
         if (drives.size < 2 || charges.isEmpty()) return
-
         val totalDistance = drives.sumOf { it.distance }
         if (totalDistance < MIN_TRIP_DISTANCE_KM) return
-        val totalDrivingMin = drives.sumOf { it.durationMin }
-        val firstStart = parseDateTime(drives.first().startDate)
-        val lastEnd = parseDateTime(drives.last().endDate)
-        val totalMin = if (firstStart != null && lastEnd != null) {
-            ChronoUnit.MINUTES.between(firstStart, lastEnd).toInt()
-        } else totalDrivingMin
-        val totalEnergyConsumed = drives.mapNotNull { it.energyConsumed }.sum()
-        val totalEnergyCharged = charges.sumOf { it.energyAdded }
-        val costs = charges.mapNotNull { it.cost }
-        val totalCost = if (costs.isNotEmpty()) costs.sum() else null
-        val maxSpeed = drives.maxOf { it.speedMax }
-        val avgEfficiency = if (totalDistance > 0) {
-            (totalEnergyConsumed * 1000.0) / totalDistance
-        } else null
-
-        trips.add(
-            Trip(
-                drives = drives.toList(),
-                charges = charges.toList(),
-                totalDistance = totalDistance,
-                totalDrivingDurationMin = totalDrivingMin,
-                totalDurationMin = totalMin,
-                totalEnergyConsumed = totalEnergyConsumed,
-                totalEnergyCharged = totalEnergyCharged,
-                totalChargeCost = totalCost,
-                avgEfficiency = avgEfficiency,
-                maxSpeed = maxSpeed,
-                startAddress = drives.first().startAddress,
-                endAddress = drives.last().endAddress,
-                startDate = drives.first().startDate,
-                endDate = drives.last().endDate,
-                startBatteryLevel = drives.first().startBatteryLevel,
-                endBatteryLevel = drives.last().endBatteryLevel
-            )
-        )
+        TripAggregator.buildTrip(drives, charges)?.let { trips.add(it) }
     }
 
     private fun parseDateTime(dateStr: String): LocalDateTime? {

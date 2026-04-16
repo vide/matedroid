@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
-import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
 import com.matedroid.data.local.dao.TripCountryCacheDao
 import com.matedroid.data.local.dao.TripRouteCacheDao
@@ -16,7 +15,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.countryCodeToFlag
 import com.matedroid.domain.RouteSimplifier
-import com.matedroid.domain.TripDetector
+import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
@@ -28,7 +27,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
-import java.security.MessageDigest
 import javax.inject.Inject
 
 data class TripRoutePoint(
@@ -69,12 +67,11 @@ data class TripDetailUiState(
 
 @HiltViewModel
 class TripDetailViewModel @Inject constructor(
-    private val driveSummaryDao: DriveSummaryDao,
     private val aggregateDao: AggregateDao,
     private val geocodeCacheDao: GeocodeCacheDao,
     private val tripRouteCacheDao: TripRouteCacheDao,
     private val tripCountryCacheDao: TripCountryCacheDao,
-    private val tripDetector: TripDetector,
+    private val tripRepository: TripRepository,
     private val tripCache: TripCache,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore
@@ -102,13 +99,9 @@ class TripDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(currencySymbol = symbol) }
             }
 
-            // Fast path: use cached trip from list screen (avoids full re-detection)
-            val trip = tripCache.take(tripStartDate) ?: run {
-                val drives = driveSummaryDao.getAllChronological(carId)
-                val dcCharges = aggregateDao.getDcChargeSummaries(carId)
-                val trips = tripDetector.detectTrips(drives, dcCharges)
-                trips.find { it.startDate == tripStartDate }
-            }
+            // Fast path: use cached trip from list screen (avoids a repository round trip)
+            val trip = tripCache.take(tripStartDate)
+                ?: tripRepository.getTrips(carId).find { it.startDate == tripStartDate }
             if (trip == null) {
                 _uiState.update { it.copy(isLoading = false, isMapLoading = false) }
                 return@launch
@@ -341,12 +334,8 @@ class TripDetailViewModel @Inject constructor(
             .filter { it.points.isNotEmpty() }
     }
 
-    /** SHA-256 hash of sorted drive IDs, used as cache key. */
-    private fun computeTripKey(trip: Trip): String {
-        val ids = trip.drives.map { it.driveId }.sorted().joinToString(",")
-        val digest = MessageDigest.getInstance("SHA-256").digest(ids.toByteArray())
-        return digest.joinToString("") { "%02x".format(it) }
-    }
+    /** SHA-256 hash of sorted drive IDs, used as cache key. Delegates to [TripRepository]. */
+    private fun computeTripKey(trip: Trip): String = tripRepository.computeFingerprint(trip)
 
     /** Pack points as big-endian doubles: [lat0, lon0, lat1, lon1, ...] */
     private fun serializeSegment(segment: TripRouteSegment): ByteArray {

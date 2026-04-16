@@ -3,11 +3,9 @@ package com.matedroid.ui.screens.trips
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
-import com.matedroid.data.local.dao.AggregateDao
-import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
-import com.matedroid.domain.TripDetector
+import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +35,7 @@ data class TripsUiState(
 
 @HiltViewModel
 class TripsViewModel @Inject constructor(
-    private val driveSummaryDao: DriveSummaryDao,
-    private val aggregateDao: AggregateDao,
-    private val tripDetector: TripDetector,
+    private val tripRepository: TripRepository,
     private val repository: TeslamateRepository,
     private val tripCache: TripCache
 ) : ViewModel() {
@@ -93,9 +89,7 @@ class TripsViewModel @Inject constructor(
 
     private fun loadTrips(carId: Int) {
         viewModelScope.launch {
-            val drives = driveSummaryDao.getAllChronological(carId)
-            val dcCharges = aggregateDao.getDcChargeSummaries(carId)
-            allTrips = tripDetector.detectTrips(drives, dcCharges).reversed()
+            allTrips = tripRepository.getTrips(carId)
 
             val years = allTrips.mapNotNull { parseYear(it.startDate) }
                 .distinct()
