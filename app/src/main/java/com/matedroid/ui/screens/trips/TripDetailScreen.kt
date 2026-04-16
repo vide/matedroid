@@ -62,9 +62,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
@@ -73,6 +71,7 @@ import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.components.TripTimeline
+import com.matedroid.ui.components.TripTimelineCountry
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.components.createZapMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalette
@@ -85,11 +84,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,8 +182,6 @@ private fun TripDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        RouteHeaderCard(trip, countries, onCountryClick)
-
         TripMapCard(
             routeSegments = routeSegments,
             markers = markers,
@@ -202,7 +194,13 @@ private fun TripDetailContent(
             segments = remember(trip) { buildTimelineSegments(trip) },
             startDate = trip.startDate,
             endDate = trip.endDate,
-            palette = palette
+            startCity = extractCity(trip.startAddress),
+            endCity = extractCity(trip.endAddress),
+            countries = remember(countries) {
+                countries.map { TripTimelineCountry(it.countryCode, it.flagEmoji) }
+            },
+            palette = palette,
+            onCountryClick = onCountryClick
         )
 
         StatsSectionCard(
@@ -252,149 +250,6 @@ private fun TripDetailContent(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-    }
-}
-
-// === Route Header — matches DriveDetailScreen ===
-
-@Composable
-private fun RouteHeaderCard(
-    trip: Trip,
-    countries: List<TripCountry>,
-    onCountryClick: (countryCode: String) -> Unit
-) {
-    val startFlag = countries.firstOrNull()?.flagEmoji
-    val endFlag = if (countries.size >= 2) countries.last().flagEmoji else startFlag
-    val midFlags = if (countries.size > 2) countries.subList(1, countries.size - 1) else emptyList()
-    val lineColor = MaterialTheme.colorScheme.primary
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Start stop: flag + city + time
-            val startCountry = countries.firstOrNull()
-            TimelineStop(
-                flag = startCountry?.flagEmoji,
-                fallbackColor = StatusSuccess,
-                city = extractCity(trip.startAddress),
-                label = stringResource(R.string.from),
-                time = formatDateTime(trip.startDate),
-                onFlagClick = startCountry?.let { { onCountryClick(it.countryCode) } }
-            )
-
-            // Line + intermediate countries
-            if (midFlags.isEmpty()) {
-                TimelineLine(lineColor, height = 16)
-            } else {
-                midFlags.forEach { country ->
-                    TimelineLine(lineColor, height = 8)
-                    TimelineStop(
-                        flag = country.flagEmoji,
-                        flagSize = 20,
-                        city = null,
-                        label = null,
-                        onFlagClick = { onCountryClick(country.countryCode) }
-                    )
-                }
-                TimelineLine(lineColor, height = 8)
-            }
-
-            // End stop: flag + city + time
-            val endCountry = if (countries.size >= 2) countries.last() else startCountry
-            TimelineStop(
-                flag = endCountry?.flagEmoji,
-                fallbackColor = StatusError,
-                city = extractCity(trip.endAddress),
-                label = stringResource(R.string.to),
-                time = formatDateTime(trip.endDate),
-                onFlagClick = endCountry?.let { { onCountryClick(it.countryCode) } }
-            )
-        }
-    }
-}
-
-/** A single stop on the timeline: flag marker + city label + optional right-aligned time. */
-@Composable
-private fun TimelineStop(
-    flag: String?,
-    flagSize: Int = 24,
-    fallbackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
-    city: String?,
-    label: String?,
-    time: String? = null,
-    onFlagClick: (() -> Unit)? = null
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Flag or colored dot, centered in 32dp column
-        Box(
-            modifier = Modifier
-                .width(32.dp)
-                .then(if (onFlagClick != null) Modifier.clickable(onClick = onFlagClick) else Modifier),
-            contentAlignment = Alignment.Center
-        ) {
-            if (flag != null) {
-                Text(text = flag, fontSize = flagSize.sp)
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size((flagSize - 4).dp)
-                        .background(fallbackColor, shape = RoundedCornerShape(50))
-                )
-            }
-        }
-        if (city != null) {
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                if (label != null) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                    )
-                }
-                Text(
-                    text = city,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            if (time != null) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = time,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                    textAlign = TextAlign.End
-                )
-            }
-        }
-    }
-}
-
-/** Vertical connecting line between timeline stops. */
-@Composable
-private fun TimelineLine(
-    color: androidx.compose.ui.graphics.Color,
-    height: Int = 16
-) {
-    Box(
-        modifier = Modifier.width(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(height.dp)
-                .background(color.copy(alpha = 0.3f))
-        )
     }
 }
 
@@ -907,17 +762,4 @@ private fun formatDuration(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return if (h > 0) "${h}h ${m}m" else "${m}m"
-}
-
-private fun formatDateTime(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
-    } catch (e: Exception) {
-        dateStr
-    }
 }

@@ -2,6 +2,7 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
@@ -37,7 +39,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.matedroid.R
 import com.matedroid.ui.theme.CarColorPalette
 import java.time.LocalDateTime
@@ -69,6 +73,12 @@ sealed class TripTimelineSegment {
     ) : TripTimelineSegment()
 }
 
+/** A country shown in the timeline's route header (start, end, or intermediate). */
+data class TripTimelineCountry(
+    val countryCode: String,
+    val flagEmoji: String
+)
+
 private const val PARKING_LINEAR_THRESHOLD_MIN = 120f
 private const val MIN_SEGMENT_RATIO = 0.02f
 
@@ -82,7 +92,11 @@ fun TripTimeline(
     segments: List<TripTimelineSegment>,
     startDate: String,
     endDate: String,
+    startCity: String,
+    endCity: String,
+    countries: List<TripTimelineCountry>,
     palette: CarColorPalette,
+    onCountryClick: (countryCode: String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (segments.isEmpty()) return
@@ -115,10 +129,16 @@ fun TripTimeline(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            SegmentInfoPanel(
+            InfoPanel(
                 selection = selectedIndex?.let { idx -> segments.getOrNull(idx)?.let { idx to it } },
+                startDate = startDate,
+                endDate = endDate,
+                startCity = startCity,
+                endCity = endCity,
+                countries = countries,
                 palette = palette,
-                parkingColor = parkingColor
+                parkingColor = parkingColor,
+                onCountryClick = onCountryClick
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -133,7 +153,7 @@ fun TripTimeline(
                 }
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -155,74 +175,220 @@ fun TripTimeline(
 }
 
 @Composable
-private fun SegmentInfoPanel(
+private fun InfoPanel(
     selection: Pair<Int, TripTimelineSegment>?,
+    startDate: String,
+    endDate: String,
+    startCity: String,
+    endCity: String,
+    countries: List<TripTimelineCountry>,
     palette: CarColorPalette,
-    parkingColor: Color
+    parkingColor: Color,
+    onCountryClick: (countryCode: String) -> Unit
 ) {
     // Reserve a constant height so tapping segments doesn't shift the bar position
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(44.dp),
+            .height(48.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         if (selection != null) {
-            val seg = selection.second
-            val title: String
-            val subtitle: String
-            val dotColor: Color
-            when (seg) {
-                is TripTimelineSegment.Drive -> {
-                    title = "${stringResource(R.string.trip_timeline_driving)} · " +
-                            stringResource(R.string.trip_leg_drive, seg.index)
-                    subtitle = "%.1f km · %s".format(
-                        seg.distanceKm,
-                        formatTimelineDuration(seg.durationMin)
-                    )
-                    dotColor = palette.accent
-                }
-                is TripTimelineSegment.Charge -> {
-                    val chargeLabel = if (seg.isDc) {
-                        stringResource(R.string.trip_timeline_charging_dc)
-                    } else {
-                        stringResource(R.string.trip_timeline_charging_ac)
-                    }
-                    title = "$chargeLabel · " +
-                            stringResource(R.string.trip_leg_charge, seg.index)
-                    subtitle = "+%.1f kWh · %s".format(
-                        seg.energyKwh,
-                        formatTimelineDuration(seg.durationMin)
-                    )
-                    dotColor = if (seg.isDc) palette.dcColor else palette.acColor
-                }
-                is TripTimelineSegment.Parking -> {
-                    title = stringResource(R.string.trip_timeline_parked)
-                    subtitle = formatTimelineDuration(seg.durationMin)
-                    dotColor = parkingColor
-                }
+            SegmentInfoContent(
+                segment = selection.second,
+                palette = palette,
+                parkingColor = parkingColor
+            )
+        } else {
+            RouteHeaderContent(
+                startDate = startDate,
+                endDate = endDate,
+                startCity = startCity,
+                endCity = endCity,
+                countries = countries,
+                onCountryClick = onCountryClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun SegmentInfoContent(
+    segment: TripTimelineSegment,
+    palette: CarColorPalette,
+    parkingColor: Color
+) {
+    val title: String
+    val subtitle: String
+    val dotColor: Color
+    when (segment) {
+        is TripTimelineSegment.Drive -> {
+            title = "${stringResource(R.string.trip_timeline_driving)} · " +
+                    stringResource(R.string.trip_leg_drive, segment.index)
+            subtitle = "%.1f km · %s".format(
+                segment.distanceKm,
+                formatTimelineDuration(segment.durationMin)
+            )
+            dotColor = palette.accent
+        }
+        is TripTimelineSegment.Charge -> {
+            val chargeLabel = if (segment.isDc) {
+                stringResource(R.string.trip_timeline_charging_dc)
+            } else {
+                stringResource(R.string.trip_timeline_charging_ac)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(dotColor)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
+            title = "$chargeLabel · " +
+                    stringResource(R.string.trip_leg_charge, segment.index)
+            subtitle = "+%.1f kWh · %s".format(
+                segment.energyKwh,
+                formatTimelineDuration(segment.durationMin)
+            )
+            dotColor = if (segment.isDc) palette.dcColor else palette.acColor
+        }
+        is TripTimelineSegment.Parking -> {
+            title = stringResource(R.string.trip_timeline_parked)
+            subtitle = formatTimelineDuration(segment.durationMin)
+            dotColor = parkingColor
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(50))
+                .background(dotColor)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun RouteHeaderContent(
+    startDate: String,
+    endDate: String,
+    startCity: String,
+    endCity: String,
+    countries: List<TripTimelineCountry>,
+    onCountryClick: (countryCode: String) -> Unit
+) {
+    val startCountry = countries.firstOrNull()
+    val endCountry = if (countries.size >= 2) countries.last() else startCountry
+    val intermediate = if (countries.size > 2) countries.subList(1, countries.size - 1) else emptyList()
+    val startDateShort = formatShortDate(startDate)
+    val endDateShort = formatShortDate(endDate)
+    val sameDay = startDateShort == endDateShort
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Endpoint(
+            city = startCity,
+            date = startDateShort,
+            country = startCountry,
+            alignment = Alignment.Start,
+            onCountryClick = onCountryClick,
+            modifier = Modifier.weight(1f)
+        )
+        if (intermediate.isNotEmpty()) {
+            Row(
+                modifier = Modifier.wrapContentWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                intermediate.forEach { country ->
                     Text(
-                        text = title,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "·",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = country.flagEmoji,
+                        fontSize = 16.sp,
+                        modifier = Modifier.clickable { onCountryClick(country.countryCode) }
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
+        Endpoint(
+            city = endCity,
+            date = endDateShort,
+            country = endCountry,
+            alignment = Alignment.End,
+            onCountryClick = onCountryClick,
+            // When the trip starts and ends the same day, hide the duplicate date on the end side
+            hideDate = sameDay,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun Endpoint(
+    city: String,
+    date: String,
+    country: TripTimelineCountry?,
+    alignment: Alignment.Horizontal,
+    onCountryClick: (countryCode: String) -> Unit,
+    modifier: Modifier = Modifier,
+    hideDate: Boolean = false
+) {
+    val isEnd = alignment == Alignment.End
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (isEnd) Arrangement.End else Arrangement.Start
+    ) {
+        if (!isEnd && country != null) {
+            Text(
+                text = country.flagEmoji,
+                fontSize = 22.sp,
+                modifier = Modifier.clickable { onCountryClick(country.countryCode) }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Column(horizontalAlignment = alignment) {
+            Text(
+                text = city,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!hideDate) {
+                Text(
+                    text = date,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+        if (isEnd && country != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = country.flagEmoji,
+                fontSize = 22.sp,
+                modifier = Modifier.clickable { onCountryClick(country.countryCode) }
+            )
         }
     }
 }
@@ -350,6 +516,19 @@ private fun formatClockTime(dateStr: String): String {
             LocalDateTime.parse(dateStr.replace("Z", ""))
         }
         dt.format(DateTimeFormatter.ofPattern("HH:mm"))
+    } catch (e: Exception) {
+        dateStr
+    }
+}
+
+private fun formatShortDate(dateStr: String): String {
+    return try {
+        val dt = try {
+            OffsetDateTime.parse(dateStr).toLocalDateTime()
+        } catch (e: DateTimeParseException) {
+            LocalDateTime.parse(dateStr.replace("Z", ""))
+        }
+        dt.format(DateTimeFormatter.ofPattern("d MMM"))
     } catch (e: Exception) {
         dateStr
     }
