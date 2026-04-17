@@ -14,6 +14,8 @@ import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.countryCodeToFlag
+import com.matedroid.domain.EligibleLegs
+import com.matedroid.domain.LegRef
 import com.matedroid.domain.RouteSimplifier
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
@@ -62,7 +64,18 @@ data class TripDetailUiState(
     val isMapLoading: Boolean = true,
     val countries: List<TripCountry> = emptyList(),
     val units: Units? = null,
-    val currencySymbol: String = "€"
+    val currencySymbol: String = "€",
+
+    // Edit / merge / delete (PR 2)
+    val savedTripId: Long? = null,
+    val dcChargeIds: Set<Int> = emptySet(),
+    val showAddLegSheet: Boolean = false,
+    val showMergeSheet: Boolean = false,
+    val showDeleteConfirm: Boolean = false,
+    val eligibleLegs: EligibleLegs? = null,
+    val adjacentTrips: List<Pair<Long, Trip>> = emptyList(),
+    val pendingMergeTarget: Pair<Long, Trip>? = null,
+    val justDeleted: Boolean = false
 )
 
 @HiltViewModel
@@ -81,10 +94,14 @@ class TripDetailViewModel @Inject constructor(
     val uiState: StateFlow<TripDetailUiState> = _uiState.asStateFlow()
 
     private var loaded = false
+    private var currentCarId: Int = -1
+    private var currentStartDate: String = ""
 
     fun loadTrip(carId: Int, tripStartDate: String) {
         if (loaded) return
         loaded = true
+        currentCarId = carId
+        currentStartDate = tripStartDate
 
         viewModelScope.launch {
             launch {
@@ -119,9 +136,21 @@ class TripDetailViewModel @Inject constructor(
                 )
             }
 
+            // Lookup savedTripId (for edit/merge/delete actions) and DC charge id set (for AC/DC visuals)
+            val savedId = tripRepository.findSavedTripId(carId, trip)
+            val dcIds = try {
+                aggregateDao.getDcChargeIds(carId).toSet()
+            } catch (e: Exception) { emptySet() }
+
             // Show trip info immediately — countries and map load in background
             _uiState.update {
-                it.copy(isLoading = false, trip = trip, markers = markers)
+                it.copy(
+                    isLoading = false,
+                    trip = trip,
+                    markers = markers,
+                    savedTripId = savedId,
+                    dcChargeIds = dcIds
+                )
             }
 
             // Resolve countries — try cache first, resolve in background if miss
@@ -150,6 +179,101 @@ class TripDetailViewModel @Inject constructor(
             // Fetch GPS positions for all drives in parallel (for the map)
             loadRoutePositions(carId, trip)
         }
+    }
+
+    // === Edit / merge / delete actions (PR 2) ===
+
+    fun openAddLegSheet() {
+        val tripId = _uiState.value.savedTripId ?: return
+        viewModelScope.launch {
+            val eligible = tripRepository.getEligibleNewLegs(tripId, currentCarId)
+            _uiState.update { it.copy(showAddLegSheet = true, eligibleLegs = eligible) }
+        }
+    }
+
+    fun closeAddLegSheet() {
+        _uiState.update { it.copy(showAddLegSheet = false, eligibleLegs = null) }
+    }
+
+    fun pickLeg(ref: LegRef) {
+        val tripId = _uiState.value.savedTripId ?: return
+        viewModelScope.launch {
+            tripRepository.extendTripWithLegs(tripId, listOf(ref))
+            _uiState.update { it.copy(showAddLegSheet = false, eligibleLegs = null) }
+            reloadTrip()
+        }
+    }
+
+    fun openMergeSheet() {
+        val tripId = _uiState.value.savedTripId ?: return
+        viewModelScope.launch {
+            val adjacent = tripRepository.getAdjacentTrips(tripId, currentCarId)
+            _uiState.update { it.copy(showMergeSheet = true, adjacentTrips = adjacent) }
+        }
+    }
+
+    fun closeMergeSheet() {
+        _uiState.update { it.copy(showMergeSheet = false, adjacentTrips = emptyList()) }
+    }
+
+    fun pickMergeTarget(otherId: Long, otherTrip: Trip) {
+        _uiState.update {
+            it.copy(showMergeSheet = false, pendingMergeTarget = otherId to otherTrip)
+        }
+    }
+
+    fun cancelMergeTarget() {
+        _uiState.update { it.copy(pendingMergeTarget = null) }
+    }
+
+    fun confirmMergeTarget() {
+        val keptId = _uiState.value.savedTripId ?: return
+        val (otherId, _) = _uiState.value.pendingMergeTarget ?: return
+        viewModelScope.launch {
+            val newId = tripRepository.mergeTrips(keptId, otherId, currentCarId) ?: return@launch
+            // The merged trip's startDate equals the earliest source's startDate.
+            // Re-derive currentStartDate so reloadTrip finds the merged trip.
+            val all = tripRepository.getTrips(currentCarId)
+            val merged = all.find { trip ->
+                tripRepository.findSavedTripId(currentCarId, trip) == newId
+            } ?: return@launch
+            currentStartDate = merged.startDate
+            _uiState.update { it.copy(pendingMergeTarget = null, adjacentTrips = emptyList()) }
+            reloadTrip()
+        }
+    }
+
+    fun openDeleteConfirm() {
+        _uiState.update { it.copy(showDeleteConfirm = true) }
+    }
+
+    fun closeDeleteConfirm() {
+        _uiState.update { it.copy(showDeleteConfirm = false) }
+    }
+
+    fun confirmDelete() {
+        val tripId = _uiState.value.savedTripId ?: return
+        viewModelScope.launch {
+            tripRepository.deleteTrip(tripId)
+            _uiState.update { it.copy(showDeleteConfirm = false, justDeleted = true) }
+        }
+    }
+
+    /** Clears the screen state and re-runs loadTrip with the currently viewed trip. */
+    private fun reloadTrip() {
+        loaded = false
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                trip = null,
+                routeSegments = emptyList(),
+                markers = emptyList(),
+                isMapLoading = true,
+                countries = emptyList(),
+                savedTripId = null
+            )
+        }
+        loadTrip(currentCarId, currentStartDate)
     }
 
     /**

@@ -47,4 +47,30 @@ abstract class SavedTripDao {
 
     @Query("DELETE FROM saved_trips WHERE id = :tripId")
     abstract suspend fun deleteTrip(tripId: Long)
+
+    // === Edit/merge helpers (PR 2) ===
+
+    @Query("DELETE FROM saved_trip_legs WHERE tripId = :tripId")
+    abstract suspend fun deleteLegs(tripId: Long)
+
+    @Query("UPDATE saved_trips SET source = :source, updatedAt = :updatedAt WHERE id = :tripId")
+    abstract suspend fun updateSource(tripId: Long, source: String, updatedAt: Long)
+
+    @Query("SELECT fingerprint FROM saved_trip_consumed_fingerprints WHERE savedTripId = :tripId")
+    abstract suspend fun getConsumedFingerprints(tripId: Long): List<String>
+
+    /** Drive/charge IDs already referenced by any saved trip belonging to [carId]. */
+    @Query("""
+        SELECT DISTINCT legId FROM saved_trip_legs
+        WHERE legType = :legType
+          AND tripId IN (SELECT id FROM saved_trips WHERE carId = :carId)
+    """)
+    abstract suspend fun getUsedLegIds(carId: Int, legType: String): List<Int>
+
+    /** Atomically replace all legs of a trip. Used when adding legs (re-numbers positions). */
+    @Transaction
+    open suspend fun replaceLegs(tripId: Long, newLegs: List<SavedTripLeg>) {
+        deleteLegs(tripId)
+        if (newLegs.isNotEmpty()) insertLegs(newLegs)
+    }
 }

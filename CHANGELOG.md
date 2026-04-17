@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Trip timeline**: Horizontal timeline bar on the trip detail screen, under the map, visualizing each drive, charge, and parking gap as a colored segment proportional to its duration. Drives use the car's accent color, charges use the established AC/DC palette (green/orange, harmonized with the car's theme), parking gaps use a muted neutral. Tap any segment to see its details; multi-day parking stretches are compressed with a sqrt curve so driving and charging stay readable.
+- **Edit trips**: Two new buttons below the trip legs — "Add leg" and "Merge trip". "Add leg" opens a bottom sheet listing drives and charges within ±2 days of the trip that aren't already in another saved trip. "Merge trip" opens a bottom sheet listing adjacent trips within ±14 days and, after confirmation, combines them into one trip — automatically rolling in all drives and charges (AC included) between them. Dashed line on the map connects legs that are geographically far apart (e.g., when the car was transported). Delete a trip via the top-bar overflow menu: the underlying auto-detected trips reappear automatically, which is the built-in way to undo a merge or edit.
 
 ### Changed
 - **Trip persistence**: Trips are now stored as first-class database entities. Auto-detected trips are silently persisted on first detection, unlocking the ability to edit and merge trips in a future update. No visible change for users.

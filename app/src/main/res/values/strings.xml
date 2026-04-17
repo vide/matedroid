@@ -1110,6 +1110,45 @@
     <!-- Tooltip label for a parking gap segment on the trip timeline (time between legs when the car is idle) -->
     <string name="trip_timeline_parked">Parked</string>
 
+    <!-- Button label: opens a bottom sheet to add a drive or charge to this trip -->
+    <string name="trip_edit_add_leg">Add leg</string>
+
+    <!-- Button label: opens a bottom sheet to merge another trip into this one -->
+    <string name="trip_edit_merge_trip">Merge trip</string>
+
+    <!-- Bottom sheet title for picking a drive or charge to add -->
+    <string name="trip_edit_add_leg_title">Add to this trip</string>
+
+    <!-- Empty-state message when no eligible drives or charges are nearby -->
+    <string name="trip_edit_add_leg_empty">No nearby drives or charges</string>
+
+    <!-- Bottom sheet title for picking another trip to merge with -->
+    <string name="trip_edit_merge_title">Merge another trip</string>
+
+    <!-- Empty-state message when no adjacent trips exist within the 2-week window -->
+    <string name="trip_edit_merge_empty">No trips within 2 weeks</string>
+
+    <!-- Confirmation dialog title before merging two trips -->
+    <string name="trip_edit_merge_confirm_title">Merge trips?</string>
+
+    <!-- Confirmation dialog body — explains that the user can undo by deleting the merged trip -->
+    <string name="trip_edit_merge_confirm_body">Combine these trips into one. You can undo by deleting the merged trip.</string>
+
+    <!-- Primary action label on the merge confirmation dialog -->
+    <string name="trip_edit_merge_confirm">Merge</string>
+
+    <!-- Overflow menu action: delete the currently viewed trip -->
+    <string name="trip_edit_delete">Delete trip</string>
+
+    <!-- Confirmation dialog title before deleting a saved trip -->
+    <string name="trip_edit_delete_confirm_title">Delete this trip?</string>
+
+    <!-- Confirmation dialog body — explains that auto-detected originals will come back -->
+    <string name="trip_edit_delete_confirm_body">This removes your edits. Auto-detected trips inside will reappear.</string>
+
+    <!-- Generic delete button label -->
+    <string name="delete">Delete</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

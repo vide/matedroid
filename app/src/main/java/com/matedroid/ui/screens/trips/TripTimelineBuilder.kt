@@ -15,11 +15,13 @@ private const val MIN_PARKING_GAP_MIN = 5L
  * Build a chronological list of TripTimelineSegments from a Trip.
  * Inserts Parking segments for any gap >= MIN_PARKING_GAP_MIN between consecutive legs.
  *
- * Note: auto-detected trips only include DC charges (see TripDetector), so every charge
- * here is marked isDc = true. When user-created trips land, this will need to consult
- * the fast-charger flag per charge.
+ * [dcChargeIds] is the set of charge IDs that are DC fast chargers, used to color the
+ * charge segments correctly (orange for DC, green for AC). For legs not in the set, AC is assumed.
  */
-fun buildTimelineSegments(trip: Trip): List<TripTimelineSegment> {
+fun buildTimelineSegments(
+    trip: Trip,
+    dcChargeIds: Set<Int> = emptySet()
+): List<TripTimelineSegment> {
     val allEvents = mutableListOf<Pair<String, Any>>()
     trip.drives.forEach { allEvents.add(it.startDate to it) }
     trip.charges.forEach { allEvents.add(it.startDate to it) }
@@ -61,7 +63,7 @@ fun buildTimelineSegments(trip: Trip): List<TripTimelineSegment> {
                         durationMin = event.durationMin,
                         index = chargeIdx,
                         energyKwh = event.energyAdded,
-                        isDc = true
+                        isDc = event.chargeId in dcChargeIds
                     )
                 )
             }

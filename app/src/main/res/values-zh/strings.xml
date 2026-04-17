@@ -1075,6 +1075,20 @@
     <string name="trip_timeline_charging_ac">AC 充电</string>
     <string name="trip_timeline_parked">已停车</string>
 
+    <string name="trip_edit_add_leg">添加行程段</string>
+    <string name="trip_edit_merge_trip">合并行程</string>
+    <string name="trip_edit_add_leg_title">添加到此行程</string>
+    <string name="trip_edit_add_leg_empty">附近没有驾驶或充电记录</string>
+    <string name="trip_edit_merge_title">合并另一个行程</string>
+    <string name="trip_edit_merge_empty">2 周内没有其他行程</string>
+    <string name="trip_edit_merge_confirm_title">合并行程？</string>
+    <string name="trip_edit_merge_confirm_body">将这些行程合并为一个。您可以通过删除合并后的行程来撤销。</string>
+    <string name="trip_edit_merge_confirm">合并</string>
+    <string name="trip_edit_delete">删除行程</string>
+    <string name="trip_edit_delete_confirm_title">删除此行程？</string>
+    <string name="trip_edit_delete_confirm_body">这将删除您的编辑。其中自动检测的行程将重新出现。</string>
+    <string name="delete">删除</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">选择车辆外观</string>

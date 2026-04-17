@@ -1074,6 +1074,20 @@
     <string name="trip_timeline_charging_ac">Càrrega AC</string>
     <string name="trip_timeline_parked">Aparcat</string>
 
+    <string name="trip_edit_add_leg">Afegeix tram</string>
+    <string name="trip_edit_merge_trip">Uneix viatge</string>
+    <string name="trip_edit_add_leg_title">Afegeix a aquest viatge</string>
+    <string name="trip_edit_add_leg_empty">No hi ha trajectes o càrregues properes</string>
+    <string name="trip_edit_merge_title">Uneix un altre viatge</string>
+    <string name="trip_edit_merge_empty">Cap viatge en 2 setmanes</string>
+    <string name="trip_edit_merge_confirm_title">Unir els viatges?</string>
+    <string name="trip_edit_merge_confirm_body">Uneix aquests viatges en un. Pots desfer-ho eliminant el viatge unit.</string>
+    <string name="trip_edit_merge_confirm">Uneix</string>
+    <string name="trip_edit_delete">Elimina viatge</string>
+    <string name="trip_edit_delete_confirm_title">Eliminar aquest viatge?</string>
+    <string name="trip_edit_delete_confirm_body">Això elimina els canvis. Els viatges detectats automàticament a dins reapareixeran.</string>
+    <string name="delete">Elimina</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Selecciona l\'aspecte del cotxe</string>

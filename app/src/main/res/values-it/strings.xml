@@ -1074,6 +1074,20 @@
     <string name="trip_timeline_charging_ac">Ricarica AC</string>
     <string name="trip_timeline_parked">In sosta</string>
 
+    <string name="trip_edit_add_leg">Aggiungi tratta</string>
+    <string name="trip_edit_merge_trip">Unisci viaggio</string>
+    <string name="trip_edit_add_leg_title">Aggiungi a questo viaggio</string>
+    <string name="trip_edit_add_leg_empty">Nessuna tratta o ricarica nelle vicinanze</string>
+    <string name="trip_edit_merge_title">Unisci un altro viaggio</string>
+    <string name="trip_edit_merge_empty">Nessun viaggio entro 2 settimane</string>
+    <string name="trip_edit_merge_confirm_title">Unire i viaggi?</string>
+    <string name="trip_edit_merge_confirm_body">Unisce questi viaggi in uno solo. Puoi annullare eliminando il viaggio unito.</string>
+    <string name="trip_edit_merge_confirm">Unisci</string>
+    <string name="trip_edit_delete">Elimina viaggio</string>
+    <string name="trip_edit_delete_confirm_title">Eliminare questo viaggio?</string>
+    <string name="trip_edit_delete_confirm_body">Questo annulla le modifiche. I viaggi rilevati automaticamente al suo interno riappariranno.</string>
+    <string name="delete">Elimina</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Seleziona aspetto auto</string>

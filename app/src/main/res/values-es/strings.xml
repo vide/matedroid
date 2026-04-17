@@ -1074,6 +1074,20 @@
     <string name="trip_timeline_charging_ac">Carga AC</string>
     <string name="trip_timeline_parked">Estacionado</string>
 
+    <string name="trip_edit_add_leg">Añadir tramo</string>
+    <string name="trip_edit_merge_trip">Combinar viaje</string>
+    <string name="trip_edit_add_leg_title">Añadir a este viaje</string>
+    <string name="trip_edit_add_leg_empty">Sin trayectos o cargas cercanos</string>
+    <string name="trip_edit_merge_title">Combinar otro viaje</string>
+    <string name="trip_edit_merge_empty">No hay viajes en 2 semanas</string>
+    <string name="trip_edit_merge_confirm_title">¿Combinar viajes?</string>
+    <string name="trip_edit_merge_confirm_body">Fusiona estos viajes en uno. Puedes deshacerlo eliminando el viaje combinado.</string>
+    <string name="trip_edit_merge_confirm">Combinar</string>
+    <string name="trip_edit_delete">Eliminar viaje</string>
+    <string name="trip_edit_delete_confirm_title">¿Eliminar este viaje?</string>
+    <string name="trip_edit_delete_confirm_body">Esto elimina tus cambios. Los viajes detectados automáticamente dentro reaparecerán.</string>
+    <string name="delete">Eliminar</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Seleccionar aspecto del coche</string>
