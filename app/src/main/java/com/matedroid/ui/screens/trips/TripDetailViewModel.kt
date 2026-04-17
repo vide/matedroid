@@ -96,6 +96,7 @@ class TripDetailViewModel @Inject constructor(
     private var loaded = false
     private var currentCarId: Int = -1
     private var currentStartDate: String = ""
+    private var hasBeenPaused = false
 
     fun loadTrip(carId: Int, tripStartDate: String) {
         if (loaded) return
@@ -256,6 +257,22 @@ class TripDetailViewModel @Inject constructor(
         viewModelScope.launch {
             tripRepository.deleteTrip(tripId)
             _uiState.update { it.copy(showDeleteConfirm = false, justDeleted = true) }
+        }
+    }
+
+    /** Called by the screen on ON_PAUSE so we know the user navigated away. */
+    fun onScreenPaused() {
+        hasBeenPaused = true
+    }
+
+    /**
+     * Called by the screen on ON_RESUME. Reloads the trip if the user is returning from a child
+     * screen (e.g. a drive/charge detail) where they might have changed the trip's composition.
+     */
+    fun onScreenResumed() {
+        if (loaded && hasBeenPaused) {
+            hasBeenPaused = false
+            reloadTrip()
         }
     }
 
