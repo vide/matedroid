@@ -357,7 +357,10 @@ fun NavGraph(
                 carId = carId,
                 chargeId = chargeId,
                 exteriorColor = exteriorColor,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTripDetail = { tripStartDate ->
+                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                }
             )
         }
 
@@ -423,7 +426,10 @@ fun NavGraph(
                 carId = carId,
                 driveId = driveId,
                 exteriorColor = exteriorColor,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTripDetail = { tripStartDate ->
+                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                }
             )
         }
 

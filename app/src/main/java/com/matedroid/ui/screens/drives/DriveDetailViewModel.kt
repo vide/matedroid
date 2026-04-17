@@ -6,9 +6,13 @@ import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
+import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.data.repository.WeatherRepository
+import com.matedroid.domain.LegRef
+import com.matedroid.domain.TripRepository
+import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +28,8 @@ data class DriveDetailUiState(
     val units: Units? = null,
     val stats: DriveDetailStats? = null,
     val weatherPoints: List<WeatherPoint> = emptyList(),
-    val isLoadingWeather: Boolean = false
+    val isLoadingWeather: Boolean = false,
+    val containingTrip: Pair<Long, Trip>? = null
 )
 
 data class DriveDetailStats(
@@ -53,7 +58,8 @@ data class DriveDetailStats(
 @HiltViewModel
 class DriveDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val tripRepository: TripRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveDetailUiState())
@@ -69,6 +75,11 @@ class DriveDetailViewModel @Inject constructor(
 
         this.carId = carId
         this.driveId = driveId
+
+        viewModelScope.launch {
+            val containing = tripRepository.findTripContaining(carId, SavedTripLeg.TYPE_DRIVE, driveId)
+            _uiState.update { it.copy(containingTrip = containing) }
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -147,6 +158,16 @@ class DriveDetailViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    /** Detach this drive from its containing saved trip (auto-transitions the trip to USER_EDITED). */
+    fun removeFromTrip() {
+        val tripId = _uiState.value.containingTrip?.first ?: return
+        val drive = driveId ?: return
+        viewModelScope.launch {
+            tripRepository.removeLegFromTrip(tripId, LegRef(SavedTripLeg.TYPE_DRIVE, drive))
+            _uiState.update { it.copy(containingTrip = null) }
+        }
     }
 
     private fun calculateStats(detail: DriveDetail): DriveDetailStats {

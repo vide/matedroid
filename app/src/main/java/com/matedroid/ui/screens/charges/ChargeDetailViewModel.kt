@@ -5,9 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.LegRef
+import com.matedroid.domain.TripRepository
+import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +28,8 @@ data class ChargeDetailUiState(
     val units: Units? = null,
     val stats: ChargeDetailStats? = null,
     val currencySymbol: String = "€",
-    val isDcCharge: Boolean = false
+    val isDcCharge: Boolean = false,
+    val containingTrip: Pair<Long, Trip>? = null
 )
 
 data class ChargeDetailStats(
@@ -53,7 +58,8 @@ data class ChargeDetailStats(
 @HiltViewModel
 class ChargeDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
-    private val settingsDataStore: SettingsDataStore
+    private val settingsDataStore: SettingsDataStore,
+    private val tripRepository: TripRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChargeDetailUiState())
@@ -81,6 +87,11 @@ class ChargeDetailViewModel @Inject constructor(
 
         this.carId = carId
         this.chargeId = chargeId
+
+        viewModelScope.launch {
+            val containing = tripRepository.findTripContaining(carId, SavedTripLeg.TYPE_CHARGE, chargeId)
+            _uiState.update { it.copy(containingTrip = containing) }
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -124,6 +135,16 @@ class ChargeDetailViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    /** Detach this charge from its containing saved trip (auto-transitions the trip to USER_EDITED). */
+    fun removeFromTrip() {
+        val tripId = _uiState.value.containingTrip?.first ?: return
+        val charge = chargeId ?: return
+        viewModelScope.launch {
+            tripRepository.removeLegFromTrip(tripId, LegRef(SavedTripLeg.TYPE_CHARGE, charge))
+            _uiState.update { it.copy(containingTrip = null) }
+        }
     }
 
 }

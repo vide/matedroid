@@ -1149,6 +1149,18 @@
     <!-- Generic delete button label -->
     <string name="delete">Delete</string>
 
+    <!-- Card on drive/charge detail: informs the user this leg belongs to a saved trip. %s is the trip route like "Rome → Paris". -->
+    <string name="part_of_trip">Part of %s</string>
+
+    <!-- Button on the part-of-trip card: detach this leg from the trip -->
+    <string name="part_of_trip_remove">Remove</string>
+
+    <!-- Dialog title when the user taps Remove on the part-of-trip card -->
+    <string name="part_of_trip_remove_confirm_title">Remove from trip?</string>
+
+    <!-- Dialog body explaining the consequence. %s is the trip route. -->
+    <string name="part_of_trip_remove_confirm_body">This leg will no longer be part of %s.</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

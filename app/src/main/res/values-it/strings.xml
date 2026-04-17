@@ -1088,6 +1088,11 @@
     <string name="trip_edit_delete_confirm_body">Questo annulla le modifiche. I viaggi rilevati automaticamente al suo interno riappariranno.</string>
     <string name="delete">Elimina</string>
 
+    <string name="part_of_trip">Parte di %s</string>
+    <string name="part_of_trip_remove">Rimuovi</string>
+    <string name="part_of_trip_remove_confirm_title">Rimuovere dal viaggio?</string>
+    <string name="part_of_trip_remove_confirm_body">Questa tratta non farà più parte di %s.</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Seleziona aspetto auto</string>

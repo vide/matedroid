@@ -1089,6 +1089,11 @@
     <string name="trip_edit_delete_confirm_body">这将删除您的编辑。其中自动检测的行程将重新出现。</string>
     <string name="delete">删除</string>
 
+    <string name="part_of_trip">属于 %s</string>
+    <string name="part_of_trip_remove">移除</string>
+    <string name="part_of_trip_remove_confirm_title">从行程中移除？</string>
+    <string name="part_of_trip_remove_confirm_body">此行程段将不再属于 %s。</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">选择车辆外观</string>

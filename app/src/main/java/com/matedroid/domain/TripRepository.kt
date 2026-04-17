@@ -365,6 +365,56 @@ class TripRepository @Inject constructor(
             .firstOrNull { computeFingerprint(it.driveIds()) == targetFp }
             ?.trip?.id
     }
+
+    /** The saved trip (if any) that currently includes the given drive/charge leg. */
+    suspend fun findTripContaining(carId: Int, legType: String, legId: Int): Pair<Long, Trip>? {
+        val all = savedTripDao.getAllWithLegs(carId)
+        val match = all.firstOrNull { swl ->
+            swl.legs.any { it.legType == legType && it.legId == legId }
+        } ?: return null
+
+        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
+        val trip = TripAggregator.buildTrip(
+            tripDrivesIn(match, drives),
+            tripChargesIn(match, charges)
+        ) ?: return null
+        return match.trip.id to trip
+    }
+
+    /**
+     * Remove the given leg from the trip.
+     * - If the trip was AUTO_DETECTED, push its pre-edit fingerprint into the consumed set first.
+     * - If the last drive leg is removed (trip ends up with 0 drives), delete the whole saved trip
+     *   so the user doesn't end up with a ghost row that won't render.
+     */
+    suspend fun removeLegFromTrip(tripId: Long, ref: LegRef) {
+        val existing = savedTripDao.getWithLegs(tripId) ?: return
+
+        val remaining = existing.legs
+            .filterNot { it.legType == ref.type && it.legId == ref.id }
+            .sortedBy { it.position }
+            .mapIndexed { index, leg ->
+                SavedTripLeg(tripId = tripId, position = index, legType = leg.legType, legId = leg.legId)
+            }
+
+        val remainingDriveCount = remaining.count { it.legType == SavedTripLeg.TYPE_DRIVE }
+        if (remainingDriveCount == 0) {
+            savedTripDao.deleteTrip(tripId)
+            return
+        }
+
+        if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
+            val priorFingerprint = computeFingerprint(existing.driveIds())
+            savedTripDao.insertConsumedFingerprints(
+                listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
+            )
+            savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, System.currentTimeMillis())
+        } else {
+            savedTripDao.updateSource(tripId, existing.trip.source, System.currentTimeMillis())
+        }
+        savedTripDao.replaceLegs(tripId, remaining)
+    }
 }
 
 /** A reference to either a drive or a charge by id, used when editing or merging trips. */
