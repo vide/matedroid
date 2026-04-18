@@ -228,7 +228,7 @@ fun TripDetailScreen(
             eligible = uiState.eligibleLegs!!,
             dcChargeIds = uiState.dcChargeIds,
             palette = palette,
-            onPick = viewModel::pickLeg,
+            onPickLegs = viewModel::pickLegs,
             onDismiss = viewModel::closeAddLegSheet
         )
     }

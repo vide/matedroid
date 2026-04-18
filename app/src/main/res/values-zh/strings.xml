@@ -1099,6 +1099,9 @@
     <string name="trip_rename_field_label">行程名称</string>
     <string name="trip_rename_field_hint">留空可使用默认名称</string>
     <string name="save">保存</string>
+    <string name="add">添加</string>
+    <string name="trip_edit_select_multiple">多选</string>
+    <string name="trip_edit_selected_count">已选 %d 项</string>
 
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->

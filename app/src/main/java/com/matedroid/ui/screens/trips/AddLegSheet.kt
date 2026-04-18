@@ -1,7 +1,8 @@
 package com.matedroid.ui.screens.trips
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +18,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,9 +46,9 @@ import androidx.compose.ui.unit.dp
 import com.matedroid.R
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveSummary
+import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.domain.EligibleLegs
 import com.matedroid.domain.LegRef
-import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import java.time.LocalDateTime
@@ -46,16 +56,22 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AddLegSheet(
     eligible: EligibleLegs,
     dcChargeIds: Set<Int>,
     palette: CarColorPalette,
-    onPick: (LegRef) -> Unit,
+    onPickLegs: (List<LegRef>) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var multiMode by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf<Set<LegRef>>(emptySet()) }
+
+    val merged = remember(eligible) { buildCandidateList(eligible) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -65,14 +81,24 @@ fun AddLegSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.trip_edit_add_leg_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            // Static top bar — never scrolls
+            StaticHeader(
+                multiMode = multiMode,
+                selectedCount = selected.size,
+                onEnterMulti = { multiMode = true },
+                onCancelMulti = {
+                    multiMode = false
+                    selected = emptySet()
+                },
+                onConfirmMulti = {
+                    if (selected.isNotEmpty()) {
+                        onPickLegs(selected.toList())
+                    }
+                }
             )
-            Spacer(Modifier.height(12.dp))
 
-            val merged = buildCandidateList(eligible)
+            Spacer(Modifier.height(8.dp))
+
             if (merged.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -92,14 +118,75 @@ fun AddLegSheet(
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
                     items(merged) { candidate ->
+                        val ref = candidate.toRef()
                         CandidateRow(
                             candidate = candidate,
                             palette = palette,
                             isDc = candidate is Candidate.Charge && candidate.charge.chargeId in dcChargeIds,
-                            onClick = { onPick(candidate.toRef()) }
+                            multiMode = multiMode,
+                            isSelected = ref in selected,
+                            onTap = {
+                                if (multiMode) {
+                                    selected = if (ref in selected) selected - ref else selected + ref
+                                } else {
+                                    onPickLegs(listOf(ref))
+                                }
+                            },
+                            onLongPress = {
+                                if (!multiMode) {
+                                    multiMode = true
+                                    selected = setOf(ref)
+                                }
+                            }
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StaticHeader(
+    multiMode: Boolean,
+    selectedCount: Int,
+    onEnterMulti: () -> Unit,
+    onCancelMulti: () -> Unit,
+    onConfirmMulti: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (multiMode) {
+            TextButton(onClick = onCancelMulti) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.trip_edit_selected_count, selectedCount),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Button(
+                onClick = onConfirmMulti,
+                enabled = selectedCount > 0
+            ) {
+                Text(stringResource(R.string.add))
+            }
+        } else {
+            Text(
+                text = stringResource(R.string.trip_edit_add_leg_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onEnterMulti) {
+                Icon(
+                    Icons.Filled.Checklist,
+                    contentDescription = stringResource(R.string.trip_edit_select_multiple)
+                )
             }
         }
     }
@@ -123,22 +210,40 @@ private fun buildCandidateList(eligible: EligibleLegs): List<Candidate> {
     return all
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CandidateRow(
     candidate: Candidate,
     palette: CarColorPalette,
     isDc: Boolean,
-    onClick: () -> Unit
+    multiMode: Boolean,
+    isSelected: Boolean,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit
 ) {
+    val rowBackground =
+        if (isSelected) palette.accent.copy(alpha = 0.15f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            .clickable(onClick = onClick)
+            .background(rowBackground)
+            .combinedClickable(
+                onClick = onTap,
+                onLongClick = onLongPress
+            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (multiMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onTap() }
+            )
+            Spacer(Modifier.width(4.dp))
+        }
         when (candidate) {
             is Candidate.Drive -> {
                 Icon(

@@ -1098,6 +1098,9 @@
     <string name="trip_rename_field_label">Nome viaggio</string>
     <string name="trip_rename_field_hint">Lascia vuoto per usare il nome predefinito</string>
     <string name="save">Salva</string>
+    <string name="add">Aggiungi</string>
+    <string name="trip_edit_select_multiple">Seleziona più tratte</string>
+    <string name="trip_edit_selected_count">%d selezionate</string>
 
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->

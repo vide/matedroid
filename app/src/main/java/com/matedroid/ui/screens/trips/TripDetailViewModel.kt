@@ -201,10 +201,11 @@ class TripDetailViewModel @Inject constructor(
         _uiState.update { it.copy(showAddLegSheet = false, eligibleLegs = null) }
     }
 
-    fun pickLeg(ref: LegRef) {
+    fun pickLegs(refs: List<LegRef>) {
+        if (refs.isEmpty()) return
         val tripId = _uiState.value.savedTripId ?: return
         viewModelScope.launch {
-            tripRepository.extendTripWithLegs(tripId, listOf(ref))
+            tripRepository.extendTripWithLegs(tripId, refs)
             _uiState.update { it.copy(showAddLegSheet = false, eligibleLegs = null) }
             reloadTrip()
         }

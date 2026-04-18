@@ -1176,6 +1176,15 @@
     <!-- Generic Save button label used in dialogs -->
     <string name="save">Save</string>
 
+    <!-- Generic Add button label used in selection UIs -->
+    <string name="add">Add</string>
+
+    <!-- Content description of the icon in the Add-leg sheet header that switches to multi-select mode -->
+    <string name="trip_edit_select_multiple">Select multiple</string>
+
+    <!-- Title shown in multi-select mode indicating how many legs are currently selected -->
+    <string name="trip_edit_selected_count">%d selected</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

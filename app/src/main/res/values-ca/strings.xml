@@ -1098,6 +1098,9 @@
     <string name="trip_rename_field_label">Nom del viatge</string>
     <string name="trip_rename_field_hint">Deixa-ho buit per usar el nom predeterminat</string>
     <string name="save">Desa</string>
+    <string name="add">Afegeix</string>
+    <string name="trip_edit_select_multiple">Selecciona\'n diversos</string>
+    <string name="trip_edit_selected_count">%d seleccionats</string>
 
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
