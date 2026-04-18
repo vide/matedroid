@@ -21,8 +21,13 @@ object TripAggregator {
     /**
      * Build a Trip from chronologically-ordered legs.
      * Returns null if [drives] is empty (a Trip's start/end metadata comes from the first/last drive).
+     * [name] is carried through to [Trip.name] so saved trips' custom names reach the UI.
      */
-    fun buildTrip(drives: List<DriveSummary>, charges: List<ChargeSummary>): Trip? {
+    fun buildTrip(
+        drives: List<DriveSummary>,
+        charges: List<ChargeSummary>,
+        name: String? = null
+    ): Trip? {
         if (drives.isEmpty()) return null
 
         val totalDistance = drives.sumOf { it.distance }
@@ -57,7 +62,8 @@ object TripAggregator {
             startDate = drives.first().startDate,
             endDate = drives.last().endDate,
             startBatteryLevel = drives.first().startBatteryLevel,
-            endBatteryLevel = drives.last().endBatteryLevel
+            endBatteryLevel = drives.last().endBatteryLevel,
+            name = name
         )
     }
 

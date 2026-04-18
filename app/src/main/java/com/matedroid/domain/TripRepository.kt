@@ -165,10 +165,13 @@ class TripRepository @Inject constructor(
             ).distinct()
 
         val now = System.currentTimeMillis()
+        // Inherit the kept trip's custom name; fall back to the consumed trip's name if only the
+        // consumed one had been renamed. Either way, user-chosen names don't disappear at merge.
+        val inheritedName = kept.trip.name ?: consumed.trip.name
         val newId = savedTripDao.insertTripWithLegs(
             trip = SavedTrip(
                 carId = carId,
-                name = null,
+                name = inheritedName,
                 source = SavedTrip.SOURCE_USER_MERGED,
                 createdAt = now,
                 updatedAt = now
@@ -360,7 +363,7 @@ class TripRepository @Inject constructor(
             val tripCharges = orderedLegs
                 .filter { it.legType == SavedTripLeg.TYPE_CHARGE }
                 .mapNotNull { chargesById[it.legId] }
-            TripAggregator.buildTrip(tripDrives, tripCharges)
+            TripAggregator.buildTrip(tripDrives, tripCharges, name = swl.trip.name)
         }
     }
 

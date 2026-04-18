@@ -23,5 +23,7 @@ data class Trip(
     val startDate: String,
     val endDate: String,
     val startBatteryLevel: Int,
-    val endBatteryLevel: Int
+    val endBatteryLevel: Int,
+    /** User-chosen name. Null means fall back to the default "startCity → endCity" label. */
+    val name: String? = null
 )

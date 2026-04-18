@@ -386,19 +386,28 @@ private fun TripItem(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
+                        val customName = trip.name?.takeIf { it.isNotBlank() }
                         Text(
-                            text = "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}",
+                            text = customName ?: "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
                             maxLines = 1
                         )
                     }
+                    val customName = trip.name?.takeIf { it.isNotBlank() }
+                    val subtitle = if (customName != null) {
+                        "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)} · ${formatDate(trip.startDate)}"
+                    } else {
+                        formatDate(trip.startDate)
+                    }
                     Text(
-                        text = formatDate(trip.startDate),
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 28.dp, top = 4.dp)
+                        modifier = Modifier.padding(start = 28.dp, top = 4.dp),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
             }
