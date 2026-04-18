@@ -2,13 +2,18 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
@@ -25,9 +31,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +48,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.matedroid.R
 import com.matedroid.ui.theme.CarColorPalette
 import java.time.LocalDateTime
@@ -401,8 +411,76 @@ private fun Endpoint(
     }
 }
 
+/** Minimum width per segment in the scrollable detail bar. */
+private val DETAIL_MIN_SEGMENT_DP = 28.dp
+
+/** Dp per minute of (compressed) weight when sizing the detail bar. Higher = wider. */
+private const val DETAIL_WEIGHT_TO_DP = 0.5f
+
 @Composable
 private fun TimelineBar(
+    segments: List<TripTimelineSegment>,
+    palette: CarColorPalette,
+    parkingColor: Color,
+    selectedIndex: Int?,
+    onSegmentTap: (Int) -> Unit
+) {
+    val density = LocalDensity.current
+
+    // Pixel widths each segment would occupy in the detail bar (not yet laid out).
+    val detailWidthsPx = remember(segments, density.density) {
+        val minPx = with(density) { DETAIL_MIN_SEGMENT_DP.toPx() }
+        val pxPerWeight = DETAIL_WEIGHT_TO_DP * density.density
+        segments.map { seg ->
+            val w = segmentWeight(seg)
+            max(w * pxPerWeight, minPx)
+        }
+    }
+    val totalDetailPx = detailWidthsPx.sum()
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val viewportPx = with(density) { maxWidth.toPx() }
+        // Overflow only when the detail bar genuinely won't fit. Short trips fall through to the
+        // single-bar rendering and look identical to the previous version.
+        val overflows = totalDetailPx > viewportPx + 1f
+
+        if (!overflows) {
+            SingleBar(
+                segments = segments,
+                palette = palette,
+                parkingColor = parkingColor,
+                selectedIndex = selectedIndex,
+                onSegmentTap = onSegmentTap
+            )
+        } else {
+            val scrollState = rememberScrollState()
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Minimap(
+                    segments = segments,
+                    palette = palette,
+                    parkingColor = parkingColor,
+                    totalDetailPx = totalDetailPx,
+                    viewportPx = viewportPx,
+                    scrollState = scrollState
+                )
+                Spacer(Modifier.height(8.dp))
+                ScrollableDetailBar(
+                    segments = segments,
+                    widthsPx = detailWidthsPx,
+                    palette = palette,
+                    parkingColor = parkingColor,
+                    selectedIndex = selectedIndex,
+                    onSegmentTap = onSegmentTap,
+                    scrollState = scrollState
+                )
+            }
+        }
+    }
+}
+
+/** Single horizontal bar filling the viewport — unchanged behaviour for short trips. */
+@Composable
+private fun SingleBar(
     segments: List<TripTimelineSegment>,
     palette: CarColorPalette,
     parkingColor: Color,
@@ -413,7 +491,6 @@ private fun TimelineBar(
     val barHeightPx = with(density) { 16.dp.toPx() }
     val selectedExtraPx = with(density) { 4.dp.toPx() }
     val gapPx = with(density) { 1.dp.toPx() }
-    val cornerRadiusPx = with(density) { 8.dp.toPx() }
 
     val ratios = remember(segments) { computeSegmentRatios(segments) }
 
@@ -453,12 +530,7 @@ private fun TimelineBar(
                     val isLast = idx == ratios.lastIndex
                     val drawWidth = if (isLast) segWidth else (segWidth - gapPx).coerceAtLeast(0f)
                     val seg = segments[idx]
-                    val color: Color = when (seg) {
-                        is TripTimelineSegment.Drive -> palette.accent
-                        is TripTimelineSegment.Charge ->
-                            if (seg.isDc) palette.dcColor else palette.acColor
-                        is TripTimelineSegment.Parking -> parkingColor
-                    }
+                    val color = colorForSegment(seg, palette, parkingColor)
                     val isSelected = idx == selectedIndex
                     val thisBarHeight = if (isSelected) barHeightPx + selectedExtraPx else barHeightPx
                     val y = (size.height - thisBarHeight) / 2f
@@ -469,26 +541,167 @@ private fun TimelineBar(
                     )
                     x += segWidth
                 }
-                // Redraw the rounded clip edges by overlaying small corner triangles? Not needed,
-                // the parent Box already clips to RoundedCornerShape. Ignore cornerRadiusPx.
-                @Suppress("UNUSED_EXPRESSION") cornerRadiusPx
             }
         }
     }
 }
 
+/**
+ * Compressed non-interactive overview of the full trip. The viewport rectangle tracks the
+ * scroll position of the paired [ScrollableDetailBar]. Tap anywhere to jump the detail bar.
+ */
+@Composable
+private fun Minimap(
+    segments: List<TripTimelineSegment>,
+    palette: CarColorPalette,
+    parkingColor: Color,
+    totalDetailPx: Float,
+    viewportPx: Float,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val ratios = remember(segments) { computeSegmentRatios(segments) }
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(14.dp)) {
+        val minimapWidthPx = with(density) { maxWidth.toPx() }
+        val widthFrac by derivedStateOf {
+            if (totalDetailPx <= 0f) 1f
+            else (viewportPx / totalDetailPx).coerceIn(0.05f, 1f)
+        }
+        val offsetFrac by derivedStateOf {
+            if (totalDetailPx <= 0f) 0f
+            else (scrollState.value / totalDetailPx).coerceIn(0f, 1f - widthFrac)
+        }
+
+        // The compressed bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .align(Alignment.Center)
+                .clip(RoundedCornerShape(3.dp))
+                .pointerInput(segments, totalDetailPx) {
+                    detectTapGestures { offset ->
+                        val ratio = (offset.x / size.width).coerceIn(0f, 1f)
+                        val target = (ratio * totalDetailPx - viewportPx / 2f).toInt()
+                            .coerceAtLeast(0)
+                        coroutineScope.launch { scrollState.scrollTo(target) }
+                    }
+                }
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                var x = 0f
+                ratios.forEachIndexed { idx, ratio ->
+                    val w = ratio * size.width
+                    drawRect(
+                        color = colorForSegment(segments[idx], palette, parkingColor),
+                        topLeft = Offset(x, 0f),
+                        size = Size(w, size.height)
+                    )
+                    x += w
+                }
+            }
+        }
+
+        // Viewport indicator — an outlined rectangle overlaid on the minimap
+        Box(
+            modifier = Modifier
+                .offset { IntOffset((offsetFrac * minimapWidthPx).toInt(), 0) }
+                .width(with(density) { (widthFrac * minimapWidthPx).toDp() })
+                .fillMaxHeight()
+                .border(
+                    width = 2.dp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(4.dp)
+                )
+        )
+    }
+}
+
+@Composable
+private fun ScrollableDetailBar(
+    segments: List<TripTimelineSegment>,
+    widthsPx: List<Float>,
+    palette: CarColorPalette,
+    parkingColor: Color,
+    selectedIndex: Int?,
+    onSegmentTap: (Int) -> Unit,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val density = LocalDensity.current
+    val barHeightPx = with(density) { 20.dp.toPx() }
+    val selectedExtraPx = with(density) { 6.dp.toPx() }
+    val gapPx = with(density) { 1.dp.toPx() }
+    val totalDp = with(density) { widthsPx.sum().toDp() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .horizontalScroll(scrollState),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Canvas(
+            modifier = Modifier
+                .width(totalDp)
+                .height(44.dp)
+                .pointerInput(segments, widthsPx) {
+                    detectTapGestures { offset ->
+                        var accum = 0f
+                        for ((idx, w) in widthsPx.withIndex()) {
+                            if (offset.x <= accum + w) {
+                                onSegmentTap(idx)
+                                return@detectTapGestures
+                            }
+                            accum += w
+                        }
+                        onSegmentTap(widthsPx.lastIndex)
+                    }
+                }
+        ) {
+            var x = 0f
+            widthsPx.forEachIndexed { idx, w ->
+                val isLast = idx == widthsPx.lastIndex
+                val drawW = if (isLast) w else (w - gapPx).coerceAtLeast(0f)
+                val color = colorForSegment(segments[idx], palette, parkingColor)
+                val isSelected = idx == selectedIndex
+                val h = if (isSelected) barHeightPx + selectedExtraPx else barHeightPx
+                val y = (size.height - h) / 2f
+                drawRect(
+                    color = color,
+                    topLeft = Offset(x, y),
+                    size = Size(drawW, h)
+                )
+                x += w
+            }
+        }
+    }
+}
+
+private fun colorForSegment(
+    seg: TripTimelineSegment,
+    palette: CarColorPalette,
+    parkingColor: Color
+): Color = when (seg) {
+    is TripTimelineSegment.Drive -> palette.accent
+    is TripTimelineSegment.Charge -> if (seg.isDc) palette.dcColor else palette.acColor
+    is TripTimelineSegment.Parking -> parkingColor
+}
+
+/** Visual weight for one segment — drives and DC charges are honest, AC and parking are sqrt-compressed. */
+private fun segmentWeight(seg: TripTimelineSegment): Float = when (seg) {
+    is TripTimelineSegment.Parking -> compressIdle(seg.durationMin)
+    is TripTimelineSegment.Charge ->
+        if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
+        else compressIdle(seg.durationMin)
+    is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
+}
+
 /** Compute visual width ratios for each segment, with shared compression on idle segments. */
 private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
-    val weights = segments.map { seg ->
-        when (seg) {
-            is TripTimelineSegment.Parking -> compressIdle(seg.durationMin)
-            is TripTimelineSegment.Charge ->
-                if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
-                else compressIdle(seg.durationMin)
-            is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
-        }
-    }
+    val weights = segments.map { segmentWeight(it) }
     val total = weights.sum().coerceAtLeast(1f)
     val raw = weights.map { it / total }
     // Lift to minimum and renormalize (cap min so n * min <= 1)
