@@ -386,17 +386,16 @@ private fun TripItem(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        val customName = trip.name?.takeIf { it.isNotBlank() }
                         Text(
-                            text = customName ?: "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}",
+                            text = trip.displayName(),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f),
                             maxLines = 1
                         )
                     }
-                    val customName = trip.name?.takeIf { it.isNotBlank() }
-                    val subtitle = if (customName != null) {
+                    val hasCustomName = !trip.name.isNullOrBlank()
+                    val subtitle = if (hasCustomName) {
                         "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)} · ${formatDate(trip.startDate)}"
                     } else {
                         formatDate(trip.startDate)
@@ -580,6 +579,16 @@ private fun YearFilterChips(
 internal fun extractCity(address: String): String {
     val parts = address.split(", ")
     return if (parts.size >= 2) parts.last() else address
+}
+
+/**
+ * Canonical user-facing label for a trip.
+ * If the user set a custom name (non-blank), that wins everywhere — title bar, trips list,
+ * "Part of X" cards, merge sheet rows, etc. Falls back to "startCity → endCity" otherwise.
+ */
+internal fun Trip.displayName(): String {
+    val custom = name?.takeIf { it.isNotBlank() }
+    return custom ?: "${extractCity(startAddress)} → ${extractCity(endAddress)}"
 }
 
 private fun formatDuration(minutes: Int): String {

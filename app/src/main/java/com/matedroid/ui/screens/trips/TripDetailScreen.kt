@@ -135,7 +135,7 @@ fun TripDetailScreen(
         val customName = uiState.savedTripName?.takeIf { it.isNotBlank() }
         when {
             customName != null -> customName
-            trip != null -> "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}"
+            trip != null -> trip.displayName()
             else -> stringResource(R.string.trip_detail_title)
         }
     }

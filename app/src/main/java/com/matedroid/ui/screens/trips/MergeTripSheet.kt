@@ -120,7 +120,7 @@ private fun AdjacentTripRow(
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}",
+                text = trip.displayName(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,

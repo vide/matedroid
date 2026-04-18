@@ -74,6 +74,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.createPinMarkerDrawable
+import com.matedroid.ui.screens.trips.displayName
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -189,7 +190,7 @@ private fun ChargeDetailContent(
         if (containingTrip != null) {
             val (_, trip) = containingTrip
             com.matedroid.ui.components.PartOfTripCard(
-                tripRoute = "${com.matedroid.ui.screens.trips.extractCity(trip.startAddress)} → ${com.matedroid.ui.screens.trips.extractCity(trip.endAddress)}",
+                tripRoute = trip.displayName(),
                 onNavigateToTrip = { onNavigateToTripDetail(trip.startDate) },
                 onConfirmRemove = onRemoveFromTrip
             )
