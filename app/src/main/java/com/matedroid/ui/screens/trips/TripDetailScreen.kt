@@ -26,17 +26,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -132,12 +130,26 @@ fun TripDetailScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    var overflowOpen by remember { mutableStateOf(false) }
+    val displayTitle = run {
+        val trip = uiState.trip
+        val customName = uiState.savedTripName?.takeIf { it.isNotBlank() }
+        when {
+            customName != null -> customName
+            trip != null -> "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)}"
+            else -> stringResource(R.string.trip_detail_title)
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.trip_detail_title)) },
+                title = {
+                    Text(
+                        text = displayTitle,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -148,25 +160,16 @@ fun TripDetailScreen(
                 },
                 actions = {
                     if (uiState.savedTripId != null) {
-                        IconButton(onClick = { overflowOpen = true }) {
+                        IconButton(onClick = viewModel::openRenameDialog) {
                             Icon(
-                                Icons.Filled.MoreVert,
-                                contentDescription = null
+                                Icons.Filled.Edit,
+                                contentDescription = stringResource(R.string.trip_rename_action)
                             )
                         }
-                        DropdownMenu(
-                            expanded = overflowOpen,
-                            onDismissRequest = { overflowOpen = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.trip_edit_delete)) },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.DeleteOutline, contentDescription = null)
-                                },
-                                onClick = {
-                                    overflowOpen = false
-                                    viewModel.openDeleteConfirm()
-                                }
+                        IconButton(onClick = viewModel::openDeleteConfirm) {
+                            Icon(
+                                Icons.Filled.DeleteOutline,
+                                contentDescription = stringResource(R.string.trip_edit_delete)
                             )
                         }
                     }
@@ -247,6 +250,14 @@ fun TripDetailScreen(
         DeleteTripConfirmDialog(
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::closeDeleteConfirm
+        )
+    }
+    if (uiState.showRenameDialog) {
+        RenameTripDialog(
+            value = uiState.renameDraft,
+            onValueChange = viewModel::updateRenameDraft,
+            onConfirm = viewModel::confirmRename,
+            onDismiss = viewModel::closeRenameDialog
         )
     }
 }
@@ -574,19 +585,12 @@ private fun TripMapCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = stringResource(R.string.trip_route_map),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(320.dp)
+                .clip(RoundedCornerShape(12.dp))
+        ) {
                 AndroidView(
                     factory = { mapCtx ->
                         MapView(mapCtx).apply {
@@ -719,7 +723,6 @@ private fun TripMapCard(
                         }
                     }
                 }
-            }
         }
     }
 }

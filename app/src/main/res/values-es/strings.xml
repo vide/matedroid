@@ -1093,6 +1093,12 @@
     <string name="part_of_trip_remove_confirm_title">¿Quitar del viaje?</string>
     <string name="part_of_trip_remove_confirm_body">Este tramo ya no formará parte de %s.</string>
 
+    <string name="trip_rename_action">Renombrar</string>
+    <string name="trip_rename_dialog_title">Renombrar viaje</string>
+    <string name="trip_rename_field_label">Nombre del viaje</string>
+    <string name="trip_rename_field_hint">Deja vacío para usar el nombre predeterminado</string>
+    <string name="save">Guardar</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Seleccionar aspecto del coche</string>

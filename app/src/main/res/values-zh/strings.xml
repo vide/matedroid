@@ -1094,6 +1094,12 @@
     <string name="part_of_trip_remove_confirm_title">从行程中移除？</string>
     <string name="part_of_trip_remove_confirm_body">此行程段将不再属于 %s。</string>
 
+    <string name="trip_rename_action">重命名</string>
+    <string name="trip_rename_dialog_title">重命名行程</string>
+    <string name="trip_rename_field_label">行程名称</string>
+    <string name="trip_rename_field_hint">留空可使用默认名称</string>
+    <string name="save">保存</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">选择车辆外观</string>

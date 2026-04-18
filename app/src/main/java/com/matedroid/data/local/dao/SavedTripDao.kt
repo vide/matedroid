@@ -56,6 +56,12 @@ abstract class SavedTripDao {
     @Query("UPDATE saved_trips SET source = :source, updatedAt = :updatedAt WHERE id = :tripId")
     abstract suspend fun updateSource(tripId: Long, source: String, updatedAt: Long)
 
+    @Query("SELECT name FROM saved_trips WHERE id = :tripId")
+    abstract suspend fun getName(tripId: Long): String?
+
+    @Query("UPDATE saved_trips SET name = :name, updatedAt = :updatedAt WHERE id = :tripId")
+    abstract suspend fun updateName(tripId: Long, name: String?, updatedAt: Long)
+
     @Query("SELECT fingerprint FROM saved_trip_consumed_fingerprints WHERE savedTripId = :tripId")
     abstract suspend fun getConsumedFingerprints(tripId: Long): List<String>
 

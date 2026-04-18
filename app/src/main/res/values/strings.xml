@@ -1161,6 +1161,21 @@
     <!-- Dialog body explaining the consequence. %s is the trip route. -->
     <string name="part_of_trip_remove_confirm_body">This leg will no longer be part of %s.</string>
 
+    <!-- Content description and tooltip for the pencil icon that opens the rename dialog -->
+    <string name="trip_rename_action">Rename</string>
+
+    <!-- Title of the rename dialog -->
+    <string name="trip_rename_dialog_title">Rename trip</string>
+
+    <!-- Label/placeholder for the text field inside the rename dialog -->
+    <string name="trip_rename_field_label">Trip name</string>
+
+    <!-- Hint text below the rename text field explaining that clearing it restores the default label -->
+    <string name="trip_rename_field_hint">Leave empty to use the default name</string>
+
+    <!-- Generic Save button label used in dialogs -->
+    <string name="save">Save</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Select Car Appearance</string>

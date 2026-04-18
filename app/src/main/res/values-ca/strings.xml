@@ -1093,6 +1093,12 @@
     <string name="part_of_trip_remove_confirm_title">Treure del viatge?</string>
     <string name="part_of_trip_remove_confirm_body">Aquest tram ja no formarà part de %s.</string>
 
+    <string name="trip_rename_action">Canvia el nom</string>
+    <string name="trip_rename_dialog_title">Canvia el nom del viatge</string>
+    <string name="trip_rename_field_label">Nom del viatge</string>
+    <string name="trip_rename_field_hint">Deixa-ho buit per usar el nom predeterminat</string>
+    <string name="save">Desa</string>
+
     <!-- ==================== Car Image Picker ==================== -->
     <!-- Dialog title for selecting car appearance (long-press on car image) -->
     <string name="car_picker_title">Selecciona l\'aspecte del cotxe</string>

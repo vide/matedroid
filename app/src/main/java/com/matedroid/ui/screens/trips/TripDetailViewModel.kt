@@ -68,10 +68,13 @@ data class TripDetailUiState(
 
     // Edit / merge / delete (PR 2)
     val savedTripId: Long? = null,
+    val savedTripName: String? = null,
     val dcChargeIds: Set<Int> = emptySet(),
     val showAddLegSheet: Boolean = false,
     val showMergeSheet: Boolean = false,
     val showDeleteConfirm: Boolean = false,
+    val showRenameDialog: Boolean = false,
+    val renameDraft: String = "",
     val eligibleLegs: EligibleLegs? = null,
     val adjacentTrips: List<Pair<Long, Trip>> = emptyList(),
     val pendingMergeTarget: Pair<Long, Trip>? = null,
@@ -139,6 +142,7 @@ class TripDetailViewModel @Inject constructor(
 
             // Lookup savedTripId (for edit/merge/delete actions) and DC charge id set (for AC/DC visuals)
             val savedId = tripRepository.findSavedTripId(carId, trip)
+            val savedName = savedId?.let { tripRepository.getTripName(it) }
             val dcIds = try {
                 aggregateDao.getDcChargeIds(carId).toSet()
             } catch (e: Exception) { emptySet() }
@@ -150,6 +154,7 @@ class TripDetailViewModel @Inject constructor(
                     trip = trip,
                     markers = markers,
                     savedTripId = savedId,
+                    savedTripName = savedName,
                     dcChargeIds = dcIds
                 )
             }
@@ -244,6 +249,33 @@ class TripDetailViewModel @Inject constructor(
         }
     }
 
+    fun openRenameDialog() {
+        _uiState.update {
+            it.copy(
+                showRenameDialog = true,
+                renameDraft = it.savedTripName.orEmpty()
+            )
+        }
+    }
+
+    fun closeRenameDialog() {
+        _uiState.update { it.copy(showRenameDialog = false, renameDraft = "") }
+    }
+
+    fun updateRenameDraft(draft: String) {
+        _uiState.update { it.copy(renameDraft = draft) }
+    }
+
+    fun confirmRename() {
+        val tripId = _uiState.value.savedTripId ?: return
+        val draft = _uiState.value.renameDraft
+        viewModelScope.launch {
+            tripRepository.renameTrip(tripId, draft)
+            val updated = tripRepository.getTripName(tripId)
+            _uiState.update { it.copy(showRenameDialog = false, savedTripName = updated, renameDraft = "") }
+        }
+    }
+
     fun openDeleteConfirm() {
         _uiState.update { it.copy(showDeleteConfirm = true) }
     }
@@ -287,7 +319,8 @@ class TripDetailViewModel @Inject constructor(
                 markers = emptyList(),
                 isMapLoading = true,
                 countries = emptyList(),
-                savedTripId = null
+                savedTripId = null,
+                savedTripName = null
             )
         }
         loadTrip(currentCarId, currentStartDate)

@@ -71,6 +71,15 @@ class TripRepository @Inject constructor(
         savedTripDao.deleteTrip(tripId)
     }
 
+    /** The user-chosen name for a trip, or null if the default (start → end) should be shown. */
+    suspend fun getTripName(tripId: Long): String? = savedTripDao.getName(tripId)
+
+    /** Set or clear a trip's custom name. Blank names are stored as null so the default is shown. */
+    suspend fun renameTrip(tripId: Long, name: String?) {
+        val normalized = name?.trim()?.takeIf { it.isNotEmpty() }
+        savedTripDao.updateName(tripId, normalized, System.currentTimeMillis())
+    }
+
     // === Edit/merge (PR 2) ===
 
     /**
