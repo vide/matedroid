@@ -45,12 +45,26 @@ class TripsViewModel @Inject constructor(
 
     private var carId: Int? = null
     private var allTrips: List<Trip> = emptyList()
+    private var hasBeenPaused = false
 
     fun setCarId(id: Int) {
         if (carId == id) return
         carId = id
         loadTrips(id)
         loadUnits(id)
+    }
+
+    /** Screen went to background (user navigated to a child). */
+    fun onScreenPaused() {
+        hasBeenPaused = true
+    }
+
+    /** Screen is resuming — reload trips if the user is returning from a child screen. */
+    fun onScreenResumed() {
+        val id = carId ?: return
+        if (!hasBeenPaused) return
+        hasBeenPaused = false
+        loadTrips(id)
     }
 
     /** Cache the trip before navigating to detail, avoiding re-detection. */
