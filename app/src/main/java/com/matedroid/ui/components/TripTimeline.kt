@@ -604,17 +604,15 @@ private fun Minimap(
             }
         }
 
-        // Viewport indicator — an outlined rectangle overlaid on the minimap
+        // Viewport indicator — a filled translucent rectangle overlaid on the minimap,
+        // so the segment colors still read through but the current slice pops out clearly.
         Box(
             modifier = Modifier
                 .offset { IntOffset((offsetFrac * minimapWidthPx).toInt(), 0) }
                 .width(with(density) { (widthFrac * minimapWidthPx).toDp() })
                 .fillMaxHeight()
-                .border(
-                    width = 2.dp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(4.dp)
-                )
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color.White.copy(alpha = 0.4f))
         )
     }
 }
