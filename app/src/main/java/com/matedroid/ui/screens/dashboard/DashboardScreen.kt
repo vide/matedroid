@@ -1687,11 +1687,11 @@ private fun LocationCard(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                 val zoneId = java.time.ZoneId.systemDefault()
-                val todayStart = java.time.LocalDate.now(zoneId)
-                    .atStartOfDay(zoneId)
+                val todayUtcDateMillis = java.time.LocalDate.now(zoneId)
+                    .atStartOfDay(java.time.ZoneOffset.UTC)
                     .toInstant()
                     .toEpochMilli()
-                return utcTimeMillis <= todayStart
+                return utcTimeMillis <= todayUtcDateMillis
             }
         }
     )
