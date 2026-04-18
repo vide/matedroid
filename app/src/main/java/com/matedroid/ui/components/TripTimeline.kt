@@ -589,13 +589,21 @@ private fun Minimap(
             }
     ) {
         val minimapWidthPx = with(density) { maxWidth.toPx() }
-        val widthFrac by derivedStateOf {
-            if (totalDetailPx <= 0f) 1f
-            else (viewportPx / totalDetailPx).coerceIn(0.05f, 1f)
+        val widthFrac by remember(totalDetailPx, viewportPx) {
+            derivedStateOf {
+                if (totalDetailPx <= 0f) 1f
+                else (viewportPx / totalDetailPx).coerceIn(0.05f, 1f)
+            }
         }
-        val offsetFrac by derivedStateOf {
-            if (totalDetailPx <= 0f) 0f
-            else (scrollState.value / totalDetailPx).coerceIn(0f, 1f - widthFrac)
+        val offsetFrac by remember(totalDetailPx, viewportPx) {
+            derivedStateOf {
+                if (totalDetailPx <= 0f) 0f
+                else {
+                    val wFrac = if (totalDetailPx <= 0f) 1f
+                    else (viewportPx / totalDetailPx).coerceIn(0.05f, 1f)
+                    (scrollState.value / totalDetailPx).coerceIn(0f, 1f - wFrac)
+                }
+            }
         }
 
         // The compressed bar — vertically centered
