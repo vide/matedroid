@@ -79,7 +79,12 @@ data class TripTimelineCountry(
     val flagEmoji: String
 )
 
-private const val PARKING_LINEAR_THRESHOLD_MIN = 120f
+/**
+ * Duration threshold (minutes) above which "long idle" segments get sqrt-compressed.
+ * Applies to parking gaps and AC charges, both of which can stretch for many hours/days
+ * (overnight AC, multi-day parking) and would otherwise crush the drives into slivers.
+ */
+private const val LONG_IDLE_THRESHOLD_MIN = 120f
 private const val MIN_SEGMENT_RATIO = 0.02f
 
 /**
@@ -469,13 +474,19 @@ private fun TimelineBar(
     }
 }
 
-/** Compute visual width ratios for each segment, with parking sqrt-compression and a minimum visual width. */
+/** Compute visual width ratios for each segment, with sqrt-compression on long idle segments. */
 private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
     val weights = segments.map { seg ->
         when (seg) {
-            is TripTimelineSegment.Parking -> compressParkingWeight(seg.durationMin)
-            else -> seg.durationMin.toFloat().coerceAtLeast(1f)
+            is TripTimelineSegment.Parking -> compressLongIdle(seg.durationMin)
+            is TripTimelineSegment.Charge ->
+                // AC charges are "idle-like" (hotel overnight, restaurant stop) and can stretch for
+                // hours, so they get the same treatment as parking. DC sessions are bounded (~1h)
+                // and stay linear so their relative duration is honest.
+                if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
+                else compressLongIdle(seg.durationMin)
+            is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
         }
     }
     val total = weights.sum().coerceAtLeast(1f)
@@ -487,11 +498,12 @@ private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Floa
     return lifted.map { it / liftedSum }
 }
 
-private fun compressParkingWeight(durationMin: Int): Float {
+/** Linear up to the threshold, sqrt-compressed beyond — keeps long stretches visible without dominating. */
+private fun compressLongIdle(durationMin: Int): Float {
     val d = durationMin.toFloat().coerceAtLeast(1f)
-    return if (d <= PARKING_LINEAR_THRESHOLD_MIN) d
-    else PARKING_LINEAR_THRESHOLD_MIN +
-            sqrt((d - PARKING_LINEAR_THRESHOLD_MIN) * PARKING_LINEAR_THRESHOLD_MIN)
+    return if (d <= LONG_IDLE_THRESHOLD_MIN) d
+    else LONG_IDLE_THRESHOLD_MIN +
+            sqrt((d - LONG_IDLE_THRESHOLD_MIN) * LONG_IDLE_THRESHOLD_MIN)
 }
 
 private fun formatTimelineDuration(minutes: Int): String {
