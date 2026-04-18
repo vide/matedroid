@@ -563,7 +563,12 @@ private fun Minimap(
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
 
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(14.dp)) {
+    // Bar is 6dp tall; indicator is 2.5× that (15dp) centered vertically so it stands out
+    // above and below the bar. Outer container grows to accommodate the indicator.
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().height(18.dp),
+        contentAlignment = Alignment.Center
+    ) {
         val minimapWidthPx = with(density) { maxWidth.toPx() }
         val widthFrac by derivedStateOf {
             if (totalDetailPx <= 0f) 1f
@@ -579,7 +584,6 @@ private fun Minimap(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
-                .align(Alignment.Center)
                 .clip(RoundedCornerShape(3.dp))
                 .pointerInput(segments, totalDetailPx) {
                     detectTapGestures { offset ->
@@ -604,15 +608,16 @@ private fun Minimap(
             }
         }
 
-        // Viewport indicator — a filled translucent rectangle overlaid on the minimap,
-        // so the segment colors still read through but the current slice pops out clearly.
+        // Viewport indicator — a filled translucent rectangle in the car's accent color,
+        // 2.5× the bar height so it visibly extends above and below the compressed bar.
         Box(
             modifier = Modifier
                 .offset { IntOffset((offsetFrac * minimapWidthPx).toInt(), 0) }
                 .width(with(density) { (widthFrac * minimapWidthPx).toDp() })
-                .fillMaxHeight()
+                .height(15.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color.White.copy(alpha = 0.4f))
+                .background(palette.accent.copy(alpha = 0.55f))
+                .align(Alignment.Center)
         )
     }
 }
