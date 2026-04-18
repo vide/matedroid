@@ -80,11 +80,19 @@ data class TripTimelineCountry(
 )
 
 /**
- * Duration threshold (minutes) above which "long idle" segments get sqrt-compressed.
- * Applies to parking gaps and AC charges, both of which can stretch for many hours/days
- * (overnight AC, multi-day parking) and would otherwise crush the drives into slivers.
+ * Parking gaps stay linear up to 2h, then sqrt-compressed. Keeps short coffee stops honest
+ * while preventing multi-day parking from dominating the bar.
  */
-private const val LONG_IDLE_THRESHOLD_MIN = 120f
+private const val PARKING_LINEAR_THRESHOLD_MIN = 120f
+
+/**
+ * AC charges compress earlier and harder than parking: plug-and-go sessions stay linear only
+ * up to 30 min, and the compression factor is 0.3× so an 8h overnight charge is roughly twice
+ * the width of a 30-min drive rather than ten times.
+ */
+private const val AC_LINEAR_THRESHOLD_MIN = 30f
+private const val AC_COMPRESSION_SCALE = 0.3f
+
 private const val MIN_SEGMENT_RATIO = 0.02f
 
 /**
@@ -474,18 +482,18 @@ private fun TimelineBar(
     }
 }
 
-/** Compute visual width ratios for each segment, with sqrt-compression on long idle segments. */
+/** Compute visual width ratios for each segment, with per-type compression on long segments. */
 private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
     val weights = segments.map { seg ->
         when (seg) {
-            is TripTimelineSegment.Parking -> compressLongIdle(seg.durationMin)
+            is TripTimelineSegment.Parking -> compressParking(seg.durationMin)
             is TripTimelineSegment.Charge ->
-                // AC charges are "idle-like" (hotel overnight, restaurant stop) and can stretch for
-                // hours, so they get the same treatment as parking. DC sessions are bounded (~1h)
-                // and stay linear so their relative duration is honest.
+                // DC sessions are bounded (~1h) so their relative duration is honest — linear.
+                // AC can run for hours (overnight, hotel) and needs harder compression than parking,
+                // otherwise an 8h charge overwhelms the bar.
                 if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
-                else compressLongIdle(seg.durationMin)
+                else compressAcCharge(seg.durationMin)
             is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
         }
     }
@@ -498,12 +506,20 @@ private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Floa
     return lifted.map { it / liftedSum }
 }
 
-/** Linear up to the threshold, sqrt-compressed beyond — keeps long stretches visible without dominating. */
-private fun compressLongIdle(durationMin: Int): Float {
+/** Linear up to 2h, sqrt-compressed beyond. Keeps multi-day parking visible but not dominant. */
+private fun compressParking(durationMin: Int): Float {
     val d = durationMin.toFloat().coerceAtLeast(1f)
-    return if (d <= LONG_IDLE_THRESHOLD_MIN) d
-    else LONG_IDLE_THRESHOLD_MIN +
-            sqrt((d - LONG_IDLE_THRESHOLD_MIN) * LONG_IDLE_THRESHOLD_MIN)
+    return if (d <= PARKING_LINEAR_THRESHOLD_MIN) d
+    else PARKING_LINEAR_THRESHOLD_MIN +
+            sqrt((d - PARKING_LINEAR_THRESHOLD_MIN) * PARKING_LINEAR_THRESHOLD_MIN)
+}
+
+/** Linear up to 30min, harsher sqrt compression beyond — overnight AC collapses to ~2× a short drive. */
+private fun compressAcCharge(durationMin: Int): Float {
+    val d = durationMin.toFloat().coerceAtLeast(1f)
+    return if (d <= AC_LINEAR_THRESHOLD_MIN) d
+    else AC_LINEAR_THRESHOLD_MIN +
+            sqrt((d - AC_LINEAR_THRESHOLD_MIN) * AC_LINEAR_THRESHOLD_MIN) * AC_COMPRESSION_SCALE
 }
 
 private fun formatTimelineDuration(minutes: Int): String {
