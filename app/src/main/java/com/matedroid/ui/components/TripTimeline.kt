@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -564,10 +565,28 @@ private fun Minimap(
     val density = LocalDensity.current
 
     // Bar is 6dp tall; indicator is 2.5× that (15dp) centered vertically so it stands out
-    // above and below the bar. Outer container grows to accommodate the indicator.
+    // above and below the bar. Outer container grows to accommodate the indicator and captures
+    // taps + horizontal drags anywhere on the strip — both jump/slide the detail bar.
     BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth().height(18.dp),
-        contentAlignment = Alignment.Center
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(18.dp)
+            .pointerInput(segments, totalDetailPx) {
+                detectTapGestures { offset ->
+                    val ratio = (offset.x / size.width).coerceIn(0f, 1f)
+                    val target = (ratio * totalDetailPx - viewportPx / 2f).toInt()
+                        .coerceAtLeast(0)
+                    coroutineScope.launch { scrollState.scrollTo(target) }
+                }
+            }
+            .pointerInput(totalDetailPx) {
+                detectHorizontalDragGestures { change, dragAmount ->
+                    change.consume()
+                    val minimapW = size.width.toFloat()
+                    if (minimapW <= 0f) return@detectHorizontalDragGestures
+                    scrollState.dispatchRawDelta(dragAmount * (totalDetailPx / minimapW))
+                }
+            }
     ) {
         val minimapWidthPx = with(density) { maxWidth.toPx() }
         val widthFrac by derivedStateOf {
@@ -579,20 +598,13 @@ private fun Minimap(
             else (scrollState.value / totalDetailPx).coerceIn(0f, 1f - widthFrac)
         }
 
-        // The compressed bar
+        // The compressed bar — vertically centered
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(6.dp)
+                .align(Alignment.Center)
                 .clip(RoundedCornerShape(3.dp))
-                .pointerInput(segments, totalDetailPx) {
-                    detectTapGestures { offset ->
-                        val ratio = (offset.x / size.width).coerceIn(0f, 1f)
-                        val target = (ratio * totalDetailPx - viewportPx / 2f).toInt()
-                            .coerceAtLeast(0)
-                        coroutineScope.launch { scrollState.scrollTo(target) }
-                    }
-                }
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 var x = 0f
@@ -608,16 +620,17 @@ private fun Minimap(
             }
         }
 
-        // Viewport indicator — a filled translucent rectangle in the car's accent color,
-        // 2.5× the bar height so it visibly extends above and below the compressed bar.
+        // Viewport indicator — filled translucent rectangle in the car's accent color,
+        // 15dp tall (2.5× the bar). CenterStart alignment anchors the indicator's left edge
+        // to the container's left edge so `.offset` shifts it honestly from x=0.
         Box(
             modifier = Modifier
+                .align(Alignment.CenterStart)
                 .offset { IntOffset((offsetFrac * minimapWidthPx).toInt(), 0) }
                 .width(with(density) { (widthFrac * minimapWidthPx).toDp() })
                 .height(15.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(palette.accent.copy(alpha = 0.55f))
-                .align(Alignment.Center)
         )
     }
 }
