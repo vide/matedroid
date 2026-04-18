@@ -1845,20 +1845,14 @@ private fun LocationCard(
                 TextButton(onClick = {
                     showTimePicker = false
                     val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
-
                     val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
                         .atZone(java.time.ZoneOffset.UTC)
                         .toLocalDate()
 
-                    val localDateTime = selectedDate.atTime(
-                        timePickerState.hour,
-                        timePickerState.minute
-                    )
-                    val timestamp = java.time.OffsetDateTime.of(
-                        selectedDate,
-                        java.time.LocalTime.of(timePickerState.hour, timePickerState.minute),
-                        java.time.ZoneOffset.UTC
-                    ).toString()
+                    val localDateTime = selectedDate.atTime(timePickerState.hour, timePickerState.minute)
+                    val zonedDateTime = localDateTime.atZone(java.time.ZoneId.systemDefault())
+                    val timestamp = zonedDateTime.toOffsetDateTime().toString()
+
                     onNavigateToWhereWasI(timestamp)
                 }) {
                     Text(stringResource(R.string.where_was_i_go))
