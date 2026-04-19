@@ -1065,6 +1065,7 @@
     <string name="trip_energy_consumed">Energia consumida</string>
     <string name="trip_energy_charged">Energia carregada</string>
     <string name="trip_charge_cost">Cost de càrrega</string>
+    <string name="trip_cost_per_100">Cost mitjà per 100</string>
     <string name="trip_leg_drive">Trajecte %1$d</string>
     <string name="trip_leg_charge">Càrrega %1$d</string>
 

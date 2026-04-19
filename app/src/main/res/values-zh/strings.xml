@@ -1066,6 +1066,7 @@
     <string name="trip_energy_consumed">消耗能量</string>
     <string name="trip_energy_charged">充入能量</string>
     <string name="trip_charge_cost">充电费用</string>
+    <string name="trip_cost_per_100">每 100 平均费用</string>
     <string name="trip_leg_drive">行驶 %1$d</string>
     <string name="trip_leg_charge">充电 %1$d</string>
 

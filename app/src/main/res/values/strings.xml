@@ -1090,6 +1090,8 @@
     <string name="trip_energy_charged">Energy charged</string>
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Charge cost</string>
+    <!-- Average charge cost per 100 km/mi label -->
+    <string name="trip_cost_per_100">Avg cost per 100</string>
     <!-- Drive leg label with number -->
     <string name="trip_leg_drive">Drive %1$d</string>
     <!-- Charge leg label with number -->

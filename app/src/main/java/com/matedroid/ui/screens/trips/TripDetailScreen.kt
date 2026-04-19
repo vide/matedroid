@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,14 +56,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -76,6 +84,9 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.ui.components.CostDonutStop
+import com.matedroid.ui.components.TripCostDonut
+import com.matedroid.ui.components.computeCostShades
 import com.matedroid.ui.components.TripEditActions
 import com.matedroid.ui.components.TripTimeline
 import com.matedroid.ui.components.TripTimelineCountry
@@ -288,42 +299,55 @@ private fun TripDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        val dateRangeLabel = remember(trip.startDate, trip.endDate) {
+            formatTripDateRange(trip.startDate, trip.endDate)
+        }
+        val distanceLabel = remember(trip.totalDistance, units) {
+            UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0)
+        }
+        val startCity = remember(trip.startAddress) { extractCity(trip.startAddress) }
+        val endCity = remember(trip.endAddress) { extractCity(trip.endAddress) }
+        val timelineSegments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) }
+        val timelineCountries = remember(countries) {
+            countries.map { TripTimelineCountry(it.countryCode, it.flagEmoji) }
+        }
+        val totalChargingDurationMin = remember(trip.charges) {
+            trip.charges.sumOf { it.durationMin }
+        }
+
         TripMapCard(
             routeSegments = routeSegments,
             markers = markers,
             isMapLoading = isMapLoading,
             palette = palette,
-            dateRangeLabel = formatTripDateRange(trip.startDate, trip.endDate),
-            distanceLabel = UnitFormatter.formatDistance(trip.totalDistance, units),
+            dateRangeLabel = dateRangeLabel,
+            distanceLabel = distanceLabel,
             onChargeClick = onChargeClick
         )
 
         TripTimeline(
-            segments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) },
+            segments = timelineSegments,
             startDate = trip.startDate,
             endDate = trip.endDate,
-            startCity = extractCity(trip.startAddress),
-            endCity = extractCity(trip.endAddress),
-            countries = remember(countries) {
-                countries.map { TripTimelineCountry(it.countryCode, it.flagEmoji) }
-            },
+            startCity = startCity,
+            endCity = endCity,
+            countries = timelineCountries,
             palette = palette,
+            totalDurationMin = trip.totalDurationMin,
+            totalDrivingDurationMin = trip.totalDrivingDurationMin,
+            totalChargingDurationMin = totalChargingDurationMin,
             onCountryClick = onCountryClick
         )
 
-        StatsSectionCard(
-            title = stringResource(R.string.trip_summary),
-            icon = Icons.Filled.Route,
-            stats = listOfNotNull(
-                StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
-                StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
-                StatItem(stringResource(R.string.trip_legs), "${trip.drives.size + trip.charges.size}"),
-                StatItem(stringResource(R.string.trip_charge_stops), "${trip.charges.size}")
+        if ((trip.totalChargeCost ?: 0.0) > 0.0) {
+            ChargeCostCard(
+                trip = trip,
+                currencySymbol = currencySymbol,
+                palette = palette,
+                dcChargeIds = dcChargeIds,
+                units = units,
+                onChargeClick = onChargeClick
             )
-        )
-
-        if (trip.totalChargeCost != null) {
-            ChargeCostCard(trip = trip, currencySymbol = currencySymbol, onChargeClick = onChargeClick)
         }
 
         StatsSectionCard(
@@ -338,24 +362,107 @@ private fun TripDetailContent(
             )
         )
 
-        Text(
-            text = stringResource(R.string.trip_legs),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+        val legs = remember(trip) { buildLegList(trip) }
+        var legsExpanded by rememberSaveable { mutableStateOf(false) }
+        val legsChevronRotation by animateFloatAsState(
+            targetValue = if (legsExpanded) 90f else 0f,
+            animationSpec = tween(durationMillis = 200),
+            label = "legsChevron"
         )
 
-        val legs = buildLegList(trip)
-        legs.forEach { leg ->
-            when (leg) {
-                is TripLeg.Drive -> DriveLegCard(leg, units, palette) {
-                    onDriveClick(leg.drive.driveId)
-                }
-                is TripLeg.Charge -> ChargeLegCard(
-                    leg = leg,
-                    palette = palette,
-                    isDc = leg.charge.chargeId in dcChargeIds
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { legsExpanded = !legsExpanded },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    onChargeClick(leg.charge.chargeId)
+                    Text(
+                        text = stringResource(R.string.trip_legs),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "(",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${trip.drives.size}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accent
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        imageVector = CustomIcons.SteeringWheel,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = palette.accent
+                    )
+                    if (trip.charges.isNotEmpty()) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "${trip.charges.size}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accent
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Filled.ElectricBolt,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = palette.accent
+                        )
+                    }
+                    Text(
+                        text = ")",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate(legsChevronRotation),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (legsExpanded) {
+                    legs.forEach { leg ->
+                        when (leg) {
+                            is TripLeg.Drive -> DriveLegCard(leg, units, palette) {
+                                onDriveClick(leg.drive.driveId)
+                            }
+                            is TripLeg.Charge -> ChargeLegCard(
+                                leg = leg,
+                                palette = palette,
+                                isDc = leg.charge.chargeId in dcChargeIds
+                            ) {
+                                onChargeClick(leg.charge.chargeId)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -377,8 +484,35 @@ private fun TripDetailContent(
 private fun ChargeCostCard(
     trip: Trip,
     currencySymbol: String,
+    palette: CarColorPalette,
+    dcChargeIds: Set<Int>,
+    units: Units?,
     onChargeClick: (chargeId: Int) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "chevron"
+    )
+
+    val costStops = remember(trip, dcChargeIds) {
+        trip.charges
+            .filter { it.cost != null }
+            .map { charge ->
+                CostDonutStop(
+                    chargeId = charge.chargeId,
+                    label = extractCity(charge.address),
+                    cost = charge.cost!!,
+                    durationMin = charge.durationMin,
+                    energyAddedKwh = charge.energyAdded,
+                    isDc = charge.chargeId in dcChargeIds
+                )
+            }
+    }
+    val shades = remember(costStops, palette) { computeCostShades(costStops, palette) }
+    val costCharges = remember(trip) { trip.charges.filter { it.cost != null } }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -389,7 +523,12 @@ private fun ChargeCostCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     Icons.Filled.ElectricBolt,
                     contentDescription = null,
@@ -403,55 +542,105 @@ private fun ChargeCostCard(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                trip.totalChargeCost?.let {
-                    Text(
-                        text = "%.2f %s".format(it, currencySymbol),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            // Per-charge breakdown
-            trip.charges.filter { it.cost != null }.forEach { charge ->
-                Card(
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onChargeClick(charge.chargeId) },
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
+                        .size(18.dp)
+                        .rotate(chevronRotation),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (costStops.isNotEmpty()) {
+                TripCostDonut(
+                    stops = costStops,
+                    shades = shades,
+                    palette = palette,
+                    currencySymbol = currencySymbol
+                )
+            }
+
+            if (expanded) {
+                if (trip.totalDistance > 0.0 && trip.totalChargeCost != null) {
+                    val per100 = trip.totalChargeCost / trip.totalDistance * 100.0
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = extractCity(charge.address),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = "+%.1f kWh · %dm".format(charge.energyAdded, charge.durationMin),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                         Text(
-                            text = "%.2f %s".format(charge.cost, currencySymbol),
+                            text = stringResource(R.string.trip_cost_per_100),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            text = "%.2f %s / 100 %s".format(
+                                per100,
+                                currencySymbol,
+                                UnitFormatter.getDistanceUnit(units)
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                    }
+                }
+                costCharges.forEachIndexed { index, charge ->
+                    val shade = shades.getOrNull(index) ?: palette.accent
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onChargeClick(charge.chargeId) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .fillMaxHeight()
+                                    .background(shade)
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = extractCity(charge.address),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "+%.1f kWh · %dm".format(charge.energyAdded, charge.durationMin),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Text(
+                                    text = "%.2f %s".format(charge.cost, currencySymbol),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = shade
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -552,6 +741,19 @@ private fun StatItemView(
 
 private const val GEO_JUMP_THRESHOLD_METERS = 10_000.0
 
+private data class MapColors(
+    val start: Int,
+    val charge: Int,
+    val end: Int,
+    val oddLeg: Int,
+    val evenLeg: Int
+)
+
+private data class PreparedRoute(
+    val geoPointSegments: List<List<GeoPoint>>,
+    val boundingBox: BoundingBox?
+)
+
 @Composable
 private fun TripMapCard(
     routeSegments: List<TripRouteSegment>,
@@ -574,13 +776,60 @@ private fun TripMapCard(
     // Track when the map has zoomed to the route — hides the world-view flash
     var mapReady by remember { mutableStateOf(false) }
 
-    val startColorArgb = StatusSuccess.toArgb()
-    val chargeColorArgb = palette.accent.toArgb()
-    val endColorArgb = StatusError.toArgb()
-    val oddLegColorArgb = palette.accent.toArgb()
-    val evenLegColorArgb = palette.accent.copy(alpha = 0.55f)
-        .compositeOver(androidx.compose.ui.graphics.Color.White)
-        .toArgb()
+    val mapColors = remember(palette) {
+        MapColors(
+            start = StatusSuccess.toArgb(),
+            charge = palette.accent.toArgb(),
+            end = StatusError.toArgb(),
+            oddLeg = palette.accent.toArgb(),
+            evenLeg = palette.accent.copy(alpha = 0.55f)
+                .compositeOver(androidx.compose.ui.graphics.Color.White)
+                .toArgb()
+        )
+    }
+
+    // Cache marker drawables per color — drawables are heavy to create each pass.
+    val markerDrawables = remember { mutableMapOf<Pair<Int, Boolean>, android.graphics.drawable.Drawable>() }
+
+    // Track the last applied data so we can skip redrawing overlays when nothing changed.
+    val lastApplied = remember { arrayOfNulls<Any>(3) }
+
+    // Defer MapView instantiation by a short delay so the first frame of the surrounding screen
+    // paints and touch/scroll handlers become responsive before osmdroid's synchronous MapView
+    // constructor runs on the main thread. This matters most on back-navigation: the composition
+    // is torn down and rebuilt by NavHost, and mounting the MapView immediately would freeze the
+    // main thread for ~100–300ms.
+    var mapMounted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(120)
+        mapMounted = true
+    }
+
+    // Precompute GeoPoint lists + BoundingBox off the main thread. For long trips this moves
+    // hundreds-to-thousands of object allocations + min/max scans off the UI thread, so when
+    // the AndroidView update runs it only does cheap attach work.
+    var preparedRoute by remember(routeSegments) { mutableStateOf<PreparedRoute?>(null) }
+    LaunchedEffect(routeSegments) {
+        preparedRoute = if (routeSegments.isEmpty()) null else withContext(Dispatchers.Default) {
+            val geoPointSegments = routeSegments.map { seg ->
+                seg.points.map { GeoPoint(it.latitude, it.longitude) }
+            }
+            val allPoints = geoPointSegments.flatten()
+            val bb = if (allPoints.isNotEmpty()) {
+                val north = allPoints.maxOf { it.latitude }
+                val south = allPoints.minOf { it.latitude }
+                val east = allPoints.maxOf { it.longitude }
+                val west = allPoints.minOf { it.longitude }
+                val latPad = (north - south) * 0.15
+                val lonPad = (east - west) * 0.15
+                BoundingBox(
+                    north + latPad, east + lonPad,
+                    south - latPad, west - lonPad
+                )
+            } else null
+            PreparedRoute(geoPointSegments, bb)
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -594,7 +843,7 @@ private fun TripMapCard(
                 .height(320.dp)
                 .clip(RoundedCornerShape(12.dp))
         ) {
-                AndroidView(
+                if (mapMounted) AndroidView(
                     factory = { mapCtx ->
                         MapView(mapCtx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
@@ -602,16 +851,27 @@ private fun TripMapCard(
                         }
                     },
                     update = { mapView ->
-                        if (routeSegments.isEmpty()) return@AndroidView
+                        val prep = preparedRoute ?: return@AndroidView
 
-                        // Clear previous overlays and redraw
+                        // Skip the expensive overlay rebuild when the inputs haven't changed.
+                        // Lists and MapColors compare structurally so this short-circuits on
+                        // return-from-child when the VM emits structurally-equal data.
+                        if (lastApplied[0] == prep &&
+                            lastApplied[1] == markers &&
+                            lastApplied[2] == mapColors
+                        ) return@AndroidView
+                        lastApplied[0] = prep
+                        lastApplied[1] = markers
+                        lastApplied[2] = mapColors
+
+                        // Defer all overlay creation to the next main-thread message so the
+                        // surrounding composition's first frame can paint (and the scroll view
+                        // becomes responsive) before we build polylines + markers.
+                        mapView.post {
                         mapView.overlays.clear()
 
                         var previousEnd: GeoPoint? = null
-                        routeSegments.forEachIndexed { index, segment ->
-                            val geoPoints = segment.points.map {
-                                GeoPoint(it.latitude, it.longitude)
-                            }
+                        prep.geoPointSegments.forEachIndexed { index, geoPoints ->
                             if (geoPoints.size < 2) return@forEachIndexed
 
                             // If there's a previous leg, check if this leg's start is geographically
@@ -624,7 +884,7 @@ private fun TripMapCard(
                                 if (distanceMeters > GEO_JUMP_THRESHOLD_METERS) {
                                     val dashed = Polyline().apply {
                                         setPoints(listOf(prev, firstPoint))
-                                        outlinePaint.color = oddLegColorArgb
+                                        outlinePaint.color = mapColors.oddLeg
                                         outlinePaint.strokeWidth = 6f
                                         outlinePaint.strokeCap = Paint.Cap.ROUND
                                         outlinePaint.pathEffect =
@@ -637,8 +897,8 @@ private fun TripMapCard(
                             val polyline = Polyline().apply {
                                 setPoints(geoPoints)
                                 outlinePaint.color =
-                                    if (index % 2 == 0) oddLegColorArgb
-                                    else evenLegColorArgb
+                                    if (index % 2 == 0) mapColors.oddLeg
+                                    else mapColors.evenLeg
                                 outlinePaint.strokeWidth = 8f
                                 outlinePaint.strokeCap = Paint.Cap.ROUND
                                 outlinePaint.strokeJoin = Paint.Join.ROUND
@@ -650,13 +910,14 @@ private fun TripMapCard(
                         val mapCtx = mapView.context
                         markers.forEach { point ->
                             val color = when (point.type) {
-                                TripMapPointType.START -> startColorArgb
-                                TripMapPointType.CHARGE -> chargeColorArgb
-                                TripMapPointType.END -> endColorArgb
+                                TripMapPointType.START -> mapColors.start
+                                TripMapPointType.CHARGE -> mapColors.charge
+                                TripMapPointType.END -> mapColors.end
                             }
-                            val markerIcon = when (point.type) {
-                                TripMapPointType.CHARGE -> createZapMarkerDrawable(mapCtx.resources, color)
-                                else -> createPinMarkerDrawable(mapCtx.resources, color)
+                            val isCharge = point.type == TripMapPointType.CHARGE
+                            val markerIcon = markerDrawables.getOrPut(color to isCharge) {
+                                if (isCharge) createZapMarkerDrawable(mapCtx.resources, color)
+                                else createPinMarkerDrawable(mapCtx.resources, color)
                             }
                             val marker = Marker(mapView).apply {
                                 position = GeoPoint(point.latitude, point.longitude)
@@ -687,24 +948,13 @@ private fun TripMapCard(
                             mapView.overlays.add(marker)
                         }
 
-                        val allPoints = routeSegments.flatMap { it.points }
-                        if (allPoints.isNotEmpty()) {
-                            val north = allPoints.maxOf { it.latitude }
-                            val south = allPoints.minOf { it.latitude }
-                            val east = allPoints.maxOf { it.longitude }
-                            val west = allPoints.minOf { it.longitude }
-                            val latPad = (north - south) * 0.15
-                            val lonPad = (east - west) * 0.15
-                            val bb = BoundingBox(
-                                north + latPad, east + lonPad,
-                                south - latPad, west - lonPad
-                            )
-                            mapView.post {
-                                mapView.zoomToBoundingBox(bb, false)
-                                mapView.invalidate()
-                                mapReady = true
-                            }
+                        val bb = prep.boundingBox
+                        if (bb != null) {
+                            mapView.zoomToBoundingBox(bb, false)
+                            mapView.invalidate()
+                            mapReady = true
                         }
+                        } // end mapView.post
                     },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -751,6 +1001,7 @@ private fun MapOverlayChip(
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
+    val textColor = if (palette.accent.luminance() > 0.5f) Color(0xFF1E2022) else Color.White
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
@@ -761,7 +1012,7 @@ private fun MapOverlayChip(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = androidx.compose.ui.graphics.Color.White
+            color = textColor
         )
     }
 }
@@ -829,19 +1080,13 @@ private fun DriveLegCard(
                 tint = palette.accent
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.trip_leg_drive, leg.index),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${extractCity(leg.drive.startAddress)} → ${extractCity(leg.drive.endAddress)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = "${extractCity(leg.drive.startAddress)} → ${extractCity(leg.drive.endAddress)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "%.1f %s".format(
@@ -894,35 +1139,28 @@ private fun ChargeLegCard(
                 tint = chipColor
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.trip_leg_charge, leg.index),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(chipColor)
-                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = if (isDc) "DC" else "AC",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = androidx.compose.ui.graphics.Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(chipColor)
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
                 Text(
-                    text = leg.charge.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    text = if (isDc) "DC" else "AC",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = androidx.compose.ui.graphics.Color.White,
+                    fontWeight = FontWeight.Bold
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = extractCity(leg.charge.address),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "+%.1f kWh".format(leg.charge.energyAdded),
