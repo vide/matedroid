@@ -150,8 +150,6 @@ fun TripTimeline(
 
             InfoPanel(
                 selection = selectedIndex?.let { idx -> segments.getOrNull(idx)?.let { idx to it } },
-                startDate = startDate,
-                endDate = endDate,
                 startCity = startCity,
                 endCity = endCity,
                 countries = countries,
@@ -196,8 +194,6 @@ fun TripTimeline(
 @Composable
 private fun InfoPanel(
     selection: Pair<Int, TripTimelineSegment>?,
-    startDate: String,
-    endDate: String,
     startCity: String,
     endCity: String,
     countries: List<TripTimelineCountry>,
@@ -220,8 +216,6 @@ private fun InfoPanel(
             )
         } else {
             RouteHeaderContent(
-                startDate = startDate,
-                endDate = endDate,
                 startCity = startCity,
                 endCity = endCity,
                 countries = countries,
@@ -295,8 +289,6 @@ private fun SegmentInfoContent(
 
 @Composable
 private fun RouteHeaderContent(
-    startDate: String,
-    endDate: String,
     startCity: String,
     endCity: String,
     countries: List<TripTimelineCountry>,
@@ -305,9 +297,6 @@ private fun RouteHeaderContent(
     val startCountry = countries.firstOrNull()
     val endCountry = if (countries.size >= 2) countries.last() else startCountry
     val intermediate = if (countries.size > 2) countries.subList(1, countries.size - 1) else emptyList()
-    val startDateShort = formatShortDate(startDate)
-    val endDateShort = formatShortDate(endDate)
-    val sameDay = startDateShort == endDateShort
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -315,7 +304,6 @@ private fun RouteHeaderContent(
     ) {
         Endpoint(
             city = startCity,
-            date = startDateShort,
             country = startCountry,
             alignment = Alignment.Start,
             onCountryClick = onCountryClick,
@@ -349,12 +337,9 @@ private fun RouteHeaderContent(
         }
         Endpoint(
             city = endCity,
-            date = endDateShort,
             country = endCountry,
             alignment = Alignment.End,
             onCountryClick = onCountryClick,
-            // When the trip starts and ends the same day, hide the duplicate date on the end side
-            hideDate = sameDay,
             modifier = Modifier.weight(1f)
         )
     }
@@ -363,12 +348,10 @@ private fun RouteHeaderContent(
 @Composable
 private fun Endpoint(
     city: String,
-    date: String,
     country: TripTimelineCountry?,
     alignment: Alignment.Horizontal,
     onCountryClick: (countryCode: String) -> Unit,
-    modifier: Modifier = Modifier,
-    hideDate: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     val isEnd = alignment == Alignment.End
     Row(
@@ -384,23 +367,13 @@ private fun Endpoint(
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
-        Column(horizontalAlignment = alignment) {
-            Text(
-                text = city,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (!hideDate) {
-                Text(
-                    text = date,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-        }
+        Text(
+            text = city,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
         if (isEnd && country != null) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -770,15 +743,3 @@ private fun formatClockTime(dateStr: String): String {
     }
 }
 
-private fun formatShortDate(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM"))
-    } catch (e: Exception) {
-        dateStr
-    }
-}

@@ -293,6 +293,8 @@ private fun TripDetailContent(
             markers = markers,
             isMapLoading = isMapLoading,
             palette = palette,
+            dateRangeLabel = formatTripDateRange(trip.startDate, trip.endDate),
+            distanceLabel = UnitFormatter.formatDistance(trip.totalDistance, units),
             onChargeClick = onChargeClick
         )
 
@@ -313,7 +315,6 @@ private fun TripDetailContent(
             title = stringResource(R.string.trip_summary),
             icon = Icons.Filled.Route,
             stats = listOfNotNull(
-                StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(trip.totalDistance, units)),
                 StatItem(stringResource(R.string.trip_total_time), formatDuration(trip.totalDurationMin)),
                 StatItem(stringResource(R.string.trip_driving_time), formatDuration(trip.totalDrivingDurationMin)),
                 StatItem(stringResource(R.string.trip_legs), "${trip.drives.size + trip.charges.size}"),
@@ -557,6 +558,8 @@ private fun TripMapCard(
     markers: List<TripMapMarker>,
     isMapLoading: Boolean,
     palette: CarColorPalette,
+    dateRangeLabel: String,
+    distanceLabel: String,
     onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
     // Bridge: Android View click → Compose state → Compose navigation
@@ -723,7 +726,43 @@ private fun TripMapCard(
                         }
                     }
                 }
+
+                MapOverlayChip(
+                    text = dateRangeLabel,
+                    palette = palette,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                )
+                MapOverlayChip(
+                    text = distanceLabel,
+                    palette = palette,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                )
         }
+    }
+}
+
+@Composable
+private fun MapOverlayChip(
+    text: String,
+    palette: CarColorPalette,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(palette.accent.copy(alpha = 0.85f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = androidx.compose.ui.graphics.Color.White
+        )
     }
 }
 
@@ -913,4 +952,30 @@ private fun formatDuration(minutes: Int): String {
     val h = minutes / 60
     val m = minutes % 60
     return if (h > 0) "${h}h ${m}m" else "${m}m"
+}
+
+private fun formatTripDateRange(startDate: String, endDate: String): String {
+    val start = parseTripDate(startDate) ?: return startDate
+    val end = parseTripDate(endDate) ?: return endDate
+    val dayMonth = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+    val dayMonthYear = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
+    val sameDay = start.toLocalDate() == end.toLocalDate()
+    val sameMonth = start.year == end.year && start.month == end.month
+    val sameYear = start.year == end.year
+    return when {
+        sameDay -> start.format(if (sameYear) dayMonth else dayMonthYear)
+        sameMonth -> "${start.dayOfMonth} – ${end.format(dayMonth)}"
+        sameYear -> "${start.format(dayMonth)} – ${end.format(dayMonth)}"
+        else -> "${start.format(dayMonthYear)} – ${end.format(dayMonthYear)}"
+    }
+}
+
+private fun parseTripDate(value: String): java.time.LocalDateTime? = try {
+    java.time.OffsetDateTime.parse(value).toLocalDateTime()
+} catch (_: java.time.format.DateTimeParseException) {
+    try {
+        java.time.LocalDateTime.parse(value.replace("Z", ""))
+    } catch (_: java.time.format.DateTimeParseException) {
+        null
+    }
 }
