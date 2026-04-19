@@ -12,6 +12,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.SentryEvent
@@ -40,7 +41,8 @@ class ChargingNotificationWorker @AssistedInject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val chargingNotificationManager: ChargingNotificationManager,
     private val sentryStateRepository: SentryStateRepository,
-    private val sentryNotificationManager: SentryNotificationManager
+    private val sentryNotificationManager: SentryNotificationManager,
+    private val chargeSessionStateDataStore: ChargeSessionStateDataStore
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -198,6 +200,17 @@ class ChargingNotificationWorker @AssistedInject constructor(
 
         val status = statusData.status ?: return
 
+        // Persist whether the active session is DC; this is the only moment we can
+        // tell (post-completion `charger_phases` is null regardless of charge type).
+        if (status.isCharging && status.isDcCharging) {
+            chargeSessionStateDataStore.setLastSessionDc(carId, true)
+        } else if (status.pluggedIn == false) {
+            chargeSessionStateDataStore.clear(carId)
+        }
+
+        val dcFinishedPluggedIn = status.isChargeCompletePluggedIn &&
+            chargeSessionStateDataStore.wasLastSessionDc(carId)
+
         // --- Charging ---
         if (status.isCharging) {
             Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%")
@@ -213,7 +226,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
                     chronometerBaseMs = status.stateSinceEpochMs
                 )
             }
-        } else if (status.isDcFinishedPluggedIn) {
+        } else if (dcFinishedPluggedIn) {
             // DC charge finished but cable still plugged — keep service alive
             Log.d(TAG, "Car $carId DC charge finished but still plugged in")
             try {

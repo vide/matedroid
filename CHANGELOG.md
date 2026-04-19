@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Trip persistence**: Trips are now stored as first-class database entities. Auto-detected trips are silently persisted on first detection, unlocking the ability to edit and merge trips in a future update. No visible change for users.
 
+### Fixed
+- **DC unplug warning mis-firing on AC**: The warning to unplug after a DC session was also showing after AC sessions completed while plugged in. TeslaMate reports `charger_phases=null` after any session, so the old heuristic "null phases = DC" misclassified AC completions. The DC session type is now persisted while the session is active and reused after completion.
+
 ## [1.5.0] - 2026-04-15
 
 ### Added

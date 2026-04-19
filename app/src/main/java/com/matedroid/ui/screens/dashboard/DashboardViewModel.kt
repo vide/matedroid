@@ -7,6 +7,7 @@ import com.matedroid.data.api.models.CarExterior
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.CarImageOverride
+import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
 import com.matedroid.domain.TripRepository
@@ -42,7 +43,8 @@ data class DashboardUiState(
     val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     val isCurrentChargeAvailable: Boolean = false,
     val sentryEventCount: Int = 0,
-    val totalTrips: Int? = null
+    val totalTrips: Int? = null,
+    val dcFinishedPluggedIn: Boolean = false
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -73,7 +75,8 @@ class DashboardViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val sentryStateRepository: SentryStateRepository,
     private val tripRepository: TripRepository,
-    private val tripCountCache: TripCountCache
+    private val tripCountCache: TripCountCache,
+    private val chargeSessionStateDataStore: ChargeSessionStateDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -183,10 +186,12 @@ class DashboardViewModel @Inject constructor(
             when (val result = repository.getCarStatus(carId)) {
                 is ApiResult.Success -> {
                     val status = result.data.status
+                    val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
                             units = result.data.units,
+                            dcFinishedPluggedIn = dcFinishedPluggedIn,
                             error = null
                         )
                     }
@@ -206,10 +211,12 @@ class DashboardViewModel @Inject constructor(
             when (val result = repository.getCarStatus(carId)) {
                 is ApiResult.Success -> {
                     val status = result.data.status
+                    val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
                             units = result.data.units,
+                            dcFinishedPluggedIn = dcFinishedPluggedIn,
                             error = null
                         )
                     }
@@ -225,6 +232,20 @@ class DashboardViewModel @Inject constructor(
         }
         loadCounts(carId)
         startAutoRefresh(carId)
+    }
+
+    /**
+     * Persists the in-session DC flag so we can still identify the charge type
+     * after completion (when `charger_phases` is null for both AC and DC).
+     * Returns whether the unplug warning should be shown for this status.
+     */
+    private suspend fun trackAndComputeDcFinishedPluggedIn(carId: Int, status: CarStatus): Boolean {
+        if (status.isCharging && status.isDcCharging) {
+            chargeSessionStateDataStore.setLastSessionDc(carId, true)
+        } else if (status.pluggedIn == false) {
+            chargeSessionStateDataStore.clear(carId)
+        }
+        return status.isChargeCompletePluggedIn && chargeSessionStateDataStore.wasLastSessionDc(carId)
     }
 
     private fun loadCounts(carId: Int) {
@@ -276,10 +297,12 @@ class DashboardViewModel @Inject constructor(
                 when (val result = repository.getCarStatus(carId)) {
                     is ApiResult.Success -> {
                         val status = result.data.status
+                        val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
                         _uiState.update {
                             it.copy(
                                 carStatus = status,
-                                units = result.data.units
+                                units = result.data.units,
+                                dcFinishedPluggedIn = dcFinishedPluggedIn
                             )
                         }
                         // Update address if location changed

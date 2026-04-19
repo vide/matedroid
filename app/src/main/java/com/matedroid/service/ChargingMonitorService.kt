@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.matedroid.R
+import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
@@ -55,6 +56,7 @@ class ChargingMonitorService : Service() {
     @Inject lateinit var teslamateRepository: TeslamateRepository
     @Inject lateinit var settingsDataStore: SettingsDataStore
     @Inject lateinit var chargingNotificationManager: ChargingNotificationManager
+    @Inject lateinit var chargeSessionStateDataStore: ChargeSessionStateDataStore
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var monitorJob: Job? = null
@@ -62,8 +64,6 @@ class ChargingMonitorService : Service() {
     private val maxConsecutiveFailures = 3
     private var isMonitoring = false
     private val activeNotificationCarIds = mutableSetOf<Int>()
-    // Track which cars were DC charging (safety net for isDcCharging after completion)
-    private val dcChargingCarIds = mutableSetOf<Int>()
 
     override fun onCreate() {
         super.onCreate()
@@ -247,11 +247,21 @@ class ChargingMonitorService : Service() {
 
                 val notificationId = ChargingNotificationManager.NOTIFICATION_ID_BASE + car.carId
 
+                // Only `isCharging && phases == 0` confirms DC. After completion phases
+                // is null for any charge type, so we persist the in-session flag.
+                if (status.isCharging && status.isDcCharging) {
+                    chargeSessionStateDataStore.setLastSessionDc(car.carId, true)
+                } else if (status.pluggedIn == false) {
+                    chargeSessionStateDataStore.clear(car.carId)
+                }
+
+                val wasDcSession = chargeSessionStateDataStore.wasLastSessionDc(car.carId)
+                val dcFinishedPluggedIn = status.isChargeCompletePluggedIn && wasDcSession
+
                 when {
                     status.isCharging -> {
                         anyCharging = true
                         activeNotificationCarIds.add(car.carId)
-                        if (status.isDcCharging) dcChargingCarIds.add(car.carId) else dcChargingCarIds.remove(car.carId)
                         Log.d(TAG, "Car ${car.carId} charging at ${status.batteryLevel}%")
 
                         val liveChargeAvailable = teslamateRepository.isCurrentChargeAvailable(car.carId)
@@ -262,7 +272,7 @@ class ChargingMonitorService : Service() {
                         updateForegroundNotification(notificationId, notification, car, status, liveChargeAvailable)
                     }
 
-                    status.isDcFinishedPluggedIn || (status.pluggedIn == true && status.isChargeComplete && dcChargingCarIds.contains(car.carId)) -> {
+                    dcFinishedPluggedIn -> {
                         // DC charge finished but cable still plugged — keep notification alive
                         anyCharging = true
                         activeNotificationCarIds.add(car.carId)
@@ -278,7 +288,6 @@ class ChargingMonitorService : Service() {
 
                     else -> {
                         activeNotificationCarIds.remove(car.carId)
-                        dcChargingCarIds.remove(car.carId)
                         chargingNotificationManager.cancelNotification(car.carId)
                     }
                 }

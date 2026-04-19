@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +39,8 @@ data class CurrentChargeUiState(
 
 @HiltViewModel
 class CurrentChargeViewModel @Inject constructor(
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val chargeSessionStateDataStore: ChargeSessionStateDataStore
 ) : ViewModel() {
 
     companion object {
@@ -93,14 +95,19 @@ class CurrentChargeViewModel @Inject constructor(
             is ApiResult.Success -> statusResult.data.status.isDcCharging
             is ApiResult.Error -> null  // No status data available -> assume AC
         }
-        val isDcFinishedPluggedIn = when (statusResult) {
-            is ApiResult.Success -> statusResult.data.status.isDcFinishedPluggedIn
-            is ApiResult.Error -> false
+        val status = (statusResult as? ApiResult.Success)?.data?.status
+
+        // Persist the DC flag while the session is still live; post-completion we can
+        // only tell whether a session was DC from this stored value.
+        if (status?.isCharging == true && status.isDcCharging) {
+            chargeSessionStateDataStore.setLastSessionDc(carId, true)
+        } else if (status?.pluggedIn == false) {
+            chargeSessionStateDataStore.clear(carId)
         }
-        val stateSince = when (statusResult) {
-            is ApiResult.Success -> statusResult.data.status.stateSince
-            is ApiResult.Error -> null
-        }
+
+        val wasDcSession = chargeSessionStateDataStore.wasLastSessionDc(carId)
+        val isDcFinishedPluggedIn = status?.isChargeCompletePluggedIn == true && wasDcSession
+        val stateSince = status?.stateSince
 
         when (chargeResult) {
             is ApiResult.Success -> {

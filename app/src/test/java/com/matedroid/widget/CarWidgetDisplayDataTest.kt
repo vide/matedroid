@@ -143,17 +143,34 @@ class CarWidgetDisplayDataTest {
     }
 
     @Test
-    fun dcCharging_isDcCharging_whenPhasesNull() {
+    fun dcCharging_isDcCharging_whenPhasesZero() {
         val car = buildFullCarData()
         val status = buildFullStatus().copy(
             chargingDetails = buildFullStatus().chargingDetails!!.copy(
-                chargerPhases = null   // DC charging: no phases
+                chargerPhases = 0   // Active DC charging reports phases=0
             )
         )
 
         val data = CarWidgetDisplayData.from(car, status)
 
         assertTrue(data.isDcCharging)
+        assertNull(data.acPhases)
+    }
+
+    @Test
+    fun notCharging_phasesNull_isNotDcCharging() {
+        // `charger_phases` is null both before charging starts and after any session
+        // completes, regardless of type — treating null as DC misclassifies AC completions.
+        val car = buildFullCarData()
+        val status = buildFullStatus().copy(
+            chargingDetails = buildFullStatus().chargingDetails!!.copy(
+                chargerPhases = null
+            )
+        )
+
+        val data = CarWidgetDisplayData.from(car, status)
+
+        assertTrue(!data.isDcCharging)
         assertNull(data.acPhases)
     }
 

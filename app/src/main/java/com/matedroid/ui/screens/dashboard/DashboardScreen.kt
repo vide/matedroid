@@ -248,6 +248,7 @@ fun DashboardScreen(
                         carImageOverrides = uiState.carImageOverrides,
                         isCurrentChargeAvailable = uiState.isCurrentChargeAvailable,
                         sentryEventCount = uiState.sentryEventCount,
+                        dcFinishedPluggedIn = uiState.dcFinishedPluggedIn,
                         onNavigateToCharges = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToCharges(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -451,6 +452,7 @@ private fun DashboardContent(
     carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
     sentryEventCount: Int = 0,
+    dcFinishedPluggedIn: Boolean = false,
     onNavigateToCharges: () -> Unit = {},
     onNavigateToDrives: () -> Unit = {},
     onNavigateToBattery: () -> Unit = {},
@@ -517,7 +519,7 @@ private fun DashboardContent(
         )
 
         // DC charge finished but still plugged in warning
-        if (status.isDcFinishedPluggedIn) {
+        if (dcFinishedPluggedIn) {
             DcUnplugWarningBanner(dcFinishedSince = status.stateSince)
         }
 

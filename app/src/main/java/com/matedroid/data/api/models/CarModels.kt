@@ -103,7 +103,14 @@ data class CarStatus(
     val chargeCurrentRequestMax: Int? get() = chargingDetails?.chargeCurrentRequestMax
     val isDcCharging: Boolean get() = chargingDetails?.isDcCharging ?: false
     val isChargeComplete: Boolean get() = chargingState?.lowercase() == "complete"
-    val isDcFinishedPluggedIn: Boolean get() = isChargeComplete && pluggedIn == true && isDcCharging
+    /**
+     * True when a session has completed and the cable is still plugged in.
+     * Whether that session was DC (and therefore whether to show the unplug
+     * warning) can't be determined from this snapshot alone — callers must
+     * combine this with a persistent DC-session flag, since `charger_phases`
+     * is null after any completion regardless of charge type.
+     */
+    val isChargeCompletePluggedIn: Boolean get() = isChargeComplete && pluggedIn == true
     val timeToFullCharge: Double? get() = chargingDetails?.timeToFullCharge
 
     /** Parse stateSince ISO timestamp to epoch milliseconds. */
@@ -212,11 +219,13 @@ data class ChargingDetails(
     @Json(name = "time_to_full_charge") val timeToFullCharge: Double? = null
 ) {
     /**
-     * Detect if this is DC charging using Teslamate's logic:
-     * DC charging has charger_phases = 0 or null (bypasses onboard charger)
+     * True only while *actively* DC charging. The TeslaMate API reports
+     * `charger_phases=0` during an active DC session; AC reports 1, 2, or 3.
+     * After any session completes `charger_phases` goes to null — don't treat
+     * null as DC, or AC completions get misclassified.
      */
     val isDcCharging: Boolean
-        get() = chargerPhases == null || chargerPhases == 0
+        get() = chargerPhases == 0
     /**
      * Actual number of AC phases:
      * 1 -> monophase
