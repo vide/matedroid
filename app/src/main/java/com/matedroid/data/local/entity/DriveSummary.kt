@@ -1,5 +1,6 @@
 package com.matedroid.data.local.entity
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -8,6 +9,7 @@ import androidx.room.PrimaryKey
  * Drive summary data from /drives list endpoint.
  * Contains all fields needed for Quick Stats.
  */
+@Immutable
 @Entity(
     tableName = "drives_summary",
     indices = [

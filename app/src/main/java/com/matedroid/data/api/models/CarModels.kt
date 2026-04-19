@@ -1,5 +1,6 @@
 package com.matedroid.data.api.models
 
+import androidx.compose.runtime.Immutable
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -59,6 +60,7 @@ data class CarStatusData(
     @Json(name = "units") val units: Units? = null
 )
 
+@Immutable
 @JsonClass(generateAdapter = true)
 data class Units(
     @Json(name = "unit_of_length") val unitOfLength: String? = null,

@@ -1,5 +1,6 @@
 package com.matedroid.ui.screens.trips
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
@@ -31,11 +32,13 @@ import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import javax.inject.Inject
 
+@Immutable
 data class TripRoutePoint(
     val latitude: Double,
     val longitude: Double
 )
 
+@Immutable
 data class TripMapMarker(
     val latitude: Double,
     val longitude: Double,
@@ -47,10 +50,12 @@ data class TripMapMarker(
 enum class TripMapPointType { START, CHARGE, END }
 
 /** One drive leg's GPS points, kept separate for alternating colors on the map. */
+@Immutable
 data class TripRouteSegment(
     val points: List<TripRoutePoint>
 )
 
+@Immutable
 data class TripCountry(
     val countryCode: String,
     val flagEmoji: String
@@ -108,16 +113,21 @@ class TripDetailViewModel @Inject constructor(
         currentStartDate = tripStartDate
 
         viewModelScope.launch {
-            launch {
-                when (val result = repository.getCarStatus(carId)) {
-                    is ApiResult.Success -> _uiState.update { it.copy(units = result.data.units) }
-                    is ApiResult.Error -> {}
+            // Skip these on revalidation — units and currency don't change between same-session
+            // navigations, and the network call was the slowest step of the reload.
+            val isFirstLoad = _uiState.value.units == null
+            if (isFirstLoad) {
+                launch {
+                    when (val result = repository.getCarStatus(carId)) {
+                        is ApiResult.Success -> _uiState.update { it.copy(units = result.data.units) }
+                        is ApiResult.Error -> {}
+                    }
                 }
-            }
-            launch {
-                val settings = settingsDataStore.settings.first()
-                val symbol = Currency.findByCode(settings.currencyCode).symbol
-                _uiState.update { it.copy(currencySymbol = symbol) }
+                launch {
+                    val settings = settingsDataStore.settings.first()
+                    val symbol = Currency.findByCode(settings.currencyCode).symbol
+                    _uiState.update { it.copy(currencySymbol = symbol) }
+                }
             }
 
             // Fast path: use cached trip from list screen (avoids a repository round trip)
@@ -128,18 +138,6 @@ class TripDetailViewModel @Inject constructor(
                 return@launch
             }
 
-            // Build markers from known coordinates
-            val markers = mutableListOf<TripMapMarker>()
-            trip.charges.forEach { charge ->
-                markers.add(
-                    TripMapMarker(
-                        charge.latitude, charge.longitude,
-                        TripMapPointType.CHARGE, charge.address,
-                        chargeId = charge.chargeId
-                    )
-                )
-            }
-
             // Lookup savedTripId (for edit/merge/delete actions) and DC charge id set (for AC/DC visuals)
             val savedId = tripRepository.findSavedTripId(carId, trip)
             val savedName = savedId?.let { tripRepository.getTripName(it) }
@@ -147,12 +145,25 @@ class TripDetailViewModel @Inject constructor(
                 aggregateDao.getDcChargeIds(carId).toSet()
             } catch (e: Exception) { emptySet() }
 
+            // Placeholder charge markers — only on first load. On revalidation, keep the existing
+            // markers (which already include start+end) so the map doesn't flash a shorter set.
+            val existingMarkers = _uiState.value.markers
+            val initialMarkers = if (existingMarkers.isEmpty()) {
+                trip.charges.map { charge ->
+                    TripMapMarker(
+                        charge.latitude, charge.longitude,
+                        TripMapPointType.CHARGE, charge.address,
+                        chargeId = charge.chargeId
+                    )
+                }
+            } else existingMarkers
+
             // Show trip info immediately — countries and map load in background
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     trip = trip,
-                    markers = markers,
+                    markers = initialMarkers,
                     savedTripId = savedId,
                     savedTripName = savedName,
                     dcChargeIds = dcIds
@@ -301,29 +312,30 @@ class TripDetailViewModel @Inject constructor(
     /**
      * Called by the screen on ON_RESUME. Reloads the trip if the user is returning from a child
      * screen (e.g. a drive/charge detail) where they might have changed the trip's composition.
+     *
+     * The reload is delayed a short while so the fresh composition that follows back-navigation
+     * can finish its first frame (heavy children like the map/timeline/legs/donut). Without this
+     * delay the reload's state emissions pile onto the same main-thread budget, which shows up
+     * as "scroll is blocked for a while".
      */
     fun onScreenResumed() {
         if (loaded && hasBeenPaused) {
             hasBeenPaused = false
-            reloadTrip()
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(400)
+                reloadTrip()
+            }
         }
     }
 
-    /** Clears the screen state and re-runs loadTrip with the currently viewed trip. */
+    /**
+     * Revalidate the trip in the background. We deliberately do NOT clear existing state — the
+     * user keeps seeing the current trip while fresh data is fetched. StateFlow dedupes equal
+     * values, so if nothing actually changed in the DB, no emission happens and nothing in the
+     * UI recomposes. Only genuine changes (leg added/removed/renamed) cause updates.
+     */
     private fun reloadTrip() {
         loaded = false
-        _uiState.update {
-            it.copy(
-                isLoading = true,
-                trip = null,
-                routeSegments = emptyList(),
-                markers = emptyList(),
-                isMapLoading = true,
-                countries = emptyList(),
-                savedTripId = null,
-                savedTripName = null
-            )
-        }
         loadTrip(currentCarId, currentStartDate)
     }
 
@@ -460,18 +472,29 @@ class TripDetailViewModel @Inject constructor(
 
             val allPoints = simplified.flatMap { it.points }
 
-            // Add start/end markers from actual GPS data
-            val markers = _uiState.value.markers.toMutableList()
+            // Rebuild markers from scratch: [start] + charges + [end]. Building from `trip` avoids
+            // double-adding start/end on revalidation (previous version appended to current state).
+            val markers = mutableListOf<TripMapMarker>()
             if (allPoints.isNotEmpty()) {
                 val first = allPoints.first()
-                val last = allPoints.last()
                 markers.add(
-                    0,
                     TripMapMarker(
                         first.latitude, first.longitude,
                         TripMapPointType.START, trip.startAddress
                     )
                 )
+            }
+            trip.charges.forEach { charge ->
+                markers.add(
+                    TripMapMarker(
+                        charge.latitude, charge.longitude,
+                        TripMapPointType.CHARGE, charge.address,
+                        chargeId = charge.chargeId
+                    )
+                )
+            }
+            if (allPoints.isNotEmpty()) {
+                val last = allPoints.last()
                 markers.add(
                     TripMapMarker(
                         last.latitude, last.longitude,
