@@ -62,7 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.CountryBoundary
 import com.matedroid.data.api.models.Units
@@ -926,15 +926,15 @@ private fun createCountryHighlightOverlays(boundary: CountryBoundary, accentColo
             points = ring.map { (lat, lon) -> GeoPoint(lat, lon) }
 
             // Light fill with the accent color (very subtle)
-            fillColor = android.graphics.Color.argb(25,
+            fillPaint.color = android.graphics.Color.argb(25,
                 android.graphics.Color.red(accentColor),
                 android.graphics.Color.green(accentColor),
                 android.graphics.Color.blue(accentColor)
             )
 
             // Visible stroke in accent color
-            strokeColor = accentColor
-            strokeWidth = 3f
+            outlinePaint.color = accentColor
+            outlinePaint.strokeWidth = 3f
         }
     }
 }
@@ -1110,7 +1110,7 @@ private fun formatDate(dateStr: String): String {
  */
 private fun getLocalizedCountryName(countryCode: String): String {
     return try {
-        Locale("", countryCode).getDisplayCountry(Locale.getDefault())
+        Locale.Builder().setRegion(countryCode).build().getDisplayCountry(Locale.getDefault())
             .takeIf { it.isNotBlank() && it != countryCode } ?: countryCode
     } catch (e: Exception) {
         countryCode

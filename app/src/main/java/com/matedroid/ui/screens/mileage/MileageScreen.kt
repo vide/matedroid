@@ -67,7 +67,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.filled.Battery5Bar
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.outlined.EnergySavingsLeaf
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.ui.components.BarChartData

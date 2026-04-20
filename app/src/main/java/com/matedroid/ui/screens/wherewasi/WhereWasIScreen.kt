@@ -56,7 +56,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.data.repository.countryCodeToFlag
@@ -248,7 +248,7 @@ fun WhereWasIScreen(
                                         Spacer(modifier = Modifier.width(4.dp))
                                     }
                                     val localizedCountryName = loc.countryCode?.let { code ->
-                                        java.util.Locale("", code).getDisplayCountry(java.util.Locale.getDefault())
+                                        java.util.Locale.Builder().setRegion(code).build().getDisplayCountry(java.util.Locale.getDefault())
                                             .takeIf { it.isNotBlank() && it != code }
                                     } ?: loc.countryName ?: loc.countryCode
                                     val breadcrumbParts = listOfNotNull(

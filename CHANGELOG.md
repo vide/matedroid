@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Dependency bump (phase 1)**: Kotlin 2.0.21 → 2.2.21, AGP 8.7.2 → 8.13.2, Gradle 8.9 → 8.14.4, Compose BOM 2024.11 → 2026.03, Room 2.6.1 → 2.8.4 (new `androidx.room` Gradle plugin for schema export), lifecycle 2.8.7 → 2.9.4, activity-compose 1.9.3 → 1.11.0, navigation-compose 2.8.4 → 2.9.7, Hilt 2.56 → 2.58 (held on AGP-8-compatible line), hilt-navigation-compose 1.2.0 → 1.3.0, retrofit 2.11.0 → 2.12.0, moshi 1.15.1 → 1.15.2, datastore 1.1.1 → 1.1.7, security-crypto 1.1.0-alpha06 → 1.1.0, osmdroid 6.1.18 → 6.1.20, detekt 1.23.7 → 1.23.8, coroutines-test 1.9.0 → 1.10.2, mockk 1.13.13 → 1.14.9, turbine 1.2.0 → 1.2.1. All deprecation warnings fixed at the source (no `@Suppress`): `hiltViewModel` moved to `androidx.hilt.lifecycle.viewmodel.compose`, `rememberPlainTooltipPositionProvider` → `rememberTooltipPositionProvider(TooltipAnchorPosition.Above)`, deprecated `Locale(String, String)` → `Locale.Builder().setRegion(...)`, `fallbackToDestructiveMigration()` → explicit `dropAllTables` overload, osmdroid `Polygon.fillColor/strokeColor/strokeWidth` → `fillPaint`/`outlinePaint`, osmdroid `setBuiltInZoomControls(false)` → `zoomController.setVisibility(NEVER)`, `LocalLifecycleOwner` moved to `androidx.lifecycle.compose`, `kotlinOptions` DSL → `kotlin { compilerOptions { … } }` with the new `-Xannotation-default-target=param-property` flag (Kotlin 2.2 KT-73255). Deferred to next iteration: AGP 9.x / Gradle 9.x / Hilt 2.59+, Retrofit 3.x, OkHttp 5.x, WorkManager 2.10+ (requires test-mocking refactor for `WorkManager.getInstance` — currently pinned at 2.9.1), migration off deprecated `security-crypto`, Moshi code-gen appearing as a kapt processor in the Hilt Java compile (harmless upstream warning).
+
 ## [1.6.0-beta1] - 2026-04-20
 
 ### Added

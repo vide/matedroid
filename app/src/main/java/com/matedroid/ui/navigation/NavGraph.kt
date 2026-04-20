@@ -14,7 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -706,7 +706,7 @@ fun NavGraph(
                     navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
                 },
                 onNavigateToCountryStats = { countryCode ->
-                    val countryName = java.util.Locale("", countryCode).displayCountry
+                    val countryName = java.util.Locale.Builder().setRegion(countryCode).build().displayCountry
                     navController.navigate(Screen.RegionsVisited.createRoute(carId, countryCode, countryName, exteriorColor))
                 }
             )

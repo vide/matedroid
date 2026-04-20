@@ -55,7 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.CountryRecord
@@ -394,7 +394,7 @@ private fun EmptyState(palette: CarColorPalette) {
  */
 private fun getLocalizedCountryName(countryCode: String): String {
     return try {
-        Locale("", countryCode).getDisplayCountry(Locale.getDefault())
+        Locale.Builder().setRegion(countryCode).build().getDisplayCountry(Locale.getDefault())
             .takeIf { it.isNotBlank() && it != countryCode } ?: countryCode
     } catch (e: Exception) {
         countryCode

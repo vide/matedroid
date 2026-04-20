@@ -63,6 +63,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.TextButton
@@ -115,13 +116,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
 import com.matedroid.ui.components.createPinMarkerDrawable
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import com.matedroid.data.api.models.BatteryDetails
@@ -747,7 +749,7 @@ private fun StatusIcon(
     val tooltipState = rememberTooltipState(isPersistent = true)
     val scope = rememberCoroutineScope()
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
         tooltip = {
             PlainTooltip {
                 Text(tooltipText)
@@ -941,7 +943,7 @@ private fun StatusIndicatorsRow(
                 // Outside temp: "Ext:"
                 val extTooltipState = rememberTooltipState(isPersistent = true)
                 TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                     tooltip = { PlainTooltip { Text(climateTooltip) } },
                     state = extTooltipState
                 ) {
@@ -974,7 +976,7 @@ private fun StatusIndicatorsRow(
                 val intTooltipState = rememberTooltipState(isPersistent = true)
                 val intColor = if (isClimateOn) StatusSuccess else palette.onSurfaceVariant
                 TooltipBox(
-                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                     tooltip = { PlainTooltip { Text(climateTooltip) } },
                     state = intTooltipState
                 ) {
@@ -1891,7 +1893,7 @@ private fun SmallLocationMap(
                     setMultiTouchControls(false)
 
                     // Disable all interactions for this small preview map
-                    setBuiltInZoomControls(false)
+                    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
                     isClickable = false
                     isFocusable = false
 
