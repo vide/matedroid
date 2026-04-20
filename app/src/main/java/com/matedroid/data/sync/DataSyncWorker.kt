@@ -24,9 +24,6 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 
 /**
  * Background worker for syncing stats data from TeslamateApi.

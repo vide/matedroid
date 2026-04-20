@@ -13,16 +13,12 @@
 
     <!-- ==================== Dashboard Screen ==================== -->
     <!-- Dialog title when user has multiple vehicles and can choose one -->
-    <string name="select_vehicle">Select Vehicle</string>
 
     <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
-    <string name="car_fallback_name">Car %d</string>
 
     <!-- Content description for checkmark icon next to selected vehicle -->
-    <string name="selected">Selected</string>
 
     <!-- Content description for dropdown arrow indicating car can be changed -->
-    <string name="select_car">Select car</string>
 
     <!-- Content description for settings gear icon in top bar -->
     <string name="settings">Settings</string>
@@ -64,7 +60,6 @@
     <string name="online">Online</string>
 
     <!-- Content description when sentry mode is active -->
-    <string name="sentry_mode_active">Sentry mode active</string>
 
     <!-- Content description for inside temperature indicator -->
     <string name="inside_temp">Inside temperature</string>
@@ -360,7 +355,6 @@
     <string name="battery_level">Battery Level</string>
     <string name="elevation_profile">Elevation Profile</string>
     <!-- Title for the speed distribution histogram in drive details -->
-    <string name="speed_distribution">Speed Distribution</string>
 
     <!-- Weather section -->
     <string name="weather_during_trip">Weather during the trip</string>
@@ -564,7 +558,6 @@
     <string name="stats_avg_efficiency">Avg Efficiency</string>
 
     <!-- Label for maximum speed recorded -->
-    <string name="stats_top_speed">Top Speed</string>
 
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">Cost / 100 %1$s</string>
@@ -776,19 +769,13 @@
     <string name="regions_visited_title">Regions in %s</string>
 
     <!-- Plural for number of regions. %d is the count -->
-    <plurals name="format_regions_count">
-        <item quantity="one">%d region</item>
-        <item quantity="other">%d regions</item>
-    </plurals>
 
     <!-- Empty state when no regions have been recorded -->
     <string name="no_regions_found">No regions recorded yet.</string>
 
     <!-- Header card title showing country totals -->
-    <string name="regions_country_summary">Country Summary</string>
 
     <!-- Map showing charge locations in the country -->
-    <string name="country_charge_map_title">Charge Locations</string>
     <!-- Plural for number of charges on the map. %d is the count -->
     <plurals name="format_charges_on_map">
         <item quantity="one">%d charge</item>
@@ -796,7 +783,6 @@
     </plurals>
 
     <!-- Map showing drive start locations in the country -->
-    <string name="country_drives_map_title">Drive Locations</string>
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
         <item quantity="one">%d drive</item>
@@ -1069,7 +1055,6 @@
     <!-- Empty state when no trips detected -->
     <string name="trips_empty">No road trips detected yet.\nA trip requires at least 2 drives connected by a DC charge stop.</string>
     <!-- Warning when deep sync is incomplete -->
-    <string name="trips_sync_warning">Sync in progress — some trips may not appear until charge data is fully processed.</string>
     <!-- Trip detail screen title -->
     <string name="trip_detail_title">Trip Details</string>
     <!-- Trip summary section header -->
@@ -1077,9 +1062,7 @@
     <!-- Trip legs section header -->
     <string name="trip_legs">Trip Legs</string>
     <!-- Trip route map header -->
-    <string name="trip_route_map">Route Map</string>
     <!-- Number of charge stops -->
-    <string name="trip_charge_stops">Charge stops</string>
     <!-- Trip list row: no charge stops -->
     <string name="trip_no_stops">no stops</string>
     <!-- Trip list row: exactly one charge stop -->
@@ -1089,9 +1072,7 @@
     <!-- Driving time label -->
     <string name="trip_driving_time">Driving time</string>
     <!-- Total time (wall clock) label -->
-    <string name="trip_total_time">Total time</string>
     <!-- Energy consumed label -->
-    <string name="trip_energy_consumed">Energy used</string>
     <!-- Energy charged label -->
     <string name="trip_energy_charged">Energy charged</string>
     <!-- Charge cost label -->
@@ -1202,10 +1183,8 @@
     <string name="car_picker_wheel_style">Wheel Style</string>
 
     <!-- Button to confirm the car image selection -->
-    <string name="car_picker_confirm">Confirm Selection</string>
 
     <!-- Button to reset to automatic detection -->
-    <string name="car_picker_auto">Auto</string>
 
     <!-- Content description for reset to default button -->
     <string name="car_picker_reset_default">Reset to detected default</string>
@@ -1262,7 +1241,6 @@
     <string name="widget_error_configure">Tap to configure</string>
 
     <!-- Tap hint shown on the widget (accessibility / tooltip) -->
-    <string name="widget_tap_to_open">Tap to open MateDroid</string>
 
     <!-- ==================== Notification Permission Dialog ==================== -->
     <!-- Title of the one-time dialog asking the user to enable notifications -->
@@ -1288,11 +1266,8 @@
     <!-- Button to confirm date/time selection -->
     <string name="where_was_i_go">Go!</string>
     <!-- Date picker dialog title -->
-    <string name="where_was_i_pick_date">Pick a date</string>
     <!-- Time picker dialog title -->
-    <string name="where_was_i_pick_time">Pick a time</string>
     <!-- Tap hint on driving/charging state cards -->
-    <string name="where_was_i_tap_details">Tap for details</string>
     <!-- Error when no data available for the selected date -->
     <string name="where_was_i_no_data">No data available for this date</string>
     <!-- Tooltip shown when tapping the map pin on the Where Was I screen -->

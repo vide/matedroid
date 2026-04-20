@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,14 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.outlined.AllInclusive
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Calculate
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
@@ -64,7 +61,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 //import androidx.compose.material.icons.Icons
@@ -76,7 +72,6 @@ import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
-import com.matedroid.ui.screens.drives.DriveDetailStats
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
@@ -788,7 +783,6 @@ private fun MonthSummaryCard(
     val avgDistance = if (driveCount > 0) totalDistance / driveCount else 0.0
     val totalBatteryUsage = monthData?.totalBatteryUsage ?: 0.0
     val totalEnergy = monthData?.totalEnergy ?: 0.0
-    val avgEnergy = if (driveCount > 0) totalEnergy / driveCount else 0.0
     val avgEfficiency = if (totalDistance > 0) (totalEnergy * 1000.0) / totalDistance else 0.0
 
     Card(

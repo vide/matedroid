@@ -28,13 +28,9 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,8 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn as LogLazyColumn
 import androidx.compose.foundation.lazy.items as logItems
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
@@ -1396,46 +1390,6 @@ private fun RecordCard(
                     contentDescription = stringResource(R.string.view_details),
                     modifier = Modifier.size(18.dp),
                     tint = palette.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecordItem(
-    emoji: String,
-    label: String,
-    value: String,
-    subtext: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = emoji,
-            style = MaterialTheme.typography.titleLarge
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            if (subtext.isNotEmpty()) {
-                Text(
-                    text = subtext,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

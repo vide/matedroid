@@ -13,16 +13,12 @@
 
     <!-- ==================== Dashboard Screen ==================== -->
     <!-- Dialog title when user has multiple vehicles and can choose one -->
-    <string name="select_vehicle">Seleziona veicolo</string>
 
     <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
-    <string name="car_fallback_name">Auto %d</string>
 
     <!-- Content description for checkmark icon next to selected vehicle -->
-    <string name="selected">Selezionato</string>
 
     <!-- Content description for dropdown arrow indicating car can be changed -->
-    <string name="select_car">Seleziona auto</string>
 
     <!-- Content description for settings gear icon in top bar -->
     <string name="settings">Impostazioni</string>
@@ -64,7 +60,6 @@
     <string name="online">Online</string>
 
     <!-- Content description when sentry mode is active -->
-    <string name="sentry_mode_active">Modalità sentinella attiva</string>
 
     <!-- Content description for inside temperature indicator -->
     <string name="inside_temp">Temperatura interna</string>
@@ -359,7 +354,6 @@
     <string name="battery_level">Livello batteria</string>
     <string name="elevation_profile">Profilo altitudine</string>
     <!-- Title for the speed distribution histogram in drive details -->
-    <string name="speed_distribution">Distribuzione velocità</string>
 
     <!-- Weather section -->
     <string name="weather_during_trip">Meteo durante il viaggio</string>
@@ -563,7 +557,6 @@
     <string name="stats_avg_efficiency">Efficienza Media</string>
 
     <!-- Label for maximum speed recorded -->
-    <string name="stats_top_speed">Velocità Max</string>
 
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">Costo / 100 %1$s</string>
@@ -775,19 +768,13 @@
     <string name="regions_visited_title">Regioni in %s</string>
 
     <!-- Plural for number of regions. %d is the count -->
-    <plurals name="format_regions_count">
-        <item quantity="one">%d regione</item>
-        <item quantity="other">%d regioni</item>
-    </plurals>
 
     <!-- Empty state when no regions have been recorded -->
     <string name="no_regions_found">Nessuna regione registrata.</string>
 
     <!-- Header card title showing country totals -->
-    <string name="regions_country_summary">Riepilogo Paese</string>
 
     <!-- Map showing charge locations in the country -->
-    <string name="country_charge_map_title">Punti di Ricarica</string>
     <!-- Plural for number of charges on the map. %d is the count -->
     <plurals name="format_charges_on_map">
         <item quantity="one">%d ricarica</item>
@@ -795,7 +782,6 @@
     </plurals>
 
     <!-- Map showing drive start locations in the country -->
-    <string name="country_drives_map_title">Punti di Partenza</string>
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
         <item quantity="one">%d viaggio</item>
@@ -1054,18 +1040,13 @@
     <string name="nav_trips">Viaggi</string>
     <string name="trips_title">Viaggi</string>
     <string name="trips_empty">Nessun viaggio rilevato.\nUn viaggio richiede almeno 2 tratte collegate da una ricarica DC.</string>
-    <string name="trips_sync_warning">Sincronizzazione in corso — alcuni viaggi potrebbero non apparire fino al completamento dei dati di ricarica.</string>
     <string name="trip_detail_title">Dettagli viaggio</string>
     <string name="trip_summary">Riepilogo viaggio</string>
     <string name="trip_legs">Tappe del viaggio</string>
-    <string name="trip_route_map">Mappa del percorso</string>
-    <string name="trip_charge_stops">Soste di ricarica</string>
     <string name="trip_no_stops">nessuna sosta</string>
     <string name="trip_one_stop">1 sosta</string>
     <string name="trip_n_stops">%1$d soste</string>
     <string name="trip_driving_time">Tempo di guida</string>
-    <string name="trip_total_time">Tempo totale</string>
-    <string name="trip_energy_consumed">Energia consumata</string>
     <string name="trip_energy_charged">Energia ricaricata</string>
     <string name="trip_charge_cost">Costo ricarica</string>
     <string name="trip_leg_drive">Tratta %1$d</string>
@@ -1116,10 +1097,8 @@
     <string name="car_picker_wheel_style">Stile cerchi</string>
 
     <!-- Button to confirm the car image selection -->
-    <string name="car_picker_confirm">Conferma selezione</string>
 
     <!-- Button to reset to automatic detection -->
-    <string name="car_picker_auto">Auto</string>
     <!-- Content description for reset to default button -->
     <string name="car_picker_reset_default">Ripristina impostazione rilevata</string>
 
@@ -1166,7 +1145,6 @@
     <string name="widget_select_car_title">Seleziona un veicolo per il widget</string>
     <string name="widget_loading">Caricamento…</string>
     <string name="widget_error_configure">Tocca per configurare</string>
-    <string name="widget_tap_to_open">Tocca per aprire MateDroid</string>
 
     <!-- ==================== Finestra permesso notifiche ==================== -->
     <string name="notification_permission_title">Resta informato</string>
@@ -1181,9 +1159,6 @@
     <string name="where_was_i_charging">In ricarica</string>
     <string name="where_was_i_parked">Parcheggiato</string>
     <string name="where_was_i_go">Vai!</string>
-    <string name="where_was_i_pick_date">Scegli una data</string>
-    <string name="where_was_i_pick_time">Scegli un orario</string>
-    <string name="where_was_i_tap_details">Tocca per dettagli</string>
     <string name="where_was_i_no_data">Nessun dato disponibile per questa data</string>
     <!-- Tooltip shown when tapping the map pin on the Where Was I screen -->
     <string name="you_were_here">Eri qui!</string>

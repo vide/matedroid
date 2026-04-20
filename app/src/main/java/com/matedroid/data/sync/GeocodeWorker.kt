@@ -13,7 +13,6 @@ import androidx.work.WorkerParameters
 import android.util.Log
 import com.matedroid.R
 import com.matedroid.data.local.dao.AggregateDao
-import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.entity.GeocodeCache
 import com.matedroid.data.repository.GeocodingRepository
 import dagger.assisted.Assisted
@@ -32,7 +31,6 @@ class GeocodeWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val geocodingRepository: GeocodingRepository,
     private val aggregateDao: AggregateDao,
-    private val chargeSummaryDao: ChargeSummaryDao,
     private val logCollector: SyncLogCollector
 ) : CoroutineWorker(appContext, workerParams) {
 

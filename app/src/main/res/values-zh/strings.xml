@@ -13,16 +13,12 @@
 
     <!-- ==================== Dashboard Screen ==================== -->
     <!-- Dialog title when user has multiple vehicles and can choose one -->
-    <string name="select_vehicle">选择车辆</string>
 
     <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
-    <string name="car_fallback_name">车辆 %d</string>
 
     <!-- Content description for checkmark icon next to selected vehicle -->
-    <string name="selected">已选择</string>
 
     <!-- Content description for dropdown arrow indicating car can be changed -->
-    <string name="select_car">选择车辆</string>
 
     <!-- Content description for settings gear icon in top bar -->
     <string name="settings">设置</string>
@@ -64,7 +60,6 @@
     <string name="online">在线</string>
 
     <!-- Content description when sentry mode is active -->
-    <string name="sentry_mode_active">哨兵模式已启用</string>
 
     <!-- Content description for inside temperature indicator -->
     <string name="inside_temp">车内温度</string>
@@ -359,7 +354,6 @@
     <string name="battery_level">电池电量</string>
     <string name="elevation_profile">海拔曲线</string>
     <!-- Title for the speed distribution histogram in drive details -->
-    <string name="speed_distribution">速度分布</string>
 
     <!-- Weather section -->
     <string name="weather_during_trip">旅程中的天气</string>
@@ -563,7 +557,6 @@
     <string name="stats_avg_efficiency">平均能效</string>
 
     <!-- Label for maximum speed recorded -->
-    <string name="stats_top_speed">最高速度</string>
 
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">费用 / 100 %1$s</string>
@@ -775,19 +768,13 @@
     <string name="regions_visited_title">%s 的地区</string>
 
     <!-- Plural for number of regions. %d is the count -->
-    <plurals name="format_regions_count">
-        <item quantity="one">%d 个地区</item>
-        <item quantity="other">%d 个地区</item>
-    </plurals>
 
     <!-- Empty state when no regions have been recorded -->
     <string name="no_regions_found">暂无地区记录。</string>
 
     <!-- Header card title showing country totals -->
-    <string name="regions_country_summary">国家概览</string>
 
     <!-- Map showing charge locations in the country -->
-    <string name="country_charge_map_title">充电位置</string>
     <!-- Plural for number of charges on the map. %d is the count -->
     <plurals name="format_charges_on_map">
         <item quantity="one">%d 次充电</item>
@@ -795,7 +782,6 @@
     </plurals>
 
     <!-- Map showing drive start locations in the country -->
-    <string name="country_drives_map_title">行程位置</string>
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
         <item quantity="one">%d 次行程</item>
@@ -1055,18 +1041,13 @@
     <string name="nav_trips">行程</string>
     <string name="trips_title">行程</string>
     <string name="trips_empty">尚未检测到公路旅行。\n行程需要至少 2 段驾驶和 1 次直流充电。</string>
-    <string name="trips_sync_warning">同步进行中 — 部分行程可能在充电数据完全处理后才会显示。</string>
     <string name="trip_detail_title">行程详情</string>
     <string name="trip_summary">行程概览</string>
     <string name="trip_legs">行程段落</string>
-    <string name="trip_route_map">路线地图</string>
-    <string name="trip_charge_stops">充电站</string>
     <string name="trip_no_stops">无停靠</string>
     <string name="trip_one_stop">1 个停靠</string>
     <string name="trip_n_stops">%1$d 个停靠</string>
     <string name="trip_driving_time">驾驶时间</string>
-    <string name="trip_total_time">总时间</string>
-    <string name="trip_energy_consumed">消耗能量</string>
     <string name="trip_energy_charged">充入能量</string>
     <string name="trip_charge_cost">充电费用</string>
     <string name="trip_leg_drive">行驶 %1$d</string>
@@ -1117,10 +1098,8 @@
     <string name="car_picker_wheel_style">轮毂样式</string>
 
     <!-- Button to confirm the car image selection -->
-    <string name="car_picker_confirm">确认选择</string>
 
     <!-- Button to reset to automatic detection -->
-    <string name="car_picker_auto">自动</string>
 
     <!-- Content description for reset to default button -->
     <string name="car_picker_reset_default">重置为自动检测</string>
@@ -1177,7 +1156,6 @@
     <string name="widget_error_configure">点击以配置</string>
 
     <!-- Tap hint shown on the widget (accessibility / tooltip) -->
-    <string name="widget_tap_to_open">点击打开 MateDroid</string>
 
     <!-- ==================== Notification Permission Dialog ==================== -->
     <!-- Title of the one-time dialog asking the user to enable notifications -->
@@ -1203,11 +1181,8 @@
     <!-- Button to confirm date/time selection -->
     <string name="where_was_i_go">查看！</string>
     <!-- Date picker dialog title -->
-    <string name="where_was_i_pick_date">选择日期</string>
     <!-- Time picker dialog title -->
-    <string name="where_was_i_pick_time">选择时间</string>
     <!-- Tap hint on driving/charging state cards -->
-    <string name="where_was_i_tap_details">点击查看详情</string>
     <!-- Error when no data available for the selected date -->
     <string name="where_was_i_no_data">该日期没有可用数据</string>
     <!-- Tooltip shown when tapping the map pin on the Where Was I screen -->

@@ -1,9 +1,5 @@
 package com.matedroid.ui.screens.stats
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,7 +54,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,8 +62,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.CountryBoundary
@@ -1124,57 +1117,3 @@ private fun getLocalizedCountryName(countryCode: String): String {
     }
 }
 
-/**
- * Create a steering wheel drawable for drive markers on the map.
- * Draws a circular background with a simple steering wheel shape.
- */
-private fun createSteeringWheelDrawable(
-    context: android.content.Context,
-    color: Int,
-    size: Int = 36
-): android.graphics.drawable.Drawable {
-    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-    val center = size / 2f
-    val radius = size / 2f - 2f
-
-    // Draw white circle background with border
-    paint.color = android.graphics.Color.WHITE
-    paint.style = Paint.Style.FILL
-    canvas.drawCircle(center, center, radius, paint)
-
-    // Draw colored border
-    paint.color = color
-    paint.style = Paint.Style.STROKE
-    paint.strokeWidth = 3f
-    canvas.drawCircle(center, center, radius - 1.5f, paint)
-
-    // Draw steering wheel shape
-    paint.style = Paint.Style.STROKE
-    paint.strokeWidth = 2.5f
-    paint.strokeCap = Paint.Cap.ROUND
-
-    // Outer ring
-    val wheelRadius = radius * 0.6f
-    canvas.drawCircle(center, center, wheelRadius, paint)
-
-    // Center hub
-    paint.style = Paint.Style.FILL
-    canvas.drawCircle(center, center, radius * 0.15f, paint)
-
-    // Three spokes at 90°, 210°, 330°
-    paint.style = Paint.Style.STROKE
-    val spokeLength = wheelRadius - radius * 0.15f
-    for (angle in listOf(270.0, 150.0, 30.0)) {
-        val rad = Math.toRadians(angle)
-        val startX = center + (radius * 0.15f * kotlin.math.cos(rad)).toFloat()
-        val startY = center + (radius * 0.15f * kotlin.math.sin(rad)).toFloat()
-        val endX = center + (wheelRadius * kotlin.math.cos(rad)).toFloat()
-        val endY = center + (wheelRadius * kotlin.math.sin(rad)).toFloat()
-        canvas.drawLine(startX, startY, endX, endY, paint)
-    }
-
-    return BitmapDrawable(context.resources, bitmap)
-}

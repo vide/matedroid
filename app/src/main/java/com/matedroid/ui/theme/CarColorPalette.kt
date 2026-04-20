@@ -1,6 +1,5 @@
 package com.matedroid.ui.theme
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -415,7 +414,7 @@ object CarColorPalettes {
                 if (darkTheme) midnightCherryDarkPalette else midnightCherryLightPalette
 
             colorKey.contains("ultrared") || colorKey == "pr01" ->
-                if (darkTheme) ultraRedDarkPalette else ultraRedDarkPalette
+                if (darkTheme) ultraRedDarkPalette else ultraRedLightPalette
 
             colorKey.contains("red") || colorKey == "ppmr" ->
                 if (darkTheme) redDarkPalette else redLightPalette

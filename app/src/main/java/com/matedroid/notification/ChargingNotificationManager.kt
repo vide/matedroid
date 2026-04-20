@@ -13,7 +13,6 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.matedroid.R
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
@@ -176,10 +175,6 @@ class ChargingNotificationManager @Inject constructor(
                 val finishTime = java.util.Calendar.getInstance().apply {
                     add(java.util.Calendar.MINUTE, (hours * 60).toInt())
                 }
-                val timeFormat = android.text.format.DateFormat.getTimeFormat(context)
-                val formattedTime = timeFormat.format(finishTime.time)
-
-                // Determine relative day using DateUtils
                 val relativeDateTime = android.text.format.DateUtils.getRelativeDateTimeString(
                     context,
                     finishTime.timeInMillis,

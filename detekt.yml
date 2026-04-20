@@ -1,0 +1,90 @@
+# detekt configuration — minimal, dead-code oriented.
+# We build upon the default config but turn OFF every rule set, then opt back in
+# to only the specific rules that catch genuinely unused code. Keeps the signal
+# high, avoids stylistic-noise spam in CI.
+
+build:
+  maxIssues: 0
+
+config:
+  # We keep buildUponDefaultConfig = true for sensible defaults, but disable
+  # validation so our pared-down config doesn't need to exhaustively mirror every
+  # rule name in the defaults.
+  validation: false
+  warningsAsErrors: false
+
+comments:
+  active: false
+complexity:
+  active: false
+coroutines:
+  active: false
+empty-blocks:
+  active: false
+exceptions:
+  active: false
+naming:
+  active: false
+performance:
+  active: false
+potential-bugs:
+  active: false
+
+style:
+  active: true
+  # Dead-code rules (the whole reason we added detekt)
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    # Compose @Preview functions are used by the IDE preview tool, not by runtime code.
+    # Allow any private function whose name ends in "Preview" so detekt skips them.
+    allowedNames: '(_|ignored|expected|serialVersionUID|.*Preview.*)'
+  UnusedPrivateProperty:
+    active: true
+    allowedNames: '(_|ignored|expected|serialVersionUID)'
+  UnusedParameter:
+    active: false  # too noisy on Compose lambdas / DI constructors
+  FunctionOnlyReturningConstant:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  # Everything else in the style set: off — we don't want nitpick noise.
+  ReturnCount:
+    active: false
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    active: false
+  NewLineAtEndOfFile:
+    active: false
+  NoTabs:
+    active: false
+  UnnecessaryAbstractClass:
+    active: false
+  UnnecessaryApply:
+    active: false
+  UnnecessaryLet:
+    active: false
+  ExplicitItLambdaParameter:
+    active: false
+  MayBeConst:
+    active: false
+  VarCouldBeVal:
+    active: false
+  ModifierOrder:
+    active: false
+  ForbiddenComment:
+    active: false
+  SerialVersionUIDInSerializableClass:
+    active: false
+  UseDataClass:
+    active: false
+  RedundantVisibilityModifierRule:
+    active: false
+  UtilityClassWithPublicConstructor:
+    active: false
+  ProtectedMemberInFinalClass:
+    active: false

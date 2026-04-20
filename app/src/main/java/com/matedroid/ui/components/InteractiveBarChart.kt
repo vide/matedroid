@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -69,7 +68,6 @@ fun InteractiveBarChart(
 
     val textMeasurer = rememberTextMeasurer()
     val maxValue = data.maxOfOrNull { it.value } ?: 1.0
-    val density = LocalDensity.current
 
     // Reset selection when data changes to avoid IndexOutOfBoundsException
     var selectedBarIndex by remember(data) { mutableStateOf<Int?>(null) }

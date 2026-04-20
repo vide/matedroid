@@ -13,16 +13,12 @@
 
     <!-- ==================== Dashboard Screen ==================== -->
     <!-- Dialog title when user has multiple vehicles and can choose one -->
-    <string name="select_vehicle">Selecciona vehicle</string>
 
     <!-- Fallback name for a car when no display name is set. %d is the car ID number -->
-    <string name="car_fallback_name">Cotxe %d</string>
 
     <!-- Content description for checkmark icon next to selected vehicle -->
-    <string name="selected">Seleccionat</string>
 
     <!-- Content description for dropdown arrow indicating car can be changed -->
-    <string name="select_car">Selecciona cotxe</string>
 
     <!-- Content description for settings gear icon in top bar -->
     <string name="settings">Configuració</string>
@@ -64,7 +60,6 @@
     <string name="online">En línia</string>
 
     <!-- Content description when sentry mode is active -->
-    <string name="sentry_mode_active">Mode sentinella actiu</string>
 
     <!-- Content description for inside temperature indicator -->
     <string name="inside_temp">Temperatura interior</string>
@@ -359,7 +354,6 @@
     <string name="battery_level">Nivell de bateria</string>
     <string name="elevation_profile">Perfil d\'altitud</string>
     <!-- Title for the speed distribution histogram in drive details -->
-    <string name="speed_distribution">Distribució de velocitat</string>
 
     <!-- Weather section -->
     <string name="weather_during_trip">Temps durant el viatge</string>
@@ -563,7 +557,6 @@
     <string name="stats_avg_efficiency">Eficiència Mitjana</string>
 
     <!-- Label for maximum speed recorded -->
-    <string name="stats_top_speed">Velocitat Màx</string>
 
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">Cost / 100 %1$s</string>
@@ -775,19 +768,13 @@
     <string name="regions_visited_title">Regions a %s</string>
 
     <!-- Plural for number of regions. %d is the count -->
-    <plurals name="format_regions_count">
-        <item quantity="one">%d regió</item>
-        <item quantity="other">%d regions</item>
-    </plurals>
 
     <!-- Empty state when no regions have been recorded -->
     <string name="no_regions_found">No hi ha regions registrades.</string>
 
     <!-- Header card title showing country totals -->
-    <string name="regions_country_summary">Resum del País</string>
 
     <!-- Map showing charge locations in the country -->
-    <string name="country_charge_map_title">Punts de Càrrega</string>
     <!-- Plural for number of charges on the map. %d is the count -->
     <plurals name="format_charges_on_map">
         <item quantity="one">%d càrrega</item>
@@ -795,7 +782,6 @@
     </plurals>
 
     <!-- Map showing drive start locations in the country -->
-    <string name="country_drives_map_title">Punts d\'Inici</string>
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
         <item quantity="one">%d viatge</item>
@@ -1054,18 +1040,13 @@
     <string name="nav_trips">Viatges</string>
     <string name="trips_title">Viatges</string>
     <string name="trips_empty">No s\'han detectat viatges.\nUn viatge requereix almenys 2 trajectes connectats per una càrrega DC.</string>
-    <string name="trips_sync_warning">Sincronització en curs — alguns viatges podrien no aparèixer fins que les dades de càrrega estiguin completament processades.</string>
     <string name="trip_detail_title">Detalls del viatge</string>
     <string name="trip_summary">Resum del viatge</string>
     <string name="trip_legs">Etapes del viatge</string>
-    <string name="trip_route_map">Mapa de ruta</string>
-    <string name="trip_charge_stops">Parades de càrrega</string>
     <string name="trip_no_stops">sense parades</string>
     <string name="trip_one_stop">1 parada</string>
     <string name="trip_n_stops">%1$d parades</string>
     <string name="trip_driving_time">Temps de conducció</string>
-    <string name="trip_total_time">Temps total</string>
-    <string name="trip_energy_consumed">Energia consumida</string>
     <string name="trip_energy_charged">Energia carregada</string>
     <string name="trip_charge_cost">Cost de càrrega</string>
     <string name="trip_leg_drive">Trajecte %1$d</string>
@@ -1116,10 +1097,8 @@
     <string name="car_picker_wheel_style">Estil de llantes</string>
 
     <!-- Button to confirm the car image selection -->
-    <string name="car_picker_confirm">Confirma selecció</string>
 
     <!-- Button to reset to automatic detection -->
-    <string name="car_picker_auto">Auto</string>
     <!-- Content description for reset to default button -->
     <string name="car_picker_reset_default">Restablir a valor detectat</string>
 
@@ -1166,7 +1145,6 @@
     <string name="widget_select_car_title">Selecciona un vehicle per a l\'estri</string>
     <string name="widget_loading">Carregant…</string>
     <string name="widget_error_configure">Toca per configurar</string>
-    <string name="widget_tap_to_open">Toca per obrir MateDroid</string>
 
     <!-- ==================== Diàleg de permís de notificacions ==================== -->
     <string name="notification_permission_title">Mantingues-te informat</string>
@@ -1181,9 +1159,6 @@
     <string name="where_was_i_charging">Carregant</string>
     <string name="where_was_i_parked">Aparcat</string>
     <string name="where_was_i_go">Anar!</string>
-    <string name="where_was_i_pick_date">Tria una data</string>
-    <string name="where_was_i_pick_time">Tria una hora</string>
-    <string name="where_was_i_tap_details">Toca per veure detalls</string>
     <string name="where_was_i_no_data">No hi ha dades disponibles per a aquesta data</string>
     <!-- Tooltip shown when tapping the map pin on the Where Was I screen -->
     <string name="you_were_here">Eres aquí!</string>

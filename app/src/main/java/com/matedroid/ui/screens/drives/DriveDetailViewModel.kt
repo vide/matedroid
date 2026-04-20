@@ -3,7 +3,6 @@ package com.matedroid.ui.screens.drives
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.DriveDetail
-import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.local.entity.SavedTripLeg
