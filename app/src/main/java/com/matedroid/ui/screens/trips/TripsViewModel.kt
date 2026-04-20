@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.trips
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.TripRepository
@@ -30,14 +31,16 @@ data class TripsUiState(
     val isCustomDateFilter: Boolean = false,
     val customStartDate: LocalDate? = null,
     val customEndDate: LocalDate? = null,
-    val units: Units? = null
+    val units: Units? = null,
+    val dcChargeIds: Set<Int> = emptySet()
 )
 
 @HiltViewModel
 class TripsViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val repository: TeslamateRepository,
-    private val tripCache: TripCache
+    private val tripCache: TripCache,
+    private val aggregateDao: AggregateDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TripsUiState())
@@ -52,6 +55,16 @@ class TripsViewModel @Inject constructor(
         carId = id
         loadTrips(id)
         loadUnits(id)
+        loadDcChargeIds(id)
+    }
+
+    private fun loadDcChargeIds(id: Int) {
+        viewModelScope.launch {
+            val ids = try {
+                aggregateDao.getDcChargeIds(id).toSet()
+            } catch (e: Exception) { emptySet() }
+            _uiState.update { it.copy(dcChargeIds = ids) }
+        }
     }
 
     /** Screen went to background (user navigated to a child). */

@@ -1060,6 +1060,9 @@
     <string name="trip_legs">Etapas del viaje</string>
     <string name="trip_route_map">Mapa de ruta</string>
     <string name="trip_charge_stops">Paradas de carga</string>
+    <string name="trip_no_stops">sin paradas</string>
+    <string name="trip_one_stop">1 parada</string>
+    <string name="trip_n_stops">%1$d paradas</string>
     <string name="trip_driving_time">Tiempo de conducción</string>
     <string name="trip_total_time">Tiempo total</string>
     <string name="trip_energy_consumed">Energía consumida</string>

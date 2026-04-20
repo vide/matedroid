@@ -1080,6 +1080,12 @@
     <string name="trip_route_map">Route Map</string>
     <!-- Number of charge stops -->
     <string name="trip_charge_stops">Charge stops</string>
+    <!-- Trip list row: no charge stops -->
+    <string name="trip_no_stops">no stops</string>
+    <!-- Trip list row: exactly one charge stop -->
+    <string name="trip_one_stop">1 stop</string>
+    <!-- Trip list row: multiple charge stops. %1$d is the count -->
+    <string name="trip_n_stops">%1$d stops</string>
     <!-- Driving time label -->
     <string name="trip_driving_time">Driving time</string>
     <!-- Total time (wall clock) label -->

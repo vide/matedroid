@@ -20,11 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
@@ -65,6 +61,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
+import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -173,6 +170,7 @@ fun TripsScreen(
                         onCustomRangeSelected = { start, end -> viewModel.setCustomDateRange(start, end) },
                         units = uiState.units,
                         palette = palette,
+                        dcChargeIds = uiState.dcChargeIds,
                         onTripClick = { trip ->
                             viewModel.cacheTrip(trip)
                             onNavigateToTripDetail(trip.startDate)
@@ -199,6 +197,7 @@ private fun TripsContent(
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     units: Units?,
     palette: CarColorPalette,
+    dcChargeIds: Set<Int>,
     onTripClick: (Trip) -> Unit
 ) {
     LazyColumn(
@@ -249,6 +248,8 @@ private fun TripsContent(
             TripItem(
                 trip = trip,
                 units = units,
+                palette = palette,
+                dcChargeIds = dcChargeIds,
                 onClick = { onTripClick(trip) }
             )
         }
@@ -352,8 +353,16 @@ private fun SummaryItem(
 private fun TripItem(
     trip: Trip,
     units: Units?,
+    palette: CarColorPalette,
+    dcChargeIds: Set<Int>,
     onClick: () -> Unit
 ) {
+    // Segments memoized per trip — pure computation on the in-memory Trip, cheap enough for
+    // every visible list row (LazyColumn composes ~10 at a time). Keys include dcChargeIds so
+    // the strip recolors if the DC set ever changes.
+    val segments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) }
+    val chargeCount = trip.charges.size
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -363,145 +372,95 @@ private fun TripItem(
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            // Route header — single line
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
+            // Top row: date chip + route + distance
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatDateChip(trip.startDate),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = trip.displayName(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1
-                        )
-                    }
-                    val hasCustomName = !trip.name.isNullOrBlank()
-                    val subtitle = if (hasCustomName) {
-                        "${extractCity(trip.startAddress)} → ${extractCity(trip.endAddress)} · ${formatDate(trip.startDate)}"
-                    } else {
-                        formatDate(trip.startDate)
-                    }
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 28.dp, top = 4.dp),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                }
+                        .padding(end = 10.dp)
+                )
+                Text(
+                    text = trip.displayName(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accent
+                )
             }
 
-            // Stats — 2x2 grid, same DriveStatCard pattern
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TripStatCard(
-                    icon = Icons.Filled.Speed,
-                    value = "%.1f".format(UnitFormatter.formatDistanceValue(trip.totalDistance, units)),
-                    unit = UnitFormatter.getDistanceUnit(units),
-                    label = stringResource(R.string.distance),
-                    modifier = Modifier.weight(1f)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Fingerprint
+            TripFingerprintStrip(
+                segments = segments,
+                palette = palette,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Meta row: duration · stops · kWh
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatDuration(trip.totalDurationMin),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                TripStatCard(
-                    icon = Icons.Filled.Schedule,
-                    value = formatDuration(trip.totalDurationMin),
-                    unit = "",
-                    label = stringResource(R.string.trip_total_time),
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = " · ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TripStatCard(
-                    icon = Icons.Filled.ElectricBolt,
-                    value = "${trip.charges.size}",
-                    unit = "",
-                    label = stringResource(R.string.trip_charge_stops),
-                    modifier = Modifier.weight(1f)
+                Text(
+                    text = if (chargeCount == 0) {
+                        stringResource(R.string.trip_no_stops)
+                    } else {
+                        pluralStopsLabel(chargeCount)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TripStatCard(
-                    icon = Icons.Filled.BatteryChargingFull,
-                    value = "%.1f".format(trip.totalEnergyConsumed),
-                    unit = "kWh",
-                    label = stringResource(R.string.trip_energy_consumed),
-                    modifier = Modifier.weight(1f)
-                )
+                if (trip.totalEnergyCharged > 0.0) {
+                    Text(
+                        text = " · %.1f kWh".format(trip.totalEnergyCharged),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TripStatCard(
-    icon: ImageVector,
-    value: String,
-    unit: String,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                if (unit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+private fun pluralStopsLabel(count: Int): String =
+    if (count == 1) stringResource(R.string.trip_one_stop)
+    else stringResource(R.string.trip_n_stops, count)
+
+private fun formatDateChip(dateStr: String): String {
+    return try {
+        val dt = try {
+            OffsetDateTime.parse(dateStr).toLocalDateTime()
+        } catch (_: DateTimeParseException) {
+            LocalDateTime.parse(dateStr.replace("Z", ""))
         }
+        dt.format(DateTimeFormatter.ofPattern("d MMM")).uppercase()
+    } catch (_: Exception) {
+        dateStr
     }
 }
 
@@ -597,13 +556,3 @@ private fun formatDuration(minutes: Int): String {
     return if (h > 0) "${h}h ${m}m" else "${m}m"
 }
 
-private fun formatDate(dateStr: String): String {
-    return try {
-        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
-        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
-        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
-        dateTime.format(outputFormatter)
-    } catch (e: Exception) {
-        dateStr
-    }
-}

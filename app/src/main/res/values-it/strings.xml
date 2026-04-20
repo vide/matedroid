@@ -1060,6 +1060,9 @@
     <string name="trip_legs">Tappe del viaggio</string>
     <string name="trip_route_map">Mappa del percorso</string>
     <string name="trip_charge_stops">Soste di ricarica</string>
+    <string name="trip_no_stops">nessuna sosta</string>
+    <string name="trip_one_stop">1 sosta</string>
+    <string name="trip_n_stops">%1$d soste</string>
     <string name="trip_driving_time">Tempo di guida</string>
     <string name="trip_total_time">Tempo totale</string>
     <string name="trip_energy_consumed">Energia consumata</string>

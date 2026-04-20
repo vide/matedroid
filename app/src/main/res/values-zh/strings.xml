@@ -1061,6 +1061,9 @@
     <string name="trip_legs">行程段落</string>
     <string name="trip_route_map">路线地图</string>
     <string name="trip_charge_stops">充电站</string>
+    <string name="trip_no_stops">无停靠</string>
+    <string name="trip_one_stop">1 个停靠</string>
+    <string name="trip_n_stops">%1$d 个停靠</string>
     <string name="trip_driving_time">驾驶时间</string>
     <string name="trip_total_time">总时间</string>
     <string name="trip_energy_consumed">消耗能量</string>
