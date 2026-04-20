@@ -1,13 +1,17 @@
 package com.matedroid.ui.screens.trips
 
 import android.graphics.Paint
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -67,15 +71,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -350,16 +362,11 @@ private fun TripDetailContent(
             )
         }
 
-        StatsSectionCard(
-            title = stringResource(R.string.battery),
-            icon = Icons.Filled.BatteryChargingFull,
-            stats = listOfNotNull(
-                StatItem(stringResource(R.string.trip_energy_consumed), "%.1f kWh".format(trip.totalEnergyConsumed)),
-                StatItem(stringResource(R.string.trip_energy_charged), "%.1f kWh".format(trip.totalEnergyCharged)),
-                trip.avgEfficiency?.let {
-                    StatItem(stringResource(R.string.efficiency), "%.0f %s".format(it, UnitFormatter.getEfficiencyUnit(units)))
-                }
-            )
+        BatteryEnergyFlowCard(
+            trip = trip,
+            dcChargeIds = dcChargeIds,
+            palette = palette,
+            units = units
         )
 
         val legs = remember(trip) { buildLegList(trip) }
@@ -559,33 +566,38 @@ private fun ChargeCostCard(
                     palette = palette,
                     currencySymbol = currencySymbol
                 )
+
+                // Always-visible efficiency pills below the donut — the "at-a-glance verdict"
+                // on how expensive the trip was per distance / per energy.
+                val distanceUnit = UnitFormatter.getDistanceUnit(units)
+                val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
+                    ?.let { it / trip.totalDistance * 100.0 }
+                val perKwh = trip.totalChargeCost?.takeIf { trip.totalEnergyCharged > 0.0 }
+                    ?.let { it / trip.totalEnergyCharged }
+                if (per100 != null || perKwh != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    ) {
+                        per100?.let {
+                            EfficiencyPill(
+                                value = "%.2f %s".format(it, currencySymbol),
+                                unit = "/ 100 $distanceUnit",
+                                palette = palette
+                            )
+                        }
+                        perKwh?.let {
+                            EfficiencyPill(
+                                value = "%.2f %s".format(it, currencySymbol),
+                                unit = "/ kWh",
+                                palette = palette
+                            )
+                        }
+                    }
+                }
             }
 
             if (expanded) {
-                if (trip.totalDistance > 0.0 && trip.totalChargeCost != null) {
-                    val per100 = trip.totalChargeCost / trip.totalDistance * 100.0
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.trip_cost_per_100),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "%.2f %s / 100 %s".format(
-                                per100,
-                                currencySymbol,
-                                UnitFormatter.getDistanceUnit(units)
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
                 costCharges.forEachIndexed { index, charge ->
                     val shade = shades.getOrNull(index) ?: palette.accent
                     Card(
@@ -643,6 +655,400 @@ private fun ChargeCostCard(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// === Efficiency pill — surfaces €/100km and €/kWh below the cost donut ===
+
+@Composable
+private fun EfficiencyPill(
+    value: String,
+    unit: String,
+    palette: CarColorPalette
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(palette.accent.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = palette.accent
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = unit,
+            style = MaterialTheme.typography.labelSmall,
+            color = palette.accent.copy(alpha = 0.75f)
+        )
+    }
+}
+
+// === Battery energy flow card — horizontal Sankey-style flow (DC+AC in → battery → Used out) ===
+
+@Composable
+private fun BatteryEnergyFlowCard(
+    trip: Trip,
+    dcChargeIds: Set<Int>,
+    palette: CarColorPalette,
+    units: Units?
+) {
+    val dcCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId in dcChargeIds } }
+    val acCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId !in dcChargeIds } }
+    val dcKwh = dcCharges.sumOf { it.energyAdded }
+    val acKwh = acCharges.sumOf { it.energyAdded }
+    val dcDurationMin = dcCharges.sumOf { it.durationMin }
+    val acDurationMin = acCharges.sumOf { it.durationMin }
+    val dcAvgKw = if (dcDurationMin > 0) dcKwh * 60.0 / dcDurationMin else 0.0
+    val acAvgKw = if (acDurationMin > 0) acKwh * 60.0 / acDurationMin else 0.0
+    val usedKwh = trip.totalEnergyConsumed
+    val efficiencyWhPerDist = trip.avgEfficiency
+        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { usedKwh * 1000.0 / it }
+    val efficiencyUnit = UnitFormatter.getEfficiencyUnit(units)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.BatteryChargingFull,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.battery),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            HorizontalEnergyFlow(
+                dcKwh = dcKwh, dcAvgKw = dcAvgKw,
+                acKwh = acKwh, acAvgKw = acAvgKw,
+                usedKwh = usedKwh,
+                efficiencyWhPerDist = efficiencyWhPerDist,
+                efficiencyUnit = efficiencyUnit,
+                palette = palette
+            )
+        }
+    }
+}
+
+@Composable
+private fun HorizontalEnergyFlow(
+    dcKwh: Double, dcAvgKw: Double,
+    acKwh: Double, acAvgKw: Double,
+    usedKwh: Double,
+    efficiencyWhPerDist: Double?,
+    efficiencyUnit: String,
+    palette: CarColorPalette
+) {
+    val totalCharged = dcKwh + acKwh
+
+    // Layout constants (dp). A little taller so labels can sit above/below the thin leads
+    // without crowding the battery.
+    val cardHeight = 150.dp
+    val batteryW = 128.dp
+    val batteryH = 72.dp
+    val batteryTipW = 7.dp
+    val batteryTipH = 26.dp
+    // Very thin source thickness — leaves plenty of room for the labels.
+    val startT = 6.dp
+
+    // The stream stays at startT for 80% of its run, then expands to its proportional share
+    // over the last 20%. Inverse for the outflow (full-width for the first 20%, thin after).
+    val flatFraction = 0.80f
+
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(cardHeight)
+    ) {
+        val cardW = maxWidth
+        val batteryLeftX = (cardW - batteryW) / 2
+        val batteryRightX = batteryLeftX + batteryW
+        val batteryTopY = (cardHeight - batteryH) / 2
+        val centerY = cardHeight / 2
+
+        val cardWPx = with(density) { cardW.toPx() }
+        val cardHPx = with(density) { cardHeight.toPx() }
+        val batteryWPx = with(density) { batteryW.toPx() }
+        val batteryHPx = with(density) { batteryH.toPx() }
+        val batteryTipWPx = with(density) { batteryTipW.toPx() }
+        val batteryTipHPx = with(density) { batteryTipH.toPx() }
+        val batteryLeftXPx = (cardWPx - batteryWPx) / 2f
+        val batteryRightXPx = batteryLeftXPx + batteryWPx
+        val batteryTopYPx = (cardHPx - batteryHPx) / 2f
+        val batteryBottomYPx = batteryTopYPx + batteryHPx
+        val centerYPx = cardHPx / 2f
+        val startTPx = with(density) { startT.toPx() }
+        val dcShare = if (totalCharged > 0) dcKwh / totalCharged else 0.0
+        val splitYPx = batteryTopYPx + (dcShare * batteryHPx).toFloat()
+
+        val accent = palette.accent
+        val acColor = palette.acColor
+        val dcColor = palette.dcColor
+        val usedColor = StatusError
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val cornerPx = 10.dp.toPx()
+            val strokePx = 2.5.dp.toPx()
+
+            // x where the inflow transitions from flat-thin to widening
+            val inTransitionX = batteryLeftXPx * flatFraction
+            // x where the outflow ends its widening (mirror of inTransitionX relative to battery)
+            val outRegionWidth = cardWPx - batteryRightXPx
+            val outTransitionX = batteryRightXPx + outRegionWidth * (1f - flatFraction)
+
+            // Helper: build a Sankey-style inflow path. Stays at [topY..bottomY] (thickness startT)
+            // from x=0 to inTransitionX, then cubic-beziers to (batteryLeftXPx, [batteryTopYAt..
+            // batteryBotYAt]).
+            fun buildInPath(sourceTopY: Float, sourceBotY: Float, batteryTopYAt: Float, batteryBotYAt: Float): Path {
+                val ctrlX = (inTransitionX + batteryLeftXPx) / 2f
+                return Path().apply {
+                    moveTo(0f, sourceTopY)
+                    lineTo(inTransitionX, sourceTopY)
+                    cubicTo(
+                        ctrlX, sourceTopY,
+                        ctrlX, batteryTopYAt,
+                        batteryLeftXPx, batteryTopYAt
+                    )
+                    lineTo(batteryLeftXPx, batteryBotYAt)
+                    cubicTo(
+                        ctrlX, batteryBotYAt,
+                        ctrlX, sourceBotY,
+                        inTransitionX, sourceBotY
+                    )
+                    lineTo(0f, sourceBotY)
+                    close()
+                }
+            }
+
+            // === Inflow streams ===
+            when {
+                dcKwh > 0 && acKwh > 0 -> {
+                    // DC on top: from thin line above center → top portion of battery
+                    drawPath(
+                        buildInPath(
+                            sourceTopY = centerYPx - startTPx,
+                            sourceBotY = centerYPx,
+                            batteryTopYAt = batteryTopYPx,
+                            batteryBotYAt = splitYPx
+                        ),
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(dcColor, dcColor.copy(alpha = 0f)),
+                            startX = 0f, endX = batteryLeftXPx
+                        )
+                    )
+                    // AC on bottom
+                    drawPath(
+                        buildInPath(
+                            sourceTopY = centerYPx,
+                            sourceBotY = centerYPx + startTPx,
+                            batteryTopYAt = splitYPx,
+                            batteryBotYAt = batteryBottomYPx
+                        ),
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(acColor, acColor.copy(alpha = 0f)),
+                            startX = 0f, endX = batteryLeftXPx
+                        )
+                    )
+                }
+                dcKwh > 0 -> {
+                    drawPath(
+                        buildInPath(
+                            sourceTopY = centerYPx - startTPx,
+                            sourceBotY = centerYPx + startTPx,
+                            batteryTopYAt = batteryTopYPx,
+                            batteryBotYAt = batteryBottomYPx
+                        ),
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(dcColor, dcColor.copy(alpha = 0f)),
+                            startX = 0f, endX = batteryLeftXPx
+                        )
+                    )
+                }
+                acKwh > 0 -> {
+                    drawPath(
+                        buildInPath(
+                            sourceTopY = centerYPx - startTPx,
+                            sourceBotY = centerYPx + startTPx,
+                            batteryTopYAt = batteryTopYPx,
+                            batteryBotYAt = batteryBottomYPx
+                        ),
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(acColor, acColor.copy(alpha = 0f)),
+                            startX = 0f, endX = batteryLeftXPx
+                        )
+                    )
+                }
+            }
+
+            // === Outflow stream (inverse profile) ===
+            // Widens from battery height at batteryRightXPx to thin startT at outTransitionX,
+            // then stays thin to cardWPx.
+            run {
+                val ctrlX = (batteryRightXPx + outTransitionX) / 2f
+                val outPath = Path().apply {
+                    moveTo(batteryRightXPx, batteryTopYPx)
+                    cubicTo(
+                        ctrlX, batteryTopYPx,
+                        ctrlX, centerYPx - startTPx / 2f,
+                        outTransitionX, centerYPx - startTPx / 2f
+                    )
+                    lineTo(cardWPx, centerYPx - startTPx / 2f)
+                    lineTo(cardWPx, centerYPx + startTPx / 2f)
+                    lineTo(outTransitionX, centerYPx + startTPx / 2f)
+                    cubicTo(
+                        ctrlX, centerYPx + startTPx / 2f,
+                        ctrlX, batteryBottomYPx,
+                        batteryRightXPx, batteryBottomYPx
+                    )
+                    close()
+                }
+                drawPath(
+                    outPath,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(usedColor.copy(alpha = 0f), usedColor),
+                        startX = batteryRightXPx, endX = cardWPx
+                    )
+                )
+            }
+
+            // === Battery body (drawn on top of the stream edges so seams are clean) ===
+            drawRoundRect(
+                color = accent.copy(alpha = 0.10f),
+                topLeft = Offset(batteryLeftXPx, batteryTopYPx),
+                size = Size(batteryWPx, batteryHPx),
+                cornerRadius = CornerRadius(cornerPx, cornerPx)
+            )
+            drawRoundRect(
+                color = accent,
+                topLeft = Offset(batteryLeftXPx, batteryTopYPx),
+                size = Size(batteryWPx, batteryHPx),
+                cornerRadius = CornerRadius(cornerPx, cornerPx),
+                style = Stroke(width = strokePx)
+            )
+
+            // Battery tip (positive terminal) on the right side — makes it unmistakably a battery
+            val tipCornerPx = 3.dp.toPx()
+            val tipY = batteryTopYPx + (batteryHPx - batteryTipHPx) / 2f
+            drawRoundRect(
+                color = accent,
+                topLeft = Offset(batteryRightXPx, tipY),
+                size = Size(batteryTipWPx, batteryTipHPx),
+                cornerRadius = CornerRadius(tipCornerPx, tipCornerPx)
+            )
+        }
+
+        // === Text overlays ===
+
+        // Battery center label: total charged kWh
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (totalCharged > 0) {
+                Text(
+                    text = "%.1f".format(totalCharged),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = accent
+                )
+                Text(
+                    text = "kWh charged",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accent.copy(alpha = 0.78f)
+                )
+            } else {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+
+        // DC label (top-left) — above the thin DC stream
+        if (dcKwh > 0) {
+            Column(
+                modifier = Modifier.offset(
+                    x = 6.dp,
+                    y = centerY - startT - 40.dp
+                )
+            ) {
+                Text(
+                    text = "%.1f kWh".format(dcKwh),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = dcColor
+                )
+                Text(
+                    text = "%.0f kW avg".format(dcAvgKw),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // AC label (bottom-left) — below the thin AC stream
+        if (acKwh > 0) {
+            Column(
+                modifier = Modifier.offset(
+                    x = 6.dp,
+                    y = centerY + startT + 6.dp
+                )
+            ) {
+                Text(
+                    text = "%.1f kWh".format(acKwh),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = acColor
+                )
+                Text(
+                    text = "%.1f kW avg".format(acAvgKw),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // OUT label (right) — over the thin outflow section
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(y = -(startT + 20.dp))
+                .padding(end = 6.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            Text(
+                text = "%.1f kWh".format(usedKwh),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = usedColor
+            )
+            if (efficiencyWhPerDist != null) {
+                Text(
+                    text = "%.0f %s".format(efficiencyWhPerDist, efficiencyUnit),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
