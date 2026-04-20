@@ -102,6 +102,7 @@ import com.matedroid.ui.components.computeCostShades
 import com.matedroid.ui.components.TripEditActions
 import com.matedroid.ui.components.TripTimeline
 import com.matedroid.ui.components.TripTimelineCountry
+import com.matedroid.ui.components.TripWeatherSparklineCard
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.components.createZapMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalette
@@ -233,6 +234,7 @@ fun TripDetailScreen(
                         palette = palette,
                         dcChargeIds = uiState.dcChargeIds,
                         canEdit = uiState.savedTripId != null,
+                        weatherPoints = uiState.weatherPoints,
                         onDriveClick = onNavigateToDriveDetail,
                         onChargeClick = onNavigateToChargeDetail,
                         onCountryClick = onNavigateToCountryStats,
@@ -296,6 +298,7 @@ private fun TripDetailContent(
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
     canEdit: Boolean,
+    weatherPoints: List<com.matedroid.data.repository.TripWeatherPoint>,
     onDriveClick: (driveId: Int) -> Unit,
     onChargeClick: (chargeId: Int) -> Unit,
     onCountryClick: (countryCode: String) -> Unit,
@@ -473,6 +476,12 @@ private fun TripDetailContent(
                 }
             }
         }
+
+        TripWeatherSparklineCard(
+            samples = weatherPoints,
+            palette = palette,
+            units = units
+        )
 
         if (canEdit) {
             TripEditActions(

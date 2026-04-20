@@ -14,6 +14,8 @@ import com.matedroid.data.local.entity.TripRouteCache
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.repository.TripWeatherPoint
+import com.matedroid.data.repository.WeatherRepository
 import com.matedroid.data.repository.countryCodeToFlag
 import com.matedroid.domain.EligibleLegs
 import com.matedroid.domain.LegRef
@@ -83,7 +85,9 @@ data class TripDetailUiState(
     val eligibleLegs: EligibleLegs? = null,
     val adjacentTrips: List<Pair<Long, Trip>> = emptyList(),
     val pendingMergeTarget: Pair<Long, Trip>? = null,
-    val justDeleted: Boolean = false
+    val justDeleted: Boolean = false,
+
+    val weatherPoints: List<TripWeatherPoint> = emptyList()
 )
 
 @HiltViewModel
@@ -95,6 +99,7 @@ class TripDetailViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val tripCache: TripCache,
     private val repository: TeslamateRepository,
+    private val weatherRepository: WeatherRepository,
     private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
@@ -509,6 +514,18 @@ class TripDetailViewModel @Inject constructor(
                     markers = markers,
                     isMapLoading = false
                 )
+            }
+
+            // Weather fetch kicks in after route data is ready — it needs per-drive GPS points
+            // to sample. Runs in the same viewModelScope so it's cancelled if the screen goes
+            // away. Only fetches if we don't already have samples (memory cache across reloads).
+            if (_uiState.value.weatherPoints.isEmpty() && simplified.isNotEmpty()) {
+                launch {
+                    val samples = weatherRepository.getWeatherAlongTrip(trip.drives, simplified)
+                    if (samples.isNotEmpty()) {
+                        _uiState.update { it.copy(weatherPoints = samples) }
+                    }
+                }
             }
         }
     }

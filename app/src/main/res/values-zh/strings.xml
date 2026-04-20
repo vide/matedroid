@@ -362,7 +362,7 @@
     <string name="speed_distribution">速度分布</string>
 
     <!-- Weather section -->
-    <string name="weather_along_way">沿途天气</string>
+    <string name="weather_during_trip">旅程中的天气</string>
 
     <!-- ==================== Charges Screen ==================== -->
     <!-- Top bar title -->

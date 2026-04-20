@@ -363,7 +363,7 @@
     <string name="speed_distribution">Speed Distribution</string>
 
     <!-- Weather section -->
-    <string name="weather_along_way">Weather along the way</string>
+    <string name="weather_during_trip">Weather during the trip</string>
 
     <!-- ==================== Charges Screen ==================== -->
     <!-- Top bar title -->

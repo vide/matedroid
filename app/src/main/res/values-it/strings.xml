@@ -362,7 +362,7 @@
     <string name="speed_distribution">Distribuzione velocità</string>
 
     <!-- Weather section -->
-    <string name="weather_along_way">Meteo lungo il percorso</string>
+    <string name="weather_during_trip">Meteo durante il viaggio</string>
 
     <!-- ==================== Charges Screen ==================== -->
     <!-- Top bar title -->

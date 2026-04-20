@@ -9,6 +9,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -340,4 +343,124 @@ class WeatherRepository @Inject constructor(
 
         return earthRadiusKm * c
     }
+
+    // ========================================================================
+    // Trip-level weather sampling (used by TripDetailScreen)
+    // ========================================================================
+
+    /**
+     * Fetches weather samples along a trip's drive timeline.
+     *
+     * Sampling: ~1 per hour of drive time, clamped to [3, 12]. Stationary periods
+     * (parking / charging) are skipped — we only sample actual driving.
+     *
+     * Timestamps for the route points are interpolated linearly between each drive's
+     * startDate/endDate since the cached route points don't carry per-point times.
+     *
+     * @param drives The trip's drives (chronological order, same order as route segments)
+     * @param routeSegments One segment per drive (may be empty on cache miss)
+     * @return Samples with fetched weather, or empty list on total failure.
+     */
+    suspend fun getWeatherAlongTrip(
+        drives: List<com.matedroid.data.local.entity.DriveSummary>,
+        routeSegments: List<com.matedroid.ui.screens.trips.TripRouteSegment>
+    ): List<TripWeatherPoint> {
+        if (drives.isEmpty() || routeSegments.isEmpty()) return emptyList()
+
+        // Build a (timestamp, lat, lon) list across all drive points, with timestamps
+        // interpolated evenly between each drive's startDate/endDate.
+        data class TimedPoint(val epochMillis: Long, val lat: Double, val lon: Double)
+        val allPoints = mutableListOf<TimedPoint>()
+        drives.forEachIndexed { driveIdx, drive ->
+            val segment = routeSegments.getOrNull(driveIdx) ?: return@forEachIndexed
+            val pts = segment.points
+            if (pts.isEmpty()) return@forEachIndexed
+            val ds = parseDateTime(drive.startDate)?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                ?: return@forEachIndexed
+            val de = parseDateTime(drive.endDate)?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                ?: return@forEachIndexed
+            val dur = (de - ds).coerceAtLeast(1L)
+            val n = pts.size
+            pts.forEachIndexed { i, pt ->
+                val t = if (n > 1) ds + (dur.toDouble() * i / (n - 1)).toLong() else ds
+                allPoints.add(TimedPoint(t, pt.latitude, pt.longitude))
+            }
+        }
+        if (allPoints.isEmpty()) return emptyList()
+
+        // Sample count: ~1 per hour of drive, clamped [3, 12]
+        val totalDriveMin = drives.sumOf { it.durationMin }
+        val hours = totalDriveMin / 60.0
+        val sampleCount = hours.toInt().coerceIn(3, 12)
+
+        // Evenly sample indices across allPoints
+        val samples = (0 until sampleCount).map { i ->
+            val denom = (sampleCount - 1).coerceAtLeast(1).toDouble()
+            val idx = ((i / denom) * (allPoints.size - 1)).toInt().coerceIn(0, allPoints.size - 1)
+            allPoints[idx]
+        }
+
+        // Fetch weather for each sample in parallel
+        return coroutineScope {
+            val deferreds = samples.map { sample ->
+                async { fetchTripWeatherAtSample(sample.epochMillis, sample.lat, sample.lon) }
+            }
+            deferreds.awaitAll().filterNotNull()
+        }
+    }
+
+    private suspend fun fetchTripWeatherAtSample(
+        epochMillis: Long,
+        lat: Double,
+        lon: Double
+    ): TripWeatherPoint? {
+        val dt = java.time.Instant.ofEpochMilli(epochMillis)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDateTime()
+        val dateStr = dt.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val hour = dt.hour
+        return try {
+            val response = openMeteoApi.getHistoricalWeather(
+                latitude = lat,
+                longitude = lon,
+                startDate = dateStr,
+                endDate = dateStr
+            )
+            if (!response.isSuccessful) return null
+            val body = response.body() ?: return null
+            val hourly = body.hourly ?: return null
+            val idx = hourly.time?.indexOfFirst { timeStr ->
+                try {
+                    LocalDateTime.parse(timeStr).hour == hour
+                } catch (_: Exception) { false }
+            } ?: -1
+            if (idx < 0) return null
+            val temp = hourly.temperature2m?.getOrNull(idx) ?: return null
+            val code = hourly.weatherCode?.getOrNull(idx) ?: 0
+            TripWeatherPoint(
+                timestamp = dt,
+                latitude = lat,
+                longitude = lon,
+                temperatureCelsius = temp,
+                weatherCode = code,
+                weatherCondition = WeatherCondition.fromWmoCode(code)
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Trip weather fetch failed at $lat,$lon", e)
+            null
+        }
+    }
 }
+
+/**
+ * A weather sample along a trip: when, where, temperature, and condition.
+ */
+@androidx.compose.runtime.Immutable
+data class TripWeatherPoint(
+    val timestamp: LocalDateTime,
+    val latitude: Double,
+    val longitude: Double,
+    val temperatureCelsius: Double,
+    val weatherCode: Int,
+    val weatherCondition: WeatherCondition
+)
