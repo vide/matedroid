@@ -17,7 +17,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
+import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -63,8 +63,9 @@ class SettingsViewModelTest {
 
         every { settingsDataStore.settings } returns flowOf(AppSettings())
 
-        // Mock WorkManager.getInstance()
-        mockkStatic(WorkManager::class)
+        // Mock WorkManager.getInstance() via the Companion object (WorkManager 2.10+
+        // removed @JvmStatic, so mockkStatic(WorkManager::class) no longer intercepts).
+        mockkObject(WorkManager.Companion)
         every { WorkManager.getInstance(any()) } returns workManager
     }
 
