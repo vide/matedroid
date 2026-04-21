@@ -198,7 +198,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
             }
         }
 
-        val status = statusData.status ?: return
+        val status = statusData.status
 
         // Persist whether the active session is DC; this is the only moment we can
         // tell (post-completion `charger_phases` is null regardless of charge type).

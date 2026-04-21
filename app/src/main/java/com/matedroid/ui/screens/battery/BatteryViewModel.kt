@@ -126,7 +126,7 @@ class BatteryViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = (statusResult as ApiResult.Error).message
+                            error = statusResult.message
                         )
                     }
                 }

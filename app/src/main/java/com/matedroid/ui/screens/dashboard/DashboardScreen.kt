@@ -866,7 +866,7 @@ private fun StatusIndicatorsRow(
                         if (offlineTime != null) {
                             stringResource(R.string.offline_since, offlineTime)
                         } else {
-                            status.state?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.unknown)
+                            status.state.replaceFirstChar { it.uppercase() }
                         }
                     }
                     isCharging -> chargingStr

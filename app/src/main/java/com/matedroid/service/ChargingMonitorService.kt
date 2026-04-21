@@ -243,7 +243,7 @@ class ChargingMonitorService : Service() {
                     }
                 }
 
-                val status = statusData.status ?: continue
+                val status = statusData.status
 
                 val notificationId = ChargingNotificationManager.NOTIFICATION_ID_BASE + car.carId
 
