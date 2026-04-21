@@ -312,7 +312,17 @@ class TripRepository @Inject constructor(
         val consumedFingerprints = savedTripDao.getAllConsumedFingerprintsForCar(carId).toSet()
         val suppressed = existingFingerprints + consumedFingerprints
 
-        val detected = tripDetector.detectTrips(drives, dcCharges)
+        // Exclude drives/DC-charges already claimed by a saved trip so the detector
+        // cannot produce an auto-detected trip that overlaps with one. Without this,
+        // a trip [1,2] saved on a first run could reappear as [1,2,3] once drive 3
+        // arrives — both fingerprints differ, neither is suppressed, and the two saved
+        // trips end up sharing drive 1 (same startDate → duplicate LazyColumn key).
+        val usedDriveIds = savedTripDao.getUsedLegIds(carId, SavedTripLeg.TYPE_DRIVE).toSet()
+        val usedChargeIds = savedTripDao.getUsedLegIds(carId, SavedTripLeg.TYPE_CHARGE).toSet()
+        val freeDrives = drives.filter { it.driveId !in usedDriveIds }
+        val freeDcCharges = dcCharges.filter { it.chargeId !in usedChargeIds }
+
+        val detected = tripDetector.detectTrips(freeDrives, freeDcCharges)
         if (detected.isEmpty()) return
 
         val now = System.currentTimeMillis()
