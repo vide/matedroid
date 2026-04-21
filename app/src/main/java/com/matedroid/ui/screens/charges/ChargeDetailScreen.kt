@@ -823,8 +823,8 @@ private fun TemperatureChartCard(
 ) {
     val temps = chargePoints.mapNotNull { it.outsideTemp?.toFloat() }
     if (temps.size < 2) return
-    var yMin = (kotlin.math.floor(temps.min() ) ).toFloat()
-    var yMax = (kotlin.math.ceil(temps.max() ) ).toFloat()
+    var yMin = kotlin.math.floor(temps.min())
+    var yMax = kotlin.math.ceil(temps.max())
     if (yMin == yMax) {
         yMin -= 1
         yMax += 1

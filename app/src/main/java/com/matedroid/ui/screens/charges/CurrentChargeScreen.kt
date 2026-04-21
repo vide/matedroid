@@ -303,8 +303,8 @@ private fun CurrentChargeContent(
             icon = Icons.Default.Bolt
         ) {
             if (powers.size >= 2) {
-                var yMin = kotlin.math.floor(powers.min()).toFloat()
-                var yMax = kotlin.math.ceil(powers.max()).toFloat()
+                var yMin = kotlin.math.floor(powers.min())
+                var yMax = kotlin.math.ceil(powers.max())
                 if (yMin == yMax) {
                     yMin -= 1
                     yMax += 1

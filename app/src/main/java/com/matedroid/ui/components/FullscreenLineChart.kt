@@ -182,28 +182,6 @@ private fun FullscreenChartOverlay(
             securePolicy = SecureFlagPolicy.Inherit
         )
     ) {
-        // Get the dialog's window and make it truly fullscreen
-        val dialogWindowProvider = LocalView.current.parent as? android.view.ViewGroup
-        DisposableEffect(dialogWindowProvider) {
-            val dialogWindow = dialogWindowProvider?.context as? android.app.Dialog
-            dialogWindow?.window?.let { window ->
-                // Make dialog fullscreen
-                window.setLayout(
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT
-                )
-                window.setBackgroundDrawableResource(android.R.color.transparent)
-
-                // Hide system bars in dialog window too
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                val controller = WindowInsetsControllerCompat(window, window.decorView)
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-            onDispose { }
-        }
-
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()

@@ -166,24 +166,6 @@ private fun FullscreenDualChartOverlay(
             securePolicy = SecureFlagPolicy.Inherit
         )
     ) {
-        val dialogWindowProvider = LocalView.current.parent as? android.view.ViewGroup
-        DisposableEffect(dialogWindowProvider) {
-            val dialogWindow = dialogWindowProvider?.context as? android.app.Dialog
-            dialogWindow?.window?.let { window ->
-                window.setLayout(
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT
-                )
-                window.setBackgroundDrawableResource(android.R.color.transparent)
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-                val controller = WindowInsetsControllerCompat(window, window.decorView)
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-            onDispose { }
-        }
-
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
