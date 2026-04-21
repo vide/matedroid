@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Trips list crash on duplicate start timestamps (saved + auto-detected trips sharing a drive start).
+
 ### Changed
 - Internal dependency updates.
 
