@@ -244,7 +244,15 @@ private fun TripsContent(
         }
 
         // Trip cards
-        itemsIndexed(trips, key = { _, trip -> trip.startDate }) { index, trip ->
+        // Composite key: startDate alone can collide when a saved trip and an auto-detected
+        // trip begin at the same drive timestamp. driveId is a stable per-car unique int, so
+        // combining it with startDate/endDate guarantees uniqueness for the LazyColumn.
+        itemsIndexed(
+            trips,
+            key = { _, trip ->
+                "${trip.startDate}|${trip.endDate}|${trip.drives.firstOrNull()?.driveId ?: 0}"
+            }
+        ) { index, trip ->
             TripItem(
                 trip = trip,
                 units = units,
