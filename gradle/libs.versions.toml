@@ -13,7 +13,6 @@ retrofit = "3.0.0"
 okhttp = "5.3.2"
 moshi = "1.15.2"
 datastore = "1.1.7"
-securityCrypto = "1.1.0"
 osmdroid = "6.1.20"
 junit = "4.13.2"
 junitExt = "1.2.1"
@@ -63,7 +62,6 @@ moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", v
 
 # DataStore
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 # Room
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

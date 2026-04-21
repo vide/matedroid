@@ -147,7 +147,6 @@ dependencies {
 
     // DataStore
     implementation(libs.datastore.preferences)
-    implementation(libs.security.crypto)
 
     // Room
     implementation(libs.room.runtime)
