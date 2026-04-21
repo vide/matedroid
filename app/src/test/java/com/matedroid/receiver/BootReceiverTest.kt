@@ -40,8 +40,9 @@ class BootReceiverTest {
         mockkStatic(android.util.Log::class)
         every { android.util.Log.d(any(), any()) } returns 0
 
-        // Mock WorkManager.getInstance
-        mockkStatic(WorkManager::class)
+        // Mock WorkManager.getInstance via the Companion object (WorkManager 2.10+
+        // removed @JvmStatic, so mockkStatic(WorkManager::class) no longer intercepts).
+        mockkObject(WorkManager.Companion)
         every { WorkManager.getInstance(any()) } returns workManager
         every { workManager.getWorkInfosForUniqueWorkFlow(any()) } returns flowOf(emptyList())
     }
