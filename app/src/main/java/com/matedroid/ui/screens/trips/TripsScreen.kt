@@ -244,13 +244,15 @@ private fun TripsContent(
         }
 
         // Trip cards
-        // Composite key: startDate alone can collide when a saved trip and an auto-detected
-        // trip begin at the same drive timestamp. driveId is a stable per-car unique int, so
-        // combining it with startDate/endDate guarantees uniqueness for the LazyColumn.
+        // Bulletproof key: base is the composite of startDate/endDate/firstDriveId, which is
+        // unique across any non-overlapping pair of trips. The list index is appended as a
+        // final tiebreaker so that even a pre-fix DB still carrying literal duplicate saved
+        // trips renders instead of crashing — the repository's cleanup-on-load will have
+        // deleted them by the next launch anyway.
         itemsIndexed(
             trips,
-            key = { _, trip ->
-                "${trip.startDate}|${trip.endDate}|${trip.drives.firstOrNull()?.driveId ?: 0}"
+            key = { index, trip ->
+                "${trip.startDate}|${trip.endDate}|${trip.drives.firstOrNull()?.driveId ?: 0}|$index"
             }
         ) { index, trip ->
             TripItem(

@@ -49,10 +49,42 @@ class TripRepository @Inject constructor(
         val allCharges = chargeSummaryDao.getAllForCar(carId)
 
         autoPersistNewTrips(carId, drives, dcCharges)
+        cleanupDuplicateSavedTrips(carId)
 
         val saved = savedTripDao.getAllWithLegs(carId)
         return buildTripsFromSaved(saved, drives, allCharges)
             .sortedByDescending { it.startDate }
+    }
+
+    /**
+     * Heal DBs polluted by beta1's detection bug, which could persist several saved trips
+     * with the same drive set. When duplicates exist, keep the one most worth preserving
+     * (user-merged > user-edited > auto-detected, tiebreak: named over unnamed, then lowest id)
+     * and delete the rest.
+     */
+    private suspend fun cleanupDuplicateSavedTrips(carId: Int) {
+        val saved = savedTripDao.getAllWithLegs(carId)
+        if (saved.size < 2) return
+        val byFingerprint = saved.groupBy { computeFingerprint(it.driveIds()) }
+        for ((_, group) in byFingerprint) {
+            if (group.size <= 1) continue
+            val ranked = group.sortedWith(
+                compareBy(
+                    { sourcePriority(it.trip.source) },
+                    { if (it.trip.name.isNullOrBlank()) 1 else 0 },
+                    { it.trip.id }
+                )
+            )
+            for (duplicate in ranked.drop(1)) {
+                savedTripDao.deleteTrip(duplicate.trip.id)
+            }
+        }
+    }
+
+    private fun sourcePriority(source: String): Int = when (source) {
+        SavedTrip.SOURCE_USER_MERGED -> 0
+        SavedTrip.SOURCE_USER_EDITED -> 1
+        else -> 2  // AUTO_DETECTED (and any future sources)
     }
 
     /** Fingerprint for a list of drive IDs. Stable regardless of order. */
