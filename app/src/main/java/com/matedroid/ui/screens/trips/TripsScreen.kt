@@ -288,7 +288,7 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Speed,
                     label = stringResource(R.string.total_distance),
-                    value = UnitFormatter.formatDistance(totalDistance, units),
+                    value = UnitFormatter.formatDistance(totalDistance, units, decimals = 0),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
                 )
@@ -305,7 +305,7 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.ElectricBolt,
                     label = stringResource(R.string.trip_energy_charged),
-                    value = "%.1f kWh".format(totalEnergyCharged),
+                    value = "%,.0f kWh".format(totalEnergyCharged),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
                 )
@@ -458,7 +458,7 @@ private fun formatDateChip(dateStr: String): String {
         } catch (_: DateTimeParseException) {
             LocalDateTime.parse(dateStr.replace("Z", ""))
         }
-        dt.format(DateTimeFormatter.ofPattern("d MMM")).uppercase()
+        dt.format(DateTimeFormatter.ofPattern("d MMM yy")).uppercase()
     } catch (_: Exception) {
         dateStr
     }
@@ -550,9 +550,46 @@ internal fun Trip.displayName(): String {
     return custom ?: "${extractCity(startAddress)} → ${extractCity(endAddress)}"
 }
 
+/**
+ * Format a minutes-granularity duration with unit cascading: as the duration grows into
+ * a larger magnitude the smaller unit is dropped (rounded into the next-larger one),
+ * so readers aren't distracted by precision that no longer matters.
+ *  <1h → "Xm"
+ *  1–24h → "Xh Ym" (minute precision)
+ *  1–7d → "Xd Yh" (hour precision, minutes rolled into hours)
+ *  1w–~1mo → "Xw Yd"
+ *  ≥30d → "Xmo Yw"
+ */
 private fun formatDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
+    val totalMinutes = minutes.coerceAtLeast(0)
+    val totalHours = totalMinutes / 60.0
+    val totalDays = totalHours / 24.0
+
+    return when {
+        totalDays >= 30 -> {
+            val weeks = (totalDays / 7.0).toInt().coerceAtLeast(1)
+            val months = weeks / 4
+            val remWeeks = weeks - months * 4
+            if (remWeeks > 0) "${months}mo ${remWeeks}w" else "${months}mo"
+        }
+        totalDays >= 7 -> {
+            val days = Math.round(totalDays).toInt()
+            val weeks = days / 7
+            val remDays = days - weeks * 7
+            if (remDays > 0) "${weeks}w ${remDays}d" else "${weeks}w"
+        }
+        totalHours >= 24 -> {
+            val hours = Math.round(totalHours).toInt()
+            val days = hours / 24
+            val remHours = hours - days * 24
+            if (remHours > 0) "${days}d ${remHours}h" else "${days}d"
+        }
+        totalHours >= 1 -> {
+            val h = totalMinutes / 60
+            val m = totalMinutes % 60
+            if (m > 0) "${h}h ${m}m" else "${h}h"
+        }
+        else -> "${totalMinutes}m"
+    }
 }
 

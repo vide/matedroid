@@ -464,18 +464,18 @@ private fun TripDetailContent(
             }
         }
 
-        TripWeatherSparklineCard(
-            samples = weatherPoints,
-            palette = palette,
-            units = units
-        )
-
         if (canEdit) {
             TripEditActions(
                 onAddLeg = onAddLeg,
                 onMergeTrip = onMergeTrip
             )
         }
+
+        TripWeatherSparklineCard(
+            samples = weatherPoints,
+            palette = palette,
+            units = units
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
     }
