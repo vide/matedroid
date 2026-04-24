@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Charges / Drives list flashed on date-filter change when a secondary filter was active**: the 1.3.x spinner-flicker fix only suppressed the full-screen spinner when the currently-*displayed* list was non-empty, so toggling the date range (e.g. 30 days → 7 days) while AC/DC or distance filters had zeroed out the visible list made `isLoading` flip back to `true` for the duration of the refetch and swap the whole content for a `CircularProgressIndicator`. The guard now checks the raw unfiltered load instead, so the spinner only appears on the true initial load and filter transitions stay smooth.
+
 ## [1.6.0-beta4] - 2026-04-24
 
 ### Fixed

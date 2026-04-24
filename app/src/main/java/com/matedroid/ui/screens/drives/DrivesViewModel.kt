@@ -194,8 +194,12 @@ class DrivesViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _uiState.value
-            // Only show loading spinner on initial load, not when changing filters
-            if (!state.isRefreshing && state.drives.isEmpty()) {
+            // Only show the full-screen spinner on the true initial load — i.e. when
+            // we've never successfully fetched any data yet. Using state.drives (the
+            // filtered view) would trip the spinner whenever the active distance
+            // filter happened to zero out the list, flashing the whole screen on
+            // every date-range change.
+            if (!state.isRefreshing && allDrives.isEmpty()) {
                 _uiState.update { it.copy(isLoading = true) }
             }
 

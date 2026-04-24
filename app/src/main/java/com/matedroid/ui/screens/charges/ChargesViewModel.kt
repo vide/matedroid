@@ -210,8 +210,12 @@ class ChargesViewModel @Inject constructor(
 
         viewModelScope.launch {
             val state = _uiState.value
-            // Only show loading spinner on initial load, not when changing filters
-            if (!state.isRefreshing && state.charges.isEmpty()) {
+            // Only show the full-screen spinner on the true initial load — i.e. when
+            // we've never successfully fetched any data yet. Using state.charges (the
+            // filtered view) would trip the spinner whenever the active AC/DC or
+            // location filter happened to zero out the list, flashing the whole
+            // screen on every date-range change.
+            if (!state.isRefreshing && allCharges.isEmpty()) {
                 _uiState.update { it.copy(isLoading = true) }
             }
 
