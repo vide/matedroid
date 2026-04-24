@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Home screen widget tap no longer opens the app** on Android 15+ after the AGP 9 / Kotlin 2.3 / targetSdk 36 bump. Background Activity Launch restrictions silently blocked the `startActivity` call inside the widget's Glance `ActionCallback`. Switched to `actionStartActivity`, which routes through a PendingIntent the launcher dispatches directly, so the tap opens the app reliably. Also covered by a new regression test.
+
 ## [1.6.0-beta3] - 2026-04-21
 
 ### Fixed

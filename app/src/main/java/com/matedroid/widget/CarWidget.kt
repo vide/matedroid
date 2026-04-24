@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -29,7 +30,7 @@ import androidx.glance.currentState
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
-import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
@@ -57,6 +58,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.matedroid.MainActivity
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -137,23 +139,31 @@ class CarWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val isOnLockScreen = isWidgetOnLockScreen(context, id)
 
-        provideContent {
-            val prefs = currentState<Preferences>()
-            val carId = prefs[CAR_ID_KEY]
-            val hasData = prefs[HAS_DATA_KEY] ?: false
+        provideContent { WidgetContent(isOnLockScreen) }
+    }
 
-            GlanceTheme {
+    @androidx.compose.runtime.Composable
+    internal fun WidgetContent(isOnLockScreen: Boolean) {
+        val prefs = currentState<Preferences>()
+        val carId = prefs[CAR_ID_KEY]
+        val hasData = prefs[HAS_DATA_KEY] ?: false
+        val ctx0 = LocalContext.current
+
+        GlanceTheme {
                 val cornerMod = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     GlanceModifier.cornerRadius(android.R.dimen.system_app_widget_background_radius)
                 } else {
                     GlanceModifier
                 }
+                val openAppIntent = Intent(ctx0, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .apply { if (carId != null) putExtra("EXTRA_CAR_ID", carId) }
                 Box(
                     modifier = GlanceModifier
                         .fillMaxSize()
                         .appWidgetBackground()
                         .then(cornerMod)
-                        .clickable(actionRunCallback<RefreshWidgetCallback>())
+                        .clickable(actionStartActivity(openAppIntent))
                 ) {
                     when {
                         carId == null -> {
@@ -301,9 +311,16 @@ class CarWidget : GlanceAppWidget() {
                                         Spacer(modifier = GlanceModifier.width(iconGap))
                                         val ringSize = if (isCompact) 11.dp else 14.dp
                                         val dotSize = if (isCompact) 5.dp else 7.dp
+                                        val sentryIntent = Intent(ctx, MainActivity::class.java)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                            .putExtra("EXTRA_CAR_ID", carId)
+                                            .putExtra("EXTRA_NAVIGATE_TO", "sentry_history")
+                                            .apply {
+                                                if (exteriorColor != null) putExtra("EXTRA_EXTERIOR_COLOR", exteriorColor)
+                                            }
                                         Row(
                                             modifier = GlanceModifier.clickable(
-                                                actionRunCallback<SentryHistoryCallback>()
+                                                actionStartActivity(sentryIntent)
                                             ),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
@@ -552,7 +569,6 @@ class CarWidget : GlanceAppWidget() {
                 }
             }
         }
-    }
 
     /**
      * Persists all [CarWidgetDisplayData] fields to Glance preferences and triggers

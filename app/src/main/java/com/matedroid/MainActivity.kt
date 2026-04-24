@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.matedroid.ui.navigation.NavGraph
 import com.matedroid.ui.theme.MateDroidTheme
+import com.matedroid.widget.CarWidgetUpdateWorker
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -24,6 +25,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentIntent = intent
+        if (intent.hasExtra("EXTRA_CAR_ID")) {
+            CarWidgetUpdateWorker.scheduleImmediateUpdate(this)
+        }
         enableEdgeToEdge()
         setContent {
             MateDroidTheme {
