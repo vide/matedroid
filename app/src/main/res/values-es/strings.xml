@@ -278,6 +278,13 @@
     <string name="filter_custom_from">Desde</string>
     <string name="filter_custom_to">Hasta</string>
 
+    <!-- Cost filter chips on the charges list -->
+    <string name="cost_filter_all">Todas</string>
+    <string name="cost_filter_has_cost">Con coste</string>
+    <string name="cost_filter_no_cost">Sin coste</string>
+    <!-- Pista mostrada encima de la lista cuando el coche tiene Supercarga gratis y el filtro "Sin coste" está activo -->
+    <string name="charges_free_supercharging_hint">Este coche tiene Supercarga gratis — las sesiones en Supercargadores normalmente no tienen coste. En otros puntos DC quizá haya que asignarlo.</string>
+
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Todos</string>
     <string name="filter_commute_km">Cortos (&lt; 10 km)</string>

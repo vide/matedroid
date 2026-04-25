@@ -278,6 +278,13 @@
     <string name="filter_custom_from">从</string>
     <string name="filter_custom_to">到</string>
 
+    <!-- Cost filter chips on the charges list -->
+    <string name="cost_filter_all">全部</string>
+    <string name="cost_filter_has_cost">有费用</string>
+    <string name="cost_filter_no_cost">无费用</string>
+    <!-- 当车辆享有免费超充且已选择"无费用"时在列表上方显示的提示 -->
+    <string name="charges_free_supercharging_hint">此车享有免费超充 —— 超级充电站的充电通常不产生费用。非超充的直流站点可能仍需手动填写费用。</string>
+
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">全部</string>
     <string name="filter_commute_km">通勤 (&lt; 10 km)</string>

@@ -278,6 +278,13 @@
     <string name="filter_custom_from">Des de</string>
     <string name="filter_custom_to">Fins a</string>
 
+    <!-- Cost filter chips on the charges list -->
+    <string name="cost_filter_all">Totes</string>
+    <string name="cost_filter_has_cost">Amb cost</string>
+    <string name="cost_filter_no_cost">Sense cost</string>
+    <!-- Pista mostrada sobre la llista quan el cotxe té Supercàrrega gratis i el filtre "Sense cost" està actiu -->
+    <string name="charges_free_supercharging_hint">Aquest cotxe té Supercàrrega gratis — les sessions als Superchargers normalment no tenen cost. Als altres punts DC potser caldrà assignar-ne un.</string>
+
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Tots</string>
     <string name="filter_commute_km">Curts (&lt; 10 km)</string>

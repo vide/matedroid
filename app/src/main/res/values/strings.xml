@@ -279,6 +279,13 @@
     <string name="filter_custom_from">From</string>
     <string name="filter_custom_to">To</string>
 
+    <!-- Cost filter chips on the charges list -->
+    <string name="cost_filter_all">All</string>
+    <string name="cost_filter_has_cost">Has cost</string>
+    <string name="cost_filter_no_cost">No cost</string>
+    <!-- Hint shown above the charges list when the car has free Supercharging and "No cost" is selected, to clarify that Supercharger sessions are legitimately free -->
+    <string name="charges_free_supercharging_hint">Free Supercharging is on for this car — Supercharger sessions are normally free. Non-Supercharger DC stops may still need a cost set.</string>
+
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">All</string>
     <string name="filter_commute_km">Commute (&lt; 10 km)</string>

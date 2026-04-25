@@ -278,6 +278,13 @@
     <string name="filter_custom_from">Da</string>
     <string name="filter_custom_to">A</string>
 
+    <!-- Cost filter chips on the charges list -->
+    <string name="cost_filter_all">Tutte</string>
+    <string name="cost_filter_has_cost">Con costo</string>
+    <string name="cost_filter_no_cost">Senza costo</string>
+    <!-- Hint mostrato sopra la lista quando l'auto ha Supercharge gratuito e il filtro "Senza costo" è attivo -->
+    <string name="charges_free_supercharging_hint">Su questa auto il Supercharge è gratuito — le ricariche ai Supercharger normalmente non hanno costo. Per le altre colonnine DC potrebbe servire impostarne uno.</string>
+
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Tutti</string>
     <string name="filter_commute_km">Brevi (&lt; 10 km)</string>

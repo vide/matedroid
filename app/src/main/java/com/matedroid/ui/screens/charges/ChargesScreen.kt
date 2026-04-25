@@ -154,6 +154,8 @@ fun ChargesScreen(
                     teslamateBaseUrl = uiState.teslamateBaseUrl,
                     selectedDateFilter = uiState.selectedFilter,
                     selectedChargeTypeFilter = uiState.chargeTypeFilter,
+                    selectedCostFilter = uiState.costFilter,
+                    freeSupercharging = uiState.freeSupercharging,
                     customStartDate = uiState.customStartDate,
                     customEndDate = uiState.customEndDate,
                     initialScrollPosition = uiState.scrollPosition,
@@ -166,6 +168,7 @@ fun ChargesScreen(
                     onLocationFilterToggled = { viewModel.setLocationFilter(it) },
                     onLocationFilterCleared = { viewModel.clearLocationFilter() },
                     onChargeTypeFilterSelected = { viewModel.setChargeTypeFilter(it) },
+                    onCostFilterSelected = { viewModel.setCostFilter(it) },
                     onChargeClick = { chargeId, scrollIndex, scrollOffset ->
                         viewModel.saveScrollPosition(scrollIndex, scrollOffset)
                         onNavigateToChargeDetail(chargeId)
@@ -188,6 +191,8 @@ private fun ChargesContent(
     teslamateBaseUrl: String,
     selectedDateFilter: DateFilter,
     selectedChargeTypeFilter: ChargeTypeFilter,
+    selectedCostFilter: CostFilter,
+    freeSupercharging: Boolean,
     customStartDate: LocalDate?,
     customEndDate: LocalDate?,
     availableLocations: List<String>,
@@ -200,6 +205,7 @@ private fun ChargesContent(
     onDateFilterSelected: (DateFilter) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     onChargeTypeFilterSelected: (ChargeTypeFilter) -> Unit,
+    onCostFilterSelected: (CostFilter) -> Unit,
     onChargeClick: (chargeId: Int, scrollIndex: Int, scrollOffset: Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -243,6 +249,25 @@ private fun ChargesContent(
                 onLocationToggled = onLocationFilterToggled,
                 onClearAll = onLocationFilterCleared,
                 palette = palette
+                )
+            }
+        }
+
+        item {
+            CostFilterChips(
+                selectedFilter = selectedCostFilter,
+                onFilterSelected = onCostFilterSelected,
+                palette = palette
+            )
+        }
+
+        if (freeSupercharging && selectedCostFilter == CostFilter.NO_COST) {
+            item {
+                Text(
+                    text = stringResource(R.string.charges_free_supercharging_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
         }
@@ -406,6 +431,46 @@ private fun ChargeTypeFilterChips(
                 label = {
                     Text(
                         text = getChargeTypeFilterLabel(filter),
+                        color = if (isSelected) Color.White else themeColor
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = themeColor,
+                    containerColor = Color.Transparent
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = themeColor.copy(alpha = 0.6f),
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 0.dp
+                )
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CostFilterChips(
+    selectedFilter: CostFilter,
+    palette: CarColorPalette,
+    modifier: Modifier = Modifier,
+    onFilterSelected: (CostFilter) -> Unit
+) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(CostFilter.entries.toList()) { filter ->
+            val isSelected = filter == selectedFilter
+            val themeColor = palette.onSurfaceVariant
+            FilterChip(
+                selected = isSelected,
+                onClick = { onFilterSelected(filter) },
+                label = {
+                    Text(
+                        text = stringResource(filter.labelRes),
                         color = if (isSelected) Color.White else themeColor
                     )
                 },

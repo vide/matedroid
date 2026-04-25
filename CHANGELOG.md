@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Cost filter on the charges list**: a new chip group (All / Has cost / No cost) sits next to AC/DC and stacks with the existing filters, so you can quickly isolate sessions still missing a cost — most useful for cleaning up DC charges where TeslaMate doesn't pull a cost automatically. From there the existing "edit on TeslaMate" link gets you to the right place. "No cost" matches sessions that haven't had a value entered yet (it leaves explicit zeros — e.g. a free session you've already confirmed — under "Has cost"). For cars with `free_supercharging` enabled in TeslaMate's car settings, selecting "No cost" surfaces a small one-line hint that Supercharger sessions are legitimately free, so the filter is most useful there for non-Supercharger DC stops.
+
 ### Fixed
 - **Charges / Drives list flashed on date-filter change when a secondary filter was active**: the 1.3.x spinner-flicker fix only suppressed the full-screen spinner when the currently-*displayed* list was non-empty, so toggling the date range (e.g. 30 days → 7 days) while AC/DC or distance filters had zeroed out the visible list made `isLoading` flip back to `true` for the duration of the refetch and swap the whole content for a `CircularProgressIndicator`. The guard now checks the raw unfiltered load instead, so the spinner only appears on the true initial load and filter transitions stay smooth.
 

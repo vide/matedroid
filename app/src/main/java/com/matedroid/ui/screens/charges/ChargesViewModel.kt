@@ -46,6 +46,12 @@ enum class ChargeTypeFilter(val label: String) {
     DC("DC")
 }
 
+enum class CostFilter(@get:StringRes val labelRes: Int) {
+    ALL(R.string.cost_filter_all),
+    HAS_COST(R.string.cost_filter_has_cost),
+    NO_COST(R.string.cost_filter_no_cost)
+}
+
 data class LocationFilter(val name: String) // null name = All locations
 
 data class ChargeChartData(
@@ -77,13 +83,15 @@ data class ChargesUiState(
     val endDate: LocalDate? = null,
     val selectedFilter: DateFilter = DateFilter.LAST_7_DAYS,  // Preserve filter in ViewModel
     val chargeTypeFilter: ChargeTypeFilter = ChargeTypeFilter.ALL,
+    val costFilter: CostFilter = CostFilter.ALL,
     val customStartDate: LocalDate? = null,
     val customEndDate: LocalDate? = null,
     val scrollPosition: Int = 0,  // First visible item index
     val scrollOffset: Int = 0,    // Scroll offset within first item
     val summary: ChargesSummary = ChargesSummary(),
     val currencySymbol: String = "€",
-    val teslamateBaseUrl: String = ""
+    val teslamateBaseUrl: String = "",
+    val freeSupercharging: Boolean = false
 )
 
 data class ChargesSummary(
@@ -133,8 +141,23 @@ class ChargesViewModel @Inject constructor(
     fun setCarId(id: Int) {
         if (carId != id) {
             carId = id
+            loadCarSettings(id)
             // Apply default filter on first load
             setDateFilter(_uiState.value.selectedFilter)
+        }
+    }
+
+    private fun loadCarSettings(id: Int) {
+        viewModelScope.launch {
+            when (val result = repository.getCar(id)) {
+                is ApiResult.Success -> {
+                    val free = result.data.carSettings?.freeSupercharging ?: false
+                    _uiState.update { it.copy(freeSupercharging = free) }
+                }
+                is ApiResult.Error -> {
+                    // Non-fatal — the hint is a nice-to-have, not load-critical
+                }
+            }
         }
     }
 
@@ -171,6 +194,11 @@ class ChargesViewModel @Inject constructor(
             val state = _uiState.value
             loadCharges(state.startDate, state.endDate)
         }
+    }
+
+    fun setCostFilter(filter: CostFilter) {
+        _uiState.update { it.copy(costFilter = filter) }
+        applyFiltersAndUpdateState()
     }
 
     fun setChargeTypeFilter(filter: ChargeTypeFilter) {
@@ -270,6 +298,7 @@ class ChargesViewModel @Inject constructor(
     private fun applyFiltersAndUpdateState() {
         val state = _uiState.value
         val chargeTypeFilter = state.chargeTypeFilter
+        val costFilter = state.costFilter
         val dcChargeIds = state.dcChargeIds
         val granularity = state.chartGranularity
 
@@ -300,13 +329,26 @@ class ChargesViewModel @Inject constructor(
         val locations = allCharges.mapNotNull { it.address }.distinct().sorted()
         // Apply location filter to displayCharges
         val locationFilter = state.selectedLocations
-        val displayChargesFiltered = if (locationFilter.isNotEmpty())
+        val displayChargesLocFiltered = if (locationFilter.isNotEmpty())
             displayCharges.filter {  it.address in locationFilter }
         else displayCharges
         // Apply location filter to Stats
-        val chargesForStatsFiltered = if (locationFilter.isNotEmpty())
+        val chargesForStatsLocFiltered = if (locationFilter.isNotEmpty())
             chargesForStats.filter { it.address in locationFilter }
         else chargesForStats
+
+        // Apply cost filter. NO_COST = literally unset (null); HAS_COST = any value
+        // the user has entered, including an explicit 0 meaning "free and tracked".
+        val displayChargesFiltered = when (costFilter) {
+            CostFilter.ALL -> displayChargesLocFiltered
+            CostFilter.HAS_COST -> displayChargesLocFiltered.filter { it.cost != null }
+            CostFilter.NO_COST -> displayChargesLocFiltered.filter { it.cost == null }
+        }
+        val chargesForStatsFiltered = when (costFilter) {
+            CostFilter.ALL -> chargesForStatsLocFiltered
+            CostFilter.HAS_COST -> chargesForStatsLocFiltered.filter { it.cost != null }
+            CostFilter.NO_COST -> chargesForStatsLocFiltered.filter { it.cost == null }
+        }
 
         // Calculate summary and chart data from filtered charges
         val summary = calculateSummary(chargesForStatsFiltered)

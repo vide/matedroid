@@ -20,6 +20,7 @@ data class CarData(
     @Json(name = "name") val name: String? = null,
     @Json(name = "car_details") val carDetails: CarDetails? = null,
     @Json(name = "car_exterior") val carExterior: CarExterior? = null,
+    @Json(name = "car_settings") val carSettings: CarSettings? = null,
     @Json(name = "teslamate_stats") val teslamateStats: TeslamateStats? = null
 ) {
     val displayName: String
@@ -27,6 +28,11 @@ data class CarData(
             ?: carDetails?.model?.let { "Model $it" }
             ?: "Tesla"
 }
+
+@JsonClass(generateAdapter = true)
+data class CarSettings(
+    @Json(name = "free_supercharging") val freeSupercharging: Boolean? = null
+)
 
 @JsonClass(generateAdapter = true)
 data class TeslamateStats(

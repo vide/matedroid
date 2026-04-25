@@ -221,6 +221,26 @@ class TeslamateRepository @Inject constructor(
         }
     }
 
+    suspend fun getCar(carId: Int): ApiResult<CarData> {
+        return executeWithFallback { api ->
+            try {
+                val response = api.getCar(carId)
+                if (response.isSuccessful) {
+                    val car = response.body()?.data?.cars?.firstOrNull()
+                    if (car != null) {
+                        ApiResult.Success(car)
+                    } else {
+                        ApiResult.Error("No car data returned")
+                    }
+                } else {
+                    ApiResult.Error("Failed to fetch car: ${response.code()}", response.code())
+                }
+            } catch (e: Exception) {
+                throw e
+            }
+        }
+    }
+
     suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> {
         return executeWithFallback { api ->
             try {
