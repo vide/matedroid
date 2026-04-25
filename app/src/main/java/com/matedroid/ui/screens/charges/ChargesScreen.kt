@@ -235,30 +235,26 @@ private fun ChargesContent(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-            ChargeTypeFilterChips(
-                selectedFilter = selectedChargeTypeFilter,
-                onFilterSelected = onChargeTypeFilterSelected,
-                modifier = Modifier.weight(1f),
-                palette = palette
+                ChargeTypeFilterDropdown(
+                    selectedFilter = selectedChargeTypeFilter,
+                    onFilterSelected = onChargeTypeFilterSelected,
+                    palette = palette
                 )
-            LocationFilterDropdown(
-                availableLocations = availableLocations,
-                selectedLocations = selectedLocations,
-                onLocationToggled = onLocationFilterToggled,
-                onClearAll = onLocationFilterCleared,
-                palette = palette
+                CostFilterDropdown(
+                    selectedFilter = selectedCostFilter,
+                    onFilterSelected = onCostFilterSelected,
+                    palette = palette
+                )
+                LocationFilterDropdown(
+                    availableLocations = availableLocations,
+                    selectedLocations = selectedLocations,
+                    onLocationToggled = onLocationFilterToggled,
+                    onClearAll = onLocationFilterCleared,
+                    palette = palette
                 )
             }
-        }
-
-        item {
-            CostFilterChips(
-                selectedFilter = selectedCostFilter,
-                onFilterSelected = onCostFilterSelected,
-                palette = palette
-            )
         }
 
         if (freeSupercharging && selectedCostFilter == CostFilter.NO_COST) {
@@ -407,85 +403,104 @@ private fun DateFilterChips(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChargeTypeFilterChips(
+private fun ChargeTypeFilterDropdown(
     selectedFilter: ChargeTypeFilter,
     palette: CarColorPalette,
-    modifier: Modifier = Modifier,
     onFilterSelected: (ChargeTypeFilter) -> Unit
 ) {
-    LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(ChargeTypeFilter.entries.toList()) { filter ->
-            val isSelected = filter == selectedFilter
-            val themeColor = when (filter) {
-                ChargeTypeFilter.ALL -> palette.onSurfaceVariant
-                ChargeTypeFilter.AC -> palette.acColor
-                ChargeTypeFilter.DC -> palette.dcColor
-            }
-
-            FilterChip(
-                selected = isSelected,
-                onClick = { onFilterSelected(filter) },
-                label = {
-                    Text(
-                        text = getChargeTypeFilterLabel(filter),
-                        color = if (isSelected) Color.White else themeColor
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = themeColor,
-                    containerColor = Color.Transparent
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = themeColor.copy(alpha = 0.6f),
-                    borderWidth = 1.dp,
-                    selectedBorderWidth = 0.dp
-                )
+    var expanded by remember { mutableStateOf(false) }
+    val isActive = selectedFilter != ChargeTypeFilter.ALL
+    val themeColor = when (selectedFilter) {
+        ChargeTypeFilter.ALL -> palette.onSurfaceVariant
+        ChargeTypeFilter.AC -> palette.acColor
+        ChargeTypeFilter.DC -> palette.dcColor
+    }
+    Box {
+        FilterChip(
+            selected = isActive,
+            onClick = { expanded = true },
+            label = { Text(getChargeTypeFilterLabel(selectedFilter)) },
+            leadingIcon = { Icon(Icons.Default.ElectricBolt, null, Modifier.size(16.dp)) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = themeColor,
+                selectedLabelColor = Color.White,
+                selectedLeadingIconColor = Color.White,
+                containerColor = Color.Transparent
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = isActive,
+                borderColor = themeColor.copy(alpha = 0.6f),
+                borderWidth = 1.dp,
+                selectedBorderWidth = 0.dp
             )
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ChargeTypeFilter.entries.forEach { entry ->
+                DropdownMenuItem(
+                    text = { Text(getChargeTypeFilterLabel(entry)) },
+                    leadingIcon = {
+                        if (entry == selectedFilter)
+                            Icon(Icons.Default.Check, null, tint = palette.accent)
+                        else
+                            Spacer(Modifier.size(24.dp))
+                    },
+                    onClick = {
+                        onFilterSelected(entry)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CostFilterChips(
+private fun CostFilterDropdown(
     selectedFilter: CostFilter,
     palette: CarColorPalette,
-    modifier: Modifier = Modifier,
     onFilterSelected: (CostFilter) -> Unit
 ) {
-    LazyRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(CostFilter.entries.toList()) { filter ->
-            val isSelected = filter == selectedFilter
-            val themeColor = palette.onSurfaceVariant
-            FilterChip(
-                selected = isSelected,
-                onClick = { onFilterSelected(filter) },
-                label = {
-                    Text(
-                        text = stringResource(filter.labelRes),
-                        color = if (isSelected) Color.White else themeColor
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = themeColor,
-                    containerColor = Color.Transparent
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = isSelected,
-                    borderColor = themeColor.copy(alpha = 0.6f),
-                    borderWidth = 1.dp,
-                    selectedBorderWidth = 0.dp
-                )
+    var expanded by remember { mutableStateOf(false) }
+    val isActive = selectedFilter != CostFilter.ALL
+    val themeColor = palette.onSurfaceVariant
+    Box {
+        FilterChip(
+            selected = isActive,
+            onClick = { expanded = true },
+            label = { Text(stringResource(selectedFilter.labelRes)) },
+            leadingIcon = { Icon(Icons.Default.Paid, null, Modifier.size(16.dp)) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = themeColor,
+                selectedLabelColor = Color.White,
+                selectedLeadingIconColor = Color.White,
+                containerColor = Color.Transparent
+            ),
+            border = FilterChipDefaults.filterChipBorder(
+                enabled = true,
+                selected = isActive,
+                borderColor = themeColor.copy(alpha = 0.6f),
+                borderWidth = 1.dp,
+                selectedBorderWidth = 0.dp
             )
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            CostFilter.entries.forEach { entry ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(entry.labelRes)) },
+                    leadingIcon = {
+                        if (entry == selectedFilter)
+                            Icon(Icons.Default.Check, null, tint = palette.accent)
+                        else
+                            Spacer(Modifier.size(24.dp))
+                    },
+                    onClick = {
+                        onFilterSelected(entry)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

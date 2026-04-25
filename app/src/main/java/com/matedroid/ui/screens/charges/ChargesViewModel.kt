@@ -337,17 +337,21 @@ class ChargesViewModel @Inject constructor(
             chargesForStats.filter { it.address in locationFilter }
         else chargesForStats
 
-        // Apply cost filter. NO_COST = literally unset (null); HAS_COST = any value
-        // the user has entered, including an explicit 0 meaning "free and tracked".
+        // Apply cost filter. TeslaMate returns cost=0 (not null) for unset values,
+        // so "No cost" means "0 or null" and "Has cost" means strictly > 0. This
+        // mixes free-SuC sessions in with not-yet-filled-in ones — which is fine
+        // for the primary use case (find DC sessions to edit) since free-SuC cars
+        // surface a contextual hint and other cars rarely have legitimate 0-cost
+        // DC charges.
         val displayChargesFiltered = when (costFilter) {
             CostFilter.ALL -> displayChargesLocFiltered
-            CostFilter.HAS_COST -> displayChargesLocFiltered.filter { it.cost != null }
-            CostFilter.NO_COST -> displayChargesLocFiltered.filter { it.cost == null }
+            CostFilter.HAS_COST -> displayChargesLocFiltered.filter { (it.cost ?: 0.0) > 0.0 }
+            CostFilter.NO_COST -> displayChargesLocFiltered.filter { (it.cost ?: 0.0) == 0.0 }
         }
         val chargesForStatsFiltered = when (costFilter) {
             CostFilter.ALL -> chargesForStatsLocFiltered
-            CostFilter.HAS_COST -> chargesForStatsLocFiltered.filter { it.cost != null }
-            CostFilter.NO_COST -> chargesForStatsLocFiltered.filter { it.cost == null }
+            CostFilter.HAS_COST -> chargesForStatsLocFiltered.filter { (it.cost ?: 0.0) > 0.0 }
+            CostFilter.NO_COST -> chargesForStatsLocFiltered.filter { (it.cost ?: 0.0) == 0.0 }
         }
 
         // Calculate summary and chart data from filtered charges
