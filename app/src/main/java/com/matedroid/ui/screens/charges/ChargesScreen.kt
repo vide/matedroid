@@ -31,9 +31,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Paid
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,13 +75,14 @@ import com.matedroid.data.api.models.ChargeData
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.BarSegment
 import com.matedroid.ui.components.DateRangePickerDialog
+import com.matedroid.ui.components.EditorialListItem
+import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -630,187 +629,51 @@ private fun ChargeItem(
     onClick: () -> Unit
 ) {
     val unknownLocation = stringResource(R.string.unknown_location)
-    val energyAddedLabel = stringResource(R.string.energy_added)
-    val durationLabel = stringResource(R.string.duration)
-    val costLabel = stringResource(R.string.cost)
-    val batteryLabel = stringResource(R.string.battery)
-    val editLabel = stringResource(R.string.edit)
+    val freeLabel = stringResource(R.string.charge_free)
+    val accent = if (isDcCharge) palette.dcColor else palette.acColor
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Header card with location, date, and AC/DC badge
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = charge.address ?: unknownLocation,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                        charge.startDate?.let { dateStr ->
-                            Text(
-                                text = formatDate(dateStr),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    ChargeTypeBadge(isDcCharge = isDcCharge, palette = palette)
-                }
-            }
+    val cost = charge.cost ?: 0.0
+    // Existing behavior: a missing cost renders the same as an explicit zero. The user
+    // can tell the two apart only via the edit-cost trailing affordance, which still
+    // points at TeslaMate's cost editor.
+    val isFree = cost == 0.0
+    val costText = if (isFree) freeLabel else "$currencySymbol%.2f".format(cost)
+    val costPillText = if (onEditCost != null) "$costText ↗" else costText
 
-            // Stats row with individual cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Energy added
-                ChargeStatCard(
-                    icon = Icons.Default.BatteryChargingFull,
-                    value = "%.1f".format(charge.chargeEnergyAdded ?: 0.0),
-                    unit = "kWh",
-                    label = energyAddedLabel,
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Duration
-                ChargeStatCard(
-                    icon = Icons.Default.Schedule,
-                    value = charge.durationStr ?: "${charge.durationMin ?: 0}m",
-                    unit = "",
-                    label = durationLabel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Cost (tappable if editable)
-                ChargeStatCard(
-                    icon = Icons.Default.Paid,
-                    value = "$currencySymbol%.2f".format(charge.cost ?: 0.0),
-                    unit = "",
-                    label = costLabel,
-                    modifier = Modifier.weight(1f),
-                    trailingIcon = if (onEditCost != null) Icons.AutoMirrored.Filled.OpenInNew else null,
-                    trailingContentDescription = editLabel,
-                    onClick = onEditCost
-                )
-
-                // Battery levels
-                val startLevel = charge.startBatteryLevel
-                val endLevel = charge.endBatteryLevel
-                ChargeStatCard(
-                    icon = Icons.Default.ElectricBolt,
-                    value = if (startLevel != null && endLevel != null) "$startLevel% → $endLevel%" else "--",
-                    unit = "",
-                    label = batteryLabel,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+    EditorialListItem(
+        accent = accent,
+        dateline = formatEditorialDate(charge.startDate),
+        title = charge.address ?: unknownLocation,
+        heroValue = "%.1f".format(charge.chargeEnergyAdded ?: 0.0),
+        heroUnit = "kWh",
+        onClick = onClick,
+        datelineTrailing = {
+            ChargeTypeBadge(isDcCharge = isDcCharge, palette = palette)
         }
-    }
-}
-
-@Composable
-private fun ChargeStatCard(
-    icon: ImageVector,
-    value: String,
-    unit: String,
-    label: String,
-    modifier: Modifier = Modifier,
-    trailingIcon: ImageVector? = null,
-    trailingContentDescription: String? = null,
-    onClick: (() -> Unit)? = null
-) {
-    Card(
-        modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (unit.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = unit,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // Trailing icon in top-right corner
-            if (trailingIcon != null) {
-                Icon(
-                    imageVector = trailingIcon,
-                    contentDescription = trailingContentDescription,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+        EditorialPill(charge.durationStr ?: "${charge.durationMin ?: 0}m")
+
+        val costBg = if (isFree) palette.acColor.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.05f)
+        val costColor = if (isFree) palette.acColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+        val costFontWeight = if (isFree) FontWeight.Bold else FontWeight.SemiBold
+        val costModifier = if (onEditCost != null) Modifier.clickable(onClick = onEditCost) else Modifier
+        EditorialPill(
+            text = costPillText,
+            modifier = costModifier,
+            background = costBg,
+            color = costColor,
+            fontWeight = costFontWeight
+        )
+
+        val start = charge.startBatteryLevel
+        val end = charge.endBatteryLevel
+        if (start != null && end != null) {
+            EditorialPill(
+                text = "$start→$end%",
+                background = accent.copy(alpha = 0.12f),
+                color = accent,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -833,17 +696,6 @@ private fun ChargeTypeBadge(isDcCharge: Boolean, palette: CarColorPalette) {
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
-    }
-}
-
-private fun formatDate(dateStr: String): String {
-    return try {
-        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
-        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
-        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
-        dateTime.format(outputFormatter)
-    } catch (e: Exception) {
-        dateStr
     }
 }
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Drives & charges list redesign**: Both lists swap their 4-stat-card rows for a magazine-style editorial layout — a 4 dp accent edge (gold for drives, green for AC, orange for DC), an ALL-CAPS dateline above the route or location, supporting numbers reduced to small pills (duration, max speed, battery delta, cost), and the headline metric (km / kWh) set as a display-weight hero on the right. Rows are noticeably shorter so more fits on screen, and the visual language now matches the trips list. Free charges show a green "FREE" pill; when TeslaMate cost-editing is available, the cost pill becomes tappable and gains a small ↗ glyph — replacing the old trailing open-in-new icon. Drive durations now use the cascading-unit format (`47m`, `2h 14m`) instead of `0:47` / `2:14`, matching the trips list.
+
 ## [1.6.0] - 2026-04-25
 
 This release is a top-to-bottom rebuild of the **Trips experience**, plus a handful of refinements elsewhere.

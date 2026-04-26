@@ -1,7 +1,6 @@
 package com.matedroid.ui.screens.drives
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +22,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.LocationOn
 import com.matedroid.ui.icons.CustomIcons
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
@@ -68,13 +64,14 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.DateRangePickerDialog
+import com.matedroid.ui.components.EditorialListItem
+import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -269,6 +266,7 @@ private fun DrivesContent(
                 DriveItem(
                     drive = drive,
                     units = units,
+                    palette = palette,
                     onClick = { onDriveClick(drive.id) }
                 )
             }
@@ -471,196 +469,54 @@ private fun SummaryItem(
 private fun DriveItem(
     drive: DriveData,
     units: Units?,
+    palette: CarColorPalette,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+    val unknown = stringResource(R.string.unknown)
+    val startCity = drive.startAddress ?: unknown
+    val endCity = drive.endAddress ?: unknown
+
+    EditorialListItem(
+        accent = palette.accent,
+        dateline = formatEditorialDate(drive.startDate),
+        title = "$startCity → $endCity",
+        heroValue = "%.0f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
+        heroUnit = UnitFormatter.getDistanceUnit(units),
+        onClick = onClick,
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Header card with route
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = drive.startAddress ?: stringResource(R.string.unknown),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.padding(start = 28.dp, top = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "→",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = drive.endAddress ?: stringResource(R.string.unknown),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    drive.startDate?.let { dateStr ->
-                        Text(
-                            text = formatDate(dateStr),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 28.dp, top = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            // Stats row with individual cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Distance
-                DriveStatCard(
-                    icon = CustomIcons.SteeringWheel,
-                    value = "%.1f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
-                    unit = UnitFormatter.getDistanceUnit(units),
-                    label = stringResource(R.string.distance),
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Duration
-                DriveStatCard(
-                    icon = Icons.Default.Schedule,
-                    value = formatDuration(drive.durationMin ?: 0),
-                    unit = "",
-                    label = stringResource(R.string.duration),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Max Speed
-                DriveStatCard(
-                    icon = Icons.Default.Speed,
-                    value = "${drive.speedMax ?: 0}",
-                    unit = UnitFormatter.getSpeedUnit(units),
-                    label = stringResource(R.string.max_speed),
-                    modifier = Modifier.weight(1f)
-                )
-
-                // Battery used
-                val startLevel = drive.startBatteryLevel
-                val endLevel = drive.endBatteryLevel
-                DriveStatCard(
-                    icon = Icons.Default.BatteryChargingFull,
-                    value = if (startLevel != null && endLevel != null) "$startLevel% → $endLevel%" else "--",
-                    unit = "",
-                    label = stringResource(R.string.battery),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DriveStatCard(
-    icon: ImageVector,
-    value: String,
-    unit: String,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                if (unit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = unit,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        EditorialPill(formatDuration(drive.durationMin ?: 0))
+        EditorialPill("${drive.speedMax ?: 0} ${UnitFormatter.getSpeedUnit(units)}")
+        val start = drive.startBatteryLevel
+        val end = drive.endBatteryLevel
+        if (start != null && end != null) {
+            EditorialPill(
+                text = "$start→$end%",
+                background = palette.accent.copy(alpha = 0.12f),
+                color = palette.accent,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
-private fun formatDate(dateStr: String): String {
-    return try {
-        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
-        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy HH:mm")
-        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
-        dateTime.format(outputFormatter)
-    } catch (e: Exception) {
-        dateStr
-    }
-}
-
+/**
+ * Cascading-unit duration: <1h shows minutes, ≥1h shows "Xh Ym" (or just "Xh" if no
+ * remaining minutes), ≥1d shows "Xd Yh". Mirrors the trips list so durations across the
+ * three lists are formatted consistently.
+ */
 private fun formatDuration(minutes: Int): String {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return "%d:%02d".format(hours, mins)
+    val total = minutes.coerceAtLeast(0)
+    val hours = total / 60
+    val mins = total % 60
+    return when {
+        hours >= 24 -> {
+            val days = hours / 24
+            val remH = hours - days * 24
+            if (remH > 0) "${days}d ${remH}h" else "${days}d"
+        }
+        hours >= 1 -> if (mins > 0) "${hours}h ${mins}m" else "${hours}h"
+        else -> "${total}m"
+    }
 }
 
 /**
