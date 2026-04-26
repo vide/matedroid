@@ -15,11 +15,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -29,10 +26,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDateTime
@@ -49,6 +52,34 @@ import java.util.Locale
  * over the title and a FlowRow of supporting pills, right column with the headline
  * metric in display weight and its unit beneath in the accent color.
  */
+
+/**
+ * Tight text style: disables Compose's default `includeFontPadding` (which adds ~10% of
+ * the font size as half-leading above/below every glyph) and trims line-height padding
+ * to both sides. Without this, a Text reads visually compact but still measures taller
+ * than its `lineHeight`, leaving phantom whitespace inside cards.
+ */
+private val tightLineHeightStyle = LineHeightStyle(
+    alignment = LineHeightStyle.Alignment.Center,
+    trim = LineHeightStyle.Trim.Both,
+)
+private val tightPlatformStyle = PlatformTextStyle(includeFontPadding = false)
+private fun tightStyle(
+    fontSize: TextUnit,
+    lineHeight: TextUnit = fontSize,
+    fontWeight: FontWeight? = null,
+    color: Color = Color.Unspecified,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+): TextStyle = TextStyle(
+    fontSize = fontSize,
+    lineHeight = lineHeight,
+    fontWeight = fontWeight,
+    color = color,
+    letterSpacing = letterSpacing,
+    platformStyle = tightPlatformStyle,
+    lineHeightStyle = tightLineHeightStyle,
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EditorialListItem(
@@ -71,100 +102,136 @@ fun EditorialListItem(
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // Soft accent halo, top-right corner. Card clips to its rounded shape so the
-            // negative-offset circle bleeds into the corner without escaping the card.
+        // Halo is drawn as a paint effect via drawBehind, NOT as a child Box. A child
+        // Box with `size(140.dp)` would have contributed 140 dp to the parent's measured
+        // height (align/offset only affect positioning, not measurement) and forced
+        // every card to be ≥ 140 dp tall regardless of its content. drawBehind has no
+        // layout impact — the row sizes itself purely from its content.
+        //
+        // Halo position is anchored to the hero column on the right edge: a soft accent
+        // glow sits behind the headline km/kWh, visually linking the accent color to
+        // the most important number in the row.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .drawBehind {
+                    val r = 80.dp.toPx()
+                    val center = Offset(
+                        x = size.width - 28.dp.toPx(),
+                        y = size.height * 0.35f,
+                    )
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                accent.copy(alpha = 0.38f),
+                                accent.copy(alpha = 0.12f),
+                                accent.copy(alpha = 0.02f),
+                                Color.Transparent,
+                            ),
+                            center = center,
+                            radius = r,
+                        ),
+                        radius = r,
+                        center = center,
+                    )
+                }
+        ) {
+            // Accent edge — fillMaxHeight inside an IntrinsicSize.Min row picks up the
+            // body's intrinsic height without circularity.
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 40.dp, y = (-40).dp)
-                    .size(140.dp)
-                    .clip(CircleShape)
+                    .width(4.dp)
+                    .fillMaxHeight()
                     .background(
-                        Brush.radialGradient(
-                            colors = listOf(accent.copy(alpha = 0.14f), Color.Transparent)
+                        Brush.verticalGradient(
+                            colors = listOf(accent, accent.copy(alpha = 0.4f))
                         )
                     )
             )
 
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
+                    .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                // Accent edge — fillMaxHeight inside an IntrinsicSize.Min row picks up the
-                // body's intrinsic height without circularity.
-                Box(
+                Column(
                     modifier = Modifier
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(accent, accent.copy(alpha = 0.4f))
-                            )
-                        )
-                )
-
-                Row(
-                    modifier = Modifier
-                        .padding(start = 18.dp, end = 16.dp, top = 14.dp, bottom = 12.dp),
-                    verticalAlignment = Alignment.Bottom
+                        .weight(1f)
+                        .padding(end = 10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = dateline,
-                                color = accent,
-                                fontWeight = FontWeight.ExtraBold,
+                    // Line 1 — ALL-CAPS dateline (with optional trailing badge).
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = dateline,
+                            style = tightStyle(
                                 fontSize = 10.sp,
+                                lineHeight = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = accent,
                                 letterSpacing = 1.2.sp,
-                                maxLines = 1
-                            )
-                            if (datelineTrailing != null) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                datelineTrailing()
-                            }
+                            ),
+                            maxLines = 1
+                        )
+                        if (datelineTrailing != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            datelineTrailing()
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    // Line 2 — title (bold), the row's primary identifier.
+                    Text(
+                        text = title,
+                        style = tightStyle(
+                            fontSize = 15.sp,
+                            lineHeight = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            letterSpacing = (-0.3).sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            content = pills
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = heroValue,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-1).sp,
                             color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = heroUnit.uppercase(Locale.getDefault()),
-                            color = accent,
+                            letterSpacing = (-0.3).sp,
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(5.dp))
+                    // Line 3 — supporting pills.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp),
+                        content = pills
+                    )
+                }
+
+                // Hero column fills the row height with SpaceBetween so the number sits
+                // at the top (next to the dateline) and the unit drops to the bottom
+                // (next to the pills). The halo glow drawn behind the right side of the
+                // row visually anchors both.
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = heroValue,
+                        style = tightStyle(
+                            fontSize = 26.sp,
+                            lineHeight = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = (-0.8).sp,
+                        ),
+                        maxLines = 1
+                    )
+                    Text(
+                        text = heroUnit.uppercase(Locale.getDefault()),
+                        style = tightStyle(
+                            fontSize = 10.sp,
+                            lineHeight = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
+                            color = accent,
                             letterSpacing = 1.2.sp,
-                            maxLines = 1
-                        )
-                    }
+                        ),
+                        maxLines = 1
+                    )
                 }
             }
         }
@@ -189,10 +256,13 @@ fun EditorialPill(
         modifier = modifier
             .clip(RoundedCornerShape(4.dp))
             .background(background)
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-        color = color,
-        fontWeight = fontWeight,
-        fontSize = 11.sp,
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        style = tightStyle(
+            fontSize = 11.sp,
+            lineHeight = 12.sp,
+            fontWeight = fontWeight,
+            color = color,
+        ),
         maxLines = 1
     )
 }
