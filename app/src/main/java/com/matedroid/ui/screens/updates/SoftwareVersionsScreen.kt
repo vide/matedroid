@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -57,6 +56,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.format.DateTimeFormatter
@@ -134,12 +134,7 @@ fun SoftwareVersionsScreen(
                 .padding(padding)
         ) {
             if (uiState.isLoading && !uiState.isRefreshing) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(color = palette.accent)
             } else {
                 SoftwareVersionsContent(
                     uiState = uiState,

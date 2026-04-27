@@ -84,6 +84,7 @@ import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.components.CostDonutStop
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.TripCostDonut
 import com.matedroid.ui.components.computeCostShades
 import com.matedroid.ui.components.TripEditActions
@@ -193,12 +194,10 @@ fun TripDetailScreen(
     ) { padding ->
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
+                MateDroidLoadingPlaceholder(
+                    color = palette.accent,
+                    modifier = Modifier.padding(padding)
+                )
             }
             uiState.trip == null -> {
                 Box(

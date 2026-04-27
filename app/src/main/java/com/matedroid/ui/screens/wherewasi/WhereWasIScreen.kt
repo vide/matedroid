@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -62,6 +61,7 @@ import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.data.repository.countryCodeToFlag
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -105,14 +105,10 @@ fun WhereWasIScreen(
     ) { paddingValues ->
         when {
             state.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(
+                    color = palette.accent,
+                    modifier = Modifier.padding(paddingValues)
+                )
             }
             state.error == "no_data" -> {
                 Box(

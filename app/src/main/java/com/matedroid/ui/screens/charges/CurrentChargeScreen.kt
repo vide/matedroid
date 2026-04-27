@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -69,6 +68,7 @@ import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.ui.components.FullscreenDualAxisLineChart
 import com.matedroid.ui.components.FullscreenLineChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -138,14 +138,7 @@ fun CurrentChargeScreen(
     ) { padding ->
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
             }
             uiState.isUnsupportedApi -> {
                 FallbackMessage(

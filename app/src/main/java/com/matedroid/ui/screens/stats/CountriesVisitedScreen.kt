@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +60,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.util.Locale
@@ -170,10 +170,7 @@ fun CountriesVisitedScreen(
         ) {
             when {
                 uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = palette.accent
-                    )
+                    MateDroidLoadingPlaceholder(color = palette.accent)
                 }
                 uiState.countries.isEmpty() -> {
                     EmptyState(palette = palette)

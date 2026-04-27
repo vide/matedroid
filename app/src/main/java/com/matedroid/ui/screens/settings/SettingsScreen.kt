@@ -76,6 +76,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.model.Currency
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.MateDroidTheme
 import com.matedroid.ui.theme.StatusWarning
 import com.matedroid.ui.theme.StatusError
@@ -142,20 +143,7 @@ fun SettingsScreen(
 
 @Composable
 private fun LoadingContent(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        CircularProgressIndicator()
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.loading_settings),
-            textAlign = TextAlign.Center
-        )
-    }
+    MateDroidLoadingPlaceholder(modifier = modifier)
 }
 
 @Composable

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -53,10 +52,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
@@ -67,7 +68,10 @@ import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
 import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.MateDroidPulseSpinner
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.rememberDebouncedLoading
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
@@ -142,12 +146,7 @@ fun DrivesScreen(
                 .padding(padding)
         ) {
             if (uiState.isLoading && !uiState.isRefreshing) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(color = palette.accent)
             } else {
                 DrivesContent(
                     drives = uiState.drives,
@@ -161,6 +160,7 @@ fun DrivesScreen(
                     units = uiState.units,
                     palette = palette,
                     listState = listState,
+                    isFilterLoading = uiState.isFilterLoading,
                     onDateFilterSelected = { viewModel.setDateFilter(it) },
                     onCustomRangeSelected = { start, end -> viewModel.setCustomDateRange(start, end) },
                     onDistanceFilterSelected = { viewModel.setDistanceFilter(it) },
@@ -185,6 +185,7 @@ private fun DrivesContent(
     units: Units?,
     palette: CarColorPalette,
     listState: androidx.compose.foundation.lazy.LazyListState,
+    isFilterLoading: Boolean,
     onDateFilterSelected: (DriveDateFilter) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     onDistanceFilterSelected: (DriveDistanceFilter) -> Unit,
@@ -289,6 +290,25 @@ private fun DrivesContent(
         accent = palette.accent,
         modifier = Modifier.align(Alignment.CenterEnd),
     )
+
+    // Sub-100ms loads never see a spinner — only sustained ones cross the
+    // perceptual threshold worth giving feedback for.
+    val showSpinner = rememberDebouncedLoading(isFilterLoading)
+    if (showSpinner) {
+        // Full-bleed dim scrim that sits above everything (chart cards inside the
+        // LazyColumn have shadow elevation, which puts them in their own graphics
+        // layer; without the explicit zIndex the spinner could end up rendered
+        // behind them). The list shows through at ~55% alpha.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .zIndex(10f)
+                .background(Color.Black.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            MateDroidPulseSpinner(color = palette.accent)
+        }
+    }
     }
 }
 

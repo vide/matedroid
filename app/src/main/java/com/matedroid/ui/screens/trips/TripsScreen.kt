@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -62,6 +61,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MonthScrollIndicator
 import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
@@ -125,12 +125,10 @@ fun TripsScreen(
     ) { padding ->
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
+                MateDroidLoadingPlaceholder(
+                    color = palette.accent,
+                    modifier = Modifier.padding(padding)
+                )
             }
             uiState.trips.isEmpty() -> {
                 Box(

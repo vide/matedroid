@@ -88,6 +88,7 @@ import com.matedroid.domain.model.QuickStats
 import com.matedroid.domain.model.SyncPhase
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -214,12 +215,7 @@ fun StatsScreen(
                 .padding(padding)
         ) {
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(color = palette.accent)
             } else if (uiState.carStats == null) {
                 val emptyMessage = if (uiState.isSyncing) {
                     stringResource(R.string.stats_syncing)

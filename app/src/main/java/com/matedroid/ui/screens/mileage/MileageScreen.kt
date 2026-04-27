@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import java.time.format.DateTimeFormatter
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +71,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
@@ -149,12 +149,7 @@ fun MileageScreen(
                     .padding(padding)
             ) {
                 if (uiState.isLoading && !uiState.isRefreshing) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    MateDroidLoadingPlaceholder(color = palette.accent)
                 } else {
                     YearOverviewContent(
                         uiState = uiState,

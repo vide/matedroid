@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
@@ -78,7 +78,10 @@ import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
 import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.MateDroidPulseSpinner
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.rememberDebouncedLoading
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
@@ -138,12 +141,7 @@ fun ChargesScreen(
                 .padding(padding)
         ) {
             if (uiState.isLoading && !uiState.isRefreshing) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                MateDroidLoadingPlaceholder(color = palette.accent)
             } else {
                 ChargesContent(
                     charges = uiState.charges,
@@ -162,6 +160,7 @@ fun ChargesScreen(
                     initialScrollPosition = uiState.scrollPosition,
                     initialScrollOffset = uiState.scrollOffset,
                     palette = palette,
+                    isFilterLoading = uiState.isFilterLoading,
                     onDateFilterSelected = { viewModel.setDateFilter(it) },
                     onCustomRangeSelected = { start, end -> viewModel.setCustomDateRange(start, end) },
                     availableLocations = uiState.availableLocations,
@@ -203,6 +202,7 @@ private fun ChargesContent(
     initialScrollPosition: Int,
     initialScrollOffset: Int,
     palette: CarColorPalette,
+    isFilterLoading: Boolean,
     onDateFilterSelected: (DateFilter) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     onChargeTypeFilterSelected: (ChargeTypeFilter) -> Unit,
@@ -361,6 +361,25 @@ private fun ChargesContent(
         accent = palette.accent,
         modifier = Modifier.align(Alignment.CenterEnd),
     )
+
+    // Sub-100ms loads never see a spinner — only sustained ones cross the
+    // perceptual threshold worth giving feedback for.
+    val showSpinner = rememberDebouncedLoading(isFilterLoading)
+    if (showSpinner) {
+        // Full-bleed dim scrim that sits above everything (chart cards inside
+        // the LazyColumn have shadow elevation, which puts them in their own
+        // graphics layer; without the explicit zIndex the spinner could end up
+        // rendered behind them). The list shows through at ~55% alpha.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .zIndex(10f)
+                .background(Color.Black.copy(alpha = 0.45f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            MateDroidPulseSpinner(color = palette.accent)
+        }
+    }
     }
 }
 

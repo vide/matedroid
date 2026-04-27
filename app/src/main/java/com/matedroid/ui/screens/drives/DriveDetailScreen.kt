@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -74,6 +73,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.screens.trips.displayName
 import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -133,14 +133,10 @@ fun DriveDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            MateDroidLoadingPlaceholder(
+                color = palette.accent,
+                modifier = Modifier.padding(padding)
+            )
         } else {
             uiState.driveDetail?.let { detail ->
                 DriveDetailContent(

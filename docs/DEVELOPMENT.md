@@ -37,6 +37,20 @@ matedroid/
 - **Charts**: Vico
 - **Maps**: osmdroid (OpenStreetMap)
 
+### Loading spinners
+
+Always use `MateDroidLoadingPlaceholder` (in `ui/components/MateDroidPulseSpinner.kt`) for any user-facing loading state, instead of `androidx.compose.material3.CircularProgressIndicator`. The placeholder is the branded MD-logotype pulse spinner with a built-in 200 ms debounce (sub-threshold loads stay silent) and a 45 % black scrim that dims the body — never skip the scrim, it's how the white M+D outline reads against any theme's surface color.
+
+```kotlin
+if (uiState.isLoading) {
+    MateDroidLoadingPlaceholder(color = palette.accent)
+} else {
+    Content(...)
+}
+```
+
+If the screen has a car palette in scope pass `palette.accent`; otherwise leave the default (Material primary). Keep small inline progress (button spinners, sub-section card loaders, weather card) on `CircularProgressIndicator` — the MD spinner is too visually heavy at that scale.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:

@@ -30,7 +30,6 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
@@ -130,12 +130,7 @@ fun BatteryScreen(
                     .padding(padding)
             ) {
                 if (uiState.isLoading && !uiState.isRefreshing) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    MateDroidLoadingPlaceholder(color = palette.accent)
                 } else {
                     val stats = viewModel.computeStats()
                     if (stats != null) {

@@ -71,6 +71,11 @@ data class ChargeChartData(
 data class ChargesUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    // Set while a filter-driven reload is in flight. Distinct from `isLoading`,
+    // which intentionally stays false on filter change to avoid the full-screen
+    // flash. Drives a centered overlay spinner that lets the existing list show
+    // through.
+    val isFilterLoading: Boolean = false,
     val charges: List<ChargeData> = emptyList(),
     val dcChargeIds: Set<Int> = emptySet(),
     val availableLocations: List<String> = emptyList(),
@@ -243,8 +248,15 @@ class ChargesViewModel @Inject constructor(
             // filtered view) would trip the spinner whenever the active AC/DC or
             // location filter happened to zero out the list, flashing the whole
             // screen on every date-range change.
-            if (!state.isRefreshing && allCharges.isEmpty()) {
-                _uiState.update { it.copy(isLoading = true) }
+            val isInitial = !state.isRefreshing && allCharges.isEmpty()
+            _uiState.update {
+                it.copy(
+                    isLoading = if (isInitial) true else it.isLoading,
+                    // Filter-driven reloads (when we already have data and aren't
+                    // pull-to-refresh-ing) get a non-blocking overlay spinner
+                    // instead. Set here, cleared in the success/error tail.
+                    isFilterLoading = !isInitial && !state.isRefreshing,
+                )
             }
 
             // Load the display setting
@@ -287,6 +299,7 @@ class ChargesViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            isFilterLoading = false,
                             error = result.message
                         )
                     }
@@ -362,6 +375,7 @@ class ChargesViewModel @Inject constructor(
             it.copy(
                 isLoading = false,
                 isRefreshing = false,
+                isFilterLoading = false,
                 charges = displayChargesFiltered,
                 availableLocations = locations,
                 summary = summary,

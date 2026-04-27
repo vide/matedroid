@@ -69,7 +69,6 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -120,6 +119,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -318,22 +318,7 @@ fun DashboardScreen(
 
 @Composable
 private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = stringResource(R.string.loading_vehicle_data),
-                textAlign = TextAlign.Center
-            )
-        }
-    }
+    MateDroidLoadingPlaceholder()
 }
 
 @Composable

@@ -71,6 +71,11 @@ enum class DriveDateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
 data class DrivesUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    // Set while a filter-driven reload is in flight. Distinct from `isLoading`,
+    // which intentionally stays false on filter change to avoid the full-screen
+    // flash. Drives a centered overlay spinner that lets the existing list show
+    // through.
+    val isFilterLoading: Boolean = false,
     val drives: List<DriveData> = emptyList(),
     val chartData: List<DriveChartData> = emptyList(),
     val chartGranularity: DriveChartGranularity = DriveChartGranularity.MONTHLY,
@@ -199,8 +204,15 @@ class DrivesViewModel @Inject constructor(
             // filtered view) would trip the spinner whenever the active distance
             // filter happened to zero out the list, flashing the whole screen on
             // every date-range change.
-            if (!state.isRefreshing && allDrives.isEmpty()) {
-                _uiState.update { it.copy(isLoading = true) }
+            val isInitial = !state.isRefreshing && allDrives.isEmpty()
+            _uiState.update {
+                it.copy(
+                    isLoading = if (isInitial) true else it.isLoading,
+                    // Filter-driven reloads (when we already have data and aren't
+                    // pull-to-refresh-ing) get a non-blocking overlay spinner
+                    // instead. Set here, cleared in the success/error tail.
+                    isFilterLoading = !isInitial && !state.isRefreshing,
+                )
             }
 
             // Load the display setting
@@ -229,6 +241,7 @@ class DrivesViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            isFilterLoading = false,
                             error = result.message
                         )
                     }
@@ -276,6 +289,7 @@ class DrivesViewModel @Inject constructor(
             it.copy(
                 isLoading = false,
                 isRefreshing = false,
+                isFilterLoading = false,
                 drives = displayDrives,
                 summary = summary,
                 chartData = chartData

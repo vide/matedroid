@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -73,6 +72,7 @@ import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
+import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.screens.trips.displayName
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -129,14 +129,7 @@ fun ChargeDetailScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
         } else {
             uiState.chargeDetail?.let { detail ->
                 ChargeDetailContent(
