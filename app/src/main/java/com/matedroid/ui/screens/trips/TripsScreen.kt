@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ElectricBolt
@@ -61,8 +62,10 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
+import com.matedroid.ui.components.MonthScrollIndicator
 import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
+import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
@@ -200,7 +203,13 @@ private fun TripsContent(
     dcChargeIds: Set<Int>,
     onTripClick: (Trip) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    // Header items in render order: year chips (conditional), summary, section header.
+    val headerCount = 2 + (if (availableYears.size > 1) 1 else 0)
+
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -263,6 +272,17 @@ private fun TripsContent(
                 onClick = { onTripClick(trip) }
             )
         }
+    }
+
+    MonthScrollIndicator(
+        state = listState,
+        dateAt = { index ->
+            if (index < headerCount) null
+            else trips.getOrNull(index - headerCount)?.startDate.parseListItemDate()
+        },
+        accent = palette.accent,
+        modifier = Modifier.align(Alignment.CenterEnd),
+    )
     }
 }
 

@@ -286,6 +286,8 @@
     <string name="charges_free_supercharging_hint">Este coche tiene Supercarga gratis — las sesiones en Supercargadores normalmente no tienen coste. En otros puntos DC quizá haya que asignarlo.</string>
     <!-- Pill mostrado en lugar del coste cuando una sesión es gratuita -->
     <string name="charge_free">GRATIS</string>
+    <!-- Etiqueta de accesibilidad para el tirador arrastrable de la barra de desplazamiento -->
+    <string name="scrollbar_drag_handle_description">Arrastra para desplazarte rápido por la lista</string>
 
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Todos</string>

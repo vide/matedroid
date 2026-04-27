@@ -67,8 +67,10 @@ import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
 import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MonthScrollIndicator
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
+import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
@@ -188,6 +190,11 @@ private fun DrivesContent(
     onDistanceFilterSelected: (DriveDistanceFilter) -> Unit,
     onDriveClick: (driveId: Int) -> Unit
 ) {
+    // Header items in this LazyColumn, in render order: date chips, distance chips,
+    // summary, charts (conditional), history header. Adjust if items are added.
+    val headerCount = 4 + (if (chartData.isNotEmpty()) 1 else 0)
+
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -271,6 +278,17 @@ private fun DrivesContent(
                 )
             }
         }
+    }
+
+    MonthScrollIndicator(
+        state = listState,
+        dateAt = { index ->
+            if (index < headerCount) null
+            else drives.getOrNull(index - headerCount)?.startDate.parseListItemDate()
+        },
+        accent = palette.accent,
+        modifier = Modifier.align(Alignment.CenterEnd),
+    )
     }
 }
 

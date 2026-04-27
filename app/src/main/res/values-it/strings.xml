@@ -286,6 +286,8 @@
     <string name="charges_free_supercharging_hint">Su questa auto il Supercharge è gratuito — le ricariche ai Supercharger normalmente non hanno costo. Per le altre colonnine DC potrebbe servire impostarne uno.</string>
     <!-- Pill mostrato al posto del costo quando una ricarica è gratuita -->
     <string name="charge_free">GRATIS</string>
+    <!-- Etichetta di accessibilità per la maniglia trascinabile della scrollbar -->
+    <string name="scrollbar_drag_handle_description">Trascina per scorrere rapidamente la lista</string>
 
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Tutti</string>

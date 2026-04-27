@@ -286,6 +286,8 @@
     <string name="charges_free_supercharging_hint">此车享有免费超充 —— 超级充电站的充电通常不产生费用。非超充的直流站点可能仍需手动填写费用。</string>
     <!-- 充电会话免费时在费用位置显示的标签 -->
     <string name="charge_free">免费</string>
+    <!-- 列表右侧可拖动滚动手柄的无障碍标签 -->
+    <string name="scrollbar_drag_handle_description">拖动以快速滚动列表</string>
 
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">全部</string>

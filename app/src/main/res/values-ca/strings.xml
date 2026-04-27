@@ -286,6 +286,8 @@
     <string name="charges_free_supercharging_hint">Aquest cotxe té Supercàrrega gratis — les sessions als Superchargers normalment no tenen cost. Als altres punts DC potser caldrà assignar-ne un.</string>
     <!-- Pill mostrat en lloc del cost quan una sessió és gratuïta -->
     <string name="charge_free">GRATIS</string>
+    <!-- Etiqueta d'accessibilitat per a la nansa arrossegable de la barra de desplaçament -->
+    <string name="scrollbar_drag_handle_description">Arrossega per desplaçar-te ràpid per la llista</string>
 
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">Tots</string>

@@ -78,8 +78,10 @@ import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
 import com.matedroid.ui.components.EditorialPill
 import com.matedroid.ui.components.InteractiveBarChart
+import com.matedroid.ui.components.MonthScrollIndicator
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
+import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
@@ -213,6 +215,14 @@ private fun ChargesContent(
         initialFirstVisibleItemScrollOffset = initialScrollOffset
     )
 
+    // Header items in render order: date chips, dropdowns, free hint (conditional),
+    // summary, charts (conditional), history header. Adjust if items are added.
+    val showFreeHint = freeSupercharging && selectedCostFilter == CostFilter.NO_COST
+    val headerCount = 4 +
+        (if (showFreeHint) 1 else 0) +
+        (if (chartData.isNotEmpty()) 1 else 0)
+
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -340,6 +350,17 @@ private fun ChargesContent(
                 )
             }
         }
+    }
+
+    MonthScrollIndicator(
+        state = listState,
+        dateAt = { index ->
+            if (index < headerCount) null
+            else charges.getOrNull(index - headerCount)?.startDate.parseListItemDate()
+        },
+        accent = palette.accent,
+        modifier = Modifier.align(Alignment.CenterEnd),
+    )
     }
 }
 

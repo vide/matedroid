@@ -287,6 +287,8 @@
     <string name="charges_free_supercharging_hint">Free Supercharging is on for this car — Supercharger sessions are normally free. Non-Supercharger DC stops may still need a cost set.</string>
     <!-- Cost pill on a charge row, shown in place of the cost when cost is zero. Short / capitalized; appears on the editorial-style charges list. -->
     <string name="charge_free">FREE</string>
+    <!-- Accessibility label for the draggable thumb on the right edge of the drives, charges and trips lists. Announced by screen readers; read out as the user focuses the handle. -->
+    <string name="scrollbar_drag_handle_description">Drag to scroll quickly through the list</string>
 
     <!-- Distance filter chips (metric) -->
     <string name="filter_all">All</string>
