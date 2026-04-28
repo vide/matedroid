@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **"Where was I?" returned "Invalid date"** for any date with a non-UTC timezone offset — the timestamp was URL-decoded twice on the way to the screen, mangling the `+02:00` (or similar) part of the offset into a literal space and breaking parsing. Single-decode now.
+- **Charges list hero unit was rendered as `KWH`** — SI symbols are case-sensitive, so the unit now correctly reads `kWh`. Distance units on the drives list still render uppercase to keep the editorial all-caps look.
 
 ### Changed
 - Mileage screen perf improvements.
