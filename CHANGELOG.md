@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Drives-list filters reset after backgrounding the app** — Distance and date-range selections are now persisted across process death, so coming back to the drives list keeps your filters in place.
+
 ## [1.7.0-beta1] - 2026-04-28
 
 ### Added

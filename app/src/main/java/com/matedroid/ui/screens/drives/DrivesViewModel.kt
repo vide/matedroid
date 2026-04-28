@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.drives
 
 import androidx.annotation.StringRes
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.DriveData
@@ -104,10 +105,11 @@ data class DrivesSummary(
 @HiltViewModel
 class DrivesViewModel @Inject constructor(
     private val repository: TeslamateRepository,
-    private val settingsDataStore: SettingsDataStore
+    private val settingsDataStore: SettingsDataStore,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DrivesUiState())
+    private val _uiState = MutableStateFlow(restoreInitialState(savedStateHandle))
     val uiState: StateFlow<DrivesUiState> = _uiState.asStateFlow()
 
     private var carId: Int? = null
@@ -118,6 +120,30 @@ class DrivesViewModel @Inject constructor(
     companion object {
         private const val MIN_DURATION_MINUTES = 1
         private const val MIN_DISTANCE_KM = 0.1
+
+        private const val KEY_DATE_FILTER = "filter_date"
+        private const val KEY_DISTANCE_FILTER = "filter_distance"
+        private const val KEY_CUSTOM_START = "filter_custom_start"
+        private const val KEY_CUSTOM_END = "filter_custom_end"
+
+        private fun restoreInitialState(handle: SavedStateHandle): DrivesUiState {
+            val dateFilter = handle.get<String>(KEY_DATE_FILTER)
+                ?.let { runCatching { DriveDateFilter.valueOf(it) }.getOrNull() }
+                ?: DriveDateFilter.LAST_7_DAYS
+            val distanceFilter = handle.get<String>(KEY_DISTANCE_FILTER)
+                ?.let { runCatching { DriveDistanceFilter.valueOf(it) }.getOrNull() }
+                ?: DriveDistanceFilter.ALL
+            val customStart = handle.get<String>(KEY_CUSTOM_START)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            val customEnd = handle.get<String>(KEY_CUSTOM_END)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            return DrivesUiState(
+                dateFilter = dateFilter,
+                distanceFilter = distanceFilter,
+                customStartDate = customStart,
+                customEndDate = customEnd
+            )
+        }
     }
 
     fun setCarId(id: Int) {
@@ -128,10 +154,18 @@ class DrivesViewModel @Inject constructor(
         carId = id
         loadUnits(id)
 
-        // Only apply default filter on first initialization
+        // Only apply restored (or default) filter on first initialization. CUSTOM
+        // needs the explicit date pair — setDateFilter is a no-op for CUSTOM.
         if (!isInitialized) {
             isInitialized = true
-            setDateFilter(_uiState.value.dateFilter)
+            val state = _uiState.value
+            val customStart = state.customStartDate
+            val customEnd = state.customEndDate
+            if (state.dateFilter == DriveDateFilter.CUSTOM && customStart != null && customEnd != null) {
+                setCustomDateRange(customStart, customEnd)
+            } else {
+                setDateFilter(state.dateFilter)
+            }
         }
     }
 
@@ -148,6 +182,9 @@ class DrivesViewModel @Inject constructor(
             customStartDate = null,
             customEndDate = null
         )}
+        savedStateHandle[KEY_DATE_FILTER] = filter.name
+        savedStateHandle[KEY_CUSTOM_START] = null
+        savedStateHandle[KEY_CUSTOM_END] = null
         loadDrives(startDate, if (filter.days != null) endDate else null)
     }
 
@@ -159,6 +196,9 @@ class DrivesViewModel @Inject constructor(
             customStartDate = start,
             customEndDate = end
         )}
+        savedStateHandle[KEY_DATE_FILTER] = DriveDateFilter.CUSTOM.name
+        savedStateHandle[KEY_CUSTOM_START] = start.toString()
+        savedStateHandle[KEY_CUSTOM_END] = end.toString()
         loadDrives(start, end)
     }
 
@@ -168,6 +208,7 @@ class DrivesViewModel @Inject constructor(
 
     fun setDistanceFilter(filter: DriveDistanceFilter) {
         _uiState.update { it.copy(distanceFilter = filter) }
+        savedStateHandle[KEY_DISTANCE_FILTER] = filter.name
         applyFiltersAndUpdateState()
     }
 
