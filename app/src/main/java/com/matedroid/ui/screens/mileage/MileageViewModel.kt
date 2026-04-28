@@ -10,6 +10,7 @@ import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.model.Currency
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -94,6 +96,41 @@ data class MileageUiState(
     val selectedDayData: DailyMileage? = null
 )
 
+/**
+ * Drive (or charge) paired with its parsed [LocalDateTime]. Held in private
+ * VM-scoped lists so repeated year / month / day aggregations don't have to
+ * re-parse the same `startDate` string. With ~500 drives + ~200 charges that's
+ * upwards of 2,000 string-parse calls saved per re-aggregation.
+ */
+private data class TimedDrive(val drive: DriveData, val dateTime: LocalDateTime)
+private data class TimedCharge(val charge: ChargeData, val dateTime: LocalDateTime)
+
+/**
+ * Bundle holding everything `aggregateByYear` writes back to UiState. Computed
+ * off the main thread inside a `withContext(Dispatchers.Default)` block so the
+ * UI thread is free during the (non-trivial) lifetime aggregation.
+ */
+private data class YearAggregation(
+    val yearlyData: List<YearlyMileage>,
+    val totalLifetimeDistance: Double,
+    val totalLifetimeDriveCount: Int,
+    val totalLifetimeEnergy: Double,
+    val avgLifetimeEnergyDistance: Double,
+    val totalLifetimeEnergyCost: Double?,
+    val firstDriveDate: LocalDate?,
+    val avgYearlyDistance: Double,
+)
+
+private data class MonthAggregation(
+    val monthlyData: List<MonthlyMileage>,
+    val yearTotalDistance: Double,
+    val avgMonthlyDistance: Double,
+    val yearDriveCount: Int,
+    val yearTotalEnergy: Double,
+    val avgYearEnergyDistance: Double,
+    val yearTotalEnergyCost: Double?,
+)
+
 @HiltViewModel
 class MileageViewModel @Inject constructor(
     private val repository: TeslamateRepository,
@@ -105,27 +142,30 @@ class MileageViewModel @Inject constructor(
 
     private var carId: Int? = null
 
+    // Pre-parsed drive / charge lists. Populated once per loadAllDrives,
+    // reused across all subsequent year / month / day aggregations.
+    private var timedDrives: List<TimedDrive> = emptyList()
+    private var timedCharges: List<TimedCharge> = emptyList()
+
     init {
         loadSettings()
     }
+
     private fun loadSettings() {
         viewModelScope.launch {
-        val settings = settingsDataStore.settings.first()
-        val currency = Currency.findByCode(settings.currencyCode)
-        _uiState.update { it.copy(currencySymbol = currency.symbol) }
+            val settings = settingsDataStore.settings.first()
+            val currency = Currency.findByCode(settings.currencyCode)
+            _uiState.update { it.copy(currencySymbol = currency.symbol) }
         }
     }
 
     fun setCarId(id: Int) {
         if (carId != id) {
             carId = id
+            // `loadUnits` is the single getCarStatus call. The previous version
+            // also fired one inline here, doubling the network round-trip on
+            // every screen entry.
             loadUnits(id)
-            viewModelScope.launch {
-                val statusResult = repository.getCarStatus(id)
-                if (statusResult is ApiResult.Success) {
-                    _uiState.update { it.copy(units = statusResult.data.units) }
-                }
-            }
             loadAllDrives()
         }
     }
@@ -152,7 +192,7 @@ class MileageViewModel @Inject constructor(
 
     fun selectYear(year: Int) {
         _uiState.update { it.copy(selectedYear = year) }
-        aggregateByMonth(year)
+        viewModelScope.launch { aggregateByMonth(year) }
     }
 
     fun clearSelectedYear() {
@@ -169,7 +209,7 @@ class MileageViewModel @Inject constructor(
 
     fun selectMonth(yearMonth: YearMonth) {
         _uiState.update { it.copy(selectedMonth = yearMonth) }
-        aggregateByDay(yearMonth)
+        viewModelScope.launch { aggregateByDay(yearMonth) }
     }
 
     fun clearSelectedMonth() {
@@ -186,16 +226,20 @@ class MileageViewModel @Inject constructor(
     }
 
     /**
-     * Navigates directly to a specific day's detail view.
-     * This auto-selects the year and month, then the day.
+     * Navigates directly to a specific day's detail view. Aggregations now run
+     * on Dispatchers.Default — chained inside a single coroutine here so the
+     * day's data is actually populated by the time `selectDay` looks for it.
      */
     fun navigateToDay(date: LocalDate) {
-        // First ensure the year is selected and month data is aggregated
-        selectYear(date.year)
-        // Then select the month and aggregate daily data
-        selectMonth(YearMonth.of(date.year, date.month))
-        // Finally select the day
-        selectDay(date)
+        val ym = YearMonth.of(date.year, date.month)
+        viewModelScope.launch {
+            _uiState.update { it.copy(selectedYear = date.year) }
+            aggregateByMonth(date.year)
+            _uiState.update { it.copy(selectedMonth = ym) }
+            aggregateByDay(ym)
+            val dayData = _uiState.value.dailyData.find { it.date == date }
+            _uiState.update { it.copy(selectedDay = date, selectedDayData = dayData) }
+        }
     }
 
     private fun loadAllDrives() {
@@ -215,20 +259,50 @@ class MileageViewModel @Inject constructor(
 
             when (drivesResult) {
                 is ApiResult.Success -> {
-                    val charges = when (chargesResult) {
-                        is ApiResult.Success -> chargesResult.data
-                        is ApiResult.Error -> emptyList()
+                    val drives = drivesResult.data
+                    val charges = (chargesResult as? ApiResult.Success)?.data ?: emptyList()
+                    val isImperial = _uiState.value.units?.isImperial == true
+
+                    // Pre-parse all dates and run the lifetime / yearly
+                    // aggregation in a single Dispatchers.Default block so the
+                    // UI thread stays free during the heavy lift. With 500
+                    // drives the parsing alone is ~1,500 calls that previously
+                    // ran on Main.
+                    data class PreparedAndYear(
+                        val timedDrives: List<TimedDrive>,
+                        val timedCharges: List<TimedCharge>,
+                        val agg: YearAggregation,
+                    )
+                    val prepared = withContext(Dispatchers.Default) {
+                        val td = drives.mapNotNull { d ->
+                            parseDateTime(d.startDate)?.let { TimedDrive(d, it) }
+                        }
+                        val tc = charges.mapNotNull { c ->
+                            parseDateTime(c.startDate)?.let { TimedCharge(c, it) }
+                        }
+                        PreparedAndYear(td, tc, computeYearAggregation(td, tc, isImperial))
                     }
+
+                    timedDrives = prepared.timedDrives
+                    timedCharges = prepared.timedCharges
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            allDrives = drivesResult.data,
+                            allDrives = drives,
                             allCharges = charges,
-                            error = null
+                            error = null,
+                            yearlyData = prepared.agg.yearlyData,
+                            totalLifetimeDistance = prepared.agg.totalLifetimeDistance,
+                            avgYearlyDistance = prepared.agg.avgYearlyDistance,
+                            firstDriveDate = prepared.agg.firstDriveDate,
+                            totalLifetimeEnergy = prepared.agg.totalLifetimeEnergy,
+                            avgLifetimeEnergyDistance = prepared.agg.avgLifetimeEnergyDistance,
+                            totalLifetimeEnergyCost = prepared.agg.totalLifetimeEnergyCost,
+                            totalLifetimeDriveCount = prepared.agg.totalLifetimeDriveCount,
                         )
                     }
-                    aggregateByYear()
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
@@ -243,214 +317,33 @@ class MileageViewModel @Inject constructor(
         }
     }
 
-    private fun aggregateByYear() {
-        val drives = _uiState.value.allDrives
-        val charges = _uiState.value.allCharges
-
-        // Group by year
-        val grouped = drives.groupBy { drive ->
-            parseDateTime(drive.startDate)?.year
-        }.filterKeys { it != null }
-
-        // Create yearly aggregates
-        val yearlyData = grouped.map { (year, yearDrives) ->
-            val totalDistance = yearDrives.sumOf { it.distance ?: 0.0 }
-            val totalEnergy = yearDrives.sumOf { it.energyConsumedNet ?: 0.0 }
-            val batteryUsages = yearDrives.mapNotNull { drive ->
-                val start = drive.startBatteryLevel
-                val end = drive.endBatteryLevel
-                if (start != null && end != null) (start - end).toDouble() else null
-            }
-            val totalBatteryUsage = batteryUsages.sum()
-            val totalCost = charges
-                .filter { charge -> parseDateTime(charge.startDate)?.year == year }
-                .mapNotNull { it.cost }
-                .sum()
-                .takeIf { it > 0 }
-
-            YearlyMileage(
-                year = year!!,
-                totalDistance = totalDistance,
-                driveCount = yearDrives.size,
-                totalEnergy = totalEnergy,
-                totalBatteryUsage = totalBatteryUsage,
-                totalEnergyCost = totalCost,
-                drives = yearDrives
-            )
-        }.sortedByDescending { it.year }
-
-        // Calculate lifetime totals
-        val totalLifetimeDistance = yearlyData.sumOf { it.totalDistance }
-        val totalLifetimeDriveCount = yearlyData.sumOf { it.driveCount }
-        val totalLifetimeEnergy = yearlyData.sumOf { it.totalEnergy }
+    private suspend fun aggregateByMonth(year: Int) {
         val isImperial = _uiState.value.units?.isImperial == true
-        val distanceForEfficiency = if (isImperial) totalLifetimeDistance * 0.621371 else totalLifetimeDistance
-        val avgLifetimeEnergyDistance = if (distanceForEfficiency > 0) (totalLifetimeEnergy * 1000.0) / distanceForEfficiency else 0.0
-        val totalLifetimeEnergyCost = charges.mapNotNull { it.cost }.sum().takeIf { it > 0 }
-
-        // Find the earliest drive date
-        val firstDriveDate = drives.mapNotNull { parseDateTime(it.startDate)?.toLocalDate() }
-            .minOrNull()
-
-        // Calculate avg/year based on daily average × 365
-        val avgYearlyDistance = if (firstDriveDate != null && totalLifetimeDistance > 0) {
-            val daysSinceFirstDrive = java.time.temporal.ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now())
-            if (daysSinceFirstDrive > 0) {
-                (totalLifetimeDistance / daysSinceFirstDrive) * 365
-            } else {
-                totalLifetimeDistance // If same day, just show total
-            }
-        } else {
-            0.0
+        val drivesSnapshot = timedDrives
+        val chargesSnapshot = timedCharges
+        val agg = withContext(Dispatchers.Default) {
+            computeMonthAggregation(drivesSnapshot, chargesSnapshot, year, isImperial)
         }
-
         _uiState.update {
             it.copy(
-                yearlyData = yearlyData,
-                totalLifetimeDistance = totalLifetimeDistance,
-                avgYearlyDistance = avgYearlyDistance,
-                firstDriveDate = firstDriveDate,
-                totalLifetimeEnergy = totalLifetimeEnergy,
-                avgLifetimeEnergyDistance = avgLifetimeEnergyDistance,
-                totalLifetimeEnergyCost = totalLifetimeEnergyCost,
-                totalLifetimeDriveCount = totalLifetimeDriveCount
+                monthlyData = agg.monthlyData,
+                yearTotalDistance = agg.yearTotalDistance,
+                avgMonthlyDistance = agg.avgMonthlyDistance,
+                yearTotalEnergy = agg.yearTotalEnergy,
+                avgYearEnergyDistance = agg.avgYearEnergyDistance,
+                yearTotalEnergyCost = agg.yearTotalEnergyCost,
+                yearDriveCount = agg.yearDriveCount,
             )
         }
     }
 
-    private fun aggregateByMonth(year: Int) {
-        val drives = _uiState.value.allDrives
-        val charges = _uiState.value.allCharges
-
-        // Filter drives for selected year
-        val yearDrives = drives.filter { drive ->
-            parseDateTime(drive.startDate)?.year == year
+    private suspend fun aggregateByDay(yearMonth: YearMonth) {
+        val drivesSnapshot = timedDrives
+        val chargesSnapshot = timedCharges
+        val dailyData = withContext(Dispatchers.Default) {
+            computeDailyAggregation(drivesSnapshot, chargesSnapshot, yearMonth)
         }
-
-        // Group by month
-        val grouped = yearDrives.groupBy { drive ->
-            val dateTime = parseDateTime(drive.startDate)
-            if (dateTime != null) {
-                YearMonth.of(dateTime.year, dateTime.month)
-            } else {
-                null
-            }
-        }.filterKeys { it != null }
-
-        // Create monthly aggregates
-        val monthlyData = grouped.map { (yearMonth, monthDrives) ->
-            val totalDistance = monthDrives.sumOf { it.distance ?: 0.0 }
-            val totalEnergy = monthDrives.sumOf { it.energyConsumedNet ?: 0.0 }
-            val batteryUsages = monthDrives.mapNotNull { drive ->
-                val start = drive.startBatteryLevel
-                val end = drive.endBatteryLevel
-                if (start != null && end != null) (start - end).toDouble() else null
-            }
-            val totalBatteryUsage = batteryUsages.sum()
-            val totalCost = charges
-                .filter { charge ->
-                    val dt = parseDateTime(charge.startDate)
-                    dt != null && YearMonth.of(dt.year, dt.month) == yearMonth
-                }
-                .mapNotNull { it.cost }
-                .sum()
-                .takeIf { it > 0 }
-
-            MonthlyMileage(
-                yearMonth = yearMonth!!,
-                totalDistance = totalDistance,
-                driveCount = monthDrives.size,
-                totalEnergy = totalEnergy,
-                totalBatteryUsage = totalBatteryUsage,
-                totalEnergyCost = totalCost,
-                drives = monthDrives
-            )
-        }.sortedByDescending { it.yearMonth }
-
-        // Calculate totals for selected year
-        val yearTotalDistance = monthlyData.sumOf { it.totalDistance }
-        val yearDriveCount = monthlyData.sumOf { it.driveCount }
-        val avgMonthlyDistance = if (monthlyData.isNotEmpty()) yearTotalDistance / monthlyData.size else 0.0
-        val yearTotalEnergy = monthlyData.sumOf { it.totalEnergy }
-        val isImperial = _uiState.value.units?.isImperial == true
-        val distanceForEfficiency = if (isImperial) yearTotalDistance * 0.621371 else yearTotalDistance
-        val avgYearEnergyDistance = if (distanceForEfficiency > 0) (yearTotalEnergy * 1000.0) / distanceForEfficiency else 0.0
-        val yearTotalEnergyCost = monthlyData.mapNotNull { it.totalEnergyCost }.sum().takeIf { it > 0 }
-
-        _uiState.update {
-            it.copy(
-                monthlyData = monthlyData,
-                yearTotalDistance = yearTotalDistance,
-                avgMonthlyDistance = avgMonthlyDistance,
-                yearTotalEnergy = yearTotalEnergy,
-                avgYearEnergyDistance = avgYearEnergyDistance,
-                yearTotalEnergyCost = yearTotalEnergyCost,
-                yearDriveCount = yearDriveCount
-            )
-        }
-    }
-
-    private fun aggregateByDay(yearMonth: YearMonth) {
-        val state = _uiState.value
-        val drives = state.allDrives
-        val charges = state.allCharges
-
-        // Filter drives for selected month
-        val monthDrives = drives.filter { drive ->
-            val dateTime = parseDateTime(drive.startDate)
-            dateTime != null && YearMonth.of(dateTime.year, dateTime.month) == yearMonth
-        }
-
-        // Group by day
-        val grouped = monthDrives.groupBy { drive ->
-            parseDateTime(drive.startDate)?.toLocalDate()
-        }.filterKeys { it != null }
-
-        // Create daily aggregates
-        val dailyData = grouped.map { (date, dayDrives) ->
-            val totalDistance = dayDrives.sumOf { it.distance ?: 0.0 }
-            val totalEnergy = dayDrives.sumOf { it.energyConsumedNet ?: 0.0 }
-            val batteryUsages = dayDrives.mapNotNull { drive ->
-                val start = drive.startBatteryLevel
-                val end = drive.endBatteryLevel
-                if (start != null && end != null) (start - end).toDouble() else null
-            }
-            val totalBatteryUsage = batteryUsages.sum()
-            val totalCost = charges
-                .filter { charge -> parseDateTime(charge.startDate)?.toLocalDate() == date }
-                .mapNotNull { it.cost }
-                .sum()
-                .takeIf { it > 0 }
-
-            DailyMileage(
-                date = date!!,
-                totalDistance = totalDistance,
-                driveCount = dayDrives.size,
-                totalEnergy = totalEnergy,
-                totalBatteryUsage = totalBatteryUsage,
-                totalEnergyCost = totalCost,
-                drives = dayDrives.sortedByDescending { it.startDate }
-            )
-        }.sortedByDescending { it.date }
-
-        _uiState.update {
-            it.copy(dailyData = dailyData)
-        }
-    }
-
-    private fun parseDateTime(dateStr: String?): LocalDateTime? {
-        if (dateStr == null) return null
-        return try {
-            // Parse as OffsetDateTime (handles timezone like +01:00)
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            try {
-                // Fallback: try parsing as LocalDateTime directly
-                LocalDateTime.parse(dateStr.replace("Z", ""))
-            } catch (e2: Exception) {
-                null
-            }
-        }
+        _uiState.update { it.copy(dailyData = dailyData) }
     }
 
     // Get yearly data for chart
@@ -481,4 +374,197 @@ class MileageViewModel @Inject constructor(
             day to (dailyMap[day] ?: 0.0)
         }.filter { it.second > 0 } // Only return days with data for cleaner chart
     }
+}
+
+// ---------------------------------------------------------------------------
+// Pure aggregation helpers. Kept as top-level private functions so they have
+// no dependency on VM state and can run safely on Dispatchers.Default — the
+// caller passes in the snapshot of pre-parsed data they want aggregated.
+// ---------------------------------------------------------------------------
+
+private fun parseDateTime(dateStr: String?): LocalDateTime? {
+    if (dateStr == null) return null
+    return try {
+        OffsetDateTime.parse(dateStr).toLocalDateTime()
+    } catch (_: DateTimeParseException) {
+        try {
+            LocalDateTime.parse(dateStr.replace("Z", ""))
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+private fun computeYearAggregation(
+    drives: List<TimedDrive>,
+    charges: List<TimedCharge>,
+    isImperial: Boolean,
+): YearAggregation {
+    val grouped = drives.groupBy { it.dateTime.year }
+    val chargesByYear = charges.groupBy { it.dateTime.year }
+
+    val yearlyData = grouped.map { (year, yearDrives) ->
+        var totalDistance = 0.0
+        var totalEnergy = 0.0
+        var totalBatteryUsage = 0.0
+        for (td in yearDrives) {
+            totalDistance += td.drive.distance ?: 0.0
+            totalEnergy += td.drive.energyConsumedNet ?: 0.0
+            val start = td.drive.startBatteryLevel
+            val end = td.drive.endBatteryLevel
+            if (start != null && end != null) {
+                totalBatteryUsage += (start - end).toDouble()
+            }
+        }
+        val totalCost = chargesByYear[year]
+            ?.mapNotNull { it.charge.cost }
+            ?.sum()
+            ?.takeIf { it > 0 }
+
+        YearlyMileage(
+            year = year,
+            totalDistance = totalDistance,
+            driveCount = yearDrives.size,
+            totalEnergy = totalEnergy,
+            totalBatteryUsage = totalBatteryUsage,
+            totalEnergyCost = totalCost,
+            drives = yearDrives.map { it.drive },
+        )
+    }.sortedByDescending { it.year }
+
+    val totalLifetimeDistance = yearlyData.sumOf { it.totalDistance }
+    val totalLifetimeDriveCount = yearlyData.sumOf { it.driveCount }
+    val totalLifetimeEnergy = yearlyData.sumOf { it.totalEnergy }
+    val distanceForEfficiency = if (isImperial) totalLifetimeDistance * 0.621371 else totalLifetimeDistance
+    val avgLifetimeEnergyDistance = if (distanceForEfficiency > 0) (totalLifetimeEnergy * 1000.0) / distanceForEfficiency else 0.0
+    val totalLifetimeEnergyCost = charges.mapNotNull { it.charge.cost }.sum().takeIf { it > 0 }
+
+    val firstDriveDate = drives.minByOrNull { it.dateTime }?.dateTime?.toLocalDate()
+
+    val avgYearlyDistance = if (firstDriveDate != null && totalLifetimeDistance > 0) {
+        val daysSinceFirstDrive = java.time.temporal.ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now())
+        if (daysSinceFirstDrive > 0) {
+            (totalLifetimeDistance / daysSinceFirstDrive) * 365
+        } else {
+            totalLifetimeDistance
+        }
+    } else {
+        0.0
+    }
+
+    return YearAggregation(
+        yearlyData = yearlyData,
+        totalLifetimeDistance = totalLifetimeDistance,
+        totalLifetimeDriveCount = totalLifetimeDriveCount,
+        totalLifetimeEnergy = totalLifetimeEnergy,
+        avgLifetimeEnergyDistance = avgLifetimeEnergyDistance,
+        totalLifetimeEnergyCost = totalLifetimeEnergyCost,
+        firstDriveDate = firstDriveDate,
+        avgYearlyDistance = avgYearlyDistance,
+    )
+}
+
+private fun computeMonthAggregation(
+    drives: List<TimedDrive>,
+    charges: List<TimedCharge>,
+    year: Int,
+    isImperial: Boolean,
+): MonthAggregation {
+    val yearDrives = drives.filter { it.dateTime.year == year }
+    val grouped = yearDrives.groupBy { YearMonth.of(it.dateTime.year, it.dateTime.month) }
+    val chargesByYearMonth = charges
+        .filter { it.dateTime.year == year }
+        .groupBy { YearMonth.of(it.dateTime.year, it.dateTime.month) }
+
+    val monthlyData = grouped.map { (yearMonth, monthDrives) ->
+        var totalDistance = 0.0
+        var totalEnergy = 0.0
+        var totalBatteryUsage = 0.0
+        for (td in monthDrives) {
+            totalDistance += td.drive.distance ?: 0.0
+            totalEnergy += td.drive.energyConsumedNet ?: 0.0
+            val start = td.drive.startBatteryLevel
+            val end = td.drive.endBatteryLevel
+            if (start != null && end != null) {
+                totalBatteryUsage += (start - end).toDouble()
+            }
+        }
+        val totalCost = chargesByYearMonth[yearMonth]
+            ?.mapNotNull { it.charge.cost }
+            ?.sum()
+            ?.takeIf { it > 0 }
+
+        MonthlyMileage(
+            yearMonth = yearMonth,
+            totalDistance = totalDistance,
+            driveCount = monthDrives.size,
+            totalEnergy = totalEnergy,
+            totalBatteryUsage = totalBatteryUsage,
+            totalEnergyCost = totalCost,
+            drives = monthDrives.map { it.drive },
+        )
+    }.sortedByDescending { it.yearMonth }
+
+    val yearTotalDistance = monthlyData.sumOf { it.totalDistance }
+    val yearDriveCount = monthlyData.sumOf { it.driveCount }
+    val avgMonthlyDistance = if (monthlyData.isNotEmpty()) yearTotalDistance / monthlyData.size else 0.0
+    val yearTotalEnergy = monthlyData.sumOf { it.totalEnergy }
+    val distanceForEfficiency = if (isImperial) yearTotalDistance * 0.621371 else yearTotalDistance
+    val avgYearEnergyDistance = if (distanceForEfficiency > 0) (yearTotalEnergy * 1000.0) / distanceForEfficiency else 0.0
+    val yearTotalEnergyCost = monthlyData.mapNotNull { it.totalEnergyCost }.sum().takeIf { it > 0 }
+
+    return MonthAggregation(
+        monthlyData = monthlyData,
+        yearTotalDistance = yearTotalDistance,
+        avgMonthlyDistance = avgMonthlyDistance,
+        yearDriveCount = yearDriveCount,
+        yearTotalEnergy = yearTotalEnergy,
+        avgYearEnergyDistance = avgYearEnergyDistance,
+        yearTotalEnergyCost = yearTotalEnergyCost,
+    )
+}
+
+private fun computeDailyAggregation(
+    drives: List<TimedDrive>,
+    charges: List<TimedCharge>,
+    yearMonth: YearMonth,
+): List<DailyMileage> {
+    val monthDrives = drives.filter {
+        YearMonth.of(it.dateTime.year, it.dateTime.month) == yearMonth
+    }
+    val grouped = monthDrives.groupBy { it.dateTime.toLocalDate() }
+    val chargesByDay = charges
+        .filter { YearMonth.of(it.dateTime.year, it.dateTime.month) == yearMonth }
+        .groupBy { it.dateTime.toLocalDate() }
+
+    return grouped.map { (date, dayDrives) ->
+        var totalDistance = 0.0
+        var totalEnergy = 0.0
+        var totalBatteryUsage = 0.0
+        for (td in dayDrives) {
+            totalDistance += td.drive.distance ?: 0.0
+            totalEnergy += td.drive.energyConsumedNet ?: 0.0
+            val start = td.drive.startBatteryLevel
+            val end = td.drive.endBatteryLevel
+            if (start != null && end != null) {
+                totalBatteryUsage += (start - end).toDouble()
+            }
+        }
+        val totalCost = chargesByDay[date]
+            ?.mapNotNull { it.charge.cost }
+            ?.sum()
+            ?.takeIf { it > 0 }
+
+        DailyMileage(
+            date = date,
+            totalDistance = totalDistance,
+            driveCount = dayDrives.size,
+            totalEnergy = totalEnergy,
+            totalBatteryUsage = totalBatteryUsage,
+            totalEnergyCost = totalCost,
+            drives = dayDrives
+                .sortedByDescending { it.dateTime }
+                .map { it.drive },
+        )
+    }.sortedByDescending { it.date }
 }
