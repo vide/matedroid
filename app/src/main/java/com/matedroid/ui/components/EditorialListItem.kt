@@ -222,7 +222,7 @@ fun EditorialListItem(
                         maxLines = 1
                     )
                     Text(
-                        text = heroUnit.uppercase(Locale.getDefault()),
+                        text = heroUnit,
                         style = tightStyle(
                             fontSize = 10.sp,
                             lineHeight = 11.sp,

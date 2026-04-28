@@ -519,7 +519,7 @@ private fun DriveItem(
         dateline = formatEditorialDate(drive.startDate),
         title = "$startCity → $endCity",
         heroValue = "%.0f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
-        heroUnit = UnitFormatter.getDistanceUnit(units),
+        heroUnit = UnitFormatter.getDistanceUnit(units).uppercase(java.util.Locale.getDefault()),
         onClick = onClick,
     ) {
         EditorialPill(formatDuration(drive.durationMin ?: 0))
