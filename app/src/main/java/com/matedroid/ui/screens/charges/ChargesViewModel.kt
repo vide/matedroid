@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.charges
 
 import androidx.annotation.StringRes
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.ChargeData
@@ -111,10 +112,11 @@ data class ChargesSummary(
 class ChargesViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val aggregateDao: AggregateDao
+    private val aggregateDao: AggregateDao,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ChargesUiState())
+    private val _uiState = MutableStateFlow(restoreInitialState(savedStateHandle))
     val uiState: StateFlow<ChargesUiState> = _uiState.asStateFlow()
 
     private var carId: Int? = null
@@ -123,6 +125,38 @@ class ChargesViewModel @Inject constructor(
 
     companion object {
         private const val MIN_ENERGY_KWH = 0.1
+
+        private const val KEY_DATE_FILTER = "filter_date"
+        private const val KEY_CHARGE_TYPE_FILTER = "filter_charge_type"
+        private const val KEY_COST_FILTER = "filter_cost"
+        private const val KEY_LOCATIONS = "filter_locations"
+        private const val KEY_CUSTOM_START = "filter_custom_start"
+        private const val KEY_CUSTOM_END = "filter_custom_end"
+
+        private fun restoreInitialState(handle: SavedStateHandle): ChargesUiState {
+            val dateFilter = handle.get<String>(KEY_DATE_FILTER)
+                ?.let { runCatching { DateFilter.valueOf(it) }.getOrNull() }
+                ?: DateFilter.LAST_7_DAYS
+            val chargeTypeFilter = handle.get<String>(KEY_CHARGE_TYPE_FILTER)
+                ?.let { runCatching { ChargeTypeFilter.valueOf(it) }.getOrNull() }
+                ?: ChargeTypeFilter.ALL
+            val costFilter = handle.get<String>(KEY_COST_FILTER)
+                ?.let { runCatching { CostFilter.valueOf(it) }.getOrNull() }
+                ?: CostFilter.ALL
+            val locations = handle.get<ArrayList<String>>(KEY_LOCATIONS)?.toSet() ?: emptySet()
+            val customStart = handle.get<String>(KEY_CUSTOM_START)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            val customEnd = handle.get<String>(KEY_CUSTOM_END)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            return ChargesUiState(
+                selectedFilter = dateFilter,
+                chargeTypeFilter = chargeTypeFilter,
+                costFilter = costFilter,
+                selectedLocations = locations,
+                customStartDate = customStart,
+                customEndDate = customEnd
+            )
+        }
     }
 
     init {
@@ -147,8 +181,16 @@ class ChargesViewModel @Inject constructor(
         if (carId != id) {
             carId = id
             loadCarSettings(id)
-            // Apply default filter on first load
-            setDateFilter(_uiState.value.selectedFilter)
+            // Apply restored (or default) filter on first load. CUSTOM needs the
+            // explicit date pair — setDateFilter is a no-op for CUSTOM.
+            val state = _uiState.value
+            val customStart = state.customStartDate
+            val customEnd = state.customEndDate
+            if (state.selectedFilter == DateFilter.CUSTOM && customStart != null && customEnd != null) {
+                setCustomDateRange(customStart, customEnd)
+            } else {
+                setDateFilter(state.selectedFilter)
+            }
         }
     }
 
@@ -179,6 +221,9 @@ class ChargesViewModel @Inject constructor(
             customStartDate = null,
             customEndDate = null
         )}
+        savedStateHandle[KEY_DATE_FILTER] = filter.name
+        savedStateHandle[KEY_CUSTOM_START] = null
+        savedStateHandle[KEY_CUSTOM_END] = null
         loadCharges(startDate, if (filter.days != null) endDate else null)
     }
 
@@ -190,6 +235,9 @@ class ChargesViewModel @Inject constructor(
             customStartDate = start,
             customEndDate = end
         )}
+        savedStateHandle[KEY_DATE_FILTER] = DateFilter.CUSTOM.name
+        savedStateHandle[KEY_CUSTOM_START] = start.toString()
+        savedStateHandle[KEY_CUSTOM_END] = end.toString()
         loadCharges(start, end)
     }
 
@@ -203,6 +251,7 @@ class ChargesViewModel @Inject constructor(
 
     fun setCostFilter(filter: CostFilter) {
         _uiState.update { it.copy(costFilter = filter) }
+        savedStateHandle[KEY_COST_FILTER] = filter.name
         applyFiltersAndUpdateState()
     }
 
@@ -215,6 +264,7 @@ class ChargesViewModel @Inject constructor(
             filter
         }
         _uiState.update { it.copy(chargeTypeFilter = newFilter) }
+        savedStateHandle[KEY_CHARGE_TYPE_FILTER] = newFilter.name
         applyFiltersAndUpdateState()
     }
 
@@ -222,11 +272,13 @@ class ChargesViewModel @Inject constructor(
         val current = _uiState.value.selectedLocations
         val updated = if (location in current) current - location else current + location
         _uiState.update { it.copy(selectedLocations = updated) }
+        savedStateHandle[KEY_LOCATIONS] = ArrayList(updated)
         applyFiltersAndUpdateState()
     }
 
     fun clearLocationFilter() {
         _uiState.update { it.copy(selectedLocations = emptySet()) }
+        savedStateHandle[KEY_LOCATIONS] = ArrayList<String>()
         applyFiltersAndUpdateState()
     }
 
