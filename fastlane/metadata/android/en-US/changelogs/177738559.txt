@@ -1,0 +1,13 @@
+Long lists got two upgrades: a draggable month scrollbar to fly through history with a date label tracking your finger, and a redesigned editorial row for drives and charges. A branded MD spinner replaces the generic one on long loads.
+
+Added:
+- Draggable month scrollbar on drives, charges, trips
+- Branded MD pulse spinner
+
+Changed:
+- Editorial row layout for drives and charges
+- Faster mileage screen
+
+Fixed:
+- "Where was I?" Invalid date in non-UTC timezones
+- Charges unit reads kWh, not KWH

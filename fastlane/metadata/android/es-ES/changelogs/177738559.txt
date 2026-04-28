@@ -1,0 +1,13 @@
+Listas largas más potentes: barra de meses arrastrable para volar por el historial con la fecha bajo el dedo, y nueva fila editorial para conducciones y cargas. Spinner MD de marca en cargas largas.
+
+Añadido:
+- Barra de meses arrastrable (conducciones, cargas, viajes)
+- Spinner MD pulsante
+
+Cambiado:
+- Fila editorial para conducciones y cargas
+- Pantalla de kilometraje más rápida
+
+Corregido:
+- "¿Dónde estuve?" Fecha inválida fuera de UTC
+- Unidad de cargas: kWh, no KWH

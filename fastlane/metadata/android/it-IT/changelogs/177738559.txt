@@ -1,0 +1,13 @@
+Liste lunghe più potenti: scrollbar mensile trascinabile per volare nella cronologia, con etichetta data sotto il dito, e nuova riga editoriale per drive e ricariche. Spinner MD a marchio sui caricamenti lunghi.
+
+Aggiunto:
+- Scrollbar mensile trascinabile (drive, ricariche, viaggi)
+- Spinner MD pulsante
+
+Modificato:
+- Riga editoriale per drive e ricariche
+- Schermata percorrenza più veloce
+
+Risolto:
+- "Dov'ero?" Data non valida fuori UTC
+- Unità ricariche: kWh, non KWH

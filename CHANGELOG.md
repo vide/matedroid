@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0-beta1] - 2026-04-28
+
 ### Added
 - **Draggable month scrollbar**: drives, charges and trips lists now show a small thumb on the right edge whenever the list is long enough to need it (≥20 items and actually scrollable). Drag the thumb vertically for fast scroll; while dragging, a floating label pill peeks out to the left of your finger showing the date of the row under the thumb. Format auto-adapts to the list's date range — `25 APR` for short ranges (≤2 months), `APR '26` once it spans more. Thumb fades after a moment of inactivity. Locale-aware month names in all 5 supported languages.
 - **Branded loading spinner**: the MD logotype, drawn dim with a brighter accent dot tracing its outline forward and back, replaces the generic spinner across long loads (initial loads on every screen, plus a dim-scrim overlay on the drives/charges lists when switching date filters). Debounced 200 ms so cached/snappy loads never flash a spinner.
@@ -553,7 +555,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.7.0-beta1...HEAD
+[1.7.0-beta1]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0-beta1
 [1.6.0]: https://github.com/vide/matedroid/compare/v1.5.1...v1.6.0
 [1.6.0-beta4]: https://github.com/vide/matedroid/compare/v1.6.0-beta3...v1.6.0-beta4
 [1.6.0-beta3]: https://github.com/vide/matedroid/compare/v1.6.0-beta2...v1.6.0-beta3

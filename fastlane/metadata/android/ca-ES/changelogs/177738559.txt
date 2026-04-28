@@ -1,0 +1,13 @@
+Llistes llargues més potents: barra de mesos arrossegable per volar per l'historial amb la data sota el dit, i nova fila editorial per a conduccions i càrregues. Spinner MD de marca en càrregues llargues.
+
+Afegit:
+- Barra de mesos arrossegable (conduccions, càrregues, viatges)
+- Spinner MD polsant
+
+Canviat:
+- Fila editorial per a conduccions i càrregues
+- Pantalla de quilometratge més ràpida
+
+Corregit:
+- "On era?" Data invàlida fora d'UTC
+- Unitat de càrregues: kWh, no KWH
