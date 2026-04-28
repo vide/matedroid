@@ -634,9 +634,16 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val timestamp = backStackEntry.arguments?.getString("timestamp")?.let {
-                URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
-            } ?: return@composable
+            // Compose Navigation 2.7+ auto-decodes query-parameter values, so the
+            // timestamp is already URL-decoded by the time we read it. The
+            // previous manual URLDecoder.decode here was double-decoding — and
+            // since `URLDecoder.decode` treats `+` as a literal space (URL
+            // form-encoding rule), it mangled the `+` in the timezone offset
+            // (e.g. `+02:00` → ` 02:00`), making the resulting string
+            // unparseable as an OffsetDateTime and surfacing as the "Invalid
+            // date" error in WhereWasIViewModel for any non-UTC date.
+            val timestamp = backStackEntry.arguments?.getString("timestamp")
+                ?: return@composable
             val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
 
             WhereWasIScreen(
