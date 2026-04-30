@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Charges-list filters reset after backgrounding the app** — Type / Cost / Location / date-range selections are now persisted across process death, so coming back to the charges list keeps your filters in place.
+- **Filters reset after backgrounding the app** — Date range, charge type, cost, and location selections on the charges list, and date range and distance-bucket on the drives list, are now persisted across process death. Coming back to either list restores the filters you had set.
 
 ## [1.7.0-beta1] - 2026-04-28
 
