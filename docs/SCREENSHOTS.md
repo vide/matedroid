@@ -36,29 +36,45 @@ Prereqs (one-off):
 - A device or emulator visible to `adb devices` (only one online device).
   Emulator works but is slow on older laptops; a physical phone over ADB-WiFi
   is much faster.
-- `bundle install` to install Fastlane locally.
+- Docker installed. Fastlane runs inside a container (built from
+  `docker/screengrab/Dockerfile`) so the host doesn't need
+  ruby / bundler / fastlane installed.
 
 Then:
 
 ```
-./scripts/take-screenshots.sh [car_profile]
+./scripts/screengrab.sh [car_profile]
 ```
 
 The script:
 
-1. Builds `app-debug.apk` + `app-debug-androidTest.apk`.
-2. Starts the Teslamate mock (`mockserver/server.py`) with the chosen car profile
+1. Builds `app-debug.apk` + `app-debug-androidTest.apk` on the host.
+2. Builds (or reuses cached) the `matedroid-screengrab` Docker image — Ruby
+   slim base + `android-tools-adb` + `bundle install` of the project's
+   `Gemfile`.
+3. Starts the Teslamate mock (`mockserver/server.py`) with the chosen car profile
    plus an active DC session, so the live-charge / charges / drives screens have
    real-shaped data to render.
-3. Points the running app at the mock via the `DebugEndpointReceiver` ADB broadcast.
-4. Runs `bundle exec fastlane screengrab`. Screengrab installs the APKs, runs
-   `ScreenshotsTest`, and pulls the resulting PNGs into
+4. Points the running app at the mock via the `DebugEndpointReceiver` ADB broadcast.
+5. Runs `fastlane screengrab` inside the container. The container shares the
+   host's network (`--network host`), so the device the host is already paired
+   with via ADB is visible inside too — no port-forwarding gymnastics. The
+   project directory is bind-mounted at `/workspace`, and `--user` matches the
+   host UID so the resulting PNGs land with the right ownership in
    `fastlane/metadata/android/en-US/images/phoneScreenshots/`.
-5. Tears the mock down and points the app back at the real Teslamate API
+6. Tears the mock down and points the app back at the real Teslamate API
    (read from `.env`).
 
 `car_profile` defaults to `white_juniper_performance`. Use any name from
 `mockserver/cars.json` — see `--list-cars` in the `/mock` skill.
+
+### Legacy `take-screenshots.sh`
+
+The older `scripts/take-screenshots.sh` (adb screencap + imagemagick crops,
+driven by intent extras like `EXTRA_NAVIGATE_TO`) is the script that produced
+the current `docs/screenshots/*.jpg` set referenced from the README. It still
+works and is left in place until the Fastlane flow above covers all 13 target
+screens.
 
 ## Adding a new screen
 

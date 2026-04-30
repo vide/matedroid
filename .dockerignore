@@ -1,0 +1,14 @@
+# Build context for docker/screengrab/Dockerfile only needs Gemfile.
+# Excluding the heavy stuff so `docker build` is fast.
+.git
+.gradle
+build
+app/build
+**/build
+**/.gradle
+**/node_modules
+*.apk
+*.aab
+fastlane/metadata/android/*/images
+docs/screenshots
+mockserver/__pycache__
