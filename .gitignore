@@ -70,6 +70,7 @@ fastlane/screenshots
 fastlane/test_output
 fastlane/readme.md
 fastlane/metadata/android/whatsnew-*
+fastlane/metadata/android/screenshots.html
 
 # Ruby / bundler (fastlane)
 .bundle

@@ -17,13 +17,22 @@
 #
 # Prereqs:
 #   - Docker installed (no ruby/bundler needed on the host).
-#   - Physical device or emulator visible to `adb devices` (only one online).
+#   - At least one device visible to `adb devices`.
 #   - .env contains TESLAMATE_API_URL for the real upstream.
+#
+# Targeting a specific device:
+#   - Honors the standard `ANDROID_SERIAL` environment variable. Set it (e.g.
+#     in .env) when you have multiple devices connected and want to pin the
+#     screenshot run to one of them. With ANDROID_SERIAL set, every adb call
+#     in this script and the adb client inside the container both target it.
+#   - With no ANDROID_SERIAL and exactly one device connected, that device
+#     is used. With multiple devices and no ANDROID_SERIAL, the script bails
+#     to avoid grabbing the wrong one.
 #
 # Usage:
 #   ./scripts/screengrab.sh [car_profile]
 #
-#   car_profile defaults to "white_juniper_performance" — see mockserver/cars.json.
+#   car_profile defaults to "modely_juniper_perf_white" — see mockserver/cars.json.
 #
 # Note: this is the new Fastlane-based pipeline. The older
 # scripts/take-screenshots.sh (adb screencap + imagemagick) still works and
@@ -31,10 +40,12 @@
 # one fully covers all 13 target screens.
 
 set -euo pipefail
+# Propagate failures through pipelines (we tee output) so the script's exit
+# code reflects the underlying tool, not tee's status.
 
 cd "$(dirname "$0")/.."
 
-car_profile="${1:-white_juniper_performance}"
+car_profile="${1:-modely_juniper_perf_white}"
 mock_port=4002
 image_tag="matedroid-screengrab"
 
@@ -45,20 +56,33 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-device_count=$(adb devices | awk 'NR>1 && $2=="device"' | wc -l)
-if [ "$device_count" -ne 1 ]; then
-  echo "✗ Expected exactly 1 connected ADB device, found $device_count." >&2
-  echo "  adb devices output:" >&2
-  adb devices >&2
-  exit 1
-fi
-
 if [ ! -f .env ]; then
   echo "✗ .env not found — TESLAMATE_API_URL is needed to seed the mock with real upstream history." >&2
   exit 1
 fi
 # shellcheck disable=SC1091
 source .env
+
+# Pick the device. ANDROID_SERIAL (from env, or .env above) wins; otherwise
+# require exactly 1 connected device so we don't grab the wrong one when the
+# user has multiple paired (e.g. a phone over USB and another over ADB-WiFi).
+if [ -n "${ANDROID_SERIAL:-}" ]; then
+  if ! adb devices | awk 'NR>1 && $2=="device" {print $1}' | grep -qx "$ANDROID_SERIAL"; then
+    echo "✗ ANDROID_SERIAL=$ANDROID_SERIAL is set but that device is not online." >&2
+    adb devices >&2
+    exit 1
+  fi
+  echo "→ Targeting device $ANDROID_SERIAL"
+else
+  device_count=$(adb devices | awk 'NR>1 && $2=="device"' | wc -l)
+  if [ "$device_count" -ne 1 ]; then
+    echo "✗ Found $device_count connected ADB devices — set ANDROID_SERIAL to pick one." >&2
+    adb devices >&2
+    exit 1
+  fi
+  ANDROID_SERIAL=$(adb devices | awk 'NR>1 && $2=="device" {print $1; exit}')
+  export ANDROID_SERIAL
+fi
 
 local_ip=$(hostname -I | awk '{print $1}')
 mock_url="http://${local_ip}:${mock_port}"
@@ -89,8 +113,8 @@ cleanup() {
   kill "$mock_pid" 2>/dev/null || true
   wait "$mock_pid" 2>/dev/null || true
   echo "→ Pointing app back at real Teslamate API"
-  adb shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
-    -a com.matedroid.SET_ENDPOINT --es url "$TESLAMATE_API_URL" >/dev/null
+  adb -s "$ANDROID_SERIAL" shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
+    -a com.matedroid.SET_ENDPOINT --es url "$TESLAMATE_API_URL" >/dev/null || true
 }
 trap cleanup EXIT
 
@@ -102,15 +126,16 @@ if ! curl -fsS "${mock_url}/cars" >/dev/null 2>&1; then
 fi
 
 echo "→ Pointing app at mock: $mock_url"
-adb shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
+adb -s "$ANDROID_SERIAL" shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
   -a com.matedroid.SET_ENDPOINT --es url "$mock_url" >/dev/null
 
 # --- Run fastlane screengrab inside the container -------------------------
 
-echo "→ Running fastlane screengrab in Docker"
+echo "→ Running fastlane screengrab in Docker (target: $ANDROID_SERIAL)"
 docker run --rm \
   --network host \
   --user "$(id -u):$(id -g)" \
+  -e "ANDROID_SERIAL=$ANDROID_SERIAL" \
   -v "$PWD":/workspace \
   "$image_tag"
 

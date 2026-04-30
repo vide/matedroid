@@ -33,12 +33,17 @@ Target set:
 
 Prereqs (one-off):
 
-- A device or emulator visible to `adb devices` (only one online device).
-  Emulator works but is slow on older laptops; a physical phone over ADB-WiFi
-  is much faster.
-- Docker installed. Fastlane runs inside a container (built from
-  `docker/screengrab/Dockerfile`) so the host doesn't need
-  ruby / bundler / fastlane installed.
+- At least one device or emulator visible to `adb devices`.
+  Emulator works but is slow on older laptops; a physical phone is much
+  faster.
+- Docker installed and runnable without `sudo`
+  (`sudo usermod -aG docker $USER` + re-login if not).
+- Pin the screenshot device by setting `ANDROID_SERIAL` (e.g. in `.env`).
+  The script honors it, and passes it through to the container so both the
+  host adb and the in-container fastlane target the same device. With one
+  device connected and `ANDROID_SERIAL` unset, that device is used; with
+  multiple devices and no `ANDROID_SERIAL`, the script bails so it doesn't
+  grab the wrong one.
 
 Then:
 
@@ -65,7 +70,7 @@ The script:
 6. Tears the mock down and points the app back at the real Teslamate API
    (read from `.env`).
 
-`car_profile` defaults to `white_juniper_performance`. Use any name from
+`car_profile` defaults to `modely_juniper_perf_white`. Use any name from
 `mockserver/cars.json` — see `--list-cars` in the `/mock` skill.
 
 ### Legacy `take-screenshots.sh`

@@ -1,10 +1,11 @@
 package com.matedroid.screenshots
 
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.matedroid.MainActivity
 import org.junit.Rule
 import org.junit.Test
@@ -16,20 +17,27 @@ import tools.fastlane.screengrab.locale.LocaleTestRule
 /**
  * Drives the app and captures Play Store / F-Droid screenshots via Fastlane screengrab.
  *
- * Run end-to-end (app must be pointed at the mock server first — see scripts/take-screenshots.sh):
- *   bundle exec fastlane screengrab
+ * Run end-to-end (app must be pointed at the mock server first — see scripts/screengrab.sh):
+ *   ./scripts/screengrab.sh
  *
  * PoC scope: just the dashboard. Add more @Test methods (or steps inside one) as
  * navigation gets wired up for the remaining 12 screens listed in docs/SCREENSHOTS.md.
+ *
+ * Uses ActivityScenario + UiAutomator instead of `createAndroidComposeRule` because
+ * Compose's test rule auto-invokes `Espresso.onIdle()`, which crashes on Android 14+
+ * with espresso-core 3.6.1: `InputManagerEventInjectionStrategy` does
+ * `InputManager.getInstance()` via reflection, and that method was removed in API 34.
+ * Screengrab's screenshot strategy is UiAutomator anyway, so leaning on that here
+ * keeps the toolchain consistent and avoids a flaky Espresso bump.
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenshotsTest {
 
-    @get:Rule(order = 0)
+    @get:Rule
     val localeTestRule = LocaleTestRule()
 
-    @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    private val device: UiDevice
+        get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     init {
         Screengrab.setDefaultScreenshotStrategy(UiAutomatorScreenshotStrategy())
@@ -37,18 +45,13 @@ class ScreenshotsTest {
 
     @Test
     fun captureMainDashboard() {
-        // Wait for the dashboard's car image to render — the most reliable signal
-        // that the network call has resolved and the hero card is laid out.
-        composeTestRule.waitUntil(timeoutMillis = 30_000) {
-            composeTestRule
-                .onAllNodes(hasContentDescription("Car image", substring = true))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        composeTestRule.onNodeWithContentDescription(
-            "Car image - tap for stats",
-            substring = true
-        ).assertIsDisplayed()
+        ActivityScenario.launch(MainActivity::class.java).use {
+            // Dashboard's car image carries this content description (R.string.car_image_tap_for_stats).
+            // Waiting for it confirms the network round-trip resolved and the hero card laid out.
+            device.wait(Until.hasObject(By.descContains("Car image")), 30_000)
+                ?: error("Dashboard car image did not appear within 30s — is the mock running and serving data?")
 
-        Screengrab.screenshot("01-main-dashboard")
+            Screengrab.screenshot("01-main-dashboard")
+        }
     }
 }

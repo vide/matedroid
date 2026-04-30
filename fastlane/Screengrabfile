@@ -24,5 +24,12 @@ use_tests_in_classes(['com.matedroid.screenshots.ScreenshotsTest'])
 app_package_name('com.matedroid')
 tests_package_name('com.matedroid.test')
 
-# Skip the build step — scripts/take-screenshots.sh assembles the APKs first.
+# Pin the APKs explicitly. Without this screengrab scans for any app-*.apk
+# under app/build/outputs/apk/ and prompts interactively when it finds more
+# than one (e.g. release + debug); inside the container there is no TTY, so
+# the prompt crashes the run.
+app_apk_path('app/build/outputs/apk/debug/app-debug.apk')
+tests_apk_path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')
+
+# Skip the build step — scripts/screengrab.sh assembles the APKs first.
 skip_open_summary(true)
