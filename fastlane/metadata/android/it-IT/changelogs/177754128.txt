@@ -1,0 +1,12 @@
+Liste di guida e ricarica ridisegnate: righe compatte con bordi colorati, date in maiuscolo e km/kWh in evidenza. Scrollbar trascinabile su tutte le liste.
+
+Modificato:
+- Righe ridisegnate (bordo, km/kWh, righe più corte)
+
+Aggiunto:
+- Scrollbar mensile con etichetta data
+- Nuovo spinner di caricamento
+
+Corretto:
+- Filtri non si azzerano dopo aver minimizzato l'app
+- Data errata in "Dove ero?" con fuso orario non UTC

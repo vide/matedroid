@@ -1,0 +1,12 @@
+Drives and charges lists are fully redesigned — compact editorial rows with accent edges, all-caps datelines, and a bold headline metric. Plus a draggable scrollbar on all list screens.
+
+Changed:
+- Redesigned drives & charges rows (accent edge, hero km/kWh, shorter rows)
+
+Added:
+- Draggable month scrollbar with floating date label
+- New branded loading spinner
+
+Fixed:
+- Filters no longer reset after backgrounding the app
+- "Where was I?" date in non-UTC timezones

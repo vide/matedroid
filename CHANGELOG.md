@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-30
+
+Complete visual refresh of the **drives and charges lists**, plus a new fast-scroll bar and several smaller fixes.
+
+### Changed
+- **Drives & charges list redesign**: Both lists swap their 4-stat-card rows for a magazine-style editorial layout — a 4 dp accent edge (gold for drives, green for AC, orange for DC), an ALL-CAPS dateline above the route or location, supporting numbers reduced to small pills (duration, max speed, battery delta, cost), and the headline metric (km / kWh) set as a display-weight hero on the right. Rows are noticeably shorter so more fits on screen, and the visual language now matches the trips list. Free charges show a green "FREE" pill; when TeslaMate cost-editing is available, the cost pill becomes tappable and gains a small ↗ glyph. Drive durations now use the cascading-unit format (`47m`, `2h 14m`) instead of `0:47` / `2:14`.
+- Mileage screen perf improvements.
+
+### Added
+- **Draggable month scrollbar**: drives, charges and trips lists now show a small thumb on the right edge whenever the list is long enough to need it (≥20 items and actually scrollable). Drag the thumb vertically for fast scroll; while dragging, a floating label pill peeks out to the left of your finger showing the date of the row under the thumb. Format auto-adapts to the list's date range — `25 APR` for short ranges (≤2 months), `APR '26` once it spans more. Thumb fades after a moment of inactivity. Locale-aware month names in all 5 supported languages.
+- **Branded loading spinner**: the MD logotype, drawn dim with a brighter accent dot tracing its outline forward and back, replaces the generic spinner across long loads (initial loads on every screen, plus a dim-scrim overlay on the drives/charges lists when switching date filters). Debounced 200 ms so cached/snappy loads never flash a spinner.
+
 ### Fixed
 - **Filters reset after backgrounding the app** — Date range, charge type, cost, and location selections on the charges list, and date range and distance-bucket on the drives list, are now persisted across process death. Coming back to either list restores the filters you had set.
+- **"Where was I?" returned "Invalid date"** for any date with a non-UTC timezone offset — the timestamp was URL-decoded twice on the way to the screen, mangling the `+02:00` (or similar) part of the offset into a literal space and breaking parsing. Single-decode now.
+- **Charges list hero unit was rendered as `KWH`** — SI symbols are case-sensitive, so the unit now correctly reads `kWh`.
 
 ## [1.7.0-beta1] - 2026-04-28
 
@@ -558,7 +572,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.7.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0
 [1.7.0-beta1]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0-beta1
 [1.6.0]: https://github.com/vide/matedroid/compare/v1.5.1...v1.6.0
 [1.6.0-beta4]: https://github.com/vide/matedroid/compare/v1.6.0-beta3...v1.6.0-beta4

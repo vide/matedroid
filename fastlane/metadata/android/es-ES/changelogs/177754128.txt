@@ -1,0 +1,12 @@
+Listas de conducción y carga rediseñadas: filas compactas con bordes de color, fechas en mayúsculas y km/kWh destacado. Barra de desplazamiento en todas las listas.
+
+Modificado:
+- Filas rediseñadas (borde de color, km/kWh, filas más cortas)
+
+Añadido:
+- Barra de desplazamiento mensual con etiqueta de fecha
+- Nuevo indicador de carga personalizado
+
+Corregido:
+- Los filtros ya no se pierden al minimizar la app
+- Fecha incorrecta en "¿Dónde estaba?" con zona horaria no UTC

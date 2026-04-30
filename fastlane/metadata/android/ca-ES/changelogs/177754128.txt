@@ -1,0 +1,12 @@
+Llistes de conducció i càrrega redissenyades: files compactes amb vores de color, dates en majúscules i km/kWh destacat. Barra de desplaçament a totes les llistes.
+
+Modificat:
+- Files redissenyades (vora de color, km/kWh, files més curtes)
+
+Afegit:
+- Barra de desplaçament mensual amb etiqueta de data
+- Nou indicador de càrrega personalitzat
+
+Corregit:
+- Els filtres ja no es perden en minimitzar l'app
+- Data incorrecta a "On era?" amb fus horari no UTC
