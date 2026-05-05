@@ -54,7 +54,8 @@ data class AppSettings(
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val teslamateBaseUrl: String = "",
-    val lastSelectedCarId: Int? = null
+    val lastSelectedCarId: Int? = null,
+    val customHeaders: Map<String, String> = emptyMap()
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
@@ -79,6 +80,7 @@ class SettingsDataStore @Inject constructor(
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
+    private val customHeadersKey = stringPreferencesKey("custom_headers")
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
@@ -95,7 +97,8 @@ class SettingsDataStore @Inject constructor(
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
-            lastSelectedCarId = preferences[lastSelectedCarIdKey]
+            lastSelectedCarId = preferences[lastSelectedCarIdKey],
+            customHeaders = parseCustomHeadersJson(preferences[customHeadersKey] ?: "{}")
         )
     }
 
@@ -150,7 +153,8 @@ class SettingsDataStore @Inject constructor(
         httpBasicAuthUsername: String,
         httpBasicAuthPassword: String,
         acceptInvalidCerts: Boolean,
-        currencyCode: String
+        currencyCode: String,
+        customHeaders: Map<String, String> = emptyMap()
     ) {
         context.dataStore.edit { preferences ->
             preferences[serverUrlKey] = serverUrl
@@ -160,7 +164,31 @@ class SettingsDataStore @Inject constructor(
             preferences[httpBasicAuthPasswordKey] = httpBasicAuthPassword
             preferences[acceptInvalidCertsKey] = acceptInvalidCerts
             preferences[currencyCodeKey] = currencyCode
+            preferences[customHeadersKey] = customHeadersToJson(customHeaders)
         }
+    }
+
+    private fun parseCustomHeadersJson(jsonString: String): Map<String, String> {
+        return try {
+            val result = mutableMapOf<String, String>()
+            val obj = JSONObject(jsonString)
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                result[key] = obj.getString(key)
+            }
+            result
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun customHeadersToJson(headers: Map<String, String>): String {
+        val obj = JSONObject()
+        for ((key, value) in headers) {
+            obj.put(key, value)
+        }
+        return obj.toString()
     }
 
     suspend fun saveHttpBasicAuth(username: String, password: String) {

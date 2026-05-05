@@ -195,6 +195,13 @@
     <string name="settings_accept_invalid_certs">Accepta certificats no vàlids</string>
     <string name="settings_accept_invalid_certs_hint">Activa per a certificats autofirmats</string>
     <string name="settings_accept_invalid_certs_warning">Desactivar la validació de certificats fa les connexions vulnerables a atacs man-in-the-middle. Usa només en xarxes de confiança.</string>
+    <!-- Custom HTTP headers section in advanced network settings -->
+    <string name="settings_custom_headers_title">Capçaleres HTTP personalitzades</string>
+    <string name="settings_custom_headers_hint">Afegeix capçaleres personalitzades enviades amb cada sol·licitud API (p.ex., per a autenticació de proxy).</string>
+    <string name="settings_custom_headers_key_placeholder">Nom de capçalera</string>
+    <string name="settings_custom_headers_value_placeholder">Valor de capçalera</string>
+    <string name="settings_custom_headers_add">Afegeix capçalera</string>
+    <string name="settings_custom_headers_remove">Elimina capçalera</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Configuració de pantalla</string>

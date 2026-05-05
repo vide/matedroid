@@ -98,7 +98,8 @@ private data class ApiCacheKey(
     val acceptInvalidCerts: Boolean,
     val apiToken: String,
     val httpBasicAuthUsername: String,
-    val httpBasicAuthPassword: String
+    val httpBasicAuthPassword: String,
+    val customHeaders: Map<String, String>
 )
 
 /**
@@ -128,14 +129,15 @@ class TeslamateApiFactory(
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername
         val basicAuthPassword = settings.httpBasicAuthPassword
+        val customHeaders = settings.customHeaders
 
-        val cacheKey = ApiCacheKey(normalizedUrl, useInsecure, apiToken, basicAuthUsername, basicAuthPassword)
+        val cacheKey = ApiCacheKey(normalizedUrl, useInsecure, apiToken, basicAuthUsername, basicAuthPassword, customHeaders)
 
         // Return cached API if available
         apiCache[cacheKey]?.let { return it }
 
         // Create new API instance
-        val okHttpClient = createOkHttpClient(apiToken, useInsecure, basicAuthUsername, basicAuthPassword)
+        val okHttpClient = createOkHttpClient(apiToken, useInsecure, basicAuthUsername, basicAuthPassword, customHeaders)
 
         val api = Retrofit.Builder()
             .baseUrl(normalizedUrl)
@@ -168,7 +170,8 @@ class TeslamateApiFactory(
         apiToken: String,
         acceptInvalidCerts: Boolean,
         basicAuthUsername: String = "",
-        basicAuthPassword: String = ""
+        basicAuthPassword: String = "",
+        customHeaders: Map<String, String> = emptyMap()
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
@@ -180,6 +183,12 @@ class TeslamateApiFactory(
                 }
                 if (apiToken.isNotBlank()) {
                     requestBuilder.addHeader("Authorization", "Bearer $apiToken")
+                }
+                // Custom headers are applied last so they can override built-in headers if needed
+                for ((key, value) in customHeaders) {
+                    if (key.isNotBlank()) {
+                        requestBuilder.header(key, value)
+                    }
                 }
                 chain.proceed(requestBuilder.build())
             }

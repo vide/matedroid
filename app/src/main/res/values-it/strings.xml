@@ -195,6 +195,13 @@
     <string name="settings_accept_invalid_certs">Accetta certificati non validi</string>
     <string name="settings_accept_invalid_certs_hint">Abilita per certificati autofirmati</string>
     <string name="settings_accept_invalid_certs_warning">Disabilitare la validazione dei certificati rende le connessioni vulnerabili ad attacchi man-in-the-middle. Usa solo su reti fidate.</string>
+    <!-- Custom HTTP headers section in advanced network settings -->
+    <string name="settings_custom_headers_title">Header HTTP personalizzati</string>
+    <string name="settings_custom_headers_hint">Aggiungi header personalizzati inviati con ogni richiesta API (es. per autenticazione proxy).</string>
+    <string name="settings_custom_headers_key_placeholder">Nome header</string>
+    <string name="settings_custom_headers_value_placeholder">Valore header</string>
+    <string name="settings_custom_headers_add">Aggiungi header</string>
+    <string name="settings_custom_headers_remove">Rimuovi header</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Impostazioni schermo</string>
