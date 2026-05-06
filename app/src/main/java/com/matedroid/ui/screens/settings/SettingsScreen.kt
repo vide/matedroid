@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -455,6 +456,11 @@ private fun SettingsContent(
                 modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
             )
 
+            // Per-row visibility state for header values; grows/shrinks with the list
+            val headerValueVisible = remember { mutableStateListOf<Boolean>() }
+            while (headerValueVisible.size < uiState.customHeaders.size) headerValueVisible.add(false)
+            while (headerValueVisible.size > uiState.customHeaders.size) headerValueVisible.removeLastOrNull()
+
             uiState.customHeaders.forEachIndexed { index, (key, value) ->
                 Row(
                     modifier = Modifier
@@ -477,6 +483,26 @@ private fun SettingsContent(
                         placeholder = { Text(stringResource(R.string.settings_custom_headers_value_placeholder)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        visualTransformation = if (headerValueVisible[index]) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { headerValueVisible[index] = !headerValueVisible[index] }) {
+                                Icon(
+                                    imageVector = if (headerValueVisible[index]) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                    contentDescription = stringResource(
+                                        if (headerValueVisible[index]) R.string.hide_password else R.string.show_password
+                                    )
+                                )
+                            }
+                        },
                         enabled = !uiState.isTesting && !uiState.isSaving
                     )
                     Spacer(modifier = Modifier.width(4.dp))
