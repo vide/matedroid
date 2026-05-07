@@ -7,6 +7,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.matedroid.MainActivity
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,13 +44,39 @@ class ScreenshotsTest {
         Screengrab.setDefaultScreenshotStrategy(UiAutomatorScreenshotStrategy())
     }
 
+    /**
+     * Wake the device and dismiss the keyguard before each test. Without this,
+     * the activity launches *under* the lock screen — the accessibility tree
+     * still contains the dashboard's nodes (so a semantic-only wait succeeds)
+     * but the visible surface is whatever the lock screen / black-screen-saver
+     * is showing, and the screenshot comes out black with just the nav bar.
+     */
+    @Before
+    fun wakeAndUnlock() {
+        device.wakeUp()
+        // No-op when there's a PIN/pattern; on the screenshot device the lock
+        // screen is just the swipe-up keyguard so this dismisses it.
+        device.executeShellCommand("wm dismiss-keyguard")
+        device.executeShellCommand("svc power stayon true")
+        device.waitForIdle()
+    }
+
     @Test
     fun captureMainDashboard() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            // Dashboard's car image carries this content description (R.string.car_image_tap_for_stats).
-            // Waiting for it confirms the network round-trip resolved and the hero card laid out.
+            // The dashboard's hero card carries this content description
+            // (R.string.car_image_tap_for_stats). Waiting on the semantic node
+            // tells us Compose has composed the screen — but composition happens
+            // ahead of drawing, so the pixels may not be on the GPU yet.
             device.wait(Until.hasObject(By.descContains("Car image")), 30_000)
                 ?: error("Dashboard car image did not appear within 30s — is the mock running and serving data?")
+
+            // Force a layout/draw settle. waitForIdle() blocks until the AccessibilityEvent
+            // queue drains; the extra short sleep is to let Compose's animations
+            // (e.g. the loading spinner fade-out, hero card scale-in) finish so the
+            // screenshot is the steady-state and not mid-transition.
+            device.waitForIdle()
+            Thread.sleep(1500)
 
             Screengrab.screenshot("01-main-dashboard")
         }

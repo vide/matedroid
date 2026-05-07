@@ -115,6 +115,10 @@ cleanup() {
   echo "→ Pointing app back at real Teslamate API"
   adb -s "$ANDROID_SERIAL" shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
     -a com.matedroid.SET_ENDPOINT --es url "$TESLAMATE_API_URL" >/dev/null || true
+  if [ -n "${original_locale:-}" ]; then
+    echo "→ Restoring device locale to $original_locale"
+    adb -s "$ANDROID_SERIAL" shell "setprop persist.sys.locale $original_locale; setprop ctl.restart zygote" >/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
@@ -129,6 +133,30 @@ echo "→ Pointing app at mock: $mock_url"
 adb -s "$ANDROID_SERIAL" shell am broadcast -n com.matedroid/.receiver.DebugEndpointReceiver \
   -a com.matedroid.SET_ENDPOINT --es url "$mock_url" >/dev/null
 
+# Wake the screen + dismiss the keyguard. The test's @Before does this too,
+# but doing it from the script as well means the device's display is on for
+# the entire run — without this the screen tends to time out between APK
+# install and test start, and screengrab grabs a black frame.
+echo "→ Waking device $ANDROID_SERIAL"
+adb -s "$ANDROID_SERIAL" shell input keyevent KEYCODE_WAKEUP >/dev/null
+adb -s "$ANDROID_SERIAL" shell wm dismiss-keyguard >/dev/null
+adb -s "$ANDROID_SERIAL" shell svc power stayon true >/dev/null
+
+# Force the device's system locale to en-US for the run. screengrab's
+# LocaleTestRule retargets only the *test* APK's resources — the app under
+# test runs in its own process (under instrumentation) and reads the system
+# locale at process-start, so without this the captured screenshots come
+# out in whatever language the device was set to (Italian, Spanish, …).
+# Force-stopping com.matedroid below ensures the next launch picks up the
+# new locale instead of reusing a process started under the old one.
+# cleanup() restores the original locale.
+original_locale=$(adb -s "$ANDROID_SERIAL" shell getprop persist.sys.locale | tr -d '\r')
+if [ "$original_locale" != "en-US" ]; then
+  echo "→ Switching device locale: $original_locale → en-US"
+  adb -s "$ANDROID_SERIAL" shell setprop persist.sys.locale en-US >/dev/null
+  adb -s "$ANDROID_SERIAL" shell am force-stop com.matedroid >/dev/null
+fi
+
 # --- Run fastlane screengrab inside the container -------------------------
 
 echo "→ Running fastlane screengrab in Docker (target: $ANDROID_SERIAL)"
@@ -138,5 +166,15 @@ docker run --rm \
   -e "ANDROID_SERIAL=$ANDROID_SERIAL" \
   -v "$PWD":/workspace \
   "$image_tag"
+
+# Screengrab appends a millisecond timestamp to each PNG so re-runs don't
+# collide. Strip it so the committed filenames stay stable
+# (01-main-dashboard.png, not 01-main-dashboard_1777548982770.png).
+echo "→ Normalizing screenshot filenames"
+shopt -s nullglob
+for f in fastlane/metadata/android/*/images/phoneScreenshots/*_[0-9]*.png; do
+  mv -f "$f" "${f%_[0-9]*.png}.png"
+done
+shopt -u nullglob
 
 echo "✓ Screenshots written to fastlane/metadata/android/<locale>/images/phoneScreenshots/"
