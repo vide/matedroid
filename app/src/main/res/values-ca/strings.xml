@@ -1176,4 +1176,8 @@
     <!-- Parked duration shown on the Where Was I screen -->
     <string name="parked_for">Aparcat durant %s</string>
     <string name="parked_since">des de %s</string>
+    <string name="where_was_i_heading_to">En camí a %s</string>
+    <string name="where_was_i_charging_at">Carregant a %s</string>
+    <string name="where_was_i_parked_at">Aparcat a %s</string>
+    <string name="where_was_i_open_in_maps">Obrir al mapa</string>
 </resources>

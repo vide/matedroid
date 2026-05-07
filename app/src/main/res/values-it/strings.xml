@@ -1176,4 +1176,8 @@
     <!-- Parked duration shown on the Where Was I screen -->
     <string name="parked_for">Parcheggiato da %s</string>
     <string name="parked_since">dalle %s</string>
+    <string name="where_was_i_heading_to">Diretta a %s</string>
+    <string name="where_was_i_charging_at">In ricarica a %s</string>
+    <string name="where_was_i_parked_at">Parcheggiata a %s</string>
+    <string name="where_was_i_open_in_maps">Apri nelle mappe</string>
 </resources>

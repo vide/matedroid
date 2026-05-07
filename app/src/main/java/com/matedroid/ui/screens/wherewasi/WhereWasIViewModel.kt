@@ -149,7 +149,9 @@ class WhereWasIViewModel @Inject constructor(
             driveDistance = drive.distance,
             units = units,
             targetDateTime = _uiState.value.targetDateTime,
-            geofenceName = drive.endAddress ?: drive.startAddress
+            // Destination only — falling back to startAddress would mislead, since the screen
+            // frames this as "Heading to X" and X must be where the car is going.
+            geofenceName = drive.endAddress
         )
 
         // Fetch geocoding and weather in background
