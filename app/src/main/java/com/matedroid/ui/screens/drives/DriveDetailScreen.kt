@@ -221,7 +221,7 @@ private fun DriveDetailContent(
                 title = stringResource(R.string.trip),
                 icon = CustomIcons.SteeringWheel,
                 stats = listOf(
-                    StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(s.distance, units)),
+                    StatItem(stringResource(R.string.distance), UnitFormatter.formatDistance(s.distance, units,2)),
                     StatItem(stringResource(R.string.duration), formatDuration(s.durationMin)),
                     StatItem(stringResource(R.string.efficiency), UnitFormatter.formatEfficiency(s.efficiency, units))
                 )
