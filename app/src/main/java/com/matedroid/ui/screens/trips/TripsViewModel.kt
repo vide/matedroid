@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.matedroid.util.parseIsoDate
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -154,15 +155,6 @@ class TripsViewModel @Inject constructor(
         return parseLocalDate(dateStr)?.year
     }
 
-    private fun parseLocalDate(dateStr: String): LocalDate? {
-        return try {
-            OffsetDateTime.parse(dateStr).toLocalDate()
-        } catch (e: DateTimeParseException) {
-            try {
-                LocalDateTime.parse(dateStr.replace("Z", "")).toLocalDate()
-            } catch (e2: Exception) {
-                null
-            }
-        }
-    }
+    private fun parseLocalDate(dateStr: String): LocalDate? =
+        parseIsoDate(dateStr)
 }

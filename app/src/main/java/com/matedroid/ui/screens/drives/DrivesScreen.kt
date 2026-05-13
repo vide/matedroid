@@ -51,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -75,6 +76,8 @@ import com.matedroid.ui.components.rememberDebouncedLoading
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatDurationCompact
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
@@ -452,7 +455,7 @@ private fun SummaryCard(summary: DrivesSummary, units: Units?, palette: CarColor
                 SummaryItem(
                     icon = Icons.Default.Timer,
                     label = stringResource(R.string.total_time),
-                    value = formatDuration(summary.totalDurationMin),
+                    value = formatDuration(summary.totalDurationMin, java.util.Locale.getDefault()),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
@@ -510,19 +513,21 @@ private fun DriveItem(
     palette: CarColorPalette,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val unknown = stringResource(R.string.unknown)
     val startCity = drive.startAddress ?: unknown
     val endCity = drive.endAddress ?: unknown
 
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
     EditorialListItem(
         accent = palette.accent,
-        dateline = formatEditorialDate(drive.startDate),
+        dateline = formatEditorialDate(drive.startDate, is24Hour),
         title = "$startCity → $endCity",
         heroValue = "%.0f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
         heroUnit = UnitFormatter.getDistanceUnit(units).uppercase(java.util.Locale.getDefault()),
         onClick = onClick,
     ) {
-        EditorialPill(formatDuration(drive.durationMin ?: 0))
+        EditorialPill(formatDuration(drive.durationMin ?: 0, java.util.Locale.getDefault()))
         EditorialPill("${drive.speedMax ?: 0} ${UnitFormatter.getSpeedUnit(units)}")
         val start = drive.startBatteryLevel
         val end = drive.endBatteryLevel
@@ -534,26 +539,6 @@ private fun DriveItem(
                 fontWeight = FontWeight.Bold
             )
         }
-    }
-}
-
-/**
- * Cascading-unit duration: <1h shows minutes, ≥1h shows "Xh Ym" (or just "Xh" if no
- * remaining minutes), ≥1d shows "Xd Yh". Mirrors the trips list so durations across the
- * three lists are formatted consistently.
- */
-private fun formatDuration(minutes: Int): String {
-    val total = minutes.coerceAtLeast(0)
-    val hours = total / 60
-    val mins = total % 60
-    return when {
-        hours >= 24 -> {
-            val days = hours / 24
-            val remH = hours - days * 24
-            if (remH > 0) "${days}d ${remH}h" else "${days}d"
-        }
-        hours >= 1 -> if (mins > 0) "${hours}h ${mins}m" else "${hours}h"
-        else -> "${total}m"
     }
 }
 
@@ -694,7 +679,7 @@ private fun DrivesChartPage(
                 BarChartData(
                     label = data.label,
                     value = data.totalDurationMin.toDouble(),
-                    displayValue = formatDurationChart(data.totalDurationMin)
+                    displayValue = formatDurationCompact(data.totalDurationMin)
                 )
             }
             DrivesChartType.DISTANCE -> chartData.map { data ->
@@ -717,7 +702,7 @@ private fun DrivesChartPage(
 
         val valueFormatter: (Double) -> String = when (chartType) {
             DrivesChartType.COUNT -> { v -> v.toInt().toString() }
-            DrivesChartType.TIME -> { v -> formatDurationChart(v.toInt()) }
+            DrivesChartType.TIME -> { v -> formatDurationCompact(v.toInt()) }
             DrivesChartType.DISTANCE -> { v -> "%.1f $distanceUnit".format(v) }
             DrivesChartType.TOP_SPEED -> { v -> "${v.toInt()} $speedUnit" }
         }
@@ -729,7 +714,7 @@ private fun DrivesChartPage(
             else -> ((barData.size + 5) / 6).coerceAtLeast(1)
         }
         val yAxisFormatter: (Double) -> String = when (chartType) {
-            DrivesChartType.TIME -> { v -> formatDurationChart(v.toInt()) }
+            DrivesChartType.TIME -> { v -> formatDurationCompact(v.toInt()) }
             else -> { v -> if (v >= 1000) "%.0fk".format(v / 1000) else "%.0f".format(v) }
         }
 
@@ -743,10 +728,4 @@ private fun DrivesChartPage(
             yAxisFormatter = yAxisFormatter
         )
     }
-}
-
-private fun formatDurationChart(minutes: Int): String {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return "%d:%02d".format(hours, mins)
 }

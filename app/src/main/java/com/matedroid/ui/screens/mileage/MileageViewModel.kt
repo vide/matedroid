@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -382,18 +383,8 @@ class MileageViewModel @Inject constructor(
 // caller passes in the snapshot of pre-parsed data they want aggregated.
 // ---------------------------------------------------------------------------
 
-private fun parseDateTime(dateStr: String?): LocalDateTime? {
-    if (dateStr == null) return null
-    return try {
-        OffsetDateTime.parse(dateStr).toLocalDateTime()
-    } catch (_: DateTimeParseException) {
-        try {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        } catch (_: Exception) {
-            null
-        }
-    }
-}
+private fun parseDateTime(dateStr: String?): LocalDateTime? =
+    parseIsoDateTime(dateStr)
 
 private fun computeYearAggregation(
     drives: List<TimedDrive>,

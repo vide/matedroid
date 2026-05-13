@@ -52,9 +52,10 @@ import com.matedroid.domain.LegRef
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -343,16 +344,9 @@ private fun ChargeTypeChip(isDc: Boolean, chipColor: Color) {
 }
 
 private fun formatCandidateDate(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM HH:mm"))
-    } catch (e: Exception) {
-        dateStr
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    val locale = Locale.getDefault()
+    return "${dt.toLocalDate().formatMediumNoYear(locale)} ${dt.formatTime(locale)}"
 }
 
 private fun formatMinutes(minutes: Int): String {

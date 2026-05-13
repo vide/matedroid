@@ -21,10 +21,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import com.matedroid.util.formatMonthYear
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatWeekLabel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
-import java.util.Locale
 import javax.inject.Inject
 
 enum class DriveChartGranularity {
@@ -378,7 +381,7 @@ class DrivesViewModel @Inject constructor(
                     val drivesInDay = drivesByDay[key] ?: emptyList()
                     result.add(
                         createChartPoint(
-                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            label = current.formatShortNoYear(Locale.getDefault()),
                             sortKey = key,
                             drives = drivesInDay
                         )
@@ -420,7 +423,7 @@ class DrivesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChartPoint(
-                            label = "W$weekOfYear",
+                            label = formatWeekLabel(weekOfYear, Locale.getDefault()),
                             sortKey = key,
                             drives = drivesInWeek
                         )
@@ -459,7 +462,7 @@ class DrivesViewModel @Inject constructor(
                     val drivesInMonth = drivesByMonth[key] ?: emptyList()
                     result.add(
                         createChartPoint(
-                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            label = firstDay.formatMonthYear(Locale.getDefault()),
                             sortKey = key,
                             drives = drivesInMonth
                         )

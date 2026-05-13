@@ -4,8 +4,7 @@ import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +18,7 @@ class SyncLogCollector @Inject constructor() {
 
     companion object {
         private const val MAX_LOG_ENTRIES = 500
-        private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+        private val dateFormat = DateTimeFormatter.ofPattern("HH:mm:ss.SSS", Locale.getDefault())
     }
 
     private val _logs = MutableStateFlow<List<String>>(emptyList())
@@ -29,7 +28,7 @@ class SyncLogCollector @Inject constructor() {
 
     @Synchronized
     fun log(tag: String, message: String) {
-        val timestamp = dateFormat.format(Date())
+        val timestamp = java.time.LocalTime.now().format(dateFormat)
         val entry = "$timestamp [$tag] $message"
 
         // Also log to Android logcat
@@ -47,7 +46,7 @@ class SyncLogCollector @Inject constructor() {
 
     @Synchronized
     fun logError(tag: String, message: String, error: Throwable? = null) {
-        val timestamp = dateFormat.format(Date())
+        val timestamp = java.time.LocalTime.now().format(dateFormat)
         val errorMsg = error?.message?.let { " - $it" } ?: ""
         val entry = "$timestamp [$tag] ERROR: $message$errorMsg"
 

@@ -83,7 +83,8 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import com.matedroid.util.formatMedium
+import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1086,19 +1087,8 @@ private fun EmptyState(palette: CarColorPalette) {
 }
 
 private fun formatDate(dateStr: String): String {
-    return try {
-        val inputFormatter = DateTimeFormatter.ISO_DATE_TIME
-        val outputFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
-        val dateTime = LocalDateTime.parse(dateStr, inputFormatter)
-        dateTime.format(outputFormatter)
-    } catch (e: Exception) {
-        // Fallback: try parsing just the date portion
-        try {
-            dateStr.take(10)
-        } catch (e2: Exception) {
-            dateStr
-        }
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr.take(10)
+    return dt.toLocalDate().formatMedium(Locale.getDefault())
 }
 
 /**

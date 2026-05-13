@@ -63,10 +63,10 @@ import kotlinx.coroutines.launch
 import com.matedroid.R
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -911,15 +911,7 @@ private fun formatTimelineDuration(minutes: Int): String {
 }
 
 private fun formatClockTime(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("HH:mm"))
-    } catch (e: Exception) {
-        dateStr
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    return dt.formatTime(Locale.getDefault())
 }
 

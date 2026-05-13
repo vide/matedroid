@@ -45,8 +45,9 @@ import com.matedroid.data.repository.TripWeatherPoint
 import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.util.formatTime
 import androidx.compose.ui.res.stringResource
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -117,19 +118,19 @@ fun TripWeatherSparklineCard(
             // Endpoints row — first and last sample times for context
             val first = samples.first()
             val last = samples.last()
-            val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+            val locale = Locale.getDefault()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = first.timestamp.format(timeFmt),
+                    text = first.timestamp.formatTime(locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = last.timestamp.format(timeFmt),
+                    text = last.timestamp.formatTime(locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

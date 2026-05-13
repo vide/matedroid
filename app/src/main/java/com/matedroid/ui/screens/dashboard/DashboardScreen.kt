@@ -121,6 +121,9 @@ import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatTime
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
@@ -764,13 +767,7 @@ private fun formatDurationSince(isoTimestamp: String?): String? {
         val duration = java.time.Duration.between(instant, now)
         val totalMinutes = duration.toMinutes()
         if (totalMinutes < 0) return null
-        val hours = totalMinutes / 60
-        val minutes = totalMinutes % 60
-        if (hours > 0) {
-            "${hours}h ${minutes}m"
-        } else {
-            "${minutes}m"
-        }
+        formatDuration(totalMinutes.toInt(), java.util.Locale.getDefault())
     } catch (e: Exception) {
         null
     }
@@ -789,12 +786,13 @@ private fun formatTimeFromTimestamp(isoTimestamp: String?, yesterdayStr: String)
         val localDateTime = dateTime.toLocalDateTime()
         val today = java.time.LocalDate.now()
         val yesterday = today.minusDays(1)
-        val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+        val locale = java.util.Locale.getDefault()
+        val timeStr = localDateTime.formatTime(locale)
 
         when (localDateTime.toLocalDate()) {
             today -> timeStr
             yesterday -> "$yesterdayStr $timeStr"
-            else -> String.format("%02d/%02d %s", localDateTime.dayOfMonth, localDateTime.monthValue, timeStr)
+            else -> "${localDateTime.toLocalDate().formatShortNoYear(locale)} $timeStr"
         }
     } catch (e: Exception) {
         null
