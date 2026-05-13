@@ -66,14 +66,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
+import androidx.compose.ui.platform.LocalContext
 import com.matedroid.ui.components.FullscreenDualAxisLineChart
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import kotlin.math.roundToInt
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
+import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,6 +238,7 @@ private fun CurrentChargeContent(
     chronologicalPoints: List<ChargePoint>,
     modifier: Modifier = Modifier
 ) {
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
 
@@ -270,22 +273,14 @@ private fun CurrentChargeContent(
         }
 
         // Charts - always show cards, even with few data points
-        val timeLabels = extractChronoTimeLabels(chronologicalPoints)
+        val timeLabels = extractChronoTimeLabels(chronologicalPoints, is24Hour)
         val powers = chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
         val batteryLevels = chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
-        val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
         val fractionToTimeLabel: (Float) -> String = { fraction ->
             val pts = chronologicalPoints
             val index = (fraction * pts.lastIndex).roundToInt().coerceIn(0, pts.lastIndex)
             pts[index].date?.let { dateStr ->
-                try {
-                    val dt = try {
-                        OffsetDateTime.parse(dateStr).toLocalDateTime()
-                    } catch (e: java.time.format.DateTimeParseException) {
-                        java.time.LocalDateTime.parse(dateStr.replace("Z", ""))
-                    }
-                    dt.format(timeFormatter)
-                } catch (e: Exception) { "" }
+                parseIsoDateTime(dateStr)?.formatTime(java.util.Locale.getDefault(), is24Hour) ?: ""
             } ?: ""
         }
 
@@ -385,6 +380,7 @@ private fun CurrentChargeHeaderCard(
     chargeLimitSoc: Int?,
     chronologicalPoints: List<ChargePoint>
 ) {
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val unknownLabel = stringResource(R.string.unknown)
     val estimatedEndLabel = stringResource(R.string.current_charge_estimated_end)
     val elapsedLabel = stringResource(R.string.current_charge_elapsed)
@@ -529,7 +525,7 @@ private fun CurrentChargeHeaderCard(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = formatEstimatedEnd(hours),
+                                text = formatEstimatedEnd(hours, is24Hour),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -816,40 +812,28 @@ private fun LiveChartCard(
     }
 }
 
-private fun extractChronoTimeLabels(chargePoints: List<ChargePoint>): List<String> {
+private fun extractChronoTimeLabels(chargePoints: List<ChargePoint>, is24Hour: Boolean? = null): List<String> {
     if (chargePoints.isEmpty()) return listOf("", "", "", "", "")
 
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val times = chargePoints.mapNotNull { point ->
-        point.date?.let { dateStr ->
-            try {
-                val dateTime = try {
-                    OffsetDateTime.parse(dateStr).toLocalDateTime()
-                } catch (e: DateTimeParseException) {
-                    LocalDateTime.parse(dateStr.replace("Z", ""))
-                }
-                dateTime
-            } catch (e: Exception) {
-                null
-            }
-        }
+        point.date?.let { parseIsoDateTime(it) }
     }
 
     if (times.isEmpty()) return listOf("", "", "", "", "")
 
     val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
+    val locale = java.util.Locale.getDefault()
     return indices.map { idx ->
-        times.getOrNull(idx.coerceIn(0, times.size - 1))?.format(timeFormatter) ?: ""
+        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }
 
-private fun formatEstimatedEnd(hoursRemaining: Double): String {
+private fun formatEstimatedEnd(hoursRemaining: Double, is24Hour: Boolean? = null): String {
     val totalMinutes = (hoursRemaining * 60).roundToInt()
     val now = java.time.LocalDateTime.now()
     val endTime = now.plusMinutes(totalMinutes.toLong())
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val h = totalMinutes / 60
     val m = totalMinutes % 60
     val durationStr = if (h > 0) "${h}h ${m}m" else "${m}m"
-    return "${endTime.format(timeFormatter)} ($durationStr)"
+    return "${endTime.formatTime(java.util.Locale.getDefault(), is24Hour)} ($durationStr)"
 }

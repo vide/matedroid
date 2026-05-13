@@ -38,10 +38,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matedroid.util.formatEditorial
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
+import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Locale
 
 /**
@@ -268,23 +270,17 @@ fun EditorialPill(
 }
 
 /**
- * Format an ISO-8601 datetime (with or without offset, as TeslaMate may emit either)
- * as a locale-aware "MON · 14 APR · 09:42" dateline. Falls back to the raw input on
- * parse failure rather than swallowing it — better to show a weird value than to hide
- * it entirely while debugging.
+ * Format an ISO-8601 datetime as a locale-aware editorial dateline.
+ *
+ * Locale-aware examples:
+ *   en-US: "SUN · MAY 10 · 3:39 PM"
+ *   zh-CN: "周日 · 5月10日 · 15:39"
+ *   it-IT: "DOM · 10 MAG · 15:39"
+ *
+ * Falls back to the raw input on parse failure.
  */
-internal fun formatEditorialDate(dateStr: String?): String {
+internal fun formatEditorialDate(dateStr: String?, is24Hour: Boolean? = null): String {
     if (dateStr.isNullOrBlank()) return ""
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (_: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        // Middle dots are literal because they're outside the pattern alphabet.
-        dt.format(DateTimeFormatter.ofPattern("EEE · d MMM · HH:mm", Locale.getDefault()))
-            .uppercase(Locale.getDefault())
-    } catch (_: Exception) {
-        dateStr
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    return dt.formatEditorial(Locale.getDefault(), is24Hour)
 }

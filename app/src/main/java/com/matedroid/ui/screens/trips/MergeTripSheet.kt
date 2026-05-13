@@ -36,9 +36,9 @@ import com.matedroid.R
 import com.matedroid.domain.model.Trip
 import com.matedroid.ui.theme.CarColorPalette
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.parseIsoDateTime
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,14 +154,6 @@ private fun formatRange(startIso: String, endIso: String): String {
 }
 
 private fun parseShort(iso: String): String? {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(iso).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(iso.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM"))
-    } catch (e: Exception) {
-        null
-    }
+    val dt = parseIsoDateTime(iso) ?: return null
+    return dt.toLocalDate().formatMediumNoYear(Locale.getDefault())
 }

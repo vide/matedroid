@@ -17,27 +17,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.matedroid.util.formatShortNoYear
 import com.matedroid.R
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.chrono.IsoChronology
-import java.time.format.DateTimeFormatterBuilder
 import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * Format a [LocalDate] as day/month or month/day depending on locale.
- * EU locales: "7/4", US locale: "4/7".
+ * Format a [LocalDate] as a locale-aware short date without year.
+ * en-US: "5/10", zh-CN: "5/10", it-IT: "10/05".
  */
-fun formatShortDate(date: LocalDate): String {
-    val pattern = DateTimeFormatterBuilder.getLocalizedDateTimePattern(
-        FormatStyle.SHORT, null, IsoChronology.INSTANCE, Locale.getDefault()
-    )
-    val monthFirst = pattern.indexOf('M') < pattern.indexOf('d')
-    return if (monthFirst) "${date.monthValue}/${date.dayOfMonth}"
-    else "${date.dayOfMonth}/${date.monthValue}"
-}
+fun formatShortDate(date: LocalDate): String = date.formatShortNoYear(Locale.getDefault())
 
 /**
  * Two-step date picker dialog: first picks the "from" date, then the "to" date.

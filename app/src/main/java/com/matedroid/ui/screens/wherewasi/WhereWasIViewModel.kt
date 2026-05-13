@@ -21,7 +21,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
@@ -80,8 +83,10 @@ class WhereWasIViewModel @Inject constructor(
                     return@launch
                 }
 
-                val displayFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
-                _uiState.value = _uiState.value.copy(targetDateTime = targetTime.format(displayFormatter))
+                val locale = java.util.Locale.getDefault()
+                val displayDateStr = targetTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+                val timeStr = targetTime.formatTime(locale)
+                _uiState.value = _uiState.value.copy(targetDateTime = "$displayDateStr, $timeStr")
 
                 val dateStr = targetTime.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val dayStart = "${dateStr}T00:00:00Z"
@@ -231,7 +236,9 @@ class WhereWasIViewModel @Inject constructor(
         }
 
         val parkedMinutes = java.time.Duration.between(result.endTime, targetTime).toMinutes()
-        val sinceFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+        val locale = java.util.Locale.getDefault()
+        val sinceDateStr = result.endTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+        val sinceTimeStr = result.endTime.formatTime(locale)
 
         _uiState.value = WhereWasIUiState(
             isLoading = false,
@@ -242,7 +249,7 @@ class WhereWasIViewModel @Inject constructor(
             outsideTemp = result.temp,
             units = units,
             parkedDurationMinutes = parkedMinutes,
-            parkedSince = result.endTime.format(sinceFormatter),
+            parkedSince = "$sinceDateStr, $sinceTimeStr",
             lastActivityDriveId = result.driveId,
             lastActivityChargeId = result.chargeId,
             targetDateTime = _uiState.value.targetDateTime,
@@ -447,18 +454,8 @@ class WhereWasIViewModel @Inject constructor(
         }
     }
 
-    private fun parseDateTime(dateStr: String): LocalDateTime? {
-        if (dateStr.isBlank()) return null
-        return try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            try {
-                LocalDateTime.parse(dateStr.replace("Z", ""))
-            } catch (e2: Exception) {
-                null
-            }
-        }
-    }
+    private fun parseDateTime(dateStr: String): LocalDateTime? =
+        parseIsoDateTime(dateStr)
 
     private fun parseEndLatFromAddress(drive: DriveData): Double? = null
     private fun parseEndLonFromAddress(drive: DriveData): Double? = null

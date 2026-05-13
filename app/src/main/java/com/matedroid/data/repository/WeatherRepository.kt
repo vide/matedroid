@@ -3,10 +3,11 @@ package com.matedroid.data.repository
 import android.util.Log
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.models.DrivePosition
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.async
@@ -288,7 +289,7 @@ class WeatherRepository @Inject constructor(
             val temperature = hourly.temperature2m?.getOrNull(timeIndex) ?: return null
             val weatherCode = hourly.weatherCode?.getOrNull(timeIndex) ?: 0
 
-            val timeStr = dateTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+            val timeStr = dateTime.formatTime(Locale.getDefault())
 
             return WeatherPoint(
                 time = timeStr,
@@ -307,18 +308,8 @@ class WeatherRepository @Inject constructor(
      * Parses a date string into LocalDateTime.
      * Supports both ISO 8601 with offset and without.
      */
-    private fun parseDateTime(dateStr: String): LocalDateTime? {
-        return try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            try {
-                LocalDateTime.parse(dateStr.replace("Z", ""))
-            } catch (e2: Exception) {
-                Log.e(TAG, "Failed to parse date: $dateStr", e2)
-                null
-            }
-        }
-    }
+    private fun parseDateTime(dateStr: String): LocalDateTime? =
+        parseIsoDateTime(dateStr)
 
     /**
      * Calculates the distance between two points using the Haversine formula.

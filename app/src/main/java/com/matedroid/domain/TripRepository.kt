@@ -11,10 +11,9 @@ import com.matedroid.data.local.entity.SavedTripConsumedFingerprint
 import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.local.entity.SavedTripWithLegs
 import com.matedroid.domain.model.Trip
+import com.matedroid.util.parseIsoDateTime
 import java.security.MessageDigest
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -315,11 +314,8 @@ class TripRepository @Inject constructor(
 
     private fun compareDates(a: String, b: String): Int = a.compareTo(b)
 
-    private fun parseDate(s: String): LocalDateTime? = try {
-        OffsetDateTime.parse(s).toLocalDateTime()
-    } catch (e: DateTimeParseException) {
-        try { LocalDateTime.parse(s.replace("Z", "")) } catch (e2: Exception) { null }
-    }
+    private fun parseDate(s: String): LocalDateTime? =
+        parseIsoDateTime(s)
 
     private fun daysBetween(a: String, b: String): Long? {
         val pa = parseDate(a) ?: return null

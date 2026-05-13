@@ -35,7 +35,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import java.time.format.DateTimeFormatter
+import com.matedroid.util.formatMedium
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -913,8 +915,7 @@ private fun SummaryRow(
 
     // Info dialog explaining the avg/year calculation
     if (showAvgInfoDialog && firstDriveDate != null) {
-        val dateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-        val formattedDate = firstDriveDate.format(dateFormatter)
+        val formattedDate = firstDriveDate.formatMedium(Locale.getDefault())
         val daysSinceFirst = ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now()).toInt()
         val dialogMessage = stringResource(R.string.mileage_avg_year_message, formattedDate, daysSinceFirst)
 
@@ -1674,15 +1675,6 @@ private fun DriveRow(
 }
 
 private fun parseTime(dateStr: String): String {
-    return try {
-        val dateTime = OffsetDateTime.parse(dateStr)
-        "%02d:%02d".format(dateTime.hour, dateTime.minute)
-    } catch (e: Exception) {
-        try {
-            val dateTime = LocalDateTime.parse(dateStr.replace("Z", ""))
-            "%02d:%02d".format(dateTime.hour, dateTime.minute)
-        } catch (e2: Exception) {
-            ""
-        }
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return ""
+    return dt.formatTime(java.util.Locale.getDefault())
 }

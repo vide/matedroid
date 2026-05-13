@@ -21,10 +21,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import com.matedroid.util.formatMonthYear
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatWeekLabel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
-import java.util.Locale
 import javax.inject.Inject
 
 enum class ChartGranularity {
@@ -476,7 +479,7 @@ class ChargesViewModel @Inject constructor(
                     val itemsInDay = chargesByDay[key] ?: emptyList()
                     result.add(
                         createChargeChartPoint(
-                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            label = current.formatShortNoYear(Locale.getDefault()),
                             sortKey = key,
                             charges = itemsInDay,
                             dcChargeIds = _uiState.value.dcChargeIds
@@ -518,7 +521,7 @@ class ChargesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChargeChartPoint(
-                            label = "W$weekOfYear",
+                            label = formatWeekLabel(weekOfYear, Locale.getDefault()),
                             sortKey = key,
                             charges = chargesInWeek,
                             dcChargeIds = _uiState.value.dcChargeIds
@@ -558,7 +561,7 @@ class ChargesViewModel @Inject constructor(
                     val chargesInMonth = chargesByMonth[key] ?: emptyList()
                     result.add(
                         createChargeChartPoint(
-                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            label = firstDay.formatMonthYear(Locale.getDefault()),
                             sortKey = key,
                             charges = chargesInMonth,
                             dcChargeIds = _uiState.value.dcChargeIds

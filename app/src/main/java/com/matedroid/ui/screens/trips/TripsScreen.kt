@@ -68,11 +68,11 @@ import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -326,7 +326,7 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Schedule,
                     label = stringResource(R.string.trip_driving_time),
-                    value = formatDuration(totalDrivingMin),
+                    value = formatDuration(totalDrivingMin, java.util.Locale.getDefault()),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
@@ -443,7 +443,7 @@ private fun TripItem(
             // Meta row: duration · stops · kWh
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = formatDuration(trip.totalDurationMin),
+                    text = formatDuration(trip.totalDurationMin, java.util.Locale.getDefault()),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -480,16 +480,8 @@ private fun pluralStopsLabel(count: Int): String =
     else stringResource(R.string.trip_n_stops, count)
 
 private fun formatDateChip(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (_: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM yy")).uppercase()
-    } catch (_: Exception) {
-        dateStr
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    return dt.toLocalDate().formatMediumNoYear(Locale.getDefault()).uppercase(Locale.getDefault())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -588,36 +580,4 @@ internal fun Trip.displayName(): String {
  *  1w–~1mo → "Xw Yd"
  *  ≥30d → "Xmo Yw"
  */
-private fun formatDuration(minutes: Int): String {
-    val totalMinutes = minutes.coerceAtLeast(0)
-    val totalHours = totalMinutes / 60.0
-    val totalDays = totalHours / 24.0
-
-    return when {
-        totalDays >= 30 -> {
-            val weeks = (totalDays / 7.0).toInt().coerceAtLeast(1)
-            val months = weeks / 4
-            val remWeeks = weeks - months * 4
-            if (remWeeks > 0) "${months}mo ${remWeeks}w" else "${months}mo"
-        }
-        totalDays >= 7 -> {
-            val days = Math.round(totalDays).toInt()
-            val weeks = days / 7
-            val remDays = days - weeks * 7
-            if (remDays > 0) "${weeks}w ${remDays}d" else "${weeks}w"
-        }
-        totalHours >= 24 -> {
-            val hours = Math.round(totalHours).toInt()
-            val days = hours / 24
-            val remHours = hours - days * 24
-            if (remHours > 0) "${days}d ${remHours}h" else "${days}d"
-        }
-        totalHours >= 1 -> {
-            val h = totalMinutes / 60
-            val m = totalMinutes % 60
-            if (m > 0) "${h}h ${m}m" else "${h}h"
-        }
-        else -> "${totalMinutes}m"
-    }
-}
 
