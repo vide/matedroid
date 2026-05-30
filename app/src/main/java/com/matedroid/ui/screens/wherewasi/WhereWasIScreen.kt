@@ -55,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -300,7 +301,9 @@ fun WhereWasIScreen(
                                 val titleSentence = stateSentence(carState, placeName)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    // Top-align so the state icon and chevron stay anchored to the
+                                    // first line when a long place name wraps to two lines.
+                                    verticalAlignment = Alignment.Top
                                 ) {
                                     Icon(
                                         imageVector = stateIcon(carState),
@@ -314,6 +317,8 @@ fun WhereWasIScreen(
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = palette.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f)
                                     )
                                     if (hasLinkedActivity) {
@@ -355,13 +360,17 @@ fun WhereWasIScreen(
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = palette.accent,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
                                                     modifier = Modifier.clickable { onNavigateToCountriesVisited() }
                                                 )
                                             } else {
                                                 Text(
                                                     text = part,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    color = palette.onSurfaceVariant
+                                                    color = palette.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                             if (index < breadcrumbParts.lastIndex) {
