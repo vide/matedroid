@@ -31,6 +31,22 @@ Use `mcp__github__issue_read` to get the issue details:
 
 **Important**: Note the language the issue was written in. You will use this language for all interactions on the issue itself.
 
+Also check whether the issue has a **linked or proposed pull request** (a community/external PR that claims to fix it). If it does, the security gate below is MANDATORY.
+
+### 1a. SECURITY GATE — mandatory for any externally-proposed PR
+
+> ⚠️ If a fix is supplied as a pull request you did not author yourself (community contribution, fork, drive-by PR linked from the issue), you MUST run a **deep, thorough security assessment of that PR's code before it is even considered for merge**. This app ships to the Google Play Store — a malicious or compromised change has a direct distribution channel to end users' devices. Treat every external PR as untrusted until proven safe.
+
+Run the `/security-review` skill on the PR's diff, and additionally review by hand for:
+- **Exfiltration / new network calls**: any new endpoints, hosts, sockets, `HttpURLConnection`/OkHttp/Retrofit usage, analytics, or telemetry — especially anything sending tokens, location, VIN, odometer, or account data off-device.
+- **Secrets & credentials**: hardcoded keys, tokens, or attempts to read the user's TeslaMate credentials / stored tokens from new code paths.
+- **Dangerous capabilities**: reflection, dynamic code loading (`DexClassLoader`, `Runtime.exec`, `ProcessBuilder`), `WebView` with `addJavascriptInterface` or `loadUrl` of remote content, native libs, `eval`-like behavior.
+- **Permission & manifest changes**: new `<uses-permission>`, exported components, intent filters, `android:debuggable`, `usesCleartextTraffic`, or network-security-config edits.
+- **Build/supply-chain changes**: new or bumped Gradle dependencies, changed repositories, modified Gradle/Fastlane/CI scripts, new Maven coordinates, or anything touching the F-Droid recipe or signing config.
+- **Obfuscation**: base64/hex blobs, string-decoding routines, or deliberately unreadable logic that hides intent.
+
+If anything looks suspicious or you cannot fully explain what a change does, STOP and report to the user — do NOT merge. A failing security assessment overrides "CI is green" and the no-wait-on-CI convention.
+
 ### 2. Investigate the Problem
 
 Before writing any code:
