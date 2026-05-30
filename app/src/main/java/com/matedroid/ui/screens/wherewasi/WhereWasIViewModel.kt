@@ -12,6 +12,7 @@ import com.matedroid.data.repository.GeocodedLocation
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherCondition
+import com.matedroid.domain.LocalDayBoundaries
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -84,8 +85,8 @@ class WhereWasIViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(targetDateTime = targetTime.format(displayFormatter))
 
                 val targetDate = targetTime.toLocalDate()
-                val dayStart = startOfDayRfc3339(targetDate)
-                val dayEnd = endOfDayRfc3339(targetDate)
+                val dayStart = LocalDayBoundaries.startOfDay(targetDate)
+                val dayEnd = LocalDayBoundaries.endOfDay(targetDate)
 
                 // Fetch drives, charges, and units in parallel
                 val drivesDeferred = async { repository.getDrives(carId, dayStart, dayEnd) }
@@ -333,8 +334,8 @@ class WhereWasIViewModel @Inject constructor(
      * The API returns results most-recent-first, so show=1 is a cheap query.
      */
     private suspend fun findLastActivityInHistory(carId: Int, targetTime: LocalDateTime): ActivityEnd? = coroutineScope {
-        val searchEnd = startOfDayRfc3339(targetTime.toLocalDate())
-        val searchStart = startOfDayRfc3339(targetTime.toLocalDate().minusYears(1))
+        val searchEnd = LocalDayBoundaries.startOfDay(targetTime.toLocalDate())
+        val searchStart = LocalDayBoundaries.startOfDay(targetTime.toLocalDate().minusYears(1))
 
         val drivesDeferred = async {
             repository.getDrives(carId, searchStart, searchEnd, page = 1, show = 1)
@@ -464,21 +465,6 @@ class WhereWasIViewModel @Inject constructor(
 
     private fun parseEndLatFromAddress(drive: DriveData): Double? = null
     private fun parseEndLonFromAddress(drive: DriveData): Double? = null
-
-    // RFC3339 day boundaries in the device's local timezone. Using an explicit offset
-    // (e.g. +02:00) instead of a hardcoded Z keeps the "this date" window aligned with the
-    // user's local day — without it, the query window is shifted by the UTC offset and pulls
-    // in (or drops) activity from the adjacent local day. Offset is computed per boundary so
-    // DST transition days are handled correctly.
-    private fun startOfDayRfc3339(date: java.time.LocalDate): String {
-        val offset = java.time.ZoneId.systemDefault().rules.getOffset(date.atStartOfDay())
-        return "${date}T00:00:00$offset"
-    }
-
-    private fun endOfDayRfc3339(date: java.time.LocalDate): String {
-        val offset = java.time.ZoneId.systemDefault().rules.getOffset(date.atTime(23, 59, 59))
-        return "${date}T23:59:59$offset"
-    }
 
     companion object {
         private const val TAG = "WhereWasIViewModel"

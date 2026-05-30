@@ -9,6 +9,7 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.LocalDayBoundaries
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -259,18 +260,9 @@ class DrivesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format:
-            // 2006-01-02T15:04:05Z for UTC time
-            // 2006-01-02T15:04:05+nn:00 for local time, with nn the timezone offset
-            val zoneId = java.time.ZoneId.systemDefault()
-            val startDateStr = startDate?.let {
-                val offset = zoneId.rules.getOffset(it.atStartOfDay())
-                "${it}T00:00:00${offset.toString()}"
-            }
-            val endDateStr = endDate?.let {
-                val offset = zoneId.rules.getOffset(it.atTime(23, 59, 59))
-                "${it}T23:59:59${offset.toString()}"
-            }
+            // Local-day RFC3339 boundaries (see LocalDayBoundaries for why not UTC).
+            val startDateStr = startDate?.let { LocalDayBoundaries.startOfDay(it) }
+            val endDateStr = endDate?.let { LocalDayBoundaries.endOfDay(it) }
 
             when (val result = repository.getDrives(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
