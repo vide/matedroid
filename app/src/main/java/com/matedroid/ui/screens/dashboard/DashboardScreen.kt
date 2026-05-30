@@ -121,6 +121,9 @@ import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatTime
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
@@ -756,7 +759,7 @@ private fun StatusIcon(
 /**
  * Formats duration since a given ISO timestamp as "XXm" or "XXh YYm"
  */
-private fun formatDurationSince(isoTimestamp: String?): String? {
+private fun formatDurationSince(isoTimestamp: String?, resources: android.content.res.Resources): String? {
     if (isoTimestamp == null) return null
     return try {
         val instant = java.time.OffsetDateTime.parse(isoTimestamp).toInstant()
@@ -764,13 +767,7 @@ private fun formatDurationSince(isoTimestamp: String?): String? {
         val duration = java.time.Duration.between(instant, now)
         val totalMinutes = duration.toMinutes()
         if (totalMinutes < 0) return null
-        val hours = totalMinutes / 60
-        val minutes = totalMinutes % 60
-        if (hours > 0) {
-            "${hours}h ${minutes}m"
-        } else {
-            "${minutes}m"
-        }
+        formatDuration(resources, totalMinutes.toInt())
     } catch (e: Exception) {
         null
     }
@@ -782,19 +779,20 @@ private fun formatDurationSince(isoTimestamp: String?): String? {
  * - Yesterday: "yesterday HH:mm"
  * - Older: "DD/MM HH:mm"
  */
-private fun formatTimeFromTimestamp(isoTimestamp: String?, yesterdayStr: String): String? {
+private fun formatTimeFromTimestamp(isoTimestamp: String?, yesterdayStr: String, is24Hour: Boolean): String? {
     if (isoTimestamp == null) return null
     return try {
         val dateTime = java.time.OffsetDateTime.parse(isoTimestamp)
         val localDateTime = dateTime.toLocalDateTime()
         val today = java.time.LocalDate.now()
         val yesterday = today.minusDays(1)
-        val timeStr = String.format("%02d:%02d", localDateTime.hour, localDateTime.minute)
+        val locale = java.util.Locale.getDefault()
+        val timeStr = localDateTime.formatTime(locale, is24Hour)
 
         when (localDateTime.toLocalDate()) {
             today -> timeStr
             yesterday -> "$yesterdayStr $timeStr"
-            else -> String.format("%02d/%02d %s", localDateTime.dayOfMonth, localDateTime.monthValue, timeStr)
+            else -> "${localDateTime.toLocalDate().formatShortNoYear(locale)} $timeStr"
         }
     } catch (e: Exception) {
         null
@@ -834,12 +832,13 @@ private fun StatusIndicatorsRow(
             ) {
                 // State icon - bedtime when asleep, power icon otherwise
                 val yesterdayStr = stringResource(R.string.yesterday)
+                val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
                 val chargingStr = stringResource(R.string.charging)
                 val onlineStr = stringResource(R.string.online)
                 val drivingStr = stringResource(R.string.driving)
                 val stateTooltip = when {
                     isAsleep -> {
-                        val sleepTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr)
+                        val sleepTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr, is24Hour)
                         if (sleepTime != null) {
                             stringResource(R.string.asleep_since, sleepTime)
                         } else {
@@ -847,7 +846,7 @@ private fun StatusIndicatorsRow(
                         }
                     }
                     isOffline -> {
-                        val offlineTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr)
+                        val offlineTime = formatTimeFromTimestamp(status.stateSince, yesterdayStr, is24Hour)
                         if (offlineTime != null) {
                             stringResource(R.string.offline_since, offlineTime)
                         } else {
@@ -995,7 +994,7 @@ private fun StatusIndicatorsRow(
         }
 
         // Show duration for all states
-        val stateDuration = formatDurationSince(status.stateSince)
+        val stateDuration = formatDurationSince(status.stateSince, LocalContext.current.resources)
         if (stateDuration != null) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -1549,7 +1548,7 @@ private fun ChargingDetailsRow(
                 )
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
-                    text = status.timeToFullCharge?.let { formatHoursMinutes(it) } ?: "--",
+                    text = status.timeToFullCharge?.let { formatHoursMinutes(it, LocalContext.current.resources) } ?: "--",
                     style = MaterialTheme.typography.labelSmall,
                     color = palette.onSurfaceVariant
                 )
@@ -2264,11 +2263,9 @@ private fun TirePressureItem(
     }
 }
 
-private fun formatHoursMinutes(hours: Double): String {
+private fun formatHoursMinutes(hours: Double, resources: android.content.res.Resources): String {
     val totalMinutes = (hours * 60).roundToInt()
-    val h = totalMinutes / 60
-    val m = totalMinutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
+    return formatDuration(resources, totalMinutes)
 }
 
 @Preview(showBackground = true)

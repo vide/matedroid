@@ -1295,4 +1295,18 @@
     <string name="where_was_i_parked_at">Parked at %s</string>
     <!-- Content description for the icon button that opens the location in the user's external maps app -->
     <string name="where_was_i_open_in_maps">Open in Maps</string>
+
+    <!-- Duration formatting (compact units). %1$d/%2$d are counts. These are abbreviations
+         shown in lists/charts/stat pills; keep them short and locale-conventional. -->
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_days">%1$dd</string>
+    <string name="duration_days_hours">%1$dd %2$dh</string>
+    <string name="duration_weeks">%1$dw</string>
+    <string name="duration_weeks_days">%1$dw %2$dd</string>
+    <string name="duration_months">%1$dmo</string>
+    <string name="duration_months_weeks">%1$dmo %2$dw</string>
+    <!-- Compact week-of-year label for chart X axes, e.g. "W23" -->
+    <string name="chart_week_label">W%1$d</string>
 </resources>

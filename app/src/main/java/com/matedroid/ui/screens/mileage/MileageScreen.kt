@@ -35,7 +35,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import java.time.format.DateTimeFormatter
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatMedium
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -76,8 +80,6 @@ import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
@@ -913,8 +915,7 @@ private fun SummaryRow(
 
     // Info dialog explaining the avg/year calculation
     if (showAvgInfoDialog && firstDriveDate != null) {
-        val dateFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
-        val formattedDate = firstDriveDate.format(dateFormatter)
+        val formattedDate = firstDriveDate.formatMedium(Locale.getDefault())
         val daysSinceFirst = ChronoUnit.DAYS.between(firstDriveDate, LocalDate.now()).toInt()
         val dialogMessage = stringResource(R.string.mileage_avg_year_message, formattedDate, daysSinceFirst)
 
@@ -1548,8 +1549,9 @@ private fun DriveRow(
     units: Units? = null,
     onClick: () -> Unit
 ) {
-    val startTime = drive.startDate?.let { parseTime(it) } ?: ""
-    val endTime = drive.endDate?.let { parseTime(it) } ?: ""
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
+    val startTime = drive.startDate?.let { parseTime(it, is24Hour) } ?: ""
+    val endTime = drive.endDate?.let { parseTime(it, is24Hour) } ?: ""
     val distance = drive.distance ?: 0.0
     val duration = drive.durationMin ?: 0
     val energyUsed = drive.energyConsumedNet ?: 0.0
@@ -1595,7 +1597,7 @@ private fun DriveRow(
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Text(
-                        text = "${duration}m",
+                        text = formatDuration(LocalContext.current.resources, duration),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -1673,16 +1675,7 @@ private fun DriveRow(
     }
 }
 
-private fun parseTime(dateStr: String): String {
-    return try {
-        val dateTime = OffsetDateTime.parse(dateStr)
-        "%02d:%02d".format(dateTime.hour, dateTime.minute)
-    } catch (e: Exception) {
-        try {
-            val dateTime = LocalDateTime.parse(dateStr.replace("Z", ""))
-            "%02d:%02d".format(dateTime.hour, dateTime.minute)
-        } catch (e2: Exception) {
-            ""
-        }
-    }
+private fun parseTime(dateStr: String, is24Hour: Boolean): String {
+    val dt = parseIsoDateTime(dateStr) ?: return ""
+    return dt.formatTime(java.util.Locale.getDefault(), is24Hour)
 }

@@ -668,6 +668,7 @@ private fun ChargeItem(
     onEditCost: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val unknownLocation = stringResource(R.string.unknown_location)
     val freeLabel = stringResource(R.string.charge_free)
     val accent = if (isDcCharge) palette.dcColor else palette.acColor
@@ -680,9 +681,10 @@ private fun ChargeItem(
     val costText = if (isFree) freeLabel else "$currencySymbol%.2f".format(cost)
     val costPillText = if (onEditCost != null) "$costText ↗" else costText
 
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
     EditorialListItem(
         accent = accent,
-        dateline = formatEditorialDate(charge.startDate),
+        dateline = formatEditorialDate(charge.startDate, is24Hour),
         title = charge.address ?: unknownLocation,
         heroValue = "%.1f".format(charge.chargeEnergyAdded ?: 0.0),
         heroUnit = "kWh",

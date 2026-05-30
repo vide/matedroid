@@ -51,12 +51,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import com.matedroid.util.parseIsoDate
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -417,19 +415,8 @@ private fun handleDrag(
  * [LocalDate]. Returns null on parse failure rather than throwing — the scroll
  * indicator simply treats unparseable rows as undated.
  */
-internal fun String?.parseListItemDate(): LocalDate? {
-    if (this.isNullOrBlank()) return null
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(this).toLocalDateTime()
-        } catch (_: DateTimeParseException) {
-            LocalDateTime.parse(this.replace("Z", ""))
-        }
-        dt.toLocalDate()
-    } catch (_: Exception) {
-        null
-    }
-}
+internal fun String?.parseListItemDate(): LocalDate? =
+    parseIsoDate(this)
 
 internal fun String?.parseListItemYearMonth(): YearMonth? =
     parseListItemDate()?.let(YearMonth::from)

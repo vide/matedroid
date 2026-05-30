@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,10 +52,11 @@ import com.matedroid.domain.EligibleLegs
 import com.matedroid.domain.LegRef
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -224,6 +226,8 @@ private fun CandidateRow(
     val rowBackground =
         if (isSelected) palette.accent.copy(alpha = 0.15f)
         else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    val context = LocalContext.current
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(context)
 
     Row(
         modifier = Modifier
@@ -262,7 +266,7 @@ private fun CandidateRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = formatCandidateDate(candidate.drive.startDate),
+                        text = formatCandidateDate(candidate.drive.startDate, is24Hour),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -274,7 +278,7 @@ private fun CandidateRow(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = formatMinutes(candidate.drive.durationMin),
+                        text = formatDuration(context.resources, candidate.drive.durationMin),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -298,7 +302,7 @@ private fun CandidateRow(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = formatCandidateDate(candidate.charge.startDate),
+                        text = formatCandidateDate(candidate.charge.startDate, is24Hour),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -314,7 +318,7 @@ private fun CandidateRow(
                         color = chipColor
                     )
                     Text(
-                        text = formatMinutes(candidate.charge.durationMin),
+                        text = formatDuration(context.resources, candidate.charge.durationMin),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -342,21 +346,8 @@ private fun ChargeTypeChip(isDc: Boolean, chipColor: Color) {
     }
 }
 
-private fun formatCandidateDate(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM HH:mm"))
-    } catch (e: Exception) {
-        dateStr
-    }
-}
-
-private fun formatMinutes(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
+private fun formatCandidateDate(dateStr: String, is24Hour: Boolean): String {
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    val locale = Locale.getDefault()
+    return "${dt.toLocalDate().formatMediumNoYear(locale)} ${dt.formatTime(locale, is24Hour)}"
 }

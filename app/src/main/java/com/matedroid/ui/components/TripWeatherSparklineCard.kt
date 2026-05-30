@@ -1,6 +1,7 @@
 package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,8 +46,9 @@ import com.matedroid.data.repository.TripWeatherPoint
 import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.util.formatTime
 import androidx.compose.ui.res.stringResource
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -117,19 +119,20 @@ fun TripWeatherSparklineCard(
             // Endpoints row — first and last sample times for context
             val first = samples.first()
             val last = samples.last()
-            val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+            val locale = Locale.getDefault()
+            val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = first.timestamp.format(timeFmt),
+                    text = first.timestamp.formatTime(locale, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = last.timestamp.format(timeFmt),
+                    text = last.timestamp.formatTime(locale, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

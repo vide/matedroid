@@ -1205,4 +1205,16 @@
     <string name="where_was_i_charging_at">在 %s 充电</string>
     <string name="where_was_i_parked_at">停放在 %s</string>
     <string name="where_was_i_open_in_maps">在地图中打开</string>
+
+    <!-- 时长格式（紧凑单位）。%1$d/%2$d 为数量。 -->
+    <string name="duration_minutes">%1$d分钟</string>
+    <string name="duration_hours">%1$d小时</string>
+    <string name="duration_hours_minutes">%1$d小时%2$d分钟</string>
+    <string name="duration_days">%1$d天</string>
+    <string name="duration_days_hours">%1$d天%2$d小时</string>
+    <string name="duration_weeks">%1$d周</string>
+    <string name="duration_weeks_days">%1$d周%2$d天</string>
+    <string name="duration_months">%1$d个月</string>
+    <string name="duration_months_weeks">%1$d个月%2$d周</string>
+    <string name="chart_week_label">第%1$d周</string>
 </resources>

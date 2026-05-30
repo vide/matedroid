@@ -59,7 +59,10 @@ import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.util.formatDurationCompact
+import com.matedroid.util.formatMedium
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.roundToInt
 
 enum class UpdatesDateFilter(val months: Int?) {
@@ -376,7 +379,7 @@ private fun MonthlyUpdatesChart(
 
             val chartData = monthlyData.map { data ->
                 BarChartData(
-                    label = data.yearMonth.format(DateTimeFormatter.ofPattern("MMM")),
+                    label = data.yearMonth.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())),
                     value = data.count.toDouble(),
                     displayValue = updatesFormat.format(data.count)
                 )
@@ -423,7 +426,7 @@ private fun SoftwareVersionCard(
     isLongestInstalled: Boolean,
     palette: CarColorPalette
 ) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+    val locale = java.util.Locale.getDefault()
     val uriHandler = LocalUriHandler.current
     val releaseNotesUrl = "https://www.notateslaapp.com/software-updates/version/${update.version}/release-notes"
     val unknownLabel = stringResource(R.string.unknown)
@@ -532,7 +535,7 @@ private fun SoftwareVersionCard(
                         color = if (update.isCurrent) palette.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = update.installDate?.format(dateFormatter) ?: unknownLabel,
+                        text = update.installDate?.toLocalDate()?.formatMedium(locale) ?: unknownLabel,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = if (update.isCurrent) palette.onSurface else MaterialTheme.colorScheme.onSurface
@@ -580,7 +583,7 @@ private fun SoftwareVersionCard(
                         )
                     }
                     Text(
-                        text = formatDurationHhMm(update.updateDurationMinutes),
+                        text = formatDurationCompact(update.updateDurationMinutes?.toInt() ?: 0),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = if (update.isCurrent) palette.onSurface else MaterialTheme.colorScheme.onSurface
@@ -594,11 +597,4 @@ private fun SoftwareVersionCard(
 private fun formatDaysInstalled(days: Long?): String {
     if (days == null || days < 0) return "--"
     return "$days"
-}
-
-private fun formatDurationHhMm(minutes: Long?): String {
-    if (minutes == null || minutes < 0) return "--"
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return "%d:%02d".format(hours, mins)
 }

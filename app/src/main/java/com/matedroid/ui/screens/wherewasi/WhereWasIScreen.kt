@@ -66,6 +66,7 @@ import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.data.repository.countryCodeToFlag
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.util.formatDuration
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalettes
@@ -449,14 +450,7 @@ fun WhereWasIScreen(
                                     }
                                     CarActivityState.PARKED -> {
                                         state.parkedDurationMinutes?.takeIf { it > 0 }?.let { totalMin ->
-                                            val days = totalMin / (24 * 60)
-                                            val hours = (totalMin % (24 * 60)) / 60
-                                            val minutes = totalMin % 60
-                                            val durationStr = buildString {
-                                                if (days > 0) append("${days}d ")
-                                                if (hours > 0) append("${hours}h ")
-                                                if (days == 0L && minutes > 0) append("${minutes}m")
-                                            }.trim()
+                                            val durationStr = formatDuration(LocalContext.current.resources, totalMin.toInt())
                                             val parkedForPrefix = stringResource(R.string.parked_for, "").trimEnd()
                                             val sinceStr = state.parkedSince
                                             val sincePrefix = sinceStr?.let { stringResource(R.string.parked_since, "").trimEnd() }
