@@ -1,6 +1,7 @@
 package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -119,18 +120,19 @@ fun TripWeatherSparklineCard(
             val first = samples.first()
             val last = samples.last()
             val locale = Locale.getDefault()
+            val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = first.timestamp.formatTime(locale),
+                    text = first.timestamp.formatTime(locale, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = last.timestamp.formatTime(locale),
+                    text = last.timestamp.formatTime(locale, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

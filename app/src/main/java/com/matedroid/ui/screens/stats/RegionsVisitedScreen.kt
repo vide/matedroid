@@ -82,7 +82,6 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
-import java.time.LocalDateTime
 import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale

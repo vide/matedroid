@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -1409,7 +1410,7 @@ private fun DriveLegCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = formatDuration(leg.drive.durationMin, java.util.Locale.getDefault()),
+                    text = formatDuration(LocalContext.current.resources, leg.drive.durationMin),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1481,7 +1482,7 @@ private fun ChargeLegCard(
                     color = chipColor
                 )
                 Text(
-                    text = formatDuration(leg.charge.durationMin, java.util.Locale.getDefault()),
+                    text = formatDuration(LocalContext.current.resources, leg.charge.durationMin),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

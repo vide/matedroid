@@ -22,9 +22,7 @@ import kotlinx.coroutines.withContext
 import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import java.time.YearMonth
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 data class YearlyMileage(

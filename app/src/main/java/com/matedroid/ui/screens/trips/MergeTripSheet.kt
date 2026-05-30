@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import com.matedroid.R
 import com.matedroid.domain.model.Trip
 import com.matedroid.ui.theme.CarColorPalette
-import java.time.LocalDateTime
 import com.matedroid.util.formatMediumNoYear
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale

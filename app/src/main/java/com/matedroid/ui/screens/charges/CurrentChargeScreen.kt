@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.matedroid.ui.components.FullscreenDualAxisLineChart
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.util.formatDuration
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import kotlin.math.roundToInt
@@ -525,7 +526,7 @@ private fun CurrentChargeHeaderCard(
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = formatEstimatedEnd(hours, is24Hour),
+                                text = formatEstimatedEnd(hours, LocalContext.current.resources, is24Hour),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -828,12 +829,14 @@ private fun extractChronoTimeLabels(chargePoints: List<ChargePoint>, is24Hour: B
     }
 }
 
-private fun formatEstimatedEnd(hoursRemaining: Double, is24Hour: Boolean? = null): String {
+private fun formatEstimatedEnd(
+    hoursRemaining: Double,
+    resources: android.content.res.Resources,
+    is24Hour: Boolean? = null
+): String {
     val totalMinutes = (hoursRemaining * 60).roundToInt()
     val now = java.time.LocalDateTime.now()
     val endTime = now.plusMinutes(totalMinutes.toLong())
-    val h = totalMinutes / 60
-    val m = totalMinutes % 60
-    val durationStr = if (h > 0) "${h}h ${m}m" else "${m}m"
+    val durationStr = formatDuration(resources, totalMinutes)
     return "${endTime.formatTime(java.util.Locale.getDefault(), is24Hour)} ($durationStr)"
 }

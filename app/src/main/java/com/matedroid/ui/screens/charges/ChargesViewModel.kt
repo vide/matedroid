@@ -11,8 +11,10 @@ import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.LocalDayBoundaries
+import android.content.Context
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -114,6 +116,7 @@ data class ChargesSummary(
 
 @HiltViewModel
 class ChargesViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
     private val aggregateDao: AggregateDao,
@@ -522,7 +525,7 @@ class ChargesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChargeChartPoint(
-                            label = formatWeekLabel(weekOfYear, Locale.getDefault()),
+                            label = formatWeekLabel(appContext.resources, weekOfYear),
                             sortKey = key,
                             charges = chargesInWeek,
                             dcChargeIds = _uiState.value.dcChargeIds

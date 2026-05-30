@@ -51,6 +51,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -326,7 +327,7 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Schedule,
                     label = stringResource(R.string.trip_driving_time),
-                    value = formatDuration(totalDrivingMin, java.util.Locale.getDefault()),
+                    value = formatDuration(LocalContext.current.resources, totalDrivingMin),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
@@ -443,7 +444,7 @@ private fun TripItem(
             // Meta row: duration · stops · kWh
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = formatDuration(trip.totalDurationMin, java.util.Locale.getDefault()),
+                    text = formatDuration(LocalContext.current.resources, trip.totalDurationMin),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface

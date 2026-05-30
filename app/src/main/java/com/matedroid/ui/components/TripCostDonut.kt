@@ -31,9 +31,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.util.formatDuration
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -253,7 +255,7 @@ private fun DonutCanvas(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "+%.1f kWh · %s".format(stop.energyAddedKwh, formatDonutDuration(stop.durationMin)),
+                    text = "+%.1f kWh · %s".format(stop.energyAddedKwh, formatDuration(LocalContext.current.resources, stop.durationMin)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -306,20 +308,5 @@ private fun generateShades(base: Color, count: Int): List<Color> {
                 alpha = base.alpha
             )
         }
-    }
-}
-
-private fun formatDonutDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return when {
-        h >= 24 -> {
-            val d = h / 24
-            val rh = h % 24
-            if (rh > 0) "${d}d${rh}h" else "${d}d"
-        }
-        h > 0 && m > 0 -> "${h}h${m}m"
-        h > 0 -> "${h}h"
-        else -> "${m}m"
     }
 }

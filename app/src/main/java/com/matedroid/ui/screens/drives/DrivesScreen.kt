@@ -455,7 +455,7 @@ private fun SummaryCard(summary: DrivesSummary, units: Units?, palette: CarColor
                 SummaryItem(
                     icon = Icons.Default.Timer,
                     label = stringResource(R.string.total_time),
-                    value = formatDuration(summary.totalDurationMin, java.util.Locale.getDefault()),
+                    value = formatDuration(LocalContext.current.resources, summary.totalDurationMin),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
@@ -527,7 +527,7 @@ private fun DriveItem(
         heroUnit = UnitFormatter.getDistanceUnit(units).uppercase(java.util.Locale.getDefault()),
         onClick = onClick,
     ) {
-        EditorialPill(formatDuration(drive.durationMin ?: 0, java.util.Locale.getDefault()))
+        EditorialPill(formatDuration(context.resources, drive.durationMin ?: 0))
         EditorialPill("${drive.speedMax ?: 0} ${UnitFormatter.getSpeedUnit(units)}")
         val start = drive.startBatteryLevel
         val end = drive.endBatteryLevel

@@ -11,7 +11,9 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.LocalDayBoundaries
 import com.matedroid.R
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -108,6 +110,7 @@ data class DrivesSummary(
 
 @HiltViewModel
 class DrivesViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
     private val savedStateHandle: SavedStateHandle
@@ -423,7 +426,7 @@ class DrivesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChartPoint(
-                            label = formatWeekLabel(weekOfYear, Locale.getDefault()),
+                            label = formatWeekLabel(appContext.resources, weekOfYear),
                             sortKey = key,
                             drives = drivesInWeek
                         )

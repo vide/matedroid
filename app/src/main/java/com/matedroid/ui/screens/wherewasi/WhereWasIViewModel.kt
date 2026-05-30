@@ -13,7 +13,9 @@ import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.domain.LocalDayBoundaries
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,12 +23,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 enum class CarActivityState { DRIVING, CHARGING, PARKED }
@@ -63,10 +63,14 @@ data class WhereWasIUiState(
 
 @HiltViewModel
 class WhereWasIViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val geocodingRepository: GeocodingRepository,
     private val openMeteoApi: OpenMeteoApi
 ) : ViewModel() {
+
+    private val is24Hour: Boolean
+        get() = android.text.format.DateFormat.is24HourFormat(appContext)
 
     private val _uiState = MutableStateFlow(WhereWasIUiState())
     val uiState: StateFlow<WhereWasIUiState> = _uiState.asStateFlow()
@@ -86,7 +90,7 @@ class WhereWasIViewModel @Inject constructor(
 
                 val locale = java.util.Locale.getDefault()
                 val displayDateStr = targetTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
-                val timeStr = targetTime.formatTime(locale)
+                val timeStr = targetTime.formatTime(locale, is24Hour)
                 _uiState.value = _uiState.value.copy(targetDateTime = "$displayDateStr, $timeStr")
 
                 val targetDate = targetTime.toLocalDate()
@@ -241,7 +245,7 @@ class WhereWasIViewModel @Inject constructor(
         val parkedMinutes = java.time.Duration.between(result.endTime, targetTime).toMinutes()
         val locale = java.util.Locale.getDefault()
         val sinceDateStr = result.endTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
-        val sinceTimeStr = result.endTime.formatTime(locale)
+        val sinceTimeStr = result.endTime.formatTime(locale, is24Hour)
 
         _uiState.value = WhereWasIUiState(
             isLoading = false,

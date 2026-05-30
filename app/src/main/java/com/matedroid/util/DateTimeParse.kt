@@ -1,5 +1,7 @@
 package com.matedroid.util
 
+import android.content.res.Resources
+import com.matedroid.R
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -183,40 +185,21 @@ fun LocalDate.formatMonthYear(locale: Locale = Locale.getDefault()): String =
 /**
  * Format a week-of-year number as a locale-aware chart label.
  *
- * Examples for week 23:
- *   en-US: "W23"
- *   zh-CN: "第23周"
- *   it-IT: "W23"
- *   es-ES: "W23"
- *   ca-ES: "W23"
+ * The label text comes from the `chart_week_label` string resource, so it is
+ * translated per locale (e.g. "W23" in English, "第23周" in Chinese).
  */
-fun formatWeekLabel(weekOfYear: Int, locale: Locale = Locale.getDefault()): String =
-    when (locale.language) {
-        "zh" -> "第${weekOfYear}周"
-        else -> "W$weekOfYear"
-    }
+fun formatWeekLabel(resources: Resources, weekOfYear: Int): String =
+    resources.getString(R.string.chart_week_label, weekOfYear)
 
 /**
  * Format an integer minute count as a human-readable, locale-aware duration.
  *
  * Scale adapts to the magnitude: minutes → hours+min → days+hours →
- * weeks+days → months+weeks.
- *
- * Examples for 648 min (10h 48m = 0d 10h 48m):
- *   en-US: "10h 48m"
- *   zh-CN: "10小时48分钟"
- *   it-IT: "10o 48min"
- *   es-ES: "10h 48min"
- *   ca-ES: "10h 48min"
- *
- * Examples for 1560 min (26h = 1d 2h):
- *   en-US: "1d 2h"
- *   zh-CN: "1天2小时"
- *   it-IT: "1g 2o"
- *   es-ES: "1d 2h"
- *   ca-ES: "1d 2h"
+ * weeks+days → months+weeks. The unit abbreviations and their ordering come
+ * from the `duration_*` string resources, so they are fully translated
+ * (e.g. 648 min → "10h 48m" in English, "10小时48分钟" in Chinese).
  */
-fun formatDuration(minutes: Int, locale: Locale = Locale.getDefault()): String {
+fun formatDuration(resources: Resources, minutes: Int): String {
     val total = minutes.coerceAtLeast(0)
     val hours = total / 60
     val mins = total % 60
@@ -227,28 +210,16 @@ fun formatDuration(minutes: Int, locale: Locale = Locale.getDefault()): String {
     val months = weeks / 4
     val remWeeks = weeks - months * 4
 
-    return when (locale.language) {
-        "zh" -> when {
-            months >= 1 -> if (remWeeks > 0) "${months}个月${remWeeks}周" else "${months}个月"
-            weeks >= 1 -> if (remDays > 0) "${weeks}周${remDays}天" else "${weeks}周"
-            days >= 1 -> if (remHours > 0) "${days}天${remHours}小时" else "${days}天"
-            hours >= 1 -> if (mins > 0) "${hours}小时${mins}分钟" else "${hours}小时"
-            else -> "${total}分钟"
-        }
-        "it" -> when {
-            months >= 1 -> if (remWeeks > 0) "${months}mesi ${remWeeks}sett" else "${months}mesi"
-            weeks >= 1 -> if (remDays > 0) "${weeks}sett ${remDays}g" else "${weeks}sett"
-            days >= 1 -> if (remHours > 0) "${days}g ${remHours}o" else "${days}g"
-            hours >= 1 -> if (mins > 0) "${hours}o ${mins}min" else "${hours}o"
-            else -> "${total}min"
-        }
-        else -> when {
-            months >= 1 -> if (remWeeks > 0) "${months}mo ${remWeeks}w" else "${months}mo"
-            weeks >= 1 -> if (remDays > 0) "${weeks}w ${remDays}d" else "${weeks}w"
-            days >= 1 -> if (remHours > 0) "${days}d ${remHours}h" else "${days}d"
-            hours >= 1 -> if (mins > 0) "${hours}h ${mins}m" else "${hours}h"
-            else -> "${total}m"
-        }
+    return when {
+        months >= 1 -> if (remWeeks > 0) resources.getString(R.string.duration_months_weeks, months, remWeeks)
+            else resources.getString(R.string.duration_months, months)
+        weeks >= 1 -> if (remDays > 0) resources.getString(R.string.duration_weeks_days, weeks, remDays)
+            else resources.getString(R.string.duration_weeks, weeks)
+        days >= 1 -> if (remHours > 0) resources.getString(R.string.duration_days_hours, days, remHours)
+            else resources.getString(R.string.duration_days, days)
+        hours >= 1 -> if (mins > 0) resources.getString(R.string.duration_hours_minutes, hours, mins)
+            else resources.getString(R.string.duration_hours, hours)
+        else -> resources.getString(R.string.duration_minutes, total)
     }
 }
 

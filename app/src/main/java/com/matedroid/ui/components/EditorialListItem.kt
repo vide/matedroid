@@ -39,11 +39,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.matedroid.util.formatEditorial
-import com.matedroid.util.formatMediumNoYear
-import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.Locale
 
 /**

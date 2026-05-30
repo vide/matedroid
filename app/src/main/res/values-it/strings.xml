@@ -1180,4 +1180,16 @@
     <string name="where_was_i_charging_at">In ricarica a %s</string>
     <string name="where_was_i_parked_at">Parcheggiata a %s</string>
     <string name="where_was_i_open_in_maps">Apri nelle mappe</string>
+
+    <!-- Formattazione durata (unità compatte). %1$d/%2$d sono i conteggi. -->
+    <string name="duration_minutes">%1$dmin</string>
+    <string name="duration_hours">%1$do</string>
+    <string name="duration_hours_minutes">%1$do %2$dmin</string>
+    <string name="duration_days">%1$dg</string>
+    <string name="duration_days_hours">%1$dg %2$do</string>
+    <string name="duration_weeks">%1$dsett</string>
+    <string name="duration_weeks_days">%1$dsett %2$dg</string>
+    <string name="duration_months">%1$dmesi</string>
+    <string name="duration_months_weeks">%1$dmesi %2$dsett</string>
+    <string name="chart_week_label">S%1$d</string>
 </resources>
