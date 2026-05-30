@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **"Where was I?" screen redesign**: the separate Location and State cards are merged into a single "what + where" card, with a state-aware sentence on top — "Heading to Home" / "Charging at Tesla SC" / "Parked at Home" — that makes the relationship between the activity and the named place unambiguous (no more bare "Home" appearing during a drive headed home). The map is now fully interactive — single-finger drag pans, pinch zooms — and a new "Open in Maps" button overlay on the map opens the location in your external maps app. The chevron that opens the related drive/charge moved to the top-right of the merged card, vertically aligned with the title.
 
+### Fixed
+- **"Today" filter showed the wrong day's drives/charges outside UTC**: date filters were sent to the API as UTC midnight (`...T00:00:00Z`) regardless of your timezone, so the "today" window was shifted by your UTC offset — pulling in the previous day's activity for users behind UTC (e.g. the Americas) and dropping early-morning activity for users ahead of it (e.g. Europe). Filters now use your device's local timezone offset, computed per boundary so DST days are correct. Same fix applied to the "Where was I?" date window.
+
 ## [1.7.0] - 2026-04-30
 
 Complete visual refresh of the **drives and charges lists**, plus a new fast-scroll bar and several smaller fixes.

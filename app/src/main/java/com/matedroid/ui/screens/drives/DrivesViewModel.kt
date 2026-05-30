@@ -259,9 +259,18 @@ class DrivesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format: 2006-01-02T15:04:05Z
-            val startDateStr = startDate?.let { "${it}T00:00:00Z" }
-            val endDateStr = endDate?.let { "${it}T23:59:59Z" }
+            // API expects RFC3339 format:
+            // 2006-01-02T15:04:05Z for UTC time
+            // 2006-01-02T15:04:05+nn:00 for local time, with nn the timezone offset
+            val zoneId = java.time.ZoneId.systemDefault()
+            val startDateStr = startDate?.let {
+                val offset = zoneId.rules.getOffset(it.atStartOfDay())
+                "${it}T00:00:00${offset.toString()}"
+            }
+            val endDateStr = endDate?.let {
+                val offset = zoneId.rules.getOffset(it.atTime(23, 59, 59))
+                "${it}T23:59:59${offset.toString()}"
+            }
 
             when (val result = repository.getDrives(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
