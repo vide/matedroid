@@ -462,9 +462,11 @@ private fun TripItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (trip.totalEnergyCharged > 0.0) {
+                // Total electricity consumed while driving (sum of drive consumption),
+                // not the energy added at charging stops. See issue #281.
+                if (trip.totalEnergyConsumed > 0.0) {
                     Text(
-                        text = " · %.1f kWh".format(trip.totalEnergyCharged),
+                        text = " · %.1f kWh".format(trip.totalEnergyConsumed),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
