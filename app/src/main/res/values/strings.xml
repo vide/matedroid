@@ -1287,4 +1287,12 @@
     <string name="parked_for">Parked for %s</string>
     <!-- "Since" date of last activity, e.g. "since 22 Mar 2026, 11:52" -->
     <string name="parked_since">since %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was driving toward a destination, e.g. "Heading to Home" -->
+    <string name="where_was_i_heading_to">Heading to %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was charging at a location, e.g. "Charging at Tesla Supercharger" -->
+    <string name="where_was_i_charging_at">Charging at %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was parked at a location, e.g. "Parked at Home" -->
+    <string name="where_was_i_parked_at">Parked at %s</string>
+    <!-- Content description for the icon button that opens the location in the user's external maps app -->
+    <string name="where_was_i_open_in_maps">Open in Maps</string>
 </resources>

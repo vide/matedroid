@@ -1201,4 +1201,8 @@
     <!-- Parked duration shown on the Where Was I screen -->
     <string name="parked_for">已停放 %s</string>
     <string name="parked_since">自 %s 起</string>
+    <string name="where_was_i_heading_to">前往 %s</string>
+    <string name="where_was_i_charging_at">在 %s 充电</string>
+    <string name="where_was_i_parked_at">停放在 %s</string>
+    <string name="where_was_i_open_in_maps">在地图中打开</string>
 </resources>
