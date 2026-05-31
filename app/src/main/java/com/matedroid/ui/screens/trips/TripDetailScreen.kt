@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.trips
 
 import android.graphics.Paint
+import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -1161,6 +1162,21 @@ private fun TripMapCard(
                         MapView(mapCtx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Tell the parent vertical scroll to stop intercepting
+                            // touches so single-finger drag pans the map instead
+                            // of scrolling the page.
+                            setOnTouchListener { v, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN,
+                                    MotionEvent.ACTION_MOVE,
+                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    MotionEvent.ACTION_UP,
+                                    MotionEvent.ACTION_CANCEL ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                }
+                                false
+                            }
                         }
                     },
                     update = { mapView ->

@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.charges
 
 import android.content.Intent
 import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -599,6 +600,21 @@ private fun ChargeMapCard(latitude: Double, longitude: Double) {
                         MapView(ctx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Tell the parent vertical scroll to stop intercepting
+                            // touches so single-finger drag pans the map instead
+                            // of scrolling the page.
+                            setOnTouchListener { v, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN,
+                                    MotionEvent.ACTION_MOVE,
+                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    MotionEvent.ACTION_UP,
+                                    MotionEvent.ACTION_CANCEL ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                }
+                                false
+                            }
 
                             val geoPoint = GeoPoint(latitude, longitude)
 
