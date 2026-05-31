@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.drives
 import android.content.Intent
 import android.graphics.Paint
 import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -519,6 +520,21 @@ private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
                         MapView(ctx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Tell the parent vertical scroll to stop intercepting
+                            // touches so single-finger drag pans the map instead
+                            // of scrolling the page.
+                            setOnTouchListener { v, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN,
+                                    MotionEvent.ACTION_MOVE,
+                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    MotionEvent.ACTION_UP,
+                                    MotionEvent.ACTION_CANCEL ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                }
+                                false
+                            }
 
                             // Create polyline for the route
                             val geoPoints = validPositions.map { pos ->
