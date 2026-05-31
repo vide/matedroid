@@ -1,0 +1,10 @@
+Di nuovo qui dopo una breve pausa, con un aggiornamento di manutenzione — rifiniture e correzioni in tutta l'app.
+
+Modifiche:
+- "Dove ero?" ridisegnata: un'unica scheda, mappa completamente interattiva e pulsante Apri nelle mappe
+
+Correzioni:
+- Le mappe non scorrono più la pagina quando le trascini
+- Date, orari e durate seguono la lingua del dispositivo e il formato 12/24h
+- L'elenco viaggi mostra l'energia consumata, non quella caricata
+- Il filtro "Oggi" ora rispetta il fuso orario

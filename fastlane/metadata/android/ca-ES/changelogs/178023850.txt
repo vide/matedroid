@@ -1,0 +1,10 @@
+De tornada després d'una breu pausa amb una actualització de manteniment: millores i correccions per tota l'app.
+
+Canvis:
+- "On era?" redissenyada: una sola targeta, mapa totalment interactiu i botó Obrir al mapa
+
+Correccions:
+- Els mapes ja no desplacen la pàgina en arrossegar-los
+- Dates, hores i durades segueixen l'idioma del dispositiu i el format 12/24h
+- La llista de viatges mostra l'energia consumida, no la carregada
+- El filtre "Avui" ara respecta la teva zona horària

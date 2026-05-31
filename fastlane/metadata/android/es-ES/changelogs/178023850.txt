@@ -1,0 +1,10 @@
+De vuelta tras un breve descanso con una actualización de mantenimiento: mejoras y correcciones por toda la app.
+
+Cambios:
+- "¿Dónde estaba?" rediseñada: una sola tarjeta, mapa totalmente interactivo y botón Abrir en Mapas
+
+Correcciones:
+- Los mapas ya no desplazan la página al arrastrarlos
+- Fechas, horas y duraciones siguen el idioma del dispositivo y el formato 12/24h
+- La lista de viajes muestra la energía consumida, no la cargada
+- El filtro "Hoy" ahora respeta tu zona horaria

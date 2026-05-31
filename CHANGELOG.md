@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0-beta1] - 2026-05-31
+
 ### Changed
 - **"Where was I?" screen redesign**: the separate Location and State cards are merged into a single "what + where" card, with a state-aware sentence on top — "Heading to Home" / "Charging at Tesla SC" / "Parked at Home" — that makes the relationship between the activity and the named place unambiguous (no more bare "Home" appearing during a drive headed home). The map is now fully interactive — single-finger drag pans, pinch zooms — and a new "Open in Maps" button overlay on the map opens the location in your external maps app. The chevron that opens the related drive/charge moved to the top-right of the merged card, vertically aligned with the title.
 
@@ -581,7 +583,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...HEAD
+[1.8.0-beta1]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0-beta1
 [1.7.0]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0
 [1.7.0-beta1]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0-beta1
 [1.6.0]: https://github.com/vide/matedroid/compare/v1.5.1...v1.6.0
