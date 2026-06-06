@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I? and Settings.
+
+### Changed
+- **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.
+
 ## [1.8.0] - 2026-06-06
 
 German language support, a redesigned "Where was I?" screen, and a round of localization and reliability fixes.

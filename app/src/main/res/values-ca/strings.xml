@@ -131,6 +131,19 @@
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">Info del vehicle</string>
 
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">Activitat</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">Menú</string>
+    <!-- Trips hero: unit shown beneath the trip count -->
+    <string name="trips_journeys">viatges</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">Últim</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">Encara no hi ha viatges</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">Els viatges de més de 300 km apareixen aquí</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Càrregues</string>
 

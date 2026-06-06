@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import com.matedroid.ui.util.GlowBitmapRenderer
 import android.net.Uri
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -21,6 +22,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +33,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
@@ -47,19 +51,24 @@ import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.domain.model.Trip
+import com.matedroid.ui.screens.trips.displayName
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
@@ -175,6 +184,8 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showWhereWasIPicker by remember { mutableStateOf(false) }
 
     // When opened from a widget tap, select the car that belongs to that widget.
     // Wait until the cars list is populated before switching, in case the app is
@@ -213,8 +224,54 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                    val carSelected = uiState.selectedCarId != null
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu))
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.stats_title)) },
+                            leadingIcon = { Icon(Icons.Filled.Insights, contentDescription = null) },
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToStats(carId, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.battery_health_title)) },
+                            leadingIcon = { Icon(Icons.Filled.BatteryFull, contentDescription = null) },
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToBattery(carId, uiState.selectedCarEfficiency, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.where_was_i_screen_title)) },
+                            leadingIcon = { Icon(Icons.Filled.History, contentDescription = null) },
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                showWhereWasIPicker = true
+                            }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings)) },
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToSettings()
+                            }
+                        )
                     }
                 }
             )
@@ -241,6 +298,7 @@ fun DashboardScreen(
                         totalCharges = uiState.totalCharges,
                         totalDrives = uiState.totalDrives,
                         totalTrips = uiState.totalTrips,
+                        latestTrip = uiState.latestTrip,
                         imageOverride = uiState.carImageOverride,
                         cars = uiState.cars,
                         selectedCarId = uiState.selectedCarId,
@@ -287,11 +345,6 @@ fun DashboardScreen(
                         onSaveCarImageOverride = { override ->
                             viewModel.saveCarImageOverride(override)
                         },
-                        onNavigateToWhereWasI = { timestamp ->
-                            uiState.selectedCarId?.let { carId ->
-                                onNavigateToWhereWasI(carId, timestamp, uiState.selectedCarExterior?.exteriorColor)
-                            }
-                        },
                         onNavigateToSentryHistory = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -330,6 +383,99 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    // "Where was I?" date/time picker — entered from the top-right menu.
+    if (showWhereWasIPicker) {
+        WhereWasIDateTimePicker(
+            onDismiss = { showWhereWasIPicker = false },
+            onConfirm = { timestamp ->
+                showWhereWasIPicker = false
+                uiState.selectedCarId?.let { carId ->
+                    onNavigateToWhereWasI(carId, timestamp, uiState.selectedCarExterior?.exteriorColor)
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Two-step date → time picker for the "Where was I?" feature. Picks a past date, then a
+ * time of day, and emits an OffsetDateTime timestamp string in the device time zone.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WhereWasIDateTimePicker(
+    onDismiss: () -> Unit,
+    onConfirm: (timestamp: String) -> Unit
+) {
+    var showTimePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val zoneId = java.time.ZoneId.systemDefault()
+                val todayUtcDateMillis = java.time.LocalDate.now(zoneId)
+                    .atStartOfDay(java.time.ZoneOffset.UTC)
+                    .toInstant()
+                    .toEpochMilli()
+                return utcTimeMillis <= todayUtcDateMillis
+            }
+        }
+    )
+    val timePickerState = rememberTimePickerState()
+
+    if (!showTimePicker) {
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = { showTimePicker = true }) {
+                    Text(stringResource(R.string.where_was_i_go))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = {
+                    val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
+                    val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDate()
+
+                    val localDateTime = selectedDate.atTime(timePickerState.hour, timePickerState.minute)
+                    val zonedDateTime = localDateTime.atZone(java.time.ZoneId.systemDefault())
+                    onConfirm(zonedDateTime.toOffsetDateTime().toString())
+                }) {
+                    Text(stringResource(R.string.where_was_i_go))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+            title = {
+                val selectedMillis = datePickerState.selectedDateMillis
+                val dateText = if (selectedMillis != null) {
+                    val date = java.time.Instant.ofEpochMilli(selectedMillis)
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDate()
+                    date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+                } else ""
+                Text(dateText)
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
     }
 }
 
@@ -625,6 +771,7 @@ private fun DashboardContent(
     totalCharges: Int? = null,
     totalDrives: Int? = null,
     totalTrips: Int? = null,
+    latestTrip: Trip? = null,
     imageOverride: CarImageOverride? = null,
     cars: List<CarData> = emptyList(),
     selectedCarId: Int? = null,
@@ -641,7 +788,6 @@ private fun DashboardContent(
     onNavigateToStats: () -> Unit = {},
     onNavigateToCurrentCharge: () -> Unit = {},
     onSaveCarImageOverride: (CarImageOverride?) -> Unit = {},
-    onNavigateToWhereWasI: (timestamp: String) -> Unit = {},
     onNavigateToSentryHistory: () -> Unit = {},
     onNavigateToTrips: () -> Unit = {}
 ) {
@@ -709,12 +855,11 @@ private fun DashboardContent(
                 status = status,
                 units = units,
                 resolvedAddress = resolvedAddress,
-                palette = palette,
-                onNavigateToWhereWasI = onNavigateToWhereWasI
+                palette = palette
             )
         }
 
-        // Vehicle Info Card with navigation buttons
+        // Activity card — Trips hero + counters bento
         VehicleInfoCard(
             status = status,
             units = units,
@@ -722,6 +867,7 @@ private fun DashboardContent(
             totalCharges = totalCharges,
             totalDrives = totalDrives,
             totalTrips = totalTrips,
+            latestTrip = latestTrip,
             onNavigateToCharges = onNavigateToCharges,
             onNavigateToDrives = onNavigateToDrives,
             onNavigateToMileage = onNavigateToMileage,
@@ -1765,8 +1911,7 @@ private fun LocationCard(
     status: CarStatus,
     units: Units?,
     resolvedAddress: String? = null,
-    palette: CarColorPalette,
-    onNavigateToWhereWasI: (timestamp: String) -> Unit = {}
+    palette: CarColorPalette
 ) {
     val context = LocalContext.current
     val latitude = status.latitude
@@ -1792,203 +1937,79 @@ private fun LocationCard(
         }
     }
 
-    // DateTimePicker state
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val zoneId = java.time.ZoneId.systemDefault()
-                val todayUtcDateMillis = java.time.LocalDate.now(zoneId)
-                    .atStartOfDay(java.time.ZoneOffset.UTC)
-                    .toInstant()
-                    .toEpochMilli()
-                return utcTimeMillis <= todayUtcDateMillis
-            }
-        }
-    )
-    val timePickerState = rememberTimePickerState()
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Location content (tappable to open maps)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { openInMaps() }
-                    .padding(16.dp)
+        // Location content (tappable to open maps)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { openInMaps() }
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
+                Icon(
+                    imageVector = Icons.Filled.LocationOn,
+                    contentDescription = null,
+                    tint = palette.accent
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.location),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = palette.onSurfaceVariant
+                    )
+                    Text(
+                        text = locationText,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = palette.onSurface
+                    )
+                }
+
+                if (latitude != null && longitude != null) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    SmallLocationMap(
+                        latitude = latitude,
+                        longitude = longitude,
+                        onClick = { openInMaps() },
+                        modifier = Modifier
+                            .width(140.dp)
+                            .height(70.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+            }
+
+            if (elevation != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Filled.LocationOn,
+                        imageVector = Icons.Filled.Terrain,
                         contentDescription = null,
                         tint = palette.accent
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.location),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant
-                        )
-                        Text(
-                            text = locationText,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = palette.onSurface
-                        )
-                    }
-
-                    if (latitude != null && longitude != null) {
-                        Spacer(modifier = Modifier.width(12.dp))
-                        SmallLocationMap(
-                            latitude = latitude,
-                            longitude = longitude,
-                            onClick = { openInMaps() },
-                            modifier = Modifier
-                                .width(140.dp)
-                                .height(70.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                    }
+                    Text(
+                        text = stringResource(R.string.elevation),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = palette.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = UnitFormatter.formatElevation(elevation, units),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.onSurface,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
-
-                if (elevation != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Terrain,
-                            contentDescription = null,
-                            tint = palette.accent
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.elevation),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = UnitFormatter.formatElevation(elevation, units),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = palette.onSurface,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
-            }
-
-            // Divider + "Where was I that day?" entrypoint
-            HorizontalDivider(color = palette.onSurfaceVariant.copy(alpha = 0.2f))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDatePicker = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.History,
-                    contentDescription = null,
-                    tint = palette.accent,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.where_was_i_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                AssistChip(
-                    onClick = { showDatePicker = true },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.where_was_i_hint),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                )
             }
         }
-    }
-
-    // Date picker dialog
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDatePicker = false
-                    showTimePicker = true
-                }) {
-                    Text(stringResource(R.string.where_was_i_go))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // Time picker dialog
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showTimePicker = false
-                    val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
-                    val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneOffset.UTC)
-                        .toLocalDate()
-
-                    val localDateTime = selectedDate.atTime(timePickerState.hour, timePickerState.minute)
-                    val zonedDateTime = localDateTime.atZone(java.time.ZoneId.systemDefault())
-                    val timestamp = zonedDateTime.toOffsetDateTime().toString()
-
-                    onNavigateToWhereWasI(timestamp)
-                }) {
-                    Text(stringResource(R.string.where_was_i_go))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
-            title = {
-                val selectedMillis = datePickerState.selectedDateMillis
-                val dateText = if (selectedMillis != null) {
-                    val date = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneOffset.UTC)
-                        .toLocalDate()
-                    date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
-                } else ""
-                Text(dateText)
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
-        )
     }
 }
 
@@ -2040,6 +2061,7 @@ private fun VehicleInfoCard(
     totalCharges: Int?,
     totalDrives: Int?,
     totalTrips: Int? = null,
+    latestTrip: Trip? = null,
     onNavigateToCharges: () -> Unit,
     onNavigateToDrives: () -> Unit,
     onNavigateToMileage: () -> Unit,
@@ -2069,7 +2091,7 @@ private fun VehicleInfoCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.vehicle_info),
+                    text = stringResource(R.string.activity_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -2078,52 +2100,68 @@ private fun VehicleInfoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Navigation buttons - 3+2 grid
+            // Bento: tall Trips hero (left) + Mileage / Charges stacked (right).
+            // IntrinsicSize.Min lets the hero match the combined height of the two
+            // right-hand tiles so the three cells line up flush.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TripsHeroTile(
+                    totalTrips = totalTrips,
+                    latestTrip = latestTrip,
+                    units = units,
+                    palette = palette,
+                    onClick = onNavigateToTrips,
+                    modifier = Modifier
+                        .weight(1.15f)
+                        .fillMaxHeight()
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    BentoStatTile(
+                        label = stringResource(R.string.nav_mileage),
+                        value = status.odometer?.let {
+                            val value = UnitFormatter.formatDistanceValue(it, units, 0)
+                            "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
+                        } ?: "--",
+                        icon = CustomIcons.Road,
+                        palette = palette,
+                        onClick = onNavigateToMileage,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                    BentoStatTile(
+                        label = stringResource(R.string.nav_charges),
+                        value = totalCharges?.let { "%,d".format(it) } ?: "--",
+                        icon = Icons.Filled.ElectricBolt,
+                        palette = palette,
+                        onClick = onNavigateToCharges,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Footer strip: Drives + Software
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                NavButton(
-                    title = stringResource(R.string.nav_charges),
-                    value = totalCharges?.let { "%,d".format(it) } ?: "--",
-                    icon = Icons.Filled.ElectricBolt,
-                    palette = palette,
-                    onClick = onNavigateToCharges,
-                    modifier = Modifier.weight(1f)
-                )
                 NavButton(
                     title = stringResource(R.string.nav_drives),
                     value = totalDrives?.let { "%,d".format(it) } ?: "--",
                     icon = CustomIcons.SteeringWheel,
                     palette = palette,
                     onClick = onNavigateToDrives,
-                    modifier = Modifier.weight(1f)
-                )
-                NavButton(
-                    title = stringResource(R.string.nav_trips),
-                    value = totalTrips?.let { "%,d".format(it) } ?: "--",
-                    icon = Icons.Filled.Route,
-                    palette = palette,
-                    onClick = onNavigateToTrips,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                NavButton(
-                    title = stringResource(R.string.nav_mileage),
-                    value = status.odometer?.let {
-                        val value = UnitFormatter.formatDistanceValue(it, units, 0)
-                        "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
-                    } ?: "--",
-                    icon = CustomIcons.Road,
-                    palette = palette,
-                    onClick = onNavigateToMileage,
                     modifier = Modifier.weight(1f)
                 )
                 NavButton(
@@ -2143,6 +2181,196 @@ private fun VehicleInfoCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 TirePressureDisplay(tpms = tpms, units = units, palette = palette)
             }
+        }
+    }
+}
+
+/**
+ * The Trips hero tile: a tall, accent-washed cell that anchors the Activity card.
+ * Shows the trip count with a "latest trip" teaser, or an inviting empty state when
+ * no road-trips (auto-detected drives ≥300 km) have been recorded yet.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TripsHeroTile(
+    totalTrips: Int?,
+    latestTrip: Trip?,
+    units: Units?,
+    palette: CarColorPalette,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = palette.onSurface.copy(alpha = 0.05f)
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            palette.accent.copy(alpha = 0.22f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Route,
+                        contentDescription = null,
+                        tint = palette.accent,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.nav_trips),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.accent
+                    )
+                }
+
+                if (totalTrips == 0) {
+                    // Empty state — no road-trips detected yet.
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = stringResource(R.string.trips_empty_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.trips_empty_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = totalTrips?.let { "%,d".format(it) } ?: "--",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.onSurface,
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 22.sp,
+                            maxFontSize = 40.sp,
+                            stepSize = 1.sp
+                        )
+                    )
+                    Text(
+                        text = stringResource(R.string.trips_journeys),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.accent
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (latestTrip != null) {
+                        Text(
+                            text = stringResource(R.string.trip_latest_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.onSurfaceVariant
+                        )
+                        Text(
+                            text = latestTrip.displayName(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = run {
+                                    val v = UnitFormatter.formatDistanceValue(latestTrip.totalDistance, units, 0)
+                                    "%,.0f %s".format(v, UnitFormatter.getDistanceUnit(units))
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = palette.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = palette.accent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A right-column bento stat tile: icon + label + chevron on top, big value at the bottom. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BentoStatTile(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    palette: CarColorPalette,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = palette.onSurface.copy(alpha = 0.05f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = palette.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurface,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 13.sp,
+                    maxFontSize = 19.sp,
+                    stepSize = 0.5.sp
+                )
+            )
         }
     }
 }

@@ -131,6 +131,19 @@
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">车辆信息</string>
 
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">活动</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">菜单</string>
+    <!-- Trips hero: unit shown beneath the trip count -->
+    <string name="trips_journeys">次旅程</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">最近</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">暂无长途旅程</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">超过 300 公里的旅程会显示在这里</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">充电记录</string>
 

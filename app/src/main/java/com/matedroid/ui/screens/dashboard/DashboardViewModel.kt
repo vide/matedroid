@@ -11,6 +11,7 @@ import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
 import com.matedroid.domain.TripRepository
+import com.matedroid.domain.model.Trip
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
@@ -44,6 +45,8 @@ data class DashboardUiState(
     val isCurrentChargeAvailable: Boolean = false,
     val sentryEventCount: Int = 0,
     val totalTrips: Int? = null,
+    /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
+    val latestTrip: Trip? = null,
     val dcFinishedPluggedIn: Boolean = false
 ) {
     private val selectedCar: CarData?
@@ -359,10 +362,11 @@ class DashboardViewModel @Inject constructor(
             tripCountCache.get(carId)?.let { cached ->
                 _uiState.update { it.copy(totalTrips = cached) }
             }
-            // Recompute in background and update cache (also auto-persists new saved trips)
-            val count = tripRepository.getTrips(carId).size
-            _uiState.update { it.copy(totalTrips = count) }
-            tripCountCache.set(carId, count)
+            // Recompute in background and update cache (also auto-persists new saved trips).
+            // Trips come back newest-first, so the head is the latest trip for the hero teaser.
+            val trips = tripRepository.getTrips(carId)
+            _uiState.update { it.copy(totalTrips = trips.size, latestTrip = trips.firstOrNull()) }
+            tripCountCache.set(carId, trips.size)
         }
     }
 
