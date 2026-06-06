@@ -55,6 +55,8 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.SelectableDates
@@ -301,18 +303,29 @@ fun DashboardScreen(
                         }
                     )
                 }
-                uiState.cars.isEmpty() && uiState.error == null -> {
-                    EmptyContent()
+                uiState.cars.isNotEmpty() -> {
+                    // Cars loaded but the selected car's status hasn't (still loading, or it
+                    // errored — e.g. a car no longer in the account). Keep the selector
+                    // reachable so the user can switch to a working car instead of being
+                    // stuck on a dead-end loading/error screen (issue #272).
+                    CarUnavailableContent(
+                        cars = uiState.cars,
+                        selectedCarId = uiState.selectedCarId,
+                        carImageOverrides = uiState.carImageOverrides,
+                        error = uiState.error,
+                        onSelectCar = { viewModel.selectCar(it) },
+                        onRetry = { viewModel.retryCarStatus() }
+                    )
                 }
                 uiState.error != null -> {
+                    // The car list itself failed to load — full-screen error.
                     ErrorContent(
                         message = uiState.error!!,
                         details = uiState.errorDetails
                     )
                 }
                 else -> {
-                    // Car status still loading after cars loaded
-                    LoadingContent()
+                    EmptyContent()
                 }
             }
         }
@@ -412,6 +425,190 @@ private fun ErrorContent(
                     Text(stringResource(R.string.close))
                 }
             }
+        )
+    }
+}
+
+/**
+ * Shown when the cars list loaded but the selected car's status could not be loaded
+ * (either still loading, or it errored — e.g. a car removed from the Tesla account
+ * that TeslaMate still lists, returning "no info on this car ID"). Keeps the car
+ * selector reachable so the user can switch to a working car instead of being stuck
+ * (issue #272).
+ */
+@Composable
+private fun CarUnavailableContent(
+    cars: List<CarData>,
+    selectedCarId: Int?,
+    carImageOverrides: Map<Int, CarImageOverride>,
+    error: String?,
+    onSelectCar: (Int) -> Unit,
+    onRetry: () -> Unit
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val selectedCar = cars.firstOrNull { it.carId == selectedCarId }
+    val palette = CarColorPalettes.forExteriorColor(selectedCar?.carExterior?.exteriorColor, isDarkTheme)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        CarSelectorPager(
+            cars = cars,
+            selectedCarId = selectedCarId,
+            onSelectCar = onSelectCar,
+            carImageOverrides = carImageOverrides,
+            palette = palette,
+            isCharging = false,
+            isDcCharging = false,
+            onNavigateToStats = null,
+            onCarImageLongPress = null,
+            carModel = selectedCar?.carDetails?.model,
+            carTrimBadging = selectedCar?.carDetails?.trimBadging,
+            carExterior = selectedCar?.carExterior,
+            imageOverride = selectedCarId?.let { carImageOverrides[it] }
+        )
+
+        if (error != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = palette.surface)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.dashboard_car_unavailable),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = StatusError,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(onClick = onRetry) {
+                        Text(stringResource(R.string.retry))
+                    }
+                }
+            }
+        } else {
+            // Status still loading for the selected car.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = palette.accent)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CarSelectorPager(
+    cars: List<CarData>,
+    selectedCarId: Int?,
+    onSelectCar: (Int) -> Unit,
+    carImageOverrides: Map<Int, CarImageOverride>,
+    palette: CarColorPalette,
+    isCharging: Boolean,
+    isDcCharging: Boolean,
+    onNavigateToStats: (() -> Unit)?,
+    onCarImageLongPress: (() -> Unit)?,
+    carModel: String?,
+    carTrimBadging: String?,
+    carExterior: CarExterior?,
+    imageOverride: CarImageOverride?
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    if (cars.size > 1) {
+        val initialPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
+        val pagerState = rememberPagerState(initialPage = initialPage) { cars.size }
+
+        // Sync pager position when selected car changes externally
+        LaunchedEffect(selectedCarId) {
+            val targetPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
+            if (targetPage != pagerState.currentPage) {
+                pagerState.animateScrollToPage(targetPage)
+            }
+        }
+
+        // Notify viewmodel when user swipes to a new car
+        LaunchedEffect(pagerState.settledPage) {
+            val car = cars.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
+            if (car.carId != selectedCarId) {
+                onSelectCar(car.carId)
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            val car = cars[page]
+            val isSettled = page == pagerState.settledPage
+            val carPalette = CarColorPalettes.forExteriorColor(car.carExterior?.exteriorColor, isDarkTheme)
+            CarImage(
+                carModel = car.carDetails?.model,
+                carTrimBadging = car.carDetails?.trimBadging,
+                carExterior = car.carExterior,
+                palette = carPalette,
+                modifier = Modifier.fillMaxWidth(),
+                isCharging = if (isSettled) isCharging else false,
+                isDcCharging = if (isSettled) isDcCharging else false,
+                accentColor = carPalette.accent,
+                carSurfaceColor = carPalette.surface,
+                imageOverride = carImageOverrides[car.carId],
+                onNavigateToStats = if (isSettled) onNavigateToStats else null,
+                onLongPress = if (isSettled) onCarImageLongPress else null
+            )
+        }
+
+        // Dots indicator
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(cars.size) { index ->
+                val isSelected = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 4.dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) palette.accent
+                            else palette.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                )
+            }
+        }
+    } else {
+        // Single car — existing behaviour unchanged
+        CarImage(
+            carModel = carModel,
+            carTrimBadging = carTrimBadging,
+            carExterior = carExterior,
+            palette = palette,
+            modifier = Modifier.fillMaxWidth(),
+            isCharging = isCharging,
+            isDcCharging = isDcCharging,
+            accentColor = palette.accent,
+            carSurfaceColor = palette.surface,
+            imageOverride = imageOverride,
+            onNavigateToStats = onNavigateToStats,
+            onLongPress = onCarImageLongPress
         )
     }
 }
@@ -1084,85 +1281,21 @@ private fun BatteryCard(
             )
 
             // Car image — pager when multiple cars, single image otherwise
-            if (cars.size > 1) {
-                val initialPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
-                val pagerState = rememberPagerState(initialPage = initialPage) { cars.size }
-
-                // Sync pager position when selected car changes externally
-                LaunchedEffect(selectedCarId) {
-                    val targetPage = cars.indexOfFirst { it.carId == selectedCarId }.coerceAtLeast(0)
-                    if (targetPage != pagerState.currentPage) {
-                        pagerState.animateScrollToPage(targetPage)
-                    }
-                }
-
-                // Notify viewmodel when user swipes to a new car
-                LaunchedEffect(pagerState.settledPage) {
-                    val car = cars.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
-                    if (car.carId != selectedCarId) {
-                        onSelectCar(car.carId)
-                    }
-                }
-
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth()
-                ) { page ->
-                    val car = cars[page]
-                    val isSettled = page == pagerState.settledPage
-                    val carPalette = CarColorPalettes.forExteriorColor(car.carExterior?.exteriorColor, isDarkTheme)
-                    CarImage(
-                        carModel = car.carDetails?.model,
-                        carTrimBadging = car.carDetails?.trimBadging,
-                        carExterior = car.carExterior,
-                        palette = carPalette,
-                        modifier = Modifier.fillMaxWidth(),
-                        isCharging = if (isSettled) status.isCharging else false,
-                        isDcCharging = if (isSettled) status.isDcCharging else false,
-                        accentColor = carPalette.accent,
-                        carSurfaceColor = carPalette.surface,
-                        imageOverride = carImageOverrides[car.carId],
-                        onNavigateToStats = if (isSettled) onNavigateToStats else null,
-                        onLongPress = if (isSettled) onCarImageLongPress else null
-                    )
-                }
-
-                // Dots indicator
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    repeat(cars.size) { index ->
-                        val isSelected = pagerState.currentPage == index
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isSelected) palette.accent
-                                    else palette.onSurfaceVariant.copy(alpha = 0.3f)
-                                )
-                        )
-                    }
-                }
-            } else {
-                // Single car — existing behaviour unchanged
-                CarImage(
-                    carModel = carModel,
-                    carTrimBadging = carTrimBadging,
-                    carExterior = carExterior,
-                    palette = palette,
-                    modifier = Modifier.fillMaxWidth(),
-                    isCharging = status.isCharging,
-                    isDcCharging = status.isDcCharging,
-                    accentColor = palette.accent,
-                    carSurfaceColor = palette.surface,
-                    imageOverride = imageOverride,
-                    onNavigateToStats = onNavigateToStats,
-                    onLongPress = onCarImageLongPress
-                )
-            }
+            CarSelectorPager(
+                cars = cars,
+                selectedCarId = selectedCarId,
+                onSelectCar = onSelectCar,
+                carImageOverrides = carImageOverrides,
+                palette = palette,
+                isCharging = status.isCharging,
+                isDcCharging = status.isDcCharging,
+                onNavigateToStats = onNavigateToStats,
+                onCarImageLongPress = onCarImageLongPress,
+                carModel = carModel,
+                carTrimBadging = carTrimBadging,
+                carExterior = carExterior,
+                imageOverride = imageOverride
+            )
 
             // Battery info row - tappable to navigate to battery health
             Row(

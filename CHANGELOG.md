@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **German translation** — the app is now fully available in German (Deutsch). Thanks to @herrfrei for the contribution.
 
 ### Fixed
+- **Stuck on a car whose data can't load**: if the selected car's status failed to load (e.g. a car removed from your Tesla account that TeslaMate still lists), the dashboard got stuck and the car selector disappeared, so you couldn't switch to a working car. The car selector now stays visible with an inline error + Retry, and switching cars clears the error (#272).
 - **Black Juniper Model Y (and Highland Model 3) showed a white car**: the "Diamond Black" paint is reported by TeslaMate as `DiamondBlack`, which wasn't recognized, so the car image fell back to white. It now renders in black.
 - **"Drives" and "Trips" no longer share the same word** in Spanish, Catalan, Italian, and Chinese, where both were translated identically (e.g. both "Viajes") — making the navigation and stats ambiguous now that Trips exist. Drives now use a distinct term (es "Trayectos", ca "Trajectes", it "Tragitti", zh "行程") while Trips keep the journey word.
 
