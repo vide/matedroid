@@ -1287,4 +1287,24 @@
     <string name="parked_for">Geparkt für %s</string>
     <!-- "Since" date of last activity, e.g. "since 22 Mar 2026, 11:52" -->
     <string name="parked_since">seit %s</string>
+
+    <!-- State-aware headlines on the Where Was I screen. %s is the place name -->
+    <string name="where_was_i_heading_to">Unterwegs nach %s</string>
+    <string name="where_was_i_charging_at">Lädt bei %s</string>
+    <string name="where_was_i_parked_at">Geparkt bei %s</string>
+    <!-- Content description for the icon button that opens the location in the user's external maps app -->
+    <string name="where_was_i_open_in_maps">In Karten öffnen</string>
+
+    <!-- Duration formatting (compact units). %1$d/%2$d are counts. -->
+    <string name="duration_minutes">%1$dmin</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dmin</string>
+    <string name="duration_days">%1$dT</string>
+    <string name="duration_days_hours">%1$dT %2$dh</string>
+    <string name="duration_weeks">%1$dWo</string>
+    <string name="duration_weeks_days">%1$dWo %2$dT</string>
+    <string name="duration_months">%1$dMon</string>
+    <string name="duration_months_weeks">%1$dMon %2$dWo</string>
+    <!-- Compact week-of-year label for chart X axes, e.g. "KW23" (Kalenderwoche) -->
+    <string name="chart_week_label">KW%1$d</string>
 </resources>

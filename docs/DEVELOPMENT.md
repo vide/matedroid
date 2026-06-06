@@ -59,6 +59,7 @@ The app supports multiple languages using Android's standard resource-based loca
 - **Italian** - `res/values-it/strings.xml`
 - **Spanish** - `res/values-es/strings.xml`
 - **Catalan** - `res/values-ca/strings.xml`
+- **German** - `res/values-de/strings.xml`
 - **Chinese (Simplified)** - `res/values-zh/strings.xml`
 
 #### Terminology: "drives" vs "trips"
@@ -73,10 +74,10 @@ In English they're naturally distinct. In Romance languages "trip" maps to the o
 so "drive" needs a *different* word — otherwise both render identically (e.g. both as "Viajes")
 and the navigation/stats become ambiguous. Established mapping:
 
-| Concept | en | it | es | ca | zh |
-|---------|-----|-----|-----|-----|-----|
-| drive | drive | tragitto | trayecto | trajecte | 行程 |
-| trip | trip | viaggio | viaje | viatge | 旅程 |
+| Concept | en | it | es | ca | de | zh |
+|---------|-----|-----|-----|-----|-----|-----|
+| drive | drive | tragitto | trayecto | trajecte | Fahrt | 行程 |
+| trip | trip | viaggio | viaje | viatge | Trip | 旅程 |
 
 When adding a new `drive_*`/`*_drive*` string, translate "drive" with the drive-column term, and
 reserve the trip-column term for `trip_*`/`trips_*` strings — never let the two collapse to the
