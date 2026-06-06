@@ -132,7 +132,7 @@
     <string name="nav_charges">Càrregues</string>
 
     <!-- Navigation button to drives list -->
-    <string name="nav_drives">Viatges</string>
+    <string name="nav_drives">Trajectes</string>
 
     <!-- Navigation button to mileage/odometer screen -->
     <string name="nav_mileage">Quilometratge</string>
@@ -207,22 +207,22 @@
     <string name="settings_extra">Configuració extra</string>
 
     <!-- Show short drives/charges toggle -->
-    <string name="settings_show_short_label">Mostra viatges / càrregues curts</string>
-    <string name="settings_show_short_hint">Mostra viatges molt curts i càrregues mínimes a les llistes</string>
+    <string name="settings_show_short_label">Mostra trajectes / càrregues curts</string>
+    <string name="settings_show_short_hint">Mostra trajectes molt curts i càrregues mínimes a les llistes</string>
     <string name="more_information">Més informació</string>
 
     <!-- Short drives/charges info dialog -->
-    <string name="settings_short_dialog_title">Viatges i càrregues curts</string>
-    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Viatges de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
+    <string name="settings_short_dialog_title">Trajectes i càrregues curts</string>
+    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Trajectes de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Força resincronització completa</string>
     <string name="settings_resyncing">Resincronitzant…</string>
-    <string name="settings_resync_hint">Torna a descarregar tots els detalls de viatges i càrregues. Usa si les estadístiques semblen incorrectes.</string>
+    <string name="settings_resync_hint">Torna a descarregar tots els detalls de trajectes i càrregues. Usa si les estadístiques semblen incorrectes.</string>
     <string name="settings_resync_dialog_title">Forçar resincronització completa?</string>
     <string name="settings_resync_dialog_text_prefix">Això </string>
     <string name="settings_resync_dialog_text_delete">ELIMINARÀ</string>
-    <string name="settings_resync_dialog_text_suffix"> tots els viatges, càrregues i estadístiques emmagatzemats, després tornarà a descarregar-ho tot del servidor.\n\nEl procés pot trigar diversos minuts depenent de la quantitat de dades.</string>
+    <string name="settings_resync_dialog_text_suffix"> tots els trajectes, càrregues i estadístiques emmagatzemats, després tornarà a descarregar-ho tot del servidor.\n\nEl procés pot trigar diversos minuts depenent de la quantitat de dades.</string>
     <string name="settings_resync_confirm">Resincronitza</string>
 
     <!-- Action buttons -->
@@ -242,16 +242,16 @@
 
     <!-- ==================== Drives Screen ==================== -->
     <!-- Top bar title -->
-    <string name="drives_title">Viatges</string>
+    <string name="drives_title">Trajectes</string>
 
     <!-- Content description for back button -->
     <string name="back">Enrere</string>
 
     <!-- Section title for drive history list -->
-    <string name="drive_history">Historial de viatges</string>
+    <string name="drive_history">Historial de trajectes</string>
 
     <!-- Empty state when no drives match filters -->
-    <string name="no_drives_found">No s\'han trobat viatges per al període seleccionat</string>
+    <string name="no_drives_found">No s\'han trobat trajectes per al període seleccionat</string>
 
     <!-- Summary card title -->
     <string name="summary">Resum</string>
@@ -301,9 +301,9 @@
     <string name="filter_road_trip_mi">Viatge llarg (&gt; 60 mi)</string>
 
     <!-- Chart titles - drives per period -->
-    <string name="chart_drives_per_day">Viatges per dia</string>
-    <string name="chart_drives_per_week">Viatges per setmana</string>
-    <string name="chart_drives_per_month">Viatges per mes</string>
+    <string name="chart_drives_per_day">Trajectes per dia</string>
+    <string name="chart_drives_per_week">Trajectes per setmana</string>
+    <string name="chart_drives_per_month">Trajectes per mes</string>
 
     <!-- Chart titles - driving time per period -->
     <string name="chart_time_per_day">Temps de conducció per dia</string>
@@ -322,7 +322,7 @@
 
     <!-- ==================== Drive Detail Screen ==================== -->
     <!-- Top bar title -->
-    <string name="drive_details_title">Detalls del viatge</string>
+    <string name="drive_details_title">Detalls del trajecte</string>
 
     <!-- Route card labels -->
     <string name="from">Des de</string>
@@ -529,10 +529,10 @@
     <string name="stats_empty">No hi ha estadístiques disponibles.\nLlisca cap avall per sincronitzar.</string>
 
     <!-- Sync phase: fetching summary data from server -->
-    <string name="sync_phase_summaries">Obtenint viatges i càrregues…</string>
+    <string name="sync_phase_summaries">Obtenint trajectes i càrregues…</string>
 
     <!-- Sync phase: processing individual drive details -->
-    <string name="sync_phase_drives">Processant detalls de viatges…</string>
+    <string name="sync_phase_drives">Processant detalls de trajectes…</string>
 
     <!-- Sync phase: processing individual charge details -->
     <string name="sync_phase_charges">Processant detalls de càrregues…</string>
@@ -553,10 +553,10 @@
     <string name="geocode_progress_status">%1$d de %2$d ubicacions</string>
 
     <!-- Section: Drives Overview - summary statistics about all drives -->
-    <string name="stats_drives_overview">Resum de Viatges</string>
+    <string name="stats_drives_overview">Resum de Trajectes</string>
 
     <!-- Label for total number of drives -->
-    <string name="stats_total_drives">Viatges Totals</string>
+    <string name="stats_total_drives">Trajectes Totals</string>
 
     <!-- Label for number of days with at least one drive -->
     <string name="stats_driving_days">Dies de Conducció</string>
@@ -585,7 +585,7 @@
     <string name="stats_records">Rècords</string>
 
     <!-- Record category: driving-related records -->
-    <string name="stats_category_drives">Viatges</string>
+    <string name="stats_category_drives">Trajectes</string>
 
     <!-- Record category: battery and charging records -->
     <string name="stats_category_battery">Bateria</string>
@@ -597,7 +597,7 @@
     <string name="stats_category_misc">Altres</string>
 
     <!-- Record: longest single drive by distance -->
-    <string name="record_longest_drive">Viatge més llarg</string>
+    <string name="record_longest_drive">Trajecte més llarg</string>
 
     <!-- Record: fastest speed ever recorded -->
     <string name="record_top_speed">Velocitat Màx</string>
@@ -639,10 +639,10 @@
     <string name="record_most_climbing">Major desnivell</string>
 
     <!-- Record: drive with highest outside temperature -->
-    <string name="record_hottest_drive">Viatge més calorós</string>
+    <string name="record_hottest_drive">Trajecte més calorós</string>
 
     <!-- Record: drive with lowest outside temperature -->
-    <string name="record_coldest_drive">Viatge més fred</string>
+    <string name="record_coldest_drive">Trajecte més fred</string>
 
     <!-- Record: charge session with highest outside temperature -->
     <string name="record_hottest_charge">Càrrega més calorosa</string>
@@ -666,7 +666,7 @@
     <string name="format_days">%.1f dies</string>
 
     <!-- Format for number of drives. %d is the count -->
-    <string name="format_drives_count">%d viatges</string>
+    <string name="format_drives_count">%d trajectes</string>
 
     <!-- Section: Temperature extremes recorded while driving and charging -->
     <string name="stats_temperature_extremes">Temperatures Extremes</string>
@@ -711,16 +711,16 @@
     <string name="stats_range_record_title">Autonomia Màxima</string>
 
     <!-- Label for number of drives in range record. %d is the count -->
-    <string name="stats_drives_count">Viatges (%d)</string>
+    <string name="stats_drives_count">Trajectes (%d)</string>
 
     <!-- Empty state when no drives found in range record dialog -->
-    <string name="stats_no_drives_found">No s\'han trobat viatges</string>
+    <string name="stats_no_drives_found">No s\'han trobat trajectes</string>
 
     <!-- Content description for arrow indicating tappable record -->
     <string name="view_details">Veure detalls</string>
 
     <!-- Content description for arrow to view drive details -->
-    <string name="view_drive">Veure viatge</string>
+    <string name="view_drive">Veure trajecte</string>
 
     <!-- ==================== Countries Visited Screen ==================== -->
     <!-- Top bar title for countries visited screen -->
@@ -740,8 +740,8 @@
 
     <!-- Plural for number of drives in a country -->
     <plurals name="drives_count">
-        <item quantity="one">viatge</item>
-        <item quantity="other">viatges</item>
+        <item quantity="one">trajecte</item>
+        <item quantity="other">trajectes</item>
     </plurals>
 
     <!-- Plural for number of charges in a country -->
@@ -757,7 +757,7 @@
     <string name="sort_alphabetically">Alfabèticament</string>
 
     <!-- Sort option: by number of drives -->
-    <string name="sort_by_drive_count">Per viatges</string>
+    <string name="sort_by_drive_count">Per trajectes</string>
 
     <!-- Sort option: sort by total distance -->
     <string name="sort_by_distance">Per distància</string>
@@ -795,13 +795,13 @@
     <!-- Map showing drive start locations in the country -->
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
-        <item quantity="one">%d viatge</item>
-        <item quantity="other">%d viatges</item>
+        <item quantity="one">%d trajecte</item>
+        <item quantity="other">%d trajectes</item>
     </plurals>
 
     <!-- Map mode toggle labels -->
     <string name="map_mode_charges">Càrregues</string>
-    <string name="map_mode_drives">Viatges</string>
+    <string name="map_mode_drives">Trajectes</string>
 
     <!-- Legend label for drive start marker -->
     <string name="drive_start_legend">Inici</string>
@@ -814,10 +814,10 @@
     <string name="mileage_title">Quilometratge</string>
 
     <!-- Empty state when no drive data is available -->
-    <string name="mileage_no_data">No hi ha dades de viatges disponibles</string>
+    <string name="mileage_no_data">No hi ha dades de trajectes disponibles</string>
 
     <!-- Empty state when no drive data for a specific year. %d is the year -->
-    <string name="mileage_no_data_year">No hi ha dades de viatges per al %d</string>
+    <string name="mileage_no_data_year">No hi ha dades de trajectes per al %d</string>
 
     <!-- Chart title: mileage grouped by year -->
     <string name="mileage_by_year">Quilometratge per Any</string>
@@ -835,7 +835,7 @@
     <string name="mileage_recent_trips">Viatges recents</string>
 
     <!-- Section header for drives list in day detail -->
-    <string name="mileage_drives">Viatges</string>
+    <string name="mileage_drives">Trajectes</string>
 
     <!-- Summary label: Total distance -->
     <string name="mileage_total">Total</string>
@@ -847,13 +847,13 @@
     <string name="mileage_avg_month">Mitjana/Mes</string>
 
     <!-- Summary label: number of drives -->
-    <string name="mileage_drive_count">N° de viatges</string>
+    <string name="mileage_drive_count">N° de trajectes</string>
 
     <!-- Info dialog title for average per year calculation -->
     <string name="mileage_avg_year_title">Mitjana Anual</string>
 
     <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
-    <string name="mileage_avg_year_message">Basat en la teva mitjana diària des del primer viatge registrat el %1$s (fa %2$d dies).\n\nCàlcul: distància total ÷ dies × 365</string>
+    <string name="mileage_avg_year_message">Basat en la teva mitjana diària des del primer trajecte registrat el %1$s (fa %2$d dies).\n\nCàlcul: distància total ÷ dies × 365</string>
 
     <!-- Content description for info button explaining calculation -->
     <string name="info_about_calculation">Info sobre el càlcul</string>
