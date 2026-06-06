@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **"Drives" and "Trips" no longer share the same word** in Spanish, Catalan, Italian, and Chinese, where both were translated identically (e.g. both "Viajes") — making the navigation and stats ambiguous now that Trips exist. Drives now use a distinct term (es "Trayectos", ca "Trajectes", it "Tragitti", zh "行程") while Trips keep the journey word.
+
 ## [1.8.0-beta1] - 2026-05-31
 
 ### Changed
