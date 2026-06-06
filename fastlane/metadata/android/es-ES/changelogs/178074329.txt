@@ -1,0 +1,14 @@
+Ya disponible en alemán, con la pantalla "¿Dónde estaba?" rediseñada y mejoras de localización y estabilidad.
+
+Añadido:
+- Traducción al alemán
+
+Cambios:
+- "¿Dónde estaba?" rediseñada con mapa interactivo
+
+Correcciones:
+- Fechas, horas y duraciones siguen el idioma del dispositivo
+- "Trayectos" y "Viajes" son palabras distintas en más idiomas
+- Los mapas hacen zoom y se desplazan, no la página
+- Los coches Diamond Black ya no aparecen blancos
+- Recuperación si un coche no carga

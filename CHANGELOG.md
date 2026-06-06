@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-06-06
+
+German language support, a redesigned "Where was I?" screen, and a round of localization and reliability fixes.
+
+### Added
+- **German translation (Deutsch)**: the app is now fully available in German.
+
+### Changed
+- **"Where was I?" redesign**: the Location and State cards are merged into a single "what + where" card with a state-aware headline ("Heading to Home" / "Charging at..." / "Parked at..."). The map is fully interactive (single-finger drag to pan, pinch to zoom) and a new "Open in Maps" button opens the spot in your maps app.
+
+### Fixed
+- **Locale-aware dates, times and durations**: these now follow your device language instead of fixed English/numeric patterns (e.g. durations read "10小时48分钟" in Chinese), and clock times honor your system's 12/24-hour setting.
+- **"Drives" and "Trips" no longer share the same word** in Spanish, Catalan, Italian and Chinese, where both used to translate identically. Drives now use a distinct term (es "Trayectos", ca "Trajectes", it "Tragitti", zh "行程").
+- **Maps stopped fighting the page scroll**: dragging the map on the trip, drive and charge detail screens now pans/zooms the map instead of scrolling the page.
+- **Black Diamond Black cars showed as white**: the "DiamondBlack" paint wasn't recognized and fell back to white. It now renders correctly.
+- **Stuck on a car that can't load**: if the selected car's data failed to load (e.g. a car removed from your account that TeslaMate still lists), the dashboard got stuck with no way out. The car selector now stays available so you can switch to a working car.
+- **Trips list shows energy consumed, not energy charged.**
+- **"Today" filter now respects your timezone** instead of using UTC, so it shows the right day's drives and charges.
+
 ## [1.8.0-beta3] - 2026-06-06
 
 ### Fixed
@@ -598,7 +617,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta3...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0
 [1.8.0-beta3]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...v1.8.0-beta3
 [1.8.0-beta2]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...v1.8.0-beta2
 [1.8.0-beta1]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0-beta1

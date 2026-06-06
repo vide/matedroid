@@ -1,0 +1,14 @@
+Ja disponible en alemany, amb la pantalla "On era?" redissenyada i millores de localització i estabilitat.
+
+Afegit:
+- Traducció a l'alemany
+
+Canvis:
+- "On era?" redissenyada amb mapa interactiu
+
+Correccions:
+- Dates, hores i durades segueixen l'idioma del dispositiu
+- "Trajectes" i "Viatges" són paraules diferents en més idiomes
+- Els mapes fan zoom i es desplacen, no la pàgina
+- Els cotxes Diamond Black ja no apareixen blancs
+- Recuperació si un cotxe no carrega

@@ -1,0 +1,14 @@
+Ora disponibile in tedesco, con la schermata "Dove ero?" ridisegnata e correzioni di localizzazione e stabilità.
+
+Aggiunto:
+- Traduzione in tedesco
+
+Modifiche:
+- "Dove ero?" ridisegnata con mappa interattiva
+
+Correzioni:
+- Date, orari e durate seguono la lingua del dispositivo
+- "Tragitti" e "Viaggi" sono parole distinte in più lingue
+- Le mappe zoomano e si spostano, non la pagina
+- Le auto Diamond Black non appaiono più bianche
+- Ripristino se i dati di un'auto non si caricano
