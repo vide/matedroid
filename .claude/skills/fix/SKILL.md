@@ -178,6 +178,19 @@ Verify the issue was automatically closed by the `Fixes #<number>` reference. If
 | PR title and body | English |
 | Code review responses | English |
 
+## Voice and Style for Issue Comments
+
+When writing comments on GitHub issues (status updates, clarifying questions, closing notes), match the maintainer's own informal voice. Specifically:
+
+- Keep it casual and friendly, like a person typing a quick reply, not a formal report.
+- Keep sentences short and plain. Say what happened and what's next, then stop.
+- NEVER use em-dashes (—). Use a comma, a period, or parentheses instead.
+- Avoid LLM tells: no "delve", no "I've gone ahead and", no long windups, no over-explaining, no bullet-point essays for a simple update.
+- Don't pad with praise or filler. A simple "thanks for the report" is fine, skip the rest.
+- It's ok to be a bit terse. Better short and human than long and polished.
+
+This applies to issue/PR comments only. Code comments, commit messages, and PR bodies keep their normal technical style.
+
 ## Error Handling
 
 - If the issue cannot be reproduced, comment on the issue asking for more details
