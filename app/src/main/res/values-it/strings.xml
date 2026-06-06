@@ -135,8 +135,6 @@
     <string name="activity_title">Attività</string>
     <!-- Content description for the top-right overflow/hamburger menu button -->
     <string name="menu">Menu</string>
-    <!-- Trips hero: unit shown beneath the trip count -->
-    <string name="trips_journeys">viaggi</string>
     <!-- Trips hero: label above the most recent trip teaser -->
     <string name="trip_latest_label">Ultimo</string>
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->

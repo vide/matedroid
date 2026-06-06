@@ -44,7 +44,6 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.PowerSettingsNew
@@ -2151,7 +2150,8 @@ private fun VehicleInfoCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Footer strip: Drives + Software
+            // Footer strip: Drives + Software. Weights match the bento row above
+            // (1.15 : 1) so Drives lines up under Trips and Software under the tiles.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2162,7 +2162,7 @@ private fun VehicleInfoCard(
                     icon = CustomIcons.SteeringWheel,
                     palette = palette,
                     onClick = onNavigateToDrives,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.15f)
                 )
                 NavButton(
                     title = stringResource(R.string.nav_software),
@@ -2221,25 +2221,8 @@ private fun TripsHeroTile(
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Route,
-                        contentDescription = null,
-                        tint = palette.accent,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.nav_trips),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.accent
-                    )
-                }
-
                 if (totalTrips == 0) {
                     // Empty state — no road-trips detected yet.
-                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = stringResource(R.string.trips_empty_title),
                         style = MaterialTheme.typography.titleSmall,
@@ -2253,24 +2236,25 @@ private fun TripsHeroTile(
                         color = palette.onSurfaceVariant
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = totalTrips?.let { "%,d".format(it) } ?: "--",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.onSurface,
-                        maxLines = 1,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = 22.sp,
-                            maxFontSize = 40.sp,
-                            stepSize = 1.sp
+                    // Big count in the top-left, with "Trips" beside it.
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = totalTrips?.let { "%,d".format(it) } ?: "--",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.onSurface,
+                            maxLines = 1,
+                            softWrap = false
                         )
-                    )
-                    Text(
-                        text = stringResource(R.string.trips_journeys),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = palette.accent
-                    )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.nav_trips),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accent,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.weight(1f))
 
