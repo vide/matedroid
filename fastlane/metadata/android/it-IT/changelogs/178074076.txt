@@ -1,0 +1,4 @@
+Una piccola release di rifinitura.
+
+Correzioni:
+- Le etichette di navigazione della dashboard non vanno più a capo nelle lingue con parole più lunghe (es. spagnolo, catalano)

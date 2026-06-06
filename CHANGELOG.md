@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0-beta3] - 2026-06-06
+
 ### Fixed
 - **Long navigation labels no longer wrap on the dashboard**: localized words like the Spanish "Trayectos" or Catalan "Trajectes" overflowed the Drives/Charges/Trips buttons onto a second line. The label now shrinks slightly to stay on one line; labels that already fit are unchanged.
 
@@ -596,7 +598,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta3...HEAD
+[1.8.0-beta3]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...v1.8.0-beta3
 [1.8.0-beta2]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...v1.8.0-beta2
 [1.8.0-beta1]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0-beta1
 [1.7.0]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0

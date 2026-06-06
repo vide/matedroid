@@ -1,0 +1,4 @@
+Una pequeña versión de pulido.
+
+Correcciones:
+- Las etiquetas de navegación del panel ya no pasan a una segunda línea en idiomas con palabras más largas (p. ej. español, catalán)
