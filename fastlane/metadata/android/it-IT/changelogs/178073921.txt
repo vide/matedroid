@@ -1,0 +1,9 @@
+Questa beta aggiunge il tedesco e perfeziona l'esperienza in più lingue.
+
+Aggiunto:
+- Traduzione in tedesco (Deutsch)
+
+Correzioni:
+- Cambia auto anche se una non si carica: niente più dashboard bloccata
+- Le auto Diamond Black non vengono più mostrate bianche
+- «Tragitti» e «Viaggi» ora sono parole distinte

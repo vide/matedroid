@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0-beta2] - 2026-06-06
+
 ### Added
 - **German translation** — the app is now fully available in German (Deutsch). Thanks to @herrfrei for the contribution.
 
@@ -591,7 +593,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...HEAD
+[1.8.0-beta2]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...v1.8.0-beta2
 [1.8.0-beta1]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0-beta1
 [1.7.0]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0
 [1.7.0-beta1]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0-beta1

@@ -1,0 +1,9 @@
+Esta beta añade alemán y pule la experiencia en varios idiomas.
+
+Añadido:
+- Traducción al alemán (Deutsch)
+
+Correcciones:
+- Cambia de coche aunque uno no cargue: se acabó el panel bloqueado
+- Los coches Diamond Black ya no aparecen blancos
+- «Trayectos» y «Viajes» ahora son palabras distintas
