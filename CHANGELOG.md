@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Long navigation labels no longer wrap on the dashboard**: localized words like the Spanish "Trayectos" or Catalan "Trajectes" overflowed the Drives/Charges/Trips buttons onto a second line. The label now shrinks slightly to stay on one line; labels that already fit are unchanged.
+
 ## [1.8.0-beta2] - 2026-06-06
 
 ### Added
