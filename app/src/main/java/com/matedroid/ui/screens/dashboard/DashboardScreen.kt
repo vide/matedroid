@@ -31,6 +31,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
@@ -2187,7 +2188,15 @@ private fun NavButton(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant
+                    color = palette.onSurfaceVariant,
+                    // Shrink long localized labels (e.g. Spanish "Trayectos",
+                    // Catalan "Trajectes") to fit one line instead of wrapping.
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 9.sp,
+                        maxFontSize = 11.sp,
+                        stepSize = 0.5.sp
+                    )
                 )
             }
             Icon(
