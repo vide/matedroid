@@ -138,6 +138,8 @@
     <string name="activity_title">Activity</string>
     <!-- Content description for the top-right overflow/hamburger menu button -->
     <string name="menu">Menu</string>
+    <!-- Menu entry: opens the Sentry events / history screen -->
+    <string name="menu_sentry_events">Sentry events</string>
     <!-- Trips hero: label above the most recent trip teaser -->
     <string name="trip_latest_label">Latest</string>
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->

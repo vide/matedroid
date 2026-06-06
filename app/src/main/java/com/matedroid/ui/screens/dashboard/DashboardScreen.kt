@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
@@ -224,6 +226,8 @@ fun DashboardScreen(
                 },
                 actions = {
                     val carSelected = uiState.selectedCarId != null
+                    // A touch of left inset and taller rows give the menu more breathing room.
+                    val menuItemPadding = PaddingValues(start = 24.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu))
                     }
@@ -234,6 +238,7 @@ fun DashboardScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.stats_title)) },
                             leadingIcon = { Icon(Icons.Filled.Insights, contentDescription = null) },
+                            contentPadding = menuItemPadding,
                             enabled = carSelected,
                             onClick = {
                                 menuExpanded = false
@@ -245,6 +250,7 @@ fun DashboardScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.battery_health_title)) },
                             leadingIcon = { Icon(Icons.Filled.BatteryFull, contentDescription = null) },
+                            contentPadding = menuItemPadding,
                             enabled = carSelected,
                             onClick = {
                                 menuExpanded = false
@@ -256,16 +262,30 @@ fun DashboardScreen(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.where_was_i_screen_title)) },
                             leadingIcon = { Icon(Icons.Filled.History, contentDescription = null) },
+                            contentPadding = menuItemPadding,
                             enabled = carSelected,
                             onClick = {
                                 menuExpanded = false
                                 showWhereWasIPicker = true
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_sentry_events)) },
+                            leadingIcon = { Icon(Icons.Filled.Security, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
                         HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.settings)) },
                             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            contentPadding = menuItemPadding,
                             onClick = {
                                 menuExpanded = false
                                 onNavigateToSettings()
