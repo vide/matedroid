@@ -38,6 +38,12 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">Show details</string>
 
+    <!-- Generic retry button (e.g. retry loading a car's status) -->
+    <string name="retry">Retry</string>
+
+    <!-- Shown when the selected car's status can't be loaded but other cars are available to pick -->
+    <string name="dashboard_car_unavailable">Couldn\'t load this car</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">Error Details</string>
 

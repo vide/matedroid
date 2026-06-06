@@ -38,6 +38,9 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">显示详情</string>
 
+    <string name="retry">重试</string>
+    <string name="dashboard_car_unavailable">无法加载此车辆</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">错误详情</string>
 

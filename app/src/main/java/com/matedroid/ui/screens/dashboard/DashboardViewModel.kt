@@ -167,13 +167,32 @@ class DashboardViewModel @Inject constructor(
                 totalCharges = null,
                 totalDrives = null,
                 carImageOverride = currentOverrides[carId],
-                isCurrentChargeAvailable = false
+                isCurrentChargeAvailable = false,
+                // Clear any error from a previously-selected car so switching to a
+                // working car doesn't keep showing the stale error (issue #272).
+                error = null,
+                errorDetails = null
             )
         }
         // Save the selected car for next app launch
         viewModelScope.launch {
             settingsDataStore.saveLastSelectedCarId(carId)
         }
+        loadCarStatus(carId)
+    }
+
+    /**
+     * Retry loading the currently-selected car's status after a failure.
+     * Clears the error first so the UI shows a loading state while retrying.
+     */
+    fun retryCarStatus() {
+        val carId = _uiState.value.selectedCarId
+        if (carId == null) {
+            // No car selected yet (e.g. the car list itself failed to load) — reload everything.
+            loadCars()
+            return
+        }
+        _uiState.update { it.copy(error = null, errorDetails = null) }
         loadCarStatus(carId)
     }
 

@@ -38,6 +38,9 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">Mostra dettagli</string>
 
+    <string name="retry">Riprova</string>
+    <string name="dashboard_car_unavailable">Impossibile caricare questa auto</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">Dettagli Errore</string>
 
