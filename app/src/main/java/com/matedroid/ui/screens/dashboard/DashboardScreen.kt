@@ -2479,10 +2479,8 @@ private fun TirePressureCard(
     units: Units?,
     palette: CarColorPalette
 ) {
-    // There's no recommended/target pressure in the data, so the bar is a relative
-    // 0..max fill (illustrative only); the printed number is authoritative and the
-    // status colour comes purely from Tesla's per-tyre soft-warning flag.
-    val maxScale = if (units?.unitOfPressure == "psi") 51.0 else 3.5
+    // Status colour comes purely from Tesla's per-tyre soft-warning flag; the printed
+    // number is authoritative (there's no recommended/target pressure in the data).
     val unitLabel = UnitFormatter.getPressureUnit(units)
 
     Card(
@@ -2492,19 +2490,19 @@ private fun TirePressureCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.TireRepair,
                     contentDescription = null,
                     tint = palette.accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.tire_pressure_title),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
                 )
@@ -2516,97 +2514,62 @@ private fun TirePressureCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Single compact row of four wheels.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TyreTile(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, maxScale, unitLabel, palette, Modifier.weight(1f))
-                TyreTile(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, maxScale, unitLabel, palette, Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TyreTile(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, maxScale, unitLabel, palette, Modifier.weight(1f))
-                TyreTile(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, maxScale, unitLabel, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f))
             }
         }
     }
 }
 
-/** One wheel tile in the tyre-pressure grid: position, value, status dot, illustrative fill bar. */
+/** One compact wheel cell: status dot + position label, with the pressure value below. */
 @Composable
 private fun TyreTile(
     label: String,
     pressure: Double?,
     warning: Boolean,
-    maxScale: Double,
-    unitLabel: String,
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
     val statusColor = if (warning) StatusWarning else StatusSuccess
-    val fraction = pressure?.let { (it / maxScale).coerceIn(0.0, 1.0).toFloat() } ?: 0f
 
-    Box(
+    Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(palette.onSurface.copy(alpha = 0.05f))
-            .padding(horizontal = 11.dp, vertical = 10.dp)
+            .padding(horizontal = 9.dp, vertical = 8.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .background(statusColor, CircleShape)
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = pressure?.let { "%.1f".format(it) } ?: "--",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurface,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
-                    text = unitLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(palette.onSurface.copy(alpha = 0.08f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(statusColor)
-                )
-            }
+                    .size(6.dp)
+                    .background(statusColor, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurfaceVariant,
+                maxLines = 1
+            )
         }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = pressure?.let { "%.1f".format(it) } ?: "--",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = palette.onSurface,
+            maxLines = 1
+        )
     }
 }
 
