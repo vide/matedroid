@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Trip total duration no longer wraps onto multiple lines** under the timeline on the trip detail screen, regardless of screen size or the device's font-size setting.
+
 ## [1.8.0] - 2026-06-06
 
 German language support, a redesigned "Where was I?" screen, and a round of localization and reliability fixes.
