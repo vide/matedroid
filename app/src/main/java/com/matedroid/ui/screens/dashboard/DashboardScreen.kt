@@ -2148,6 +2148,7 @@ private fun VehicleInfoCard(
                             val value = UnitFormatter.formatDistanceValue(it, units, 0)
                             "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
                         } ?: "--",
+                        icon = CustomIcons.Road,
                         palette = palette,
                         onClick = onNavigateToMileage,
                         modifier = Modifier
@@ -2157,6 +2158,7 @@ private fun VehicleInfoCard(
                     NavButton(
                         title = stringResource(R.string.nav_charges),
                         value = totalCharges?.let { "%,d".format(it) } ?: "--",
+                        icon = Icons.Filled.ElectricBolt,
                         palette = palette,
                         onClick = onNavigateToCharges,
                         modifier = Modifier
@@ -2177,6 +2179,7 @@ private fun VehicleInfoCard(
                 NavButton(
                     title = stringResource(R.string.nav_drives),
                     value = totalDrives?.let { "%,d".format(it) } ?: "--",
+                    icon = CustomIcons.SteeringWheel,
                     palette = palette,
                     onClick = onNavigateToDrives,
                     modifier = Modifier.weight(1.15f)
@@ -2184,6 +2187,7 @@ private fun VehicleInfoCard(
                 NavButton(
                     title = stringResource(R.string.nav_software),
                     value = status.version ?: "--",
+                    icon = Icons.Filled.Settings,
                     palette = palette,
                     onClick = onNavigateToUpdates,
                     modifier = Modifier.weight(1f)
@@ -2318,6 +2322,7 @@ private fun TripsHeroTile(
 private fun NavButton(
     title: String,
     value: String,
+    icon: ImageVector,
     palette: CarColorPalette,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -2335,6 +2340,14 @@ private fun NavButton(
                 .padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Leading icon, vertically centered so it spans the value + label lines.
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = palette.accent
+            )
+            Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = value,
