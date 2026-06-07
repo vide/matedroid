@@ -6,6 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.matedroid.ui.util.GlowBitmapRenderer
 import android.net.Uri
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
@@ -55,6 +57,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.TireRepair
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
@@ -133,7 +136,6 @@ import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
-import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.util.formatDuration
 import com.matedroid.util.formatShortNoYear
 import com.matedroid.util.formatTime
@@ -141,7 +143,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import com.matedroid.data.api.models.BatteryDetails
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
@@ -893,6 +894,12 @@ private fun DashboardContent(
             onNavigateToUpdates = onNavigateToUpdates,
             onNavigateToTrips = onNavigateToTrips
         )
+
+        // Tyre pressure — its own card, shown when TPMS data is available
+        val tpms = status.tpmsDetails
+        if (tpms != null && (tpms.pressureFl != null || tpms.pressureFr != null)) {
+            TirePressureCard(tpms = tpms, units = units, palette = palette)
+        }
     }
 }
 
@@ -1938,15 +1945,11 @@ private fun LocationCard(
     val geofence = status.geofence
     val elevation = status.elevation
 
-    val locationText = geofence?.takeIf { it.isNotBlank() }
+    val headline = geofence?.takeIf { it.isNotBlank() }
         ?: resolvedAddress?.takeIf { it.isNotBlank() }
-        ?: run {
-            if (latitude != null && longitude != null) {
-                "%.5f, %.5f".format(latitude, longitude)
-            } else {
-                "Unknown"
-            }
-        }
+        ?: if (latitude != null && longitude != null) "%.5f, %.5f".format(latitude, longitude) else "Unknown"
+    // Show the street address as a subline only when the headline is a geofence name.
+    val subAddress = resolvedAddress?.takeIf { it.isNotBlank() && it != headline }
 
     fun openInMaps() {
         if (latitude != null && longitude != null) {
@@ -1956,122 +1959,222 @@ private fun LocationCard(
         }
     }
 
+    // The muted map follows the theme: dark map + light text in dark mode,
+    // light map + dark text in light mode.
+    val dark = isSystemInDarkTheme()
+    val onMap = if (dark) Color.White else Color(0xFF0E1216)
+    val onMapDim = onMap.copy(alpha = 0.80f)
+    val baseColor = if (dark) Color(0xFF12202A) else Color(0xFFE7ECF1)
+    val scrimColor = if (dark) Color(0xF00A0C10) else Color(0xF2F8F9FB)
+    val tintColor = if (dark) Color.Black.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.10f)
+    val pinBorder = if (dark) Color.White else Color(0xFF0E1216)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        // Location content (tappable to open maps)
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { openInMaps() }
-                .padding(16.dp)
+                .height(200.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+            // Base (shows while tiles load, or when there are no coordinates).
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(baseColor)
+            )
+
+            if (latitude != null && longitude != null) {
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(false)
+                            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+                            isClickable = false
+                            isFocusable = false
+                            // Mute the basemap so roads/labels recede behind the scrim
+                            // and pin. Dark theme: grayscale + darken. Light theme:
+                            // grayscale + lift toward white to soften the detail.
+                            val matrix = ColorMatrix().apply { setSaturation(0f) }
+                            matrix.postConcat(
+                                if (dark) {
+                                    ColorMatrix(
+                                        floatArrayOf(
+                                            0.55f, 0f, 0f, 0f, 0f,
+                                            0f, 0.55f, 0f, 0f, 0f,
+                                            0f, 0f, 0.60f, 0f, 0f,
+                                            0f, 0f, 0f, 1f, 0f
+                                        )
+                                    )
+                                } else {
+                                    ColorMatrix(
+                                        floatArrayOf(
+                                            0.92f, 0f, 0f, 0f, 18f,
+                                            0f, 0.92f, 0f, 0f, 18f,
+                                            0f, 0f, 0.92f, 0f, 18f,
+                                            0f, 0f, 0f, 1f, 0f
+                                        )
+                                    )
+                                }
+                            )
+                            overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(matrix))
+                            controller.setZoom(15.0)
+                            controller.setCenter(GeoPoint(latitude, longitude))
+                            // Fully inert — no pan, no zoom. Taps are handled by the
+                            // Compose overlay above the map.
+                            setOnTouchListener { _, _ -> true }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Translucent tint to knock back remaining tile clutter and unify the look.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(tintColor)
+            )
+            // Bottom scrim for text legibility.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.42f to Color.Transparent,
+                            1f to scrimColor
+                        )
+                    )
+            )
+
+            // Glowing pin at the center (the map is centered on the car).
+            if (latitude != null && longitude != null) {
+                Box(
+                    modifier = Modifier.align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(palette.accent.copy(alpha = 0.45f), Color.Transparent)
+                                ),
+                                shape = CircleShape
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(15.dp)
+                            .background(palette.accent, CircleShape)
+                            .border(2.dp, pinBorder, CircleShape)
+                    )
+                }
+            }
+
+            // Overlay: place name, address and detail chips.
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = headline,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = onMap,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (subAddress != null) {
+                    Text(
+                        text = subAddress,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = onMapDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (elevation != null) {
+                        LocationChip(
+                            icon = Icons.Filled.Terrain,
+                            text = UnitFormatter.formatElevation(elevation, units)
+                        )
+                    }
+                    if (latitude != null && longitude != null) {
+                        LocationChip(
+                            icon = Icons.Filled.LocationOn,
+                            text = "%.4f, %.4f".format(latitude, longitude)
+                        )
+                    }
+                }
+            }
+
+            // Chevron affordance — signals the whole card is tappable.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 12.dp)
+                    .size(32.dp)
+                    .background(
+                        if (dark) Color.Black.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.55f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Filled.LocationOn,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = palette.accent
+                    tint = onMap,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.location),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.onSurfaceVariant
-                    )
-                    Text(
-                        text = locationText,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = palette.onSurface
-                    )
-                }
-
-                if (latitude != null && longitude != null) {
-                    Spacer(modifier = Modifier.width(12.dp))
-                    SmallLocationMap(
-                        latitude = latitude,
-                        longitude = longitude,
-                        onClick = { openInMaps() },
-                        modifier = Modifier
-                            .width(140.dp)
-                            .height(70.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                    )
-                }
             }
 
-            if (elevation != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Terrain,
-                        contentDescription = null,
-                        tint = palette.accent
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = stringResource(R.string.elevation),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = UnitFormatter.formatElevation(elevation, units),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.onSurface,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            }
+            // Whole-card tap target, above the inert map, opens the default maps app.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { openInMaps() }
+            )
         }
     }
 }
 
+/** A small translucent chip used on the immersive Location card's map overlay. */
 @Composable
-private fun SmallLocationMap(
-    latitude: Double,
-    longitude: Double,
-    onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
-
-    Box(
-        modifier = modifier.clickable { onClick() }
+private fun LocationChip(icon: ImageVector, text: String) {
+    val dark = isSystemInDarkTheme()
+    val content = if (dark) Color.White else Color(0xFF0E1216)
+    val bg = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(bg)
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        AndroidView(
-            factory = { ctx ->
-                MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(false)
-
-                    // Disable all interactions for this small preview map
-                    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
-                    isClickable = false
-                    isFocusable = false
-
-                    val carLocation = GeoPoint(latitude, longitude)
-                    controller.setZoom(15.0)
-                    controller.setCenter(carLocation)
-
-                    // Add a marker for the car
-                    val marker = Marker(this).apply {
-                        position = carLocation
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        icon = createPinMarkerDrawable(ctx.resources, primaryColor)
-                    }
-                    overlays.add(marker)
-                }
-            },
-            modifier = Modifier.fillMaxSize()
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = content.copy(alpha = 0.9f),
+            modifier = Modifier.size(13.dp)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = content.copy(alpha = 0.92f),
+            maxLines = 1
         )
     }
 }
+
 @Composable
 private fun VehicleInfoCard(
     status: CarStatus,
@@ -2087,8 +2190,6 @@ private fun VehicleInfoCard(
     onNavigateToUpdates: () -> Unit,
     onNavigateToTrips: () -> Unit = {}
 ) {
-    val tpms = status.tpmsDetails
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -2192,14 +2293,6 @@ private fun VehicleInfoCard(
                     onClick = onNavigateToUpdates,
                     modifier = Modifier.weight(1f)
                 )
-            }
-
-            // Tire pressure section - show if data available
-            if (tpms != null && (tpms.pressureFl != null || tpms.pressureFr != null)) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = palette.onSurfaceVariant.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(8.dp))
-                TirePressureDisplay(tpms = tpms, units = units, palette = palette)
             }
         }
     }
@@ -2381,197 +2474,138 @@ private fun NavButton(
 }
 
 @Composable
-private fun TirePressureDisplay(
+private fun TirePressureCard(
     tpms: TpmsDetails,
     units: Units?,
     palette: CarColorPalette
 ) {
-    val okColor = StatusSuccess
-    val warningColor = StatusWarning
-    val carOutlineColor = palette.onSurfaceVariant.copy(alpha = 0.4f)
+    // There's no recommended/target pressure in the data, so the bar is a relative
+    // 0..max fill (illustrative only); the printed number is authoritative and the
+    // status colour comes purely from Tesla's per-tyre soft-warning flag.
+    val maxScale = if (units?.unitOfPressure == "psi") 51.0 else 3.5
+    val unitLabel = UnitFormatter.getPressureUnit(units)
 
-    // Use API warning flags only - no hardcoded thresholds
-    val flColor = if (tpms.warningFl == true) warningColor else okColor
-    val frColor = if (tpms.warningFr == true) warningColor else okColor
-    val rlColor = if (tpms.warningRl == true) warningColor else okColor
-    val rrColor = if (tpms.warningRr == true) warningColor else okColor
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        // Left pressure values (FL, RL)
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            TirePressureItem(
-                label = stringResource(R.string.tire_fl),
-                pressure = tpms.pressureFl,
-                color = flColor,
-                units = units,
-                alignEnd = true
-            )
-            TirePressureItem(
-                label = stringResource(R.string.tire_rl),
-                pressure = tpms.pressureRl,
-                color = rlColor,
-                units = units,
-                alignEnd = true
-            )
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        // Tesla car outline (minimalist)
-        Canvas(
             modifier = Modifier
-                .width(32.dp)
-                .height(48.dp)
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            val w = size.width
-            val h = size.height
-
-            // Draw Tesla-like car outline using path
-            val path = androidx.compose.ui.graphics.Path().apply {
-                // Start at top-left of hood
-                moveTo(w * 0.25f, h * 0.22f)
-                // Hood curve to top center
-                quadraticTo(w * 0.25f, h * 0.08f, w * 0.5f, h * 0.08f)
-                // Hood curve to top-right
-                quadraticTo(w * 0.75f, h * 0.08f, w * 0.75f, h * 0.22f)
-                // Right side down to rear
-                lineTo(w * 0.82f, h * 0.35f)
-                quadraticTo(w * 0.85f, h * 0.45f, w * 0.85f, h * 0.55f)
-                lineTo(w * 0.85f, h * 0.78f)
-                // Rear curve
-                quadraticTo(w * 0.85f, h * 0.92f, w * 0.5f, h * 0.94f)
-                quadraticTo(w * 0.15f, h * 0.92f, w * 0.15f, h * 0.78f)
-                // Left side up to hood
-                lineTo(w * 0.15f, h * 0.55f)
-                quadraticTo(w * 0.15f, h * 0.45f, w * 0.18f, h * 0.35f)
-                close()
-            }
-
-            drawPath(
-                path = path,
-                color = carOutlineColor,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 2.dp.toPx(),
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.TireRepair,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp)
                 )
-            )
-
-            // Windshield
-            val windshieldPath = androidx.compose.ui.graphics.Path().apply {
-                moveTo(w * 0.30f, h * 0.24f)
-                quadraticTo(w * 0.5f, h * 0.20f, w * 0.70f, h * 0.24f)
-                lineTo(w * 0.65f, h * 0.34f)
-                quadraticTo(w * 0.5f, h * 0.32f, w * 0.35f, h * 0.34f)
-                close()
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.tire_pressure_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = unitLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant
+                )
             }
-            drawPath(
-                path = windshieldPath,
-                color = carOutlineColor.copy(alpha = 0.3f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
-            )
 
-            // Rear window
-            val rearPath = androidx.compose.ui.graphics.Path().apply {
-                moveTo(w * 0.30f, h * 0.74f)
-                quadraticTo(w * 0.5f, h * 0.72f, w * 0.70f, h * 0.74f)
-                lineTo(w * 0.65f, h * 0.82f)
-                quadraticTo(w * 0.5f, h * 0.84f, w * 0.35f, h * 0.82f)
-                close()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TyreTile(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, maxScale, unitLabel, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, maxScale, unitLabel, palette, Modifier.weight(1f))
             }
-            drawPath(
-                path = rearPath,
-                color = carOutlineColor.copy(alpha = 0.3f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
-            )
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        // Right pressure values (FR, RR)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            TirePressureItem(
-                label = stringResource(R.string.tire_fr),
-                pressure = tpms.pressureFr,
-                color = frColor,
-                units = units,
-                alignEnd = false
-            )
-            TirePressureItem(
-                label = stringResource(R.string.tire_rr),
-                pressure = tpms.pressureRr,
-                color = rrColor,
-                units = units,
-                alignEnd = false
-            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TyreTile(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, maxScale, unitLabel, palette, Modifier.weight(1f))
+                TyreTile(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, maxScale, unitLabel, palette, Modifier.weight(1f))
+            }
         }
     }
 }
 
+/** One wheel tile in the tyre-pressure grid: position, value, status dot, illustrative fill bar. */
 @Composable
-private fun TirePressureItem(
+private fun TyreTile(
     label: String,
     pressure: Double?,
-    color: androidx.compose.ui.graphics.Color,
-    units: Units?,
-    alignEnd: Boolean
+    warning: Boolean,
+    maxScale: Double,
+    unitLabel: String,
+    palette: CarColorPalette,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (alignEnd) Arrangement.End else Arrangement.Start
+    val statusColor = if (warning) StatusWarning else StatusSuccess
+    val fraction = pressure?.let { (it / maxScale).coerceIn(0.0, 1.0).toFloat() } ?: 0f
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(palette.onSurface.copy(alpha = 0.05f))
+            .padding(horizontal = 11.dp, vertical = 10.dp)
     ) {
-        if (alignEnd) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.width(4.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .background(statusColor, CircleShape)
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = pressure?.let { "%.1f".format(it) } ?: "--",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = unitLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
-                    .size(6.dp)
-                    .background(color, shape = RoundedCornerShape(50))
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = pressure?.let { UnitFormatter.formatPressure(it, units, 1) } ?: "--",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-        } else {
-            Text(
-                text = pressure?.let { UnitFormatter.formatPressure(it, units, 1) } ?: "--",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(color, shape = RoundedCornerShape(50))
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(palette.onSurface.copy(alpha = 0.08f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(statusColor)
+                )
+            }
         }
     }
 }
