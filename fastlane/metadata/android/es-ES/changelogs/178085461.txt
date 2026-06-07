@@ -1,0 +1,4 @@
+Esta versión pule un detalle en la página de detalles del viaje.
+
+Corregido:
+- La duración total del viaje ya no se parte en varias líneas bajo la línea de tiempo: ahora se ve ordenada en cualquier tamaño de pantalla o de fuente.

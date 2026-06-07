@@ -1,0 +1,4 @@
+Questa versione risolve un piccolo difetto nella pagina di dettaglio del viaggio.
+
+Risolto:
+- La durata totale del viaggio non va più a capo su più righe sotto la timeline: ora resta ordinata con qualsiasi dimensione dello schermo o del carattere.

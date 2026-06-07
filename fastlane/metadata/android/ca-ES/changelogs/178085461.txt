@@ -1,0 +1,4 @@
+Aquesta versió poleix un detall a la pàgina de detalls del viatge.
+
+Corregit:
+- La durada total del viatge ja no es divideix en diverses línies sota la línia de temps: ara es manté ordenada amb qualsevol mida de pantalla o de lletra.
