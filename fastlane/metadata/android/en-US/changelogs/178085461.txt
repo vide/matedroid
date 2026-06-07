@@ -1,0 +1,4 @@
+This release smooths out a rough edge on the trip detail screen.
+
+Fixed:
+- The trip's total duration no longer wraps onto several lines under the timeline — it now stays tidy on any screen size or font-size setting.

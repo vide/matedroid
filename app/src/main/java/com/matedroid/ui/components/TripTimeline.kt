@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
@@ -187,6 +189,7 @@ fun TripTimeline(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            // Start / end clock times aligned to the bar's ends.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -195,27 +198,38 @@ fun TripTimeline(
                     text = formatClockTime(startDate, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.weight(1f)
-                )
-                DurationSummary(
-                    totalDurationMin = totalDurationMin,
-                    totalDrivingDurationMin = totalDrivingDurationMin,
-                    totalChargingDurationMin = totalChargingDurationMin,
-                    palette = palette,
-                    modifier = Modifier.weight(2f)
                 )
                 Text(
                     text = formatClockTime(endDate, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Durations on their own full-width line so they never get starved into
+            // wrapping; FlowRow lets them spill to a second line gracefully if a large
+            // font scale leaves no room for all three on one line.
+            DurationSummary(
+                totalDurationMin = totalDurationMin,
+                totalDrivingDurationMin = totalDrivingDurationMin,
+                totalChargingDurationMin = totalChargingDurationMin,
+                palette = palette,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationSummary(
     totalDurationMin: Int,
@@ -225,10 +239,10 @@ private fun DurationSummary(
     modifier: Modifier = Modifier
 ) {
     val resources = LocalContext.current.resources
-    Row(
+    FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         DurationItem(
             icon = CustomIcons.SteeringWheel,
@@ -236,14 +250,12 @@ private fun DurationSummary(
             tint = palette.accent
         )
         if (totalChargingDurationMin > 0) {
-            Spacer(Modifier.width(10.dp))
             DurationItem(
                 icon = Icons.Filled.ElectricBolt,
                 text = formatDuration(resources, totalChargingDurationMin),
                 tint = palette.accent
             )
         }
-        Spacer(Modifier.width(10.dp))
         DurationItem(
             icon = Icons.Filled.Schedule,
             text = formatDuration(resources, totalDurationMin),
@@ -269,7 +281,9 @@ private fun DurationItem(
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }

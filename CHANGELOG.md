@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Redesigned the Location card** into an immersive, full-bleed map (muted to match light/dark theme) with the place name and details over it; tap anywhere to open it in your maps app.
 - **Tyre pressure moved into its own card** with a cleaner 2×2 grid — one tile per wheel with its pressure and an OK/low status dot.
 
+## [1.8.1] - 2026-06-07
+
+### Fixed
+- **Trip total duration no longer wraps onto multiple lines** under the timeline on the trip detail screen, regardless of screen size or the device's font-size setting.
+
 ## [1.8.0] - 2026-06-06
 
 German language support, a redesigned "Where was I?" screen, and a round of localization and reliability fixes.
@@ -625,7 +630,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0
 [1.8.0-beta3]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...v1.8.0-beta3
 [1.8.0-beta2]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...v1.8.0-beta2
