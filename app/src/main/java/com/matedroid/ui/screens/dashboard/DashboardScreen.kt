@@ -2142,23 +2142,21 @@ private fun VehicleInfoCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    BentoStatTile(
-                        label = stringResource(R.string.nav_mileage),
+                    NavButton(
+                        title = stringResource(R.string.nav_mileage),
                         value = status.odometer?.let {
                             val value = UnitFormatter.formatDistanceValue(it, units, 0)
                             "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
                         } ?: "--",
-                        icon = CustomIcons.Road,
                         palette = palette,
                         onClick = onNavigateToMileage,
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
                     )
-                    BentoStatTile(
-                        label = stringResource(R.string.nav_charges),
+                    NavButton(
+                        title = stringResource(R.string.nav_charges),
                         value = totalCharges?.let { "%,d".format(it) } ?: "--",
-                        icon = Icons.Filled.ElectricBolt,
                         palette = palette,
                         onClick = onNavigateToCharges,
                         modifier = Modifier
@@ -2179,7 +2177,6 @@ private fun VehicleInfoCard(
                 NavButton(
                     title = stringResource(R.string.nav_drives),
                     value = totalDrives?.let { "%,d".format(it) } ?: "--",
-                    icon = CustomIcons.SteeringWheel,
                     palette = palette,
                     onClick = onNavigateToDrives,
                     modifier = Modifier.weight(1.15f)
@@ -2187,7 +2184,6 @@ private fun VehicleInfoCard(
                 NavButton(
                     title = stringResource(R.string.nav_software),
                     value = status.version ?: "--",
-                    icon = Icons.Filled.Settings,
                     palette = palette,
                     onClick = onNavigateToUpdates,
                     modifier = Modifier.weight(1f)
@@ -2317,74 +2313,11 @@ private fun TripsHeroTile(
     }
 }
 
-/** A right-column bento stat tile: icon + label + chevron on top, big value at the bottom. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BentoStatTile(
-    label: String,
-    value: String,
-    icon: ImageVector,
-    palette: CarColorPalette,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = palette.onSurface.copy(alpha = 0.05f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = palette.accent,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = palette.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface,
-                maxLines = 1,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = 13.sp,
-                    maxFontSize = 19.sp,
-                    stepSize = 0.5.sp
-                )
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NavButton(
     title: String,
     value: String,
-    icon: ImageVector,
     palette: CarColorPalette,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -2402,13 +2335,6 @@ private fun NavButton(
                 .padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = palette.accent
-            )
-            Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = value,
