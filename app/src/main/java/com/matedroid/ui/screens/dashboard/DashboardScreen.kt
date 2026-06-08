@@ -2082,21 +2082,40 @@ private fun LocationCard(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = headline,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = onMap,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (subAddress != null) {
+                if (!geofence.isNullOrBlank()) {
+                    // Short geofence name — keep it big.
                     Text(
-                        text = subAddress,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = onMapDim,
+                        text = headline,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = onMap,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
+                    )
+                    if (subAddress != null) {
+                        Text(
+                            text = subAddress,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = onMapDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    // Address (or coordinates) — usually long, so shrink to fit across up
+                    // to two lines instead of clipping, scaling with the available width.
+                    Text(
+                        text = headline,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = onMap,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 14.sp,
+                            maxFontSize = 22.sp,
+                            stepSize = 0.5.sp
+                        )
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
