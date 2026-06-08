@@ -149,6 +149,14 @@
     <string name="trips_empty_title">暂无长途旅程</string>
     <!-- Trips hero empty state hint -->
     <string name="trips_empty_hint">超过 300 公里的旅程会显示在这里</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">满足以下条件时会自动识别为一次旅程：</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">连续 2 段或更多行程</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">由至少一次 DC 快充停留连接</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">总里程达到 300 km 或以上</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">充电记录</string>
@@ -1072,9 +1080,7 @@
     <string name="sentry_history_yesterday">昨天</string>
 
     <string name="nav_trips">旅程</string>
-    <string name="trips_title">旅程</string>
-    <string name="trips_empty">尚未检测到公路旅行。\n旅程需要至少 2 段驾驶和 1 次直流充电。</string>
-    <string name="trip_detail_title">旅程详情</string>
+    <string name="trips_title">旅程</string>    <string name="trip_detail_title">旅程详情</string>
     <string name="trip_summary">旅程概览</string>
     <string name="trip_legs">旅程段落</string>
     <string name="trip_no_stops">无停靠</string>

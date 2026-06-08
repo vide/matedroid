@@ -149,6 +149,14 @@
     <string name="trips_empty_title">Aún no hay viajes</string>
     <!-- Trips hero empty state hint -->
     <string name="trips_empty_hint">Los viajes de más de 300 km aparecen aquí</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">Un viaje se detecta automáticamente cuando tienes:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 o más trayectos seguidos</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">conectados por al menos una parada de carga rápida DC</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">que sumen 300 km o más en total</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Cargas</string>
@@ -1071,9 +1079,7 @@
     <string name="sentry_history_yesterday">Ayer</string>
 
     <string name="nav_trips">Viajes</string>
-    <string name="trips_title">Viajes</string>
-    <string name="trips_empty">No se detectaron viajes.\nUn viaje requiere al menos 2 trayectos conectados por una carga DC.</string>
-    <string name="trip_detail_title">Detalles del viaje</string>
+    <string name="trips_title">Viajes</string>    <string name="trip_detail_title">Detalles del viaje</string>
     <string name="trip_summary">Resumen del viaje</string>
     <string name="trip_legs">Etapas del viaje</string>
     <string name="trip_no_stops">sin paradas</string>

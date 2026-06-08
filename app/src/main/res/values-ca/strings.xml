@@ -149,6 +149,14 @@
     <string name="trips_empty_title">Encara no hi ha viatges</string>
     <!-- Trips hero empty state hint -->
     <string name="trips_empty_hint">Els viatges de més de 300 km apareixen aquí</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">Un viatge es detecta automàticament quan tens:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 o més trajectes seguits</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">connectats per almenys una parada de càrrega ràpida DC</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">que sumin 300 km o més en total</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Càrregues</string>
@@ -1071,9 +1079,7 @@
     <string name="sentry_history_yesterday">Ahir</string>
 
     <string name="nav_trips">Viatges</string>
-    <string name="trips_title">Viatges</string>
-    <string name="trips_empty">No s\'han detectat viatges.\nUn viatge requereix almenys 2 trajectes connectats per una càrrega DC.</string>
-    <string name="trip_detail_title">Detalls del viatge</string>
+    <string name="trips_title">Viatges</string>    <string name="trip_detail_title">Detalls del viatge</string>
     <string name="trip_summary">Resum del viatge</string>
     <string name="trip_legs">Etapes del viatge</string>
     <string name="trip_no_stops">sense parades</string>

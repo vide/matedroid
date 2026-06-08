@@ -152,6 +152,14 @@
     <string name="trips_empty_title">No road-trips yet</string>
     <!-- Trips hero empty state hint -->
     <string name="trips_empty_hint">Trips over 300 km show up here</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">A road-trip is detected automatically when you have:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 or more drives in a row</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">linked by at least one DC fast-charge stop</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">covering 300 km or more in total</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Charges</string>
@@ -1088,9 +1096,7 @@
     <string name="nav_trips">Trips</string>
     <!-- Trips list screen title -->
     <string name="trips_title">Trips</string>
-    <!-- Empty state when no trips detected -->
-    <string name="trips_empty">No road trips detected yet.\nA trip requires at least 2 drives connected by a DC charge stop.</string>
-    <!-- Warning when deep sync is incomplete -->
+    <!-- Empty state when no trips detected -->    <!-- Warning when deep sync is incomplete -->
     <!-- Trip detail screen title -->
     <string name="trip_detail_title">Trip Details</string>
     <!-- Trip summary section header -->
