@@ -2083,7 +2083,7 @@ private fun LocationCard(
                     .padding(16.dp)
             ) {
                 if (!geofence.isNullOrBlank()) {
-                    // Short geofence name — keep it big.
+                    // Geofence name — big; full address small beneath.
                     Text(
                         text = headline,
                         style = MaterialTheme.typography.headlineSmall,
@@ -2101,21 +2101,39 @@ private fun LocationCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                } else {
-                    // Address (or coordinates) — usually long, so shrink to fit across up
-                    // to two lines instead of clipping, scaling with the available width.
+                } else if (!resolvedAddress.isNullOrBlank()) {
+                    // No geofence: the geocoder formats the address as "<street>, <city>".
+                    // Lead with the city (big, bold); show the street smaller beneath so a
+                    // long street doesn't force the whole headline to shrink.
+                    val parts = resolvedAddress.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    val city = parts.lastOrNull() ?: resolvedAddress
+                    val street = parts.dropLast(1).joinToString(", ").ifBlank { null }
                     Text(
-                        text = headline,
-                        style = MaterialTheme.typography.titleLarge,
+                        text = city,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = onMap,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = 14.sp,
-                            maxFontSize = 22.sp,
-                            stepSize = 0.5.sp
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (street != null) {
+                        Text(
+                            text = street,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Normal,
+                            color = onMapDim,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
+                    }
+                } else {
+                    // Coordinates fallback (no geofence, no resolved address).
+                    Text(
+                        text = headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = onMap,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
