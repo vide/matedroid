@@ -1984,7 +1984,7 @@ private fun LocationCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(140.dp)
         ) {
             // Base (shows while tiles load, or when there are no coordinates).
             Box(
