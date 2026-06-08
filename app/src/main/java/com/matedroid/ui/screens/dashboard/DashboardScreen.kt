@@ -126,6 +126,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
@@ -1984,7 +1985,7 @@ private fun LocationCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(172.dp)
         ) {
             // Base (shows while tiles load, or when there are no coordinates).
             Box(
@@ -2058,10 +2059,10 @@ private fun LocationCard(
                     )
             )
 
-            // Glowing pin at the center (the map is centered on the car).
+            // Glowing pin in the upper third so the place name below it never overlaps.
             if (latitude != null && longitude != null) {
                 Box(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.align(BiasAlignment(0f, -0.35f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -2130,7 +2131,7 @@ private fun LocationCard(
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Normal,
                             color = onMapDim,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
