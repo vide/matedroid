@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.trips
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -136,7 +139,7 @@ fun TripsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .padding(32.dp),
+                        .padding(horizontal = 32.dp, vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -144,15 +147,32 @@ fun TripsScreen(
                             Icons.Filled.Route,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            tint = palette.accent.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = stringResource(R.string.trips_empty),
+                            text = stringResource(R.string.trips_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.trips_empty_intro),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Column(
+                            modifier = Modifier.widthIn(max = 320.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            TripRuleRow(1, stringResource(R.string.trips_empty_rule_drives), palette)
+                            TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
+                            TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
+                        }
                     }
                 }
             }
@@ -553,6 +573,32 @@ private fun YearFilterChips(
             },
             initialStart = customStartDate,
             initialEnd = customEndDate
+        )
+    }
+}
+
+/** A numbered rule row for the trips empty-state explainer. */
+@Composable
+private fun TripRuleRow(number: Int, text: String, palette: CarColorPalette) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(palette.accent.copy(alpha = 0.16f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = number.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.accent
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

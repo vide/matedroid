@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.
 - **Redesigned the Location card** into an immersive, full-bleed map (muted to match light/dark theme) with the place name and details over it; tap anywhere to open it in your maps app.
 - **Tyre pressure moved into its own card** with a cleaner 2×2 grid — one tile per wheel with its pressure and an OK/low status dot.
+- **The empty Trips screen now explains itself**: when no road-trips have been detected, it lists how one is auto-generated (2+ drives in a row, linked by a DC fast-charge stop, totalling 300 km or more).
 
 ## [1.8.1] - 2026-06-07
 

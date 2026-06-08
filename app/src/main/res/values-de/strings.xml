@@ -149,6 +149,14 @@
     <string name="trips_empty_title">Noch keine Trips</string>
     <!-- Trips hero empty state hint -->
     <string name="trips_empty_hint">Trips über 300 km erscheinen hier</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">Ein Trip wird automatisch erkannt, wenn du Folgendes hast:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 oder mehr Fahrten hintereinander</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">verbunden durch mindestens einen DC-Schnellladestopp</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">mit insgesamt mindestens 300 km</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Ladevorgänge</string>
@@ -1085,9 +1093,7 @@
     <string name="nav_trips">Trips</string>
     <!-- Trips list screen title -->
     <string name="trips_title">Trips</string>
-    <!-- Empty state when no trips detected -->
-    <string name="trips_empty">Noch keine Roadtrips erkannt.\nEin Trip besteht aus mindestens 2 Fahrten, die durch einen DC-Ladestopp verbunden sind.</string>
-    <!-- Warning when deep sync is incomplete -->
+    <!-- Empty state when no trips detected -->    <!-- Warning when deep sync is incomplete -->
     <!-- Trip detail screen title -->
     <string name="trip_detail_title">Tripdetails</string>
     <!-- Trip summary section header -->
