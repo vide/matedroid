@@ -2594,23 +2594,27 @@ private fun TirePressureCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // When everything's fine the verdict line alone keeps the card minimal;
+            // reveal the per-wheel bar only when a tyre needs attention.
+            if (anyLow) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Segment bar — one connected instrument; a low tyre lights its slice.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .clip(RoundedCornerShape(12.dp))
-                    .border(1.dp, lineColor, RoundedCornerShape(12.dp))
-            ) {
-                TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
-                VerticalDivider(color = lineColor)
-                TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
-                VerticalDivider(color = lineColor)
-                TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
-                VerticalDivider(color = lineColor)
-                TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                // Segment bar — one connected instrument; the low tyre lights its slice.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(1.dp, lineColor, RoundedCornerShape(12.dp))
+                ) {
+                    TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    VerticalDivider(color = lineColor)
+                    TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    VerticalDivider(color = lineColor)
+                    TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    VerticalDivider(color = lineColor)
+                    TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                }
             }
         }
     }
