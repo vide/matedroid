@@ -59,6 +59,8 @@ import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.TireRepair
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import com.matedroid.ui.icons.CustomIcons
@@ -87,6 +89,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -2516,9 +2519,32 @@ private fun TirePressureCard(
     units: Units?,
     palette: CarColorPalette
 ) {
-    // Status colour comes purely from Tesla's per-tyre soft-warning flag; the printed
-    // number is authoritative (there's no recommended/target pressure in the data).
+    // Status comes purely from Tesla's per-tyre soft-warning flag; the printed number is
+    // authoritative (there's no recommended/target pressure in the data).
     val unitLabel = UnitFormatter.getPressureUnit(units)
+    val pressures = listOf(tpms.pressureFl, tpms.pressureFr, tpms.pressureRl, tpms.pressureRr)
+    val warnings = listOf(
+        tpms.warningFl == true, tpms.warningFr == true,
+        tpms.warningRl == true, tpms.warningRr == true
+    )
+    val anyLow = warnings.any { it }
+    val statusColor = if (anyLow) StatusWarning else StatusSuccess
+    val lineColor = palette.onSurface.copy(alpha = 0.08f)
+
+    // Verdict meta: lowest warned value when low, else the range across all tyres.
+    val metaText = if (anyLow) {
+        pressures.filterIndexed { i, _ -> warnings[i] }.filterNotNull().minOrNull()
+            ?.let { "%.1f %s".format(it, unitLabel) } ?: unitLabel
+    } else {
+        val present = pressures.filterNotNull()
+        val mn = present.minOrNull()
+        val mx = present.maxOrNull()
+        when {
+            mn == null || mx == null -> unitLabel
+            mn == mx -> "%.1f %s".format(mn, unitLabel)
+            else -> "%.1f–%.1f %s".format(mn, mx, unitLabel)
+        }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -2527,49 +2553,72 @@ private fun TirePressureCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(16.dp)
         ) {
+            // Verdict line — the plain-language answer first.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.TireRepair,
-                    contentDescription = null,
+                    contentDescription = stringResource(R.string.tire_pressure_title),
                     tint = palette.accent,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(statusColor.copy(alpha = 0.16f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (anyLow) Icons.Filled.PriorityHigh else Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = stringResource(R.string.tire_pressure_title),
+                    text = stringResource(if (anyLow) R.string.tire_pressure_low else R.string.tire_pressure_all_ok),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = unitLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant
+                    text = metaText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (anyLow) FontWeight.Bold else FontWeight.Normal,
+                    color = if (anyLow) statusColor else palette.onSurfaceVariant,
+                    maxLines = 1
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Single compact row of four wheels.
+            // Segment bar — one connected instrument; a low tyre lights its slice.
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, lineColor, RoundedCornerShape(12.dp))
             ) {
-                TyreTile(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f))
-                TyreTile(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f))
-                TyreTile(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f))
-                TyreTile(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f))
+                TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                VerticalDivider(color = lineColor)
+                TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                VerticalDivider(color = lineColor)
+                TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                VerticalDivider(color = lineColor)
+                TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
             }
         }
     }
 }
 
-/** One compact wheel cell: status dot + position label, with the pressure value below. */
+/** One segment of the tyre bar: status-coloured top edge + faint tint, position label, value. */
 @Composable
-private fun TyreTile(
+private fun TyreSegment(
     label: String,
     pressure: Double?,
     warning: Boolean,
@@ -2577,20 +2626,21 @@ private fun TyreTile(
     modifier: Modifier = Modifier
 ) {
     val statusColor = if (warning) StatusWarning else StatusSuccess
-
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.onSurface.copy(alpha = 0.05f))
-            .padding(horizontal = 9.dp, vertical = 8.dp)
+        modifier = modifier.background(statusColor.copy(alpha = if (warning) 0.12f else 0.07f))
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(statusColor, CircleShape)
-            )
-            Spacer(modifier = Modifier.width(5.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(statusColor)
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -2598,15 +2648,15 @@ private fun TyreTile(
                 color = palette.onSurfaceVariant,
                 maxLines = 1
             )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = pressure?.let { "%.1f".format(it) } ?: "--",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (warning) statusColor else palette.onSurface,
+                maxLines = 1
+            )
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = pressure?.let { "%.1f".format(it) } ?: "--",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = palette.onSurface,
-            maxLines = 1
-        )
     }
 }
 

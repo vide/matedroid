@@ -139,6 +139,10 @@
     <string name="menu_sentry_events">哨兵事件</string>
     <!-- Title of the standalone tyre pressure card -->
     <string name="tire_pressure_title">胎压</string>
+    <!-- Tyre pressure verdict line: all tyres within normal range -->
+    <string name="tire_pressure_all_ok">胎压正常</string>
+    <!-- Tyre pressure verdict line: at least one tyre has a low-pressure warning -->
+    <string name="tire_pressure_low">胎压偏低</string>
     <!-- Trips hero: label above the most recent trip teaser -->
     <string name="trip_latest_label">最近</string>
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
