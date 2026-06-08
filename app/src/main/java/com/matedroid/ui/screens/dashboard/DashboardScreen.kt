@@ -61,6 +61,8 @@ import androidx.compose.material.icons.filled.TireRepair
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import com.matedroid.ui.icons.CustomIcons
@@ -99,6 +101,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -2530,6 +2535,9 @@ private fun TirePressureCard(
     val anyLow = warnings.any { it }
     val statusColor = if (anyLow) StatusWarning else StatusSuccess
     val lineColor = palette.onSurface.copy(alpha = 0.08f)
+    // Open by default when a tyre is low; tap the verdict line to fold/unfold. Re-keyed on
+    // anyLow so a newly-detected low auto-opens (and an all-clear auto-folds).
+    var expanded by remember(anyLow) { mutableStateOf(anyLow) }
 
     // Verdict meta: lowest warned value when low, else the range across all tyres.
     val metaText = if (anyLow) {
@@ -2555,8 +2563,13 @@ private fun TirePressureCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Verdict line — the plain-language answer first.
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Verdict line — the plain-language answer first; tap to fold/unfold detail.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Filled.TireRepair,
                     contentDescription = stringResource(R.string.tire_pressure_title),
@@ -2592,28 +2605,40 @@ private fun TirePressureCard(
                     color = if (anyLow) statusColor else palette.onSurfaceVariant,
                     maxLines = 1
                 )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = palette.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
-            // When everything's fine the verdict line alone keeps the card minimal;
-            // reveal the per-wheel bar only when a tyre needs attention.
-            if (anyLow) {
-                Spacer(modifier = Modifier.height(12.dp))
+            // Foldable per-wheel detail — open by default when a tyre is low.
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                // Segment bar — one connected instrument; the low tyre lights its slice.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, lineColor, RoundedCornerShape(12.dp))
-                ) {
-                    TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
-                    VerticalDivider(color = lineColor)
-                    TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
-                    VerticalDivider(color = lineColor)
-                    TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
-                    VerticalDivider(color = lineColor)
-                    TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    // Segment bar — one connected instrument; the low tyre lights its slice.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, lineColor, RoundedCornerShape(12.dp))
+                    ) {
+                        TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    }
                 }
             }
         }
