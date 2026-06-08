@@ -161,6 +161,16 @@
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">covering 300 km or more in total</string>
 
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Create trip</string>
+    <string name="trip_create_title">New trip</string>
+    <string name="trip_create_pick_day">Pick the trip\'s day</string>
+    <string name="trip_create_name_hint">Trip name (optional)</string>
+    <string name="trip_create_add_legs">Add legs</string>
+    <string name="trip_create_empty">Pick the drives and charges that make up this trip</string>
+    <string name="trip_create_save">Save</string>
+    <string name="trip_create_remove">Remove leg</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Charges</string>
 

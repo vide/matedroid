@@ -158,6 +158,16 @@
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">que sumin 300 km o més en total</string>
 
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Crea viatge</string>
+    <string name="trip_create_title">Nou viatge</string>
+    <string name="trip_create_pick_day">Tria el dia del viatge</string>
+    <string name="trip_create_name_hint">Nom del viatge (opcional)</string>
+    <string name="trip_create_add_legs">Afegeix trams</string>
+    <string name="trip_create_empty">Tria els trajectes i càrregues que formen aquest viatge</string>
+    <string name="trip_create_save">Desa</string>
+    <string name="trip_create_remove">Treu el tram</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Càrregues</string>
 

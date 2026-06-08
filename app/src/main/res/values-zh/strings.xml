@@ -158,6 +158,16 @@
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">总里程达到 300 km 或以上</string>
 
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">创建行程</string>
+    <string name="trip_create_title">新建行程</string>
+    <string name="trip_create_pick_day">选择行程的日期</string>
+    <string name="trip_create_name_hint">行程名称（可选）</string>
+    <string name="trip_create_add_legs">添加路段</string>
+    <string name="trip_create_empty">选择构成此行程的驾驶和充电</string>
+    <string name="trip_create_save">保存</string>
+    <string name="trip_create_remove">移除路段</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">充电记录</string>
 

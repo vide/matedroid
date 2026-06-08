@@ -158,6 +158,16 @@
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">mit insgesamt mindestens 300 km</string>
 
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Trip erstellen</string>
+    <string name="trip_create_title">Neuer Trip</string>
+    <string name="trip_create_pick_day">Tag des Trips wählen</string>
+    <string name="trip_create_name_hint">Trip-Name (optional)</string>
+    <string name="trip_create_add_legs">Etappen hinzufügen</string>
+    <string name="trip_create_empty">Wähle die Fahrten und Ladevorgänge dieses Trips</string>
+    <string name="trip_create_save">Speichern</string>
+    <string name="trip_create_remove">Etappe entfernen</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Ladevorgänge</string>
 

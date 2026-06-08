@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I?, Sentry events and Settings.
+- **Create a trip by hand**: a + button on the Trips list lets you build a road-trip manually — pick the day, then choose the drives and charges that belong to it (handy when auto-detection misses one).
 
 ### Changed
 - **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.

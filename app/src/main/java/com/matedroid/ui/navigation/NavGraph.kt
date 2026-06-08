@@ -38,6 +38,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import com.matedroid.ui.screens.sentry.SentryHistoryScreen
+import com.matedroid.ui.screens.trips.CreateTripScreen
 import com.matedroid.ui.screens.trips.TripDetailScreen
 import com.matedroid.ui.screens.trips.TripsScreen
 import com.matedroid.ui.screens.updates.SoftwareVersionsScreen
@@ -177,6 +178,12 @@ sealed class Screen(val route: String) {
             val encoded = java.net.URLEncoder.encode(tripStartDate, "UTF-8")
             return if (exteriorColor != null) "trips/$carId/detail/$encoded?exteriorColor=$exteriorColor"
             else "trips/$carId/detail/$encoded"
+        }
+    }
+    data object CreateTrip : Screen("trips/{carId}/new?exteriorColor={exteriorColor}") {
+        fun createRoute(carId: Int, exteriorColor: String? = null): String {
+            return if (exteriorColor != null) "trips/$carId/new?exteriorColor=$exteriorColor"
+            else "trips/$carId/new"
         }
     }
     data object SentryHistory : Screen("sentry/{carId}?exteriorColor={exteriorColor}") {
@@ -682,6 +689,34 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
                     navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                },
+                onNavigateToCreateTrip = {
+                    navController.navigate(Screen.CreateTrip.createRoute(carId, exteriorColor))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.CreateTrip.route,
+            arguments = listOf(
+                navArgument("carId") { type = NavType.IntType },
+                navArgument("exteriorColor") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
+            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+            CreateTripScreen(
+                carId = carId,
+                exteriorColor = exteriorColor,
+                onNavigateBack = { navController.popBackStack() },
+                onTripCreated = { startDate ->
+                    navController.navigate(Screen.TripDetail.createRoute(carId, startDate, exteriorColor)) {
+                        popUpTo(Screen.CreateTrip.route) { inclusive = true }
+                    }
                 }
             )
         }
