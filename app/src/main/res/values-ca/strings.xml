@@ -131,6 +131,25 @@
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">Info del vehicle</string>
 
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">Activitat</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">Menú</string>
+    <!-- Menu entry: opens the Sentry events / history screen -->
+    <string name="menu_sentry_events">Esdeveniments de Sentinella</string>
+    <!-- Title of the standalone tyre pressure card -->
+    <string name="tire_pressure_title">Pressió dels pneumàtics</string>
+    <!-- Tyre pressure verdict line: all tyres within normal range -->
+    <string name="tire_pressure_all_ok">Pneumàtics OK</string>
+    <!-- Tyre pressure verdict line: at least one tyre has a low-pressure warning -->
+    <string name="tire_pressure_low">Pressió baixa</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">Últim</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">Encara no hi ha viatges</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">Els viatges de més de 300 km apareixen aquí</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Càrregues</string>
 

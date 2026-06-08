@@ -6,7 +6,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.matedroid.ui.util.GlowBitmapRenderer
 import android.net.Uri
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -16,11 +19,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +36,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
@@ -40,26 +47,36 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.TireRepair
+import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Thermostat
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.domain.model.Trip
+import com.matedroid.ui.screens.trips.displayName
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
@@ -74,6 +91,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +101,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -105,6 +126,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
@@ -123,7 +145,6 @@ import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
-import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.util.formatDuration
 import com.matedroid.util.formatShortNoYear
 import com.matedroid.util.formatTime
@@ -131,7 +152,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import com.matedroid.data.api.models.BatteryDetails
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
@@ -175,6 +195,8 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showWhereWasIPicker by remember { mutableStateOf(false) }
 
     // When opened from a widget tap, select the car that belongs to that widget.
     // Wait until the cars list is populated before switching, in case the app is
@@ -213,8 +235,72 @@ fun DashboardScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                    val carSelected = uiState.selectedCarId != null
+                    // A touch of left inset and taller rows give the menu more breathing room.
+                    val menuItemPadding = PaddingValues(start = 24.dp, end = 16.dp, top = 14.dp, bottom = 14.dp)
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.menu))
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.stats_title)) },
+                            leadingIcon = { Icon(Icons.Filled.Insights, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToStats(carId, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.battery_health_title)) },
+                            leadingIcon = { Icon(Icons.Filled.BatteryFull, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToBattery(carId, uiState.selectedCarEfficiency, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.where_was_i_screen_title)) },
+                            leadingIcon = { Icon(Icons.Filled.History, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                showWhereWasIPicker = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_sentry_events)) },
+                            leadingIcon = { Icon(Icons.Filled.Security, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            enabled = carSelected,
+                            onClick = {
+                                menuExpanded = false
+                                uiState.selectedCarId?.let { carId ->
+                                    onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
+                                }
+                            }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings)) },
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            contentPadding = menuItemPadding,
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToSettings()
+                            }
+                        )
                     }
                 }
             )
@@ -241,6 +327,7 @@ fun DashboardScreen(
                         totalCharges = uiState.totalCharges,
                         totalDrives = uiState.totalDrives,
                         totalTrips = uiState.totalTrips,
+                        latestTrip = uiState.latestTrip,
                         imageOverride = uiState.carImageOverride,
                         cars = uiState.cars,
                         selectedCarId = uiState.selectedCarId,
@@ -287,11 +374,6 @@ fun DashboardScreen(
                         onSaveCarImageOverride = { override ->
                             viewModel.saveCarImageOverride(override)
                         },
-                        onNavigateToWhereWasI = { timestamp ->
-                            uiState.selectedCarId?.let { carId ->
-                                onNavigateToWhereWasI(carId, timestamp, uiState.selectedCarExterior?.exteriorColor)
-                            }
-                        },
                         onNavigateToSentryHistory = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -330,6 +412,99 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    // "Where was I?" date/time picker — entered from the top-right menu.
+    if (showWhereWasIPicker) {
+        WhereWasIDateTimePicker(
+            onDismiss = { showWhereWasIPicker = false },
+            onConfirm = { timestamp ->
+                showWhereWasIPicker = false
+                uiState.selectedCarId?.let { carId ->
+                    onNavigateToWhereWasI(carId, timestamp, uiState.selectedCarExterior?.exteriorColor)
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Two-step date → time picker for the "Where was I?" feature. Picks a past date, then a
+ * time of day, and emits an OffsetDateTime timestamp string in the device time zone.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WhereWasIDateTimePicker(
+    onDismiss: () -> Unit,
+    onConfirm: (timestamp: String) -> Unit
+) {
+    var showTimePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val zoneId = java.time.ZoneId.systemDefault()
+                val todayUtcDateMillis = java.time.LocalDate.now(zoneId)
+                    .atStartOfDay(java.time.ZoneOffset.UTC)
+                    .toInstant()
+                    .toEpochMilli()
+                return utcTimeMillis <= todayUtcDateMillis
+            }
+        }
+    )
+    val timePickerState = rememberTimePickerState()
+
+    if (!showTimePicker) {
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = { showTimePicker = true }) {
+                    Text(stringResource(R.string.where_was_i_go))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = {
+                    val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
+                    val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDate()
+
+                    val localDateTime = selectedDate.atTime(timePickerState.hour, timePickerState.minute)
+                    val zonedDateTime = localDateTime.atZone(java.time.ZoneId.systemDefault())
+                    onConfirm(zonedDateTime.toOffsetDateTime().toString())
+                }) {
+                    Text(stringResource(R.string.where_was_i_go))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+            title = {
+                val selectedMillis = datePickerState.selectedDateMillis
+                val dateText = if (selectedMillis != null) {
+                    val date = java.time.Instant.ofEpochMilli(selectedMillis)
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDate()
+                    date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+                } else ""
+                Text(dateText)
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
     }
 }
 
@@ -625,6 +800,7 @@ private fun DashboardContent(
     totalCharges: Int? = null,
     totalDrives: Int? = null,
     totalTrips: Int? = null,
+    latestTrip: Trip? = null,
     imageOverride: CarImageOverride? = null,
     cars: List<CarData> = emptyList(),
     selectedCarId: Int? = null,
@@ -641,7 +817,6 @@ private fun DashboardContent(
     onNavigateToStats: () -> Unit = {},
     onNavigateToCurrentCharge: () -> Unit = {},
     onSaveCarImageOverride: (CarImageOverride?) -> Unit = {},
-    onNavigateToWhereWasI: (timestamp: String) -> Unit = {},
     onNavigateToSentryHistory: () -> Unit = {},
     onNavigateToTrips: () -> Unit = {}
 ) {
@@ -709,12 +884,11 @@ private fun DashboardContent(
                 status = status,
                 units = units,
                 resolvedAddress = resolvedAddress,
-                palette = palette,
-                onNavigateToWhereWasI = onNavigateToWhereWasI
+                palette = palette
             )
         }
 
-        // Vehicle Info Card with navigation buttons
+        // Activity card — Trips hero + counters bento
         VehicleInfoCard(
             status = status,
             units = units,
@@ -722,12 +896,19 @@ private fun DashboardContent(
             totalCharges = totalCharges,
             totalDrives = totalDrives,
             totalTrips = totalTrips,
+            latestTrip = latestTrip,
             onNavigateToCharges = onNavigateToCharges,
             onNavigateToDrives = onNavigateToDrives,
             onNavigateToMileage = onNavigateToMileage,
             onNavigateToUpdates = onNavigateToUpdates,
             onNavigateToTrips = onNavigateToTrips
         )
+
+        // Tyre pressure — its own card, shown when TPMS data is available
+        val tpms = status.tpmsDetails
+        if (tpms != null && (tpms.pressureFl != null || tpms.pressureFr != null)) {
+            TirePressureCard(tpms = tpms, units = units, palette = palette)
+        }
     }
 }
 
@@ -1765,8 +1946,7 @@ private fun LocationCard(
     status: CarStatus,
     units: Units?,
     resolvedAddress: String? = null,
-    palette: CarColorPalette,
-    onNavigateToWhereWasI: (timestamp: String) -> Unit = {}
+    palette: CarColorPalette
 ) {
     val context = LocalContext.current
     val latitude = status.latitude
@@ -1774,15 +1954,11 @@ private fun LocationCard(
     val geofence = status.geofence
     val elevation = status.elevation
 
-    val locationText = geofence?.takeIf { it.isNotBlank() }
+    val headline = geofence?.takeIf { it.isNotBlank() }
         ?: resolvedAddress?.takeIf { it.isNotBlank() }
-        ?: run {
-            if (latitude != null && longitude != null) {
-                "%.5f, %.5f".format(latitude, longitude)
-            } else {
-                "Unknown"
-            }
-        }
+        ?: if (latitude != null && longitude != null) "%.5f, %.5f".format(latitude, longitude) else "Unknown"
+    // Show the street address as a subline only when the headline is a geofence name.
+    val subAddress = resolvedAddress?.takeIf { it.isNotBlank() && it != headline }
 
     fun openInMaps() {
         if (latitude != null && longitude != null) {
@@ -1792,246 +1968,259 @@ private fun LocationCard(
         }
     }
 
-    // DateTimePicker state
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                val zoneId = java.time.ZoneId.systemDefault()
-                val todayUtcDateMillis = java.time.LocalDate.now(zoneId)
-                    .atStartOfDay(java.time.ZoneOffset.UTC)
-                    .toInstant()
-                    .toEpochMilli()
-                return utcTimeMillis <= todayUtcDateMillis
-            }
-        }
-    )
-    val timePickerState = rememberTimePickerState()
+    // The muted map follows the theme: dark map + light text in dark mode,
+    // light map + dark text in light mode.
+    val dark = isSystemInDarkTheme()
+    val onMap = if (dark) Color.White else Color(0xFF0E1216)
+    val onMapDim = onMap.copy(alpha = 0.80f)
+    val baseColor = if (dark) Color(0xFF12202A) else Color(0xFFE7ECF1)
+    val scrimColor = if (dark) Color(0xF00A0C10) else Color(0xF2F8F9FB)
+    val tintColor = if (dark) Color.Black.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.10f)
+    val pinBorder = if (dark) Color.White else Color(0xFF0E1216)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Location content (tappable to open maps)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(172.dp)
+        ) {
+            // Base (shows while tiles load, or when there are no coordinates).
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(baseColor)
+            )
+
+            if (latitude != null && longitude != null) {
+                AndroidView(
+                    factory = { ctx ->
+                        MapView(ctx).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(false)
+                            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+                            isClickable = false
+                            isFocusable = false
+                            // Mute the basemap so roads/labels recede behind the scrim
+                            // and pin. Dark theme: grayscale + darken. Light theme:
+                            // grayscale + lift toward white to soften the detail.
+                            val matrix = ColorMatrix().apply { setSaturation(0f) }
+                            matrix.postConcat(
+                                if (dark) {
+                                    ColorMatrix(
+                                        floatArrayOf(
+                                            0.55f, 0f, 0f, 0f, 0f,
+                                            0f, 0.55f, 0f, 0f, 0f,
+                                            0f, 0f, 0.60f, 0f, 0f,
+                                            0f, 0f, 0f, 1f, 0f
+                                        )
+                                    )
+                                } else {
+                                    ColorMatrix(
+                                        floatArrayOf(
+                                            0.92f, 0f, 0f, 0f, 18f,
+                                            0f, 0.92f, 0f, 0f, 18f,
+                                            0f, 0f, 0.92f, 0f, 18f,
+                                            0f, 0f, 0f, 1f, 0f
+                                        )
+                                    )
+                                }
+                            )
+                            overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(matrix))
+                            controller.setZoom(15.0)
+                            controller.setCenter(GeoPoint(latitude, longitude))
+                            // Fully inert — no pan, no zoom. Taps are handled by the
+                            // Compose overlay above the map.
+                            setOnTouchListener { _, _ -> true }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Translucent tint to knock back remaining tile clutter and unify the look.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(tintColor)
+            )
+            // Bottom scrim for text legibility.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.42f to Color.Transparent,
+                            1f to scrimColor
+                        )
+                    )
+            )
+
+            // Glowing pin in the upper third so the place name below it never overlaps.
+            if (latitude != null && longitude != null) {
+                Box(
+                    modifier = Modifier.align(BiasAlignment(0f, -0.35f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(palette.accent.copy(alpha = 0.45f), Color.Transparent)
+                                ),
+                                shape = CircleShape
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(15.dp)
+                            .background(palette.accent, CircleShape)
+                            .border(2.dp, pinBorder, CircleShape)
+                    )
+                }
+            }
+
+            // Overlay: place name, address and detail chips.
             Column(
                 modifier = Modifier
+                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .clickable { openInMaps() }
                     .padding(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.LocationOn,
-                        contentDescription = null,
-                        tint = palette.accent
+                if (!geofence.isNullOrBlank()) {
+                    // Geofence name — big; full address small beneath.
+                    Text(
+                        text = headline,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = onMap,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
+                    if (subAddress != null) {
                         Text(
-                            text = stringResource(R.string.location),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant
-                        )
-                        Text(
-                            text = locationText,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = palette.onSurface
-                        )
-                    }
-
-                    if (latitude != null && longitude != null) {
-                        Spacer(modifier = Modifier.width(12.dp))
-                        SmallLocationMap(
-                            latitude = latitude,
-                            longitude = longitude,
-                            onClick = { openInMaps() },
-                            modifier = Modifier
-                                .width(140.dp)
-                                .height(70.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                    }
-                }
-
-                if (elevation != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Terrain,
-                            contentDescription = null,
-                            tint = palette.accent
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.elevation),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = UnitFormatter.formatElevation(elevation, units),
+                            text = subAddress,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = palette.onSurface,
+                            color = onMapDim,
                             maxLines = 1,
-                            softWrap = false
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else if (!resolvedAddress.isNullOrBlank()) {
+                    // No geofence: the geocoder formats the address as "<street>, <city>".
+                    // Lead with the city (big, bold); show the street smaller beneath so a
+                    // long street doesn't force the whole headline to shrink.
+                    val parts = resolvedAddress.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    val city = parts.lastOrNull() ?: resolvedAddress
+                    val street = parts.dropLast(1).joinToString(", ").ifBlank { null }
+                    Text(
+                        text = city,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = onMap,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (street != null) {
+                        Text(
+                            text = street,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Normal,
+                            color = onMapDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    // Coordinates fallback (no geofence, no resolved address).
+                    Text(
+                        text = headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = onMap,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (elevation != null) {
+                        LocationChip(
+                            icon = Icons.Filled.Terrain,
+                            text = UnitFormatter.formatElevation(elevation, units)
+                        )
+                    }
+                    if (latitude != null && longitude != null) {
+                        LocationChip(
+                            icon = Icons.Filled.LocationOn,
+                            text = "%.4f, %.4f".format(latitude, longitude)
                         )
                     }
                 }
             }
 
-            // Divider + "Where was I that day?" entrypoint
-            HorizontalDivider(color = palette.onSurfaceVariant.copy(alpha = 0.2f))
-
-            Row(
+            // Chevron affordance — signals the whole card is tappable.
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showDatePicker = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 12.dp)
+                    .size(32.dp)
+                    .background(
+                        if (dark) Color.Black.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.55f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Filled.History,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = palette.accent,
+                    tint = onMap,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.where_was_i_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                AssistChip(
-                    onClick = { showDatePicker = true },
-                    label = {
-                        Text(
-                            text = stringResource(R.string.where_was_i_hint),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                )
             }
+
+            // Whole-card tap target, above the inert map, opens the default maps app.
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { openInMaps() }
+            )
         }
-    }
-
-    // Date picker dialog
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDatePicker = false
-                    showTimePicker = true
-                }) {
-                    Text(stringResource(R.string.where_was_i_go))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // Time picker dialog
-    if (showTimePicker) {
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    showTimePicker = false
-                    val selectedMillis = datePickerState.selectedDateMillis ?: return@TextButton
-                    val selectedDate = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneOffset.UTC)
-                        .toLocalDate()
-
-                    val localDateTime = selectedDate.atTime(timePickerState.hour, timePickerState.minute)
-                    val zonedDateTime = localDateTime.atZone(java.time.ZoneId.systemDefault())
-                    val timestamp = zonedDateTime.toOffsetDateTime().toString()
-
-                    onNavigateToWhereWasI(timestamp)
-                }) {
-                    Text(stringResource(R.string.where_was_i_go))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            },
-            title = {
-                val selectedMillis = datePickerState.selectedDateMillis
-                val dateText = if (selectedMillis != null) {
-                    val date = java.time.Instant.ofEpochMilli(selectedMillis)
-                        .atZone(java.time.ZoneOffset.UTC)
-                        .toLocalDate()
-                    date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
-                } else ""
-                Text(dateText)
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
-        )
     }
 }
 
+/** A small translucent chip used on the immersive Location card's map overlay. */
 @Composable
-private fun SmallLocationMap(
-    latitude: Double,
-    longitude: Double,
-    onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
-
-    Box(
-        modifier = modifier.clickable { onClick() }
+private fun LocationChip(icon: ImageVector, text: String) {
+    val dark = isSystemInDarkTheme()
+    val content = if (dark) Color.White else Color(0xFF0E1216)
+    val bg = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(bg)
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        AndroidView(
-            factory = { ctx ->
-                MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(false)
-
-                    // Disable all interactions for this small preview map
-                    zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
-                    isClickable = false
-                    isFocusable = false
-
-                    val carLocation = GeoPoint(latitude, longitude)
-                    controller.setZoom(15.0)
-                    controller.setCenter(carLocation)
-
-                    // Add a marker for the car
-                    val marker = Marker(this).apply {
-                        position = carLocation
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        icon = createPinMarkerDrawable(ctx.resources, primaryColor)
-                    }
-                    overlays.add(marker)
-                }
-            },
-            modifier = Modifier.fillMaxSize()
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = content.copy(alpha = 0.9f),
+            modifier = Modifier.size(13.dp)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = content.copy(alpha = 0.92f),
+            maxLines = 1
         )
     }
 }
+
 @Composable
 private fun VehicleInfoCard(
     status: CarStatus,
@@ -2040,14 +2229,13 @@ private fun VehicleInfoCard(
     totalCharges: Int?,
     totalDrives: Int?,
     totalTrips: Int? = null,
+    latestTrip: Trip? = null,
     onNavigateToCharges: () -> Unit,
     onNavigateToDrives: () -> Unit,
     onNavigateToMileage: () -> Unit,
     onNavigateToUpdates: () -> Unit,
     onNavigateToTrips: () -> Unit = {}
 ) {
-    val tpms = status.tpmsDetails
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -2069,7 +2257,7 @@ private fun VehicleInfoCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.vehicle_info),
+                    text = stringResource(R.string.activity_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.onSurface
@@ -2078,53 +2266,70 @@ private fun VehicleInfoCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Navigation buttons - 3+2 grid
+            // Bento: tall Trips hero (left) + Mileage / Charges stacked (right).
+            // IntrinsicSize.Min lets the hero match the combined height of the two
+            // right-hand tiles so the three cells line up flush.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TripsHeroTile(
+                    totalTrips = totalTrips,
+                    latestTrip = latestTrip,
+                    units = units,
+                    palette = palette,
+                    onClick = onNavigateToTrips,
+                    modifier = Modifier
+                        .weight(1.15f)
+                        .fillMaxHeight()
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    NavButton(
+                        title = stringResource(R.string.nav_mileage),
+                        value = status.odometer?.let {
+                            val value = UnitFormatter.formatDistanceValue(it, units, 0)
+                            "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
+                        } ?: "--",
+                        icon = CustomIcons.Road,
+                        palette = palette,
+                        onClick = onNavigateToMileage,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                    NavButton(
+                        title = stringResource(R.string.nav_charges),
+                        value = totalCharges?.let { "%,d".format(it) } ?: "--",
+                        icon = Icons.Filled.ElectricBolt,
+                        palette = palette,
+                        onClick = onNavigateToCharges,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Footer strip: Drives + Software. Weights match the bento row above
+            // (1.15 : 1) so Drives lines up under Trips and Software under the tiles.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                NavButton(
-                    title = stringResource(R.string.nav_charges),
-                    value = totalCharges?.let { "%,d".format(it) } ?: "--",
-                    icon = Icons.Filled.ElectricBolt,
-                    palette = palette,
-                    onClick = onNavigateToCharges,
-                    modifier = Modifier.weight(1f)
-                )
                 NavButton(
                     title = stringResource(R.string.nav_drives),
                     value = totalDrives?.let { "%,d".format(it) } ?: "--",
                     icon = CustomIcons.SteeringWheel,
                     palette = palette,
                     onClick = onNavigateToDrives,
-                    modifier = Modifier.weight(1f)
-                )
-                NavButton(
-                    title = stringResource(R.string.nav_trips),
-                    value = totalTrips?.let { "%,d".format(it) } ?: "--",
-                    icon = Icons.Filled.Route,
-                    palette = palette,
-                    onClick = onNavigateToTrips,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                NavButton(
-                    title = stringResource(R.string.nav_mileage),
-                    value = status.odometer?.let {
-                        val value = UnitFormatter.formatDistanceValue(it, units, 0)
-                        "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
-                    } ?: "--",
-                    icon = CustomIcons.Road,
-                    palette = palette,
-                    onClick = onNavigateToMileage,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.15f)
                 )
                 NavButton(
                     title = stringResource(R.string.nav_software),
@@ -2135,13 +2340,117 @@ private fun VehicleInfoCard(
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+}
 
-            // Tire pressure section - show if data available
-            if (tpms != null && (tpms.pressureFl != null || tpms.pressureFr != null)) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = palette.onSurfaceVariant.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(8.dp))
-                TirePressureDisplay(tpms = tpms, units = units, palette = palette)
+/**
+ * The Trips hero tile: a tall, accent-washed cell that anchors the Activity card.
+ * Shows the trip count with a "latest trip" teaser, or an inviting empty state when
+ * no road-trips (auto-detected drives ≥300 km) have been recorded yet.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TripsHeroTile(
+    totalTrips: Int?,
+    latestTrip: Trip?,
+    units: Units?,
+    palette: CarColorPalette,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = palette.onSurface.copy(alpha = 0.05f)
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            palette.accent.copy(alpha = 0.22f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(14.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (totalTrips == 0) {
+                    // Empty state — no road-trips detected yet.
+                    Text(
+                        text = stringResource(R.string.trips_empty_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.trips_empty_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant
+                    )
+                } else {
+                    // Big count in the top-left, with "Trips" beside it.
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = totalTrips?.let { "%,d".format(it) } ?: "--",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.onSurface,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.nav_trips),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.accent,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (latestTrip != null) {
+                        Text(
+                            text = stringResource(R.string.trip_latest_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.onSurfaceVariant
+                        )
+                        Text(
+                            text = latestTrip.displayName(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = run {
+                                    val v = UnitFormatter.formatDistanceValue(latestTrip.totalDistance, units, 0)
+                                    "%,.0f %s".format(v, UnitFormatter.getDistanceUnit(units))
+                                },
+                                style = MaterialTheme.typography.labelMedium,
+                                color = palette.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = palette.accent,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -2170,13 +2479,14 @@ private fun NavButton(
                 .padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Leading icon, vertically centered so it spans the value + label lines.
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
                 tint = palette.accent
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = value,
@@ -2210,195 +2520,170 @@ private fun NavButton(
 }
 
 @Composable
-private fun TirePressureDisplay(
+private fun TirePressureCard(
     tpms: TpmsDetails,
     units: Units?,
     palette: CarColorPalette
 ) {
-    val okColor = StatusSuccess
-    val warningColor = StatusWarning
-    val carOutlineColor = palette.onSurfaceVariant.copy(alpha = 0.4f)
+    // Status comes purely from Tesla's per-tyre soft-warning flag; the printed number is
+    // authoritative (there's no recommended/target pressure in the data).
+    val unitLabel = UnitFormatter.getPressureUnit(units)
+    val pressures = listOf(tpms.pressureFl, tpms.pressureFr, tpms.pressureRl, tpms.pressureRr)
+    val warnings = listOf(
+        tpms.warningFl == true, tpms.warningFr == true,
+        tpms.warningRl == true, tpms.warningRr == true
+    )
+    val anyLow = warnings.any { it }
+    val statusColor = if (anyLow) StatusWarning else StatusSuccess
+    val lineColor = palette.onSurface.copy(alpha = 0.08f)
+    // Open by default when a tyre is low; tap the verdict line to fold/unfold. Re-keyed on
+    // anyLow so a newly-detected low auto-opens (and an all-clear auto-folds).
+    var expanded by remember(anyLow) { mutableStateOf(anyLow) }
 
-    // Use API warning flags only - no hardcoded thresholds
-    val flColor = if (tpms.warningFl == true) warningColor else okColor
-    val frColor = if (tpms.warningFr == true) warningColor else okColor
-    val rlColor = if (tpms.warningRl == true) warningColor else okColor
-    val rrColor = if (tpms.warningRr == true) warningColor else okColor
+    // Verdict meta: lowest warned value when low, else the range across all tyres.
+    val metaText = if (anyLow) {
+        pressures.filterIndexed { i, _ -> warnings[i] }.filterNotNull().minOrNull()
+            ?.let { "%.1f %s".format(it, unitLabel) } ?: unitLabel
+    } else {
+        val present = pressures.filterNotNull()
+        val mn = present.minOrNull()
+        val mx = present.maxOrNull()
+        when {
+            mn == null || mx == null -> unitLabel
+            mn == mx -> "%.1f %s".format(mn, unitLabel)
+            else -> "%.1f–%.1f %s".format(mn, mx, unitLabel)
+        }
+    }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
-        // Left pressure values (FL, RL)
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            TirePressureItem(
-                label = stringResource(R.string.tire_fl),
-                pressure = tpms.pressureFl,
-                color = flColor,
-                units = units,
-                alignEnd = true
-            )
-            TirePressureItem(
-                label = stringResource(R.string.tire_rl),
-                pressure = tpms.pressureRl,
-                color = rlColor,
-                units = units,
-                alignEnd = true
-            )
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        // Tesla car outline (minimalist)
-        Canvas(
             modifier = Modifier
-                .width(32.dp)
-                .height(48.dp)
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            val w = size.width
-            val h = size.height
-
-            // Draw Tesla-like car outline using path
-            val path = androidx.compose.ui.graphics.Path().apply {
-                // Start at top-left of hood
-                moveTo(w * 0.25f, h * 0.22f)
-                // Hood curve to top center
-                quadraticTo(w * 0.25f, h * 0.08f, w * 0.5f, h * 0.08f)
-                // Hood curve to top-right
-                quadraticTo(w * 0.75f, h * 0.08f, w * 0.75f, h * 0.22f)
-                // Right side down to rear
-                lineTo(w * 0.82f, h * 0.35f)
-                quadraticTo(w * 0.85f, h * 0.45f, w * 0.85f, h * 0.55f)
-                lineTo(w * 0.85f, h * 0.78f)
-                // Rear curve
-                quadraticTo(w * 0.85f, h * 0.92f, w * 0.5f, h * 0.94f)
-                quadraticTo(w * 0.15f, h * 0.92f, w * 0.15f, h * 0.78f)
-                // Left side up to hood
-                lineTo(w * 0.15f, h * 0.55f)
-                quadraticTo(w * 0.15f, h * 0.45f, w * 0.18f, h * 0.35f)
-                close()
-            }
-
-            drawPath(
-                path = path,
-                color = carOutlineColor,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 2.dp.toPx(),
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+            // Verdict line — the plain-language answer first; tap to fold/unfold detail.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.TireRepair,
+                    contentDescription = stringResource(R.string.tire_pressure_title),
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp)
                 )
-            )
-
-            // Windshield
-            val windshieldPath = androidx.compose.ui.graphics.Path().apply {
-                moveTo(w * 0.30f, h * 0.24f)
-                quadraticTo(w * 0.5f, h * 0.20f, w * 0.70f, h * 0.24f)
-                lineTo(w * 0.65f, h * 0.34f)
-                quadraticTo(w * 0.5f, h * 0.32f, w * 0.35f, h * 0.34f)
-                close()
+                Spacer(modifier = Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(statusColor.copy(alpha = 0.16f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (anyLow) Icons.Filled.PriorityHigh else Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = stringResource(if (anyLow) R.string.tire_pressure_low else R.string.tire_pressure_all_ok),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = metaText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (anyLow) FontWeight.Bold else FontWeight.Normal,
+                    color = if (anyLow) statusColor else palette.onSurfaceVariant,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = palette.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-            drawPath(
-                path = windshieldPath,
-                color = carOutlineColor.copy(alpha = 0.3f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
-            )
 
-            // Rear window
-            val rearPath = androidx.compose.ui.graphics.Path().apply {
-                moveTo(w * 0.30f, h * 0.74f)
-                quadraticTo(w * 0.5f, h * 0.72f, w * 0.70f, h * 0.74f)
-                lineTo(w * 0.65f, h * 0.82f)
-                quadraticTo(w * 0.5f, h * 0.84f, w * 0.35f, h * 0.82f)
-                close()
+            // Foldable per-wheel detail — open by default when a tyre is low.
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Segment bar — one connected instrument; the low tyre lights its slice.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, lineColor, RoundedCornerShape(12.dp))
+                    ) {
+                        TyreSegment(stringResource(R.string.tire_fl), tpms.pressureFl, tpms.warningFl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_fr), tpms.pressureFr, tpms.warningFr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_rl), tpms.pressureRl, tpms.warningRl == true, palette, Modifier.weight(1f).fillMaxHeight())
+                        VerticalDivider(color = lineColor)
+                        TyreSegment(stringResource(R.string.tire_rr), tpms.pressureRr, tpms.warningRr == true, palette, Modifier.weight(1f).fillMaxHeight())
+                    }
+                }
             }
-            drawPath(
-                path = rearPath,
-                color = carOutlineColor.copy(alpha = 0.3f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
-            )
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        // Right pressure values (FR, RR)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            TirePressureItem(
-                label = stringResource(R.string.tire_fr),
-                pressure = tpms.pressureFr,
-                color = frColor,
-                units = units,
-                alignEnd = false
-            )
-            TirePressureItem(
-                label = stringResource(R.string.tire_rr),
-                pressure = tpms.pressureRr,
-                color = rrColor,
-                units = units,
-                alignEnd = false
-            )
         }
     }
 }
 
+/** One segment of the tyre bar: status-coloured top edge + faint tint, position label, value. */
 @Composable
-private fun TirePressureItem(
+private fun TyreSegment(
     label: String,
     pressure: Double?,
-    color: androidx.compose.ui.graphics.Color,
-    units: Units?,
-    alignEnd: Boolean
+    warning: Boolean,
+    palette: CarColorPalette,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = if (alignEnd) Arrangement.End else Arrangement.Start
+    val statusColor = if (warning) StatusWarning else StatusSuccess
+    Column(
+        modifier = modifier.background(statusColor.copy(alpha = if (warning) 0.12f else 0.07f))
     ) {
-        if (alignEnd) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(statusColor)
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurfaceVariant,
                 maxLines = 1
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(color, shape = RoundedCornerShape(50))
-            )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
-                text = pressure?.let { UnitFormatter.formatPressure(it, units, 1) } ?: "--",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-        } else {
-            Text(
-                text = pressure?.let { UnitFormatter.formatPressure(it, units, 1) } ?: "--",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(color, shape = RoundedCornerShape(50))
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = pressure?.let { "%.1f".format(it) } ?: "--",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (warning) statusColor else palette.onSurface,
                 maxLines = 1
             )
         }
