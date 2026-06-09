@@ -1,0 +1,14 @@
+A big dashboard refresh — plus you can now build trips by hand.
+
+Added:
+- Top-right menu: Stats, Battery health, Where was I?, Sentry events
+- Create a trip from scratch from the Trips list
+
+Changed:
+- Redesigned Activity card that headlines Trips
+- Immersive map on the Location card
+- Tyre pressure moved to its own card
+
+Fixed:
+- Fast-scroll thumb no longer jumps near the list end
+- Software updates show the right days-installed per version

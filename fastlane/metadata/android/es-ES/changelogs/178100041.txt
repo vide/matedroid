@@ -1,0 +1,14 @@
+Gran renovación del panel — y ahora puedes crear viajes a mano.
+
+Añadido:
+- Menú (arriba dcha.): Estadísticas, Salud de batería, ¿Dónde estaba?, Centinela
+- Crea un viaje desde cero en la lista de Viajes
+
+Cambiado:
+- Tarjeta de Actividad rediseñada centrada en los Viajes
+- Mapa inmersivo en la tarjeta de Ubicación
+- Presión de neumáticos en su propia tarjeta
+
+Corregido:
+- El cursor de desplazamiento ya no salta cerca del final
+- Días instalados correctos por versión

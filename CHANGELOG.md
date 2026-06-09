@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0-beta1] - 2026-06-09
+
 ### Added
 - **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I?, Sentry events and Settings.
 - **Create a trip by hand**: a + button on the Trips list lets you build a road-trip manually — pick the day, then choose the drives and charges that belong to it (handy when auto-detection misses one).
@@ -636,7 +638,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...HEAD
+[1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
 [1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0
 [1.8.0-beta3]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...v1.8.0-beta3

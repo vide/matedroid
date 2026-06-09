@@ -1,0 +1,14 @@
+Gran renovació del tauler — i ara pots crear viatges a mà.
+
+Afegit:
+- Menú (dalt dreta): Estadístiques, Salut de bateria, On era?, Sentinella
+- Crea un viatge des de zero des de la llista de Viatges
+
+Canviat:
+- Targeta d'Activitat redissenyada centrada en els Viatges
+- Mapa immersiu a la targeta d'Ubicació
+- Pressió dels pneumàtics en una targeta pròpia
+
+Corregit:
+- El cursor de desplaçament ja no salta a prop del final
+- Dies instal·lats correctes per versió

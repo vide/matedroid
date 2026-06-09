@@ -1,0 +1,14 @@
+Grande restyling della dashboard — e ora puoi creare i viaggi a mano.
+
+Aggiunto:
+- Menu in alto a destra: Statistiche, Salute batteria, Dov'ero?, Eventi Sentinella
+- Crea un viaggio da zero dalla lista Viaggi
+
+Modificato:
+- Card Attività ridisegnata, con i Viaggi in primo piano
+- Mappa immersiva nella card Posizione
+- Pressione pneumatici in una card dedicata
+
+Risolto:
+- Il cursore di scorrimento non salta più verso la fine
+- Aggiornamenti software: giorni d'installazione corretti
