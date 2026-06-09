@@ -255,4 +255,49 @@ class DashboardViewModelTest {
         assertEquals("Status error", viewModel!!.uiState.value.error)
         assertNull(viewModel!!.uiState.value.carStatus)
     }
+
+    @Test
+    fun `selectCar clears a prior status error when switching to a working car`() = runTest {
+        // Regression for #272: car 1's status errors (e.g. removed from the account),
+        // but the user can switch to car 2 and the stale error must be cleared.
+        val car1 = CarData(carId = 1, name = "Car 1")
+        val car2 = CarData(carId = 2, name = "Car 2")
+        val status2WithUnits = CarStatusWithUnits(status = testStatus.copy(displayName = "Car 2"), units = Units())
+
+        coEvery { repository.getCars() } returns ApiResult.Success(listOf(car1, car2))
+        coEvery { repository.getCarStatus(1) } returns ApiResult.Error("no info on this car ID")
+        coEvery { repository.getCarStatus(2) } returns ApiResult.Success(status2WithUnits)
+
+        viewModel = createViewModel()
+        runCurrent()
+        assertEquals("no info on this car ID", viewModel!!.uiState.value.error)
+
+        viewModel!!.selectCar(2)
+        runCurrent()
+        cancelViewModelCoroutines()
+
+        assertEquals(2, viewModel!!.uiState.value.selectedCarId)
+        assertNull(viewModel!!.uiState.value.error)
+        assertEquals("Car 2", viewModel!!.uiState.value.carStatus?.displayName)
+    }
+
+    @Test
+    fun `retryCarStatus clears error and reloads the selected car`() = runTest {
+        // Regression for #272: retrying a transiently-failing car recovers cleanly.
+        coEvery { repository.getCars() } returns ApiResult.Success(listOf(testCar))
+        coEvery { repository.getCarStatus(1) } returns
+            ApiResult.Error("Status error") andThen ApiResult.Success(testStatusWithUnits)
+
+        viewModel = createViewModel()
+        runCurrent()
+        assertEquals("Status error", viewModel!!.uiState.value.error)
+        assertNull(viewModel!!.uiState.value.carStatus)
+
+        viewModel!!.retryCarStatus()
+        runCurrent()
+        cancelViewModelCoroutines()
+
+        assertNull(viewModel!!.uiState.value.error)
+        assertEquals(testStatus, viewModel!!.uiState.value.carStatus)
+    }
 }

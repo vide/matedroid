@@ -9,8 +9,11 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.LocalDayBoundaries
 import com.matedroid.R
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,10 +23,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import com.matedroid.util.formatMonthYear
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatWeekLabel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
-import java.util.Locale
 import javax.inject.Inject
 
 enum class DriveChartGranularity {
@@ -104,6 +110,7 @@ data class DrivesSummary(
 
 @HiltViewModel
 class DrivesViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
     private val savedStateHandle: SavedStateHandle
@@ -259,9 +266,9 @@ class DrivesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format: 2006-01-02T15:04:05Z
-            val startDateStr = startDate?.let { "${it}T00:00:00Z" }
-            val endDateStr = endDate?.let { "${it}T23:59:59Z" }
+            // Local-day RFC3339 boundaries (see LocalDayBoundaries for why not UTC).
+            val startDateStr = startDate?.let { LocalDayBoundaries.startOfDay(it) }
+            val endDateStr = endDate?.let { LocalDayBoundaries.endOfDay(it) }
 
             when (val result = repository.getDrives(id, startDateStr, endDateStr)) {
                 is ApiResult.Success -> {
@@ -377,7 +384,7 @@ class DrivesViewModel @Inject constructor(
                     val drivesInDay = drivesByDay[key] ?: emptyList()
                     result.add(
                         createChartPoint(
-                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            label = current.formatShortNoYear(Locale.getDefault()),
                             sortKey = key,
                             drives = drivesInDay
                         )
@@ -419,7 +426,7 @@ class DrivesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChartPoint(
-                            label = "W$weekOfYear",
+                            label = formatWeekLabel(appContext.resources, weekOfYear),
                             sortKey = key,
                             drives = drivesInWeek
                         )
@@ -458,7 +465,7 @@ class DrivesViewModel @Inject constructor(
                     val drivesInMonth = drivesByMonth[key] ?: emptyList()
                     result.add(
                         createChartPoint(
-                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            label = firstDay.formatMonthYear(Locale.getDefault()),
                             sortKey = key,
                             drives = drivesInMonth
                         )

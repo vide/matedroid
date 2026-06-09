@@ -8,6 +8,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
@@ -52,6 +54,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -63,10 +66,10 @@ import kotlinx.coroutines.launch
 import com.matedroid.R
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
+import java.util.Locale
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -134,6 +137,7 @@ fun TripTimeline(
     if (segments.isEmpty()) return
 
     val parkingColor = MaterialTheme.colorScheme.surfaceVariant
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
 
     var selectedIndex by remember(segments) { mutableStateOf<Int?>(null) }
 
@@ -185,35 +189,47 @@ fun TripTimeline(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            // Start / end clock times aligned to the bar's ends.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = formatClockTime(startDate),
+                    text = formatClockTime(startDate, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.weight(1f)
                 )
-                DurationSummary(
-                    totalDurationMin = totalDurationMin,
-                    totalDrivingDurationMin = totalDrivingDurationMin,
-                    totalChargingDurationMin = totalChargingDurationMin,
-                    palette = palette,
-                    modifier = Modifier.weight(2f)
-                )
                 Text(
-                    text = formatClockTime(endDate),
+                    text = formatClockTime(endDate, is24Hour),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Durations on their own full-width line so they never get starved into
+            // wrapping; FlowRow lets them spill to a second line gracefully if a large
+            // font scale leaves no room for all three on one line.
+            DurationSummary(
+                totalDurationMin = totalDurationMin,
+                totalDrivingDurationMin = totalDrivingDurationMin,
+                totalChargingDurationMin = totalChargingDurationMin,
+                palette = palette,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationSummary(
     totalDurationMin: Int,
@@ -222,28 +238,27 @@ private fun DurationSummary(
     palette: CarColorPalette,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    val resources = LocalContext.current.resources
+    FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         DurationItem(
             icon = CustomIcons.SteeringWheel,
-            text = formatCompactDuration(totalDrivingDurationMin),
+            text = formatDuration(resources, totalDrivingDurationMin),
             tint = palette.accent
         )
         if (totalChargingDurationMin > 0) {
-            Spacer(Modifier.width(10.dp))
             DurationItem(
                 icon = Icons.Filled.ElectricBolt,
-                text = formatCompactDuration(totalChargingDurationMin),
+                text = formatDuration(resources, totalChargingDurationMin),
                 tint = palette.accent
             )
         }
-        Spacer(Modifier.width(10.dp))
         DurationItem(
             icon = Icons.Filled.Schedule,
-            text = formatCompactDuration(totalDurationMin),
+            text = formatDuration(resources, totalDurationMin),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -266,23 +281,10 @@ private fun DurationItem(
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            softWrap = false
         )
-    }
-}
-
-private fun formatCompactDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return when {
-        h >= 24 -> {
-            val days = h / 24
-            val remH = h % 24
-            if (remH > 0) "${days}d${remH}h" else "${days}d"
-        }
-        h > 0 && m > 0 -> "${h}h${m}m"
-        h > 0 -> "${h}h"
-        else -> "${m}m"
     }
 }
 
@@ -326,6 +328,7 @@ private fun SegmentInfoContent(
     palette: CarColorPalette,
     parkingColor: Color
 ) {
+    val resources = LocalContext.current.resources
     val title: String
     val subtitle: String
     val dotColor: Color
@@ -335,7 +338,7 @@ private fun SegmentInfoContent(
                     stringResource(R.string.trip_leg_drive, segment.index)
             subtitle = "%.1f km · %s".format(
                 segment.distanceKm,
-                formatTimelineDuration(segment.durationMin)
+                formatDuration(resources, segment.durationMin)
             )
             dotColor = palette.accent
         }
@@ -349,13 +352,13 @@ private fun SegmentInfoContent(
                     stringResource(R.string.trip_leg_charge, segment.index)
             subtitle = "+%.1f kWh · %s".format(
                 segment.energyKwh,
-                formatTimelineDuration(segment.durationMin)
+                formatDuration(resources, segment.durationMin)
             )
             dotColor = if (segment.isDc) palette.dcColor else palette.acColor
         }
         is TripTimelineSegment.Parking -> {
             title = stringResource(R.string.trip_timeline_parked)
-            subtitle = formatTimelineDuration(segment.durationMin)
+            subtitle = formatDuration(resources, segment.durationMin)
             dotColor = parkingColor
         }
     }
@@ -896,30 +899,8 @@ private fun compressIdle(durationMin: Int): Float {
             sqrt((d - IDLE_LINEAR_THRESHOLD_MIN) * IDLE_LINEAR_THRESHOLD_MIN) * IDLE_COMPRESSION_SCALE
 }
 
-private fun formatTimelineDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return when {
-        h >= 24 -> {
-            val days = h / 24
-            val remH = h % 24
-            if (remH > 0) "${days}d ${remH}h" else "${days}d"
-        }
-        h > 0 -> "${h}h ${m}m"
-        else -> "${m}m"
-    }
-}
-
-private fun formatClockTime(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("HH:mm"))
-    } catch (e: Exception) {
-        dateStr
-    }
+private fun formatClockTime(dateStr: String, is24Hour: Boolean): String {
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    return dt.formatTime(Locale.getDefault(), is24Hour)
 }
 

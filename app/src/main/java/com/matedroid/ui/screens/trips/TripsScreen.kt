@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.trips
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -21,6 +24,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
@@ -51,6 +57,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -68,11 +75,11 @@ import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +88,7 @@ fun TripsScreen(
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
+    onNavigateToCreateTrip: () -> Unit = {},
     viewModel: TripsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -121,6 +129,18 @@ fun TripsScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToCreateTrip,
+                containerColor = palette.accent,
+                contentColor = Color.White
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.trip_create_cd)
+                )
+            }
         }
     ) { padding ->
         when {
@@ -135,7 +155,7 @@ fun TripsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .padding(32.dp),
+                        .padding(horizontal = 32.dp, vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -143,12 +163,36 @@ fun TripsScreen(
                             Icons.Filled.Route,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            tint = palette.accent.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = stringResource(R.string.trips_empty),
+                            text = stringResource(R.string.trips_empty_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.trips_empty_intro),
                             style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Column(
+                            modifier = Modifier.widthIn(max = 320.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            TripRuleRow(1, stringResource(R.string.trips_empty_rule_drives), palette)
+                            TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
+                            TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
+                        }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = stringResource(R.string.trips_empty_create_hint),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
@@ -280,6 +324,8 @@ private fun TripsContent(
         },
         accent = palette.accent,
         modifier = Modifier.align(Alignment.CenterEnd),
+        // Keep the scroll thumb clear of the create-trip FAB (56dp + 16dp margin).
+        bottomInset = 84.dp,
     )
     }
 }
@@ -326,7 +372,7 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Schedule,
                     label = stringResource(R.string.trip_driving_time),
-                    value = formatDuration(totalDrivingMin),
+                    value = formatDuration(LocalContext.current.resources, totalDrivingMin),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
@@ -443,7 +489,7 @@ private fun TripItem(
             // Meta row: duration · stops · kWh
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = formatDuration(trip.totalDurationMin),
+                    text = formatDuration(LocalContext.current.resources, trip.totalDurationMin),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -462,9 +508,11 @@ private fun TripItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (trip.totalEnergyCharged > 0.0) {
+                // Total electricity consumed while driving (sum of drive consumption),
+                // not the energy added at charging stops. See issue #281.
+                if (trip.totalEnergyConsumed > 0.0) {
                     Text(
-                        text = " · %.1f kWh".format(trip.totalEnergyCharged),
+                        text = " · %.1f kWh".format(trip.totalEnergyConsumed),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -480,16 +528,8 @@ private fun pluralStopsLabel(count: Int): String =
     else stringResource(R.string.trip_n_stops, count)
 
 private fun formatDateChip(dateStr: String): String {
-    return try {
-        val dt = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (_: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        dt.format(DateTimeFormatter.ofPattern("d MMM yy")).uppercase()
-    } catch (_: Exception) {
-        dateStr
-    }
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    return dt.toLocalDate().formatMediumNoYear(Locale.getDefault()).uppercase(Locale.getDefault())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -562,6 +602,32 @@ private fun YearFilterChips(
     }
 }
 
+/** A numbered rule row for the trips empty-state explainer. */
+@Composable
+private fun TripRuleRow(number: Int, text: String, palette: CarColorPalette) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(palette.accent.copy(alpha = 0.16f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = number.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.accent
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
 /** Extract city name from address like "Ionity Montpellier, Saint-Aunès" → "Saint-Aunès". */
 internal fun extractCity(address: String): String {
     val parts = address.split(", ")
@@ -588,36 +654,4 @@ internal fun Trip.displayName(): String {
  *  1w–~1mo → "Xw Yd"
  *  ≥30d → "Xmo Yw"
  */
-private fun formatDuration(minutes: Int): String {
-    val totalMinutes = minutes.coerceAtLeast(0)
-    val totalHours = totalMinutes / 60.0
-    val totalDays = totalHours / 24.0
-
-    return when {
-        totalDays >= 30 -> {
-            val weeks = (totalDays / 7.0).toInt().coerceAtLeast(1)
-            val months = weeks / 4
-            val remWeeks = weeks - months * 4
-            if (remWeeks > 0) "${months}mo ${remWeeks}w" else "${months}mo"
-        }
-        totalDays >= 7 -> {
-            val days = Math.round(totalDays).toInt()
-            val weeks = days / 7
-            val remDays = days - weeks * 7
-            if (remDays > 0) "${weeks}w ${remDays}d" else "${weeks}w"
-        }
-        totalHours >= 24 -> {
-            val hours = Math.round(totalHours).toInt()
-            val days = hours / 24
-            val remHours = hours - days * 24
-            if (remHours > 0) "${days}d ${remHours}h" else "${days}d"
-        }
-        totalHours >= 1 -> {
-            val h = totalMinutes / 60
-            val m = totalMinutes % 60
-            if (m > 0) "${h}h ${m}m" else "${h}h"
-        }
-        else -> "${totalMinutes}m"
-    }
-}
 

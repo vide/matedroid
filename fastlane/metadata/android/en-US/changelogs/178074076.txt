@@ -1,0 +1,4 @@
+A small polish release.
+
+Fixed:
+- Dashboard navigation labels no longer wrap to a second line in languages with longer words (e.g. Spanish, Catalan)

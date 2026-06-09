@@ -1,0 +1,9 @@
+Aquesta beta afegeix l'alemany i poleix l'experiència en diversos idiomes.
+
+Afegit:
+- Traducció a l'alemany (Deutsch)
+
+Correccions:
+- Canvia de cotxe encara que un no es carregui: s'acaba el tauler bloquejat
+- Els cotxes Diamond Black ja no es mostren blancs
+- «Trajectes» i «Viatges» ara són paraules diferents

@@ -1,0 +1,14 @@
+Now available in German, with a redesigned "Where was I?" screen plus localization and reliability fixes.
+
+Added:
+- German translation
+
+Changed:
+- Redesigned "Where was I?" with an interactive map
+
+Fixed:
+- Dates, times and durations follow your device language
+- "Drives" and "Trips" use distinct words in more languages
+- Maps pan and zoom instead of scrolling the page
+- Diamond Black cars no longer appear white
+- Recover when a car's data fails to load

@@ -10,6 +10,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Custom HTTP headers**: A new "Custom HTTP Headers" section in Advanced Network Settings lets you define arbitrary key-value header pairs that are sent with every API request. Useful for authenticating through reverse proxies or gateways that require headers like `X-API-Key` or `CF-Access-Client-Id`.
 
+## [1.9.0-beta1] - 2026-06-09
+
+### Added
+- **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I?, Sentry events and Settings.
+- **Create a trip by hand**: a + button on the Trips list lets you build a road-trip manually — pick the day, then choose the drives and charges that belong to it (handy when auto-detection misses one).
+
+### Changed
+- **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.
+- **Redesigned the Location card** into an immersive, full-bleed map (muted to match light/dark theme) with the place name and details over it; tap anywhere to open it in your maps app.
+- **Tyre pressure moved into its own card** with a cleaner 2×2 grid — one tile per wheel with its pressure and an OK/low status dot.
+- **The empty Trips screen now explains itself**: when no road-trips have been detected, it lists how one is auto-generated (2+ drives in a row, linked by a DC fast-charge stop, totalling 300 km or more).
+
+### Fixed
+- **Scroll thumb no longer jumps to the end** on the Trips, Drives and Charges lists — it now tracks the real scroll position the whole way down (the old mapping capped it near 80% and snapped to the bottom), and on the Trips list it stays clear of the new + button.
+- **Software updates list showed each version's "days installed" off by one** — a version displayed the duration that actually belonged to the previous one. Each version now shows how long it was installed before the next update.
+
+## [1.8.1] - 2026-06-07
+
+### Fixed
+- **Trip total duration no longer wraps onto multiple lines** under the timeline on the trip detail screen, regardless of screen size or the device's font-size setting.
+
+## [1.8.0] - 2026-06-06
+
+German language support, a redesigned "Where was I?" screen, and a round of localization and reliability fixes.
+
+### Added
+- **German translation (Deutsch)**: the app is now fully available in German.
+
+### Changed
+- **"Where was I?" redesign**: the Location and State cards are merged into a single "what + where" card with a state-aware headline ("Heading to Home" / "Charging at..." / "Parked at..."). The map is fully interactive (single-finger drag to pan, pinch to zoom) and a new "Open in Maps" button opens the spot in your maps app.
+
+### Fixed
+- **Locale-aware dates, times and durations**: these now follow your device language instead of fixed English/numeric patterns (e.g. durations read "10小时48分钟" in Chinese), and clock times honor your system's 12/24-hour setting.
+- **"Drives" and "Trips" no longer share the same word** in Spanish, Catalan, Italian and Chinese, where both used to translate identically. Drives now use a distinct term (es "Trayectos", ca "Trajectes", it "Tragitti", zh "行程").
+- **Maps stopped fighting the page scroll**: dragging the map on the trip, drive and charge detail screens now pans/zooms the map instead of scrolling the page.
+- **Black Diamond Black cars showed as white**: the "DiamondBlack" paint wasn't recognized and fell back to white. It now renders correctly.
+- **Stuck on a car that can't load**: if the selected car's data failed to load (e.g. a car removed from your account that TeslaMate still lists), the dashboard got stuck with no way out. The car selector now stays available so you can switch to a working car.
+- **Trips list shows energy consumed, not energy charged.**
+- **"Today" filter now respects your timezone** instead of using UTC, so it shows the right day's drives and charges.
+
+## [1.8.0-beta3] - 2026-06-06
+
+### Fixed
+- **Long navigation labels no longer wrap on the dashboard**: localized words like the Spanish "Trayectos" or Catalan "Trajectes" overflowed the Drives/Charges/Trips buttons onto a second line. The label now shrinks slightly to stay on one line; labels that already fit are unchanged.
+
+## [1.8.0-beta2] - 2026-06-06
+
+### Added
+- **German translation** — the app is now fully available in German (Deutsch). Thanks to @herrfrei for the contribution.
+
+### Fixed
+- **Stuck on a car whose data can't load**: if the selected car's status failed to load (e.g. a car removed from your Tesla account that TeslaMate still lists), the dashboard got stuck and the car selector disappeared, so you couldn't switch to a working car. The car selector now stays visible with an inline error + Retry, and switching cars clears the error (#272).
+- **Black Juniper Model Y (and Highland Model 3) showed a white car**: the "Diamond Black" paint is reported by TeslaMate as `DiamondBlack`, which wasn't recognized, so the car image fell back to white. It now renders in black.
+- **"Drives" and "Trips" no longer share the same word** in Spanish, Catalan, Italian, and Chinese, where both were translated identically (e.g. both "Viajes") — making the navigation and stats ambiguous now that Trips exist. Drives now use a distinct term (es "Trayectos", ca "Trajectes", it "Tragitti", zh "行程") while Trips keep the journey word.
+
+## [1.8.0-beta1] - 2026-05-31
+
+### Changed
+- **"Where was I?" screen redesign**: the separate Location and State cards are merged into a single "what + where" card, with a state-aware sentence on top — "Heading to Home" / "Charging at Tesla SC" / "Parked at Home" — that makes the relationship between the activity and the named place unambiguous (no more bare "Home" appearing during a drive headed home). The map is now fully interactive — single-finger drag pans, pinch zooms — and a new "Open in Maps" button overlay on the map opens the location in your external maps app. The chevron that opens the related drive/charge moved to the top-right of the merged card, vertically aligned with the title.
+
+### Fixed
+- **Maps in scrollable screens no longer fight the page scroll**: dragging the map on the trip, drive, and charge detail screens panned the page instead of the map (vertical drags in particular got hijacked by the surrounding scroll). The map now claims the gesture as soon as your finger lands on it, so single-finger drag pans and pinch zooms behave the same as on the "Where was I?" map (#284).
+- **Locale-aware date, time, and duration formatting**: dates, times, and durations across the app now follow your device's locale instead of fixed English/numeric patterns. Durations read as `10小时48分钟` in Chinese (and localized abbreviations in Italian, Spanish and Catalan) rather than `10h 48m`; chart axis labels, the charge/drive history datelines, and week labels (`第23周`) use locale-appropriate month/day order and names; and clock times now honor your system's 12-/24-hour setting. All formatting is consolidated in one utility so it stays consistent. Thanks to @HEXDude for the original contribution (#279, #280).
+- **Trips list now shows energy consumed, not energy charged**: the per-trip `kWh` value in the trips list was the energy added at charging stops, shown without a label, which read as the trip's total consumption. It now shows the actual electricity consumed while driving — and appears even on trips with no charging stops (#281).
+- **"Today" filter showed the wrong day's drives/charges outside UTC**: date filters were sent to the API as UTC midnight (`...T00:00:00Z`) regardless of your timezone, so the "today" window was shifted by your UTC offset — pulling in the previous day's activity for users behind UTC (e.g. the Americas) and dropping early-morning activity for users ahead of it (e.g. Europe). Filters now use your device's local timezone offset, computed per boundary so DST days are correct. Same fix applied to the "Where was I?" date window.
+
 ## [1.7.0] - 2026-04-30
 
 Complete visual refresh of the **drives and charges lists**, plus a new fast-scroll bar and several smaller fixes.
@@ -575,7 +641,13 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...HEAD
+[1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
+[1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
+[1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0
+[1.8.0-beta3]: https://github.com/vide/matedroid/compare/v1.8.0-beta2...v1.8.0-beta3
+[1.8.0-beta2]: https://github.com/vide/matedroid/compare/v1.8.0-beta1...v1.8.0-beta2
+[1.8.0-beta1]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0-beta1
 [1.7.0]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0
 [1.7.0-beta1]: https://github.com/vide/matedroid/compare/v1.6.0...v1.7.0-beta1
 [1.6.0]: https://github.com/vide/matedroid/compare/v1.5.1...v1.6.0

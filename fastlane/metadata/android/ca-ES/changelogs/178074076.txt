@@ -1,0 +1,4 @@
+Una petita versió de poliment.
+
+Correccions:
+- Les etiquetes de navegació del tauler ja no passen a una segona línia en idiomes amb paraules més llargues (p. ex. espanyol, català)

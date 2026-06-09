@@ -11,10 +11,9 @@ import com.matedroid.data.local.entity.SavedTripConsumedFingerprint
 import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.local.entity.SavedTripWithLegs
 import com.matedroid.domain.model.Trip
+import com.matedroid.util.parseIsoDateTime
 import java.security.MessageDigest
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -277,6 +276,77 @@ class TripRepository @Inject constructor(
         return EligibleLegs(drives, charges)
     }
 
+    // === Create from scratch (manual trips) ===
+
+    /**
+     * Drives and charges within [windowDays] of the [anchorStart]..[anchorEnd] range, not already
+     * part of any saved trip on [carId]. Same windowing as [getEligibleNewLegs] but anchored on an
+     * arbitrary date range (a picked day, or a draft trip's span) instead of an existing saved trip.
+     */
+    suspend fun getUnusedLegsAround(
+        carId: Int,
+        anchorStart: String,
+        anchorEnd: String,
+        windowDays: Int = 2
+    ): EligibleLegs {
+        val allDrives = driveSummaryDao.getAllChronological(carId)
+        val allCharges = chargeSummaryDao.getAllForCar(carId)
+        val windowStart = shiftDate(anchorStart, -windowDays.toLong())
+        val windowEnd = shiftDate(anchorEnd, windowDays.toLong())
+
+        val usedDriveIds = savedTripDao.getUsedLegIds(carId, SavedTripLeg.TYPE_DRIVE).toSet()
+        val usedChargeIds = savedTripDao.getUsedLegIds(carId, SavedTripLeg.TYPE_CHARGE).toSet()
+
+        val drives = allDrives.filter {
+            it.driveId !in usedDriveIds &&
+                compareDates(it.startDate, windowStart) >= 0 &&
+                compareDates(it.startDate, windowEnd) <= 0
+        }
+        val charges = allCharges.filter {
+            it.chargeId !in usedChargeIds &&
+                compareDates(it.startDate, windowStart) >= 0 &&
+                compareDates(it.startDate, windowEnd) <= 0
+        }
+        return EligibleLegs(drives, charges)
+    }
+
+    /** Resolve a set of leg refs into their drive/charge summaries (for building a draft preview). */
+    suspend fun resolveLegs(carId: Int, refs: List<LegRef>): EligibleLegs {
+        val drivesById = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val chargesById = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
+        val drives = refs.filter { it.type == SavedTripLeg.TYPE_DRIVE }.mapNotNull { drivesById[it.id] }
+        val charges = refs.filter { it.type == SavedTripLeg.TYPE_CHARGE }.mapNotNull { chargesById[it.id] }
+        return EligibleLegs(drives, charges)
+    }
+
+    /**
+     * Create a new user-built trip from a chosen leg set. Legs are sorted chronologically and
+     * persisted as a USER_EDITED trip. Detection rules (≥2 drives / DC charge / 300 km) do NOT
+     * apply to manual creation — the only requirement is ≥1 drive (so [TripAggregator] can build it).
+     * Returns the new trip id, or null if no drive was provided.
+     */
+    suspend fun createTrip(carId: Int, legs: List<LegRef>, name: String?): Long? {
+        if (legs.none { it.type == SavedTripLeg.TYPE_DRIVE }) return null
+        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
+        val sorted = legs.distinct().sortedBy { ref -> legStartDate(ref, drives, charges) ?: "" }
+        val now = System.currentTimeMillis()
+        return savedTripDao.insertTripWithLegs(
+            trip = SavedTrip(
+                carId = carId,
+                name = name?.trim()?.takeIf { it.isNotEmpty() },
+                source = SavedTrip.SOURCE_USER_EDITED,
+                createdAt = now,
+                updatedAt = now
+            ),
+            legs = { tripId ->
+                sorted.mapIndexed { index, ref ->
+                    SavedTripLeg(tripId = tripId, position = index, legType = ref.type, legId = ref.id)
+                }
+            }
+        )
+    }
+
     // === Helpers ===
 
     private fun tripDrivesIn(swl: SavedTripWithLegs, drives: Map<Int, DriveSummary>): List<DriveSummary> =
@@ -315,11 +385,8 @@ class TripRepository @Inject constructor(
 
     private fun compareDates(a: String, b: String): Int = a.compareTo(b)
 
-    private fun parseDate(s: String): LocalDateTime? = try {
-        OffsetDateTime.parse(s).toLocalDateTime()
-    } catch (e: DateTimeParseException) {
-        try { LocalDateTime.parse(s.replace("Z", "")) } catch (e2: Exception) { null }
-    }
+    private fun parseDate(s: String): LocalDateTime? =
+        parseIsoDateTime(s)
 
     private fun daysBetween(a: String, b: String): Long? {
         val pa = parseDate(a) ?: return null

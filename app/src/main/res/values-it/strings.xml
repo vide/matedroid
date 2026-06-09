@@ -38,6 +38,9 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">Mostra dettagli</string>
 
+    <string name="retry">Riprova</string>
+    <string name="dashboard_car_unavailable">Impossibile caricare questa auto</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">Dettagli Errore</string>
 
@@ -128,11 +131,50 @@
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">Info veicolo</string>
 
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">Attività</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">Menu</string>
+    <!-- Menu entry: opens the Sentry events / history screen -->
+    <string name="menu_sentry_events">Eventi Sentinella</string>
+    <!-- Title of the standalone tyre pressure card -->
+    <string name="tire_pressure_title">Pressione pneumatici</string>
+    <!-- Tyre pressure verdict line: all tyres within normal range -->
+    <string name="tire_pressure_all_ok">Pneumatici OK</string>
+    <!-- Tyre pressure verdict line: at least one tyre has a low-pressure warning -->
+    <string name="tire_pressure_low">Pressione bassa</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">Ultimo</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">Ancora nessun viaggio</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">I viaggi oltre 300 km appaiono qui</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">Un viaggio viene rilevato automaticamente quando hai:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 o più tragitti consecutivi</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">collegati da almeno una sosta di ricarica rapida DC</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">per un totale di almeno 300 km</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">Aspetta che ne venga rilevato uno, o tocca + per crearne uno manualmente.</string>
+
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Crea viaggio</string>
+    <string name="trip_create_title">Nuovo viaggio</string>
+    <string name="trip_create_pick_day">Scegli il giorno del viaggio</string>
+    <string name="trip_create_name_hint">Nome del viaggio (facoltativo)</string>
+    <string name="trip_create_add_legs">Aggiungi tratte</string>
+    <string name="trip_create_empty">Scegli i tragitti e le ricariche che compongono questo viaggio</string>
+    <string name="trip_create_save">Salva</string>
+    <string name="trip_create_remove">Rimuovi tratta</string>
+
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Ricariche</string>
 
     <!-- Navigation button to drives list -->
-    <string name="nav_drives">Viaggi</string>
+    <string name="nav_drives">Tragitti</string>
 
     <!-- Navigation button to mileage/odometer screen -->
     <string name="nav_mileage">Chilometraggio</string>
@@ -214,22 +256,22 @@
     <string name="settings_extra">Impostazioni extra</string>
 
     <!-- Show short drives/charges toggle -->
-    <string name="settings_show_short_label">Mostra viaggi / ricariche brevi</string>
-    <string name="settings_show_short_hint">Visualizza viaggi molto brevi e ricariche minime nelle liste</string>
+    <string name="settings_show_short_label">Mostra tragitti / ricariche brevi</string>
+    <string name="settings_show_short_hint">Visualizza tragitti molto brevi e ricariche minime nelle liste</string>
     <string name="more_information">Maggiori informazioni</string>
 
     <!-- Short drives/charges info dialog -->
-    <string name="settings_short_dialog_title">Viaggi e ricariche brevi</string>
-    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Viaggi sotto 1 minuto o meno di 0,1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
+    <string name="settings_short_dialog_title">Tragitti e ricariche brevi</string>
+    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Tragitti sotto 1 minuto o meno di 0,1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Forza risincronizzazione completa</string>
     <string name="settings_resyncing">Risincronizzazione…</string>
-    <string name="settings_resync_hint">Riscarica tutti i dettagli di viaggi e ricariche. Usa se le statistiche sembrano errate.</string>
+    <string name="settings_resync_hint">Riscarica tutti i dettagli di tragitti e ricariche. Usa se le statistiche sembrano errate.</string>
     <string name="settings_resync_dialog_title">Forzare risincronizzazione completa?</string>
     <string name="settings_resync_dialog_text_prefix">Questo </string>
     <string name="settings_resync_dialog_text_delete">ELIMINERÀ</string>
-    <string name="settings_resync_dialog_text_suffix"> tutti i viaggi, ricariche e statistiche memorizzati, poi riscaricherà tutto dal server.\n\nIl processo potrebbe richiedere diversi minuti a seconda della quantità di dati.</string>
+    <string name="settings_resync_dialog_text_suffix"> tutti i tragitti, ricariche e statistiche memorizzati, poi riscaricherà tutto dal server.\n\nIl processo potrebbe richiedere diversi minuti a seconda della quantità di dati.</string>
     <string name="settings_resync_confirm">Risincronizza</string>
 
     <!-- Action buttons -->
@@ -249,16 +291,16 @@
 
     <!-- ==================== Drives Screen ==================== -->
     <!-- Top bar title -->
-    <string name="drives_title">Viaggi</string>
+    <string name="drives_title">Tragitti</string>
 
     <!-- Content description for back button -->
     <string name="back">Indietro</string>
 
     <!-- Section title for drive history list -->
-    <string name="drive_history">Cronologia viaggi</string>
+    <string name="drive_history">Cronologia tragitti</string>
 
     <!-- Empty state when no drives match filters -->
-    <string name="no_drives_found">Nessun viaggio trovato per il periodo selezionato</string>
+    <string name="no_drives_found">Nessun tragitto trovato per il periodo selezionato</string>
 
     <!-- Summary card title -->
     <string name="summary">Riepilogo</string>
@@ -308,9 +350,9 @@
     <string name="filter_road_trip_mi">Viaggio lungo (&gt; 60 mi)</string>
 
     <!-- Chart titles - drives per period -->
-    <string name="chart_drives_per_day">Viaggi al giorno</string>
-    <string name="chart_drives_per_week">Viaggi a settimana</string>
-    <string name="chart_drives_per_month">Viaggi al mese</string>
+    <string name="chart_drives_per_day">Tragitti al giorno</string>
+    <string name="chart_drives_per_week">Tragitti a settimana</string>
+    <string name="chart_drives_per_month">Tragitti al mese</string>
 
     <!-- Chart titles - driving time per period -->
     <string name="chart_time_per_day">Tempo di guida al giorno</string>
@@ -329,7 +371,7 @@
 
     <!-- ==================== Drive Detail Screen ==================== -->
     <!-- Top bar title -->
-    <string name="drive_details_title">Dettagli viaggio</string>
+    <string name="drive_details_title">Dettagli tragitto</string>
 
     <!-- Route card labels -->
     <string name="from">Da</string>
@@ -536,10 +578,10 @@
     <string name="stats_empty">Nessuna statistica disponibile.\nScorri verso il basso per sincronizzare.</string>
 
     <!-- Sync phase: fetching summary data from server -->
-    <string name="sync_phase_summaries">Recupero viaggi e ricariche…</string>
+    <string name="sync_phase_summaries">Recupero tragitti e ricariche…</string>
 
     <!-- Sync phase: processing individual drive details -->
-    <string name="sync_phase_drives">Elaborazione dettagli viaggi…</string>
+    <string name="sync_phase_drives">Elaborazione dettagli tragitti…</string>
 
     <!-- Sync phase: processing individual charge details -->
     <string name="sync_phase_charges">Elaborazione dettagli ricariche…</string>
@@ -560,10 +602,10 @@
     <string name="geocode_progress_status">%1$d di %2$d località</string>
 
     <!-- Section: Drives Overview - summary statistics about all drives -->
-    <string name="stats_drives_overview">Panoramica Viaggi</string>
+    <string name="stats_drives_overview">Panoramica Tragitti</string>
 
     <!-- Label for total number of drives -->
-    <string name="stats_total_drives">Viaggi Totali</string>
+    <string name="stats_total_drives">Tragitti Totali</string>
 
     <!-- Label for number of days with at least one drive -->
     <string name="stats_driving_days">Giorni di Guida</string>
@@ -592,7 +634,7 @@
     <string name="stats_records">Record</string>
 
     <!-- Record category: driving-related records -->
-    <string name="stats_category_drives">Viaggi</string>
+    <string name="stats_category_drives">Tragitti</string>
 
     <!-- Record category: battery and charging records -->
     <string name="stats_category_battery">Batteria</string>
@@ -604,7 +646,7 @@
     <string name="stats_category_misc">Altri</string>
 
     <!-- Record: longest single drive by distance -->
-    <string name="record_longest_drive">Viaggio più lungo</string>
+    <string name="record_longest_drive">Tragitto più lungo</string>
 
     <!-- Record: fastest speed ever recorded -->
     <string name="record_top_speed">Velocità Max</string>
@@ -646,10 +688,10 @@
     <string name="record_most_climbing">Maggior dislivello</string>
 
     <!-- Record: drive with highest outside temperature -->
-    <string name="record_hottest_drive">Viaggio più caldo</string>
+    <string name="record_hottest_drive">Tragitto più caldo</string>
 
     <!-- Record: drive with lowest outside temperature -->
-    <string name="record_coldest_drive">Viaggio più freddo</string>
+    <string name="record_coldest_drive">Tragitto più freddo</string>
 
     <!-- Record: charge session with highest outside temperature -->
     <string name="record_hottest_charge">Ricarica più calda</string>
@@ -673,7 +715,7 @@
     <string name="format_days">%.1f giorni</string>
 
     <!-- Format for number of drives. %d is the count -->
-    <string name="format_drives_count">%d viaggi</string>
+    <string name="format_drives_count">%d tragitti</string>
 
     <!-- Section: Temperature extremes recorded while driving and charging -->
     <string name="stats_temperature_extremes">Temperature Estreme</string>
@@ -718,16 +760,16 @@
     <string name="stats_range_record_title">Autonomia Massima</string>
 
     <!-- Label for number of drives in range record. %d is the count -->
-    <string name="stats_drives_count">Viaggi (%d)</string>
+    <string name="stats_drives_count">Tragitti (%d)</string>
 
     <!-- Empty state when no drives found in range record dialog -->
-    <string name="stats_no_drives_found">Nessun viaggio trovato</string>
+    <string name="stats_no_drives_found">Nessun tragitto trovato</string>
 
     <!-- Content description for arrow indicating tappable record -->
     <string name="view_details">Vedi dettagli</string>
 
     <!-- Content description for arrow to view drive details -->
-    <string name="view_drive">Vedi viaggio</string>
+    <string name="view_drive">Vedi tragitto</string>
 
     <!-- ==================== Countries Visited Screen ==================== -->
     <!-- Top bar title for countries visited screen -->
@@ -747,8 +789,8 @@
 
     <!-- Plural for number of drives in a country -->
     <plurals name="drives_count">
-        <item quantity="one">viaggio</item>
-        <item quantity="other">viaggi</item>
+        <item quantity="one">tragitto</item>
+        <item quantity="other">tragitti</item>
     </plurals>
 
     <!-- Plural for number of charges in a country -->
@@ -764,7 +806,7 @@
     <string name="sort_alphabetically">Alfabeticamente</string>
 
     <!-- Sort option: sort by number of drives -->
-    <string name="sort_by_drive_count">Per viaggi</string>
+    <string name="sort_by_drive_count">Per tragitti</string>
 
     <!-- Sort option: sort by total distance -->
     <string name="sort_by_distance">Per distanza</string>
@@ -802,13 +844,13 @@
     <!-- Map showing drive start locations in the country -->
     <!-- Plural for number of drives on the map. %d is the count -->
     <plurals name="format_drives_on_map">
-        <item quantity="one">%d viaggio</item>
-        <item quantity="other">%d viaggi</item>
+        <item quantity="one">%d tragitto</item>
+        <item quantity="other">%d tragitti</item>
     </plurals>
 
     <!-- Map mode toggle labels -->
     <string name="map_mode_charges">Ricariche</string>
-    <string name="map_mode_drives">Viaggi</string>
+    <string name="map_mode_drives">Tragitti</string>
 
     <!-- Legend label for drive start marker -->
     <string name="drive_start_legend">Partenza</string>
@@ -821,10 +863,10 @@
     <string name="mileage_title">Chilometraggio</string>
 
     <!-- Empty state when no drive data is available -->
-    <string name="mileage_no_data">Nessun dato di viaggio disponibile</string>
+    <string name="mileage_no_data">Nessun dato di tragitto disponibile</string>
 
     <!-- Empty state when no drive data for a specific year. %d is the year -->
-    <string name="mileage_no_data_year">Nessun dato di viaggio per il %d</string>
+    <string name="mileage_no_data_year">Nessun dato di tragitto per il %d</string>
 
     <!-- Chart title: mileage grouped by year -->
     <string name="mileage_by_year">Chilometraggio per Anno</string>
@@ -842,7 +884,7 @@
     <string name="mileage_recent_trips">Viaggi recenti</string>
 
     <!-- Section header for drives list in day detail -->
-    <string name="mileage_drives">Viaggi</string>
+    <string name="mileage_drives">Tragitti</string>
 
     <!-- Summary label: Total distance -->
     <string name="mileage_total">Totale</string>
@@ -854,13 +896,13 @@
     <string name="mileage_avg_month">Media/Mese</string>
 
     <!-- Summary label: number of drives -->
-    <string name="mileage_drive_count">N° di viaggi</string>
+    <string name="mileage_drive_count">N° di tragitti</string>
 
     <!-- Info dialog title for average per year calculation -->
     <string name="mileage_avg_year_title">Media Annuale</string>
 
     <!-- Info dialog explaining average per year calculation. %1$s is the date, %2$d is the number of days -->
-    <string name="mileage_avg_year_message">Basato sulla tua media giornaliera dal primo viaggio registrato il %1$s (%2$d giorni fa).\n\nCalcolo: distanza totale ÷ giorni × 365</string>
+    <string name="mileage_avg_year_message">Basato sulla tua media giornaliera dal primo tragitto registrato il %1$s (%2$d giorni fa).\n\nCalcolo: distanza totale ÷ giorni × 365</string>
 
     <!-- Content description for info button explaining calculation -->
     <string name="info_about_calculation">Info sul calcolo</string>
@@ -1056,9 +1098,7 @@
     <string name="sentry_history_yesterday">Ieri</string>
 
     <string name="nav_trips">Viaggi</string>
-    <string name="trips_title">Viaggi</string>
-    <string name="trips_empty">Nessun viaggio rilevato.\nUn viaggio richiede almeno 2 tratte collegate da una ricarica DC.</string>
-    <string name="trip_detail_title">Dettagli viaggio</string>
+    <string name="trips_title">Viaggi</string>    <string name="trip_detail_title">Dettagli viaggio</string>
     <string name="trip_summary">Riepilogo viaggio</string>
     <string name="trip_legs">Tappe del viaggio</string>
     <string name="trip_no_stops">nessuna sosta</string>
@@ -1183,4 +1223,20 @@
     <!-- Parked duration shown on the Where Was I screen -->
     <string name="parked_for">Parcheggiato da %s</string>
     <string name="parked_since">dalle %s</string>
+    <string name="where_was_i_heading_to">Diretta a %s</string>
+    <string name="where_was_i_charging_at">In ricarica a %s</string>
+    <string name="where_was_i_parked_at">Parcheggiata a %s</string>
+    <string name="where_was_i_open_in_maps">Apri nelle mappe</string>
+
+    <!-- Formattazione durata (unità compatte). %1$d/%2$d sono i conteggi. -->
+    <string name="duration_minutes">%1$dmin</string>
+    <string name="duration_hours">%1$do</string>
+    <string name="duration_hours_minutes">%1$do %2$dmin</string>
+    <string name="duration_days">%1$dg</string>
+    <string name="duration_days_hours">%1$dg %2$do</string>
+    <string name="duration_weeks">%1$dsett</string>
+    <string name="duration_weeks_days">%1$dsett %2$dg</string>
+    <string name="duration_months">%1$dmesi</string>
+    <string name="duration_months_weeks">%1$dmesi %2$dsett</string>
+    <string name="chart_week_label">S%1$d</string>
 </resources>

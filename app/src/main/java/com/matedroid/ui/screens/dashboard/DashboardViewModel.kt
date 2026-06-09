@@ -11,6 +11,7 @@ import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
 import com.matedroid.domain.TripRepository
+import com.matedroid.domain.model.Trip
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
@@ -44,6 +45,8 @@ data class DashboardUiState(
     val isCurrentChargeAvailable: Boolean = false,
     val sentryEventCount: Int = 0,
     val totalTrips: Int? = null,
+    /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
+    val latestTrip: Trip? = null,
     val dcFinishedPluggedIn: Boolean = false
 ) {
     private val selectedCar: CarData?
@@ -167,13 +170,32 @@ class DashboardViewModel @Inject constructor(
                 totalCharges = null,
                 totalDrives = null,
                 carImageOverride = currentOverrides[carId],
-                isCurrentChargeAvailable = false
+                isCurrentChargeAvailable = false,
+                // Clear any error from a previously-selected car so switching to a
+                // working car doesn't keep showing the stale error (issue #272).
+                error = null,
+                errorDetails = null
             )
         }
         // Save the selected car for next app launch
         viewModelScope.launch {
             settingsDataStore.saveLastSelectedCarId(carId)
         }
+        loadCarStatus(carId)
+    }
+
+    /**
+     * Retry loading the currently-selected car's status after a failure.
+     * Clears the error first so the UI shows a loading state while retrying.
+     */
+    fun retryCarStatus() {
+        val carId = _uiState.value.selectedCarId
+        if (carId == null) {
+            // No car selected yet (e.g. the car list itself failed to load) — reload everything.
+            loadCars()
+            return
+        }
+        _uiState.update { it.copy(error = null, errorDetails = null) }
         loadCarStatus(carId)
     }
 
@@ -201,6 +223,9 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update { it.copy(error = result.message) }
                 }
             }
+
+            // Pull-to-refresh also re-reads the trip count + latest trip.
+            loadTripCount(carId)
 
             _uiState.update { it.copy(isRefreshing = false) }
         }
@@ -334,16 +359,22 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    /** Re-read the trip count + latest trip — e.g. after returning from creating/editing a trip. */
+    fun refreshTripCount() {
+        _uiState.value.selectedCarId?.let { loadTripCount(it) }
+    }
+
     private fun loadTripCount(carId: Int) {
         viewModelScope.launch {
             // Show cached value instantly
             tripCountCache.get(carId)?.let { cached ->
                 _uiState.update { it.copy(totalTrips = cached) }
             }
-            // Recompute in background and update cache (also auto-persists new saved trips)
-            val count = tripRepository.getTrips(carId).size
-            _uiState.update { it.copy(totalTrips = count) }
-            tripCountCache.set(carId, count)
+            // Recompute in background and update cache (also auto-persists new saved trips).
+            // Trips come back newest-first, so the head is the latest trip for the hero teaser.
+            val trips = tripRepository.getTrips(carId)
+            _uiState.update { it.copy(totalTrips = trips.size, latestTrip = trips.firstOrNull()) }
+            tripCountCache.set(carId, trips.size)
         }
     }
 

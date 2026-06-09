@@ -1,0 +1,9 @@
+This beta adds German and sharpens the experience in several languages.
+
+Added:
+- German (Deutsch) translation
+
+Fixed:
+- Switch cars even when one fails to load — no more stuck dashboard
+- Diamond Black cars no longer show up white
+- "Drives" and "Trips" now use distinct words in Spanish, Catalan, Italian and Chinese

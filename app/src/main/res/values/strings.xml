@@ -38,6 +38,12 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">Show details</string>
 
+    <!-- Generic retry button (e.g. retry loading a car's status) -->
+    <string name="retry">Retry</string>
+
+    <!-- Shown when the selected car's status can't be loaded but other cars are available to pick -->
+    <string name="dashboard_car_unavailable">Couldn\'t load this car</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">Error Details</string>
 
@@ -127,6 +133,45 @@
 
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">Vehicle Info</string>
+
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">Activity</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">Menu</string>
+    <!-- Menu entry: opens the Sentry events / history screen -->
+    <string name="menu_sentry_events">Sentry events</string>
+    <!-- Title of the standalone tyre pressure card -->
+    <string name="tire_pressure_title">Tyre pressure</string>
+    <!-- Tyre pressure verdict line: all tyres within normal range -->
+    <string name="tire_pressure_all_ok">All tyres OK</string>
+    <!-- Tyre pressure verdict line: at least one tyre has a low-pressure warning -->
+    <string name="tire_pressure_low">Low pressure</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">Latest</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">No road-trips yet</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">Trips over 300 km show up here</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">A road-trip is detected automatically when you have:</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">2 or more drives in a row</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">linked by at least one DC fast-charge stop</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">covering 300 km or more in total</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">Wait for one to be detected, or tap + to build a trip yourself.</string>
+
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Create trip</string>
+    <string name="trip_create_title">New trip</string>
+    <string name="trip_create_pick_day">Pick the trip\'s day</string>
+    <string name="trip_create_name_hint">Trip name (optional)</string>
+    <string name="trip_create_add_legs">Add legs</string>
+    <string name="trip_create_empty">Pick the drives and charges that make up this trip</string>
+    <string name="trip_create_save">Save</string>
+    <string name="trip_create_remove">Remove leg</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Charges</string>
@@ -1070,9 +1115,7 @@
     <string name="nav_trips">Trips</string>
     <!-- Trips list screen title -->
     <string name="trips_title">Trips</string>
-    <!-- Empty state when no trips detected -->
-    <string name="trips_empty">No road trips detected yet.\nA trip requires at least 2 drives connected by a DC charge stop.</string>
-    <!-- Warning when deep sync is incomplete -->
+    <!-- Empty state when no trips detected -->    <!-- Warning when deep sync is incomplete -->
     <!-- Trip detail screen title -->
     <string name="trip_detail_title">Trip Details</string>
     <!-- Trip summary section header -->
@@ -1294,4 +1337,26 @@
     <string name="parked_for">Parked for %s</string>
     <!-- "Since" date of last activity, e.g. "since 22 Mar 2026, 11:52" -->
     <string name="parked_since">since %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was driving toward a destination, e.g. "Heading to Home" -->
+    <string name="where_was_i_heading_to">Heading to %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was charging at a location, e.g. "Charging at Tesla Supercharger" -->
+    <string name="where_was_i_charging_at">Charging at %s</string>
+    <!-- Sentence shown on the Where Was I card when the car was parked at a location, e.g. "Parked at Home" -->
+    <string name="where_was_i_parked_at">Parked at %s</string>
+    <!-- Content description for the icon button that opens the location in the user's external maps app -->
+    <string name="where_was_i_open_in_maps">Open in Maps</string>
+
+    <!-- Duration formatting (compact units). %1$d/%2$d are counts. These are abbreviations
+         shown in lists/charts/stat pills; keep them short and locale-conventional. -->
+    <string name="duration_minutes">%1$dm</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_days">%1$dd</string>
+    <string name="duration_days_hours">%1$dd %2$dh</string>
+    <string name="duration_weeks">%1$dw</string>
+    <string name="duration_weeks_days">%1$dw %2$dd</string>
+    <string name="duration_months">%1$dmo</string>
+    <string name="duration_months_weeks">%1$dmo %2$dw</string>
+    <!-- Compact week-of-year label for chart X axes, e.g. "W23" -->
+    <string name="chart_week_label">W%1$d</string>
 </resources>

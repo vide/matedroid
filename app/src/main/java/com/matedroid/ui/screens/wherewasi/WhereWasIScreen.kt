@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.wherewasi
 
 import android.content.Intent
 import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.LocalParking
@@ -28,9 +30,11 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -51,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +66,7 @@ import com.matedroid.data.repository.WeatherCondition
 import com.matedroid.data.repository.countryCodeToFlag
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.util.formatDuration
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalettes
@@ -197,104 +203,75 @@ fun WhereWasIScreen(
                         val context = LocalContext.current
                         val accentArgb = palette.accent.toArgb()
                         val youWereHere = stringResource(R.string.you_were_here)
+                        val openInMapsLabel = stringResource(R.string.where_was_i_open_in_maps)
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = palette.surface),
-                            modifier = Modifier.clickable {
-                                val geoUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
-                                context.startActivity(Intent(Intent.ACTION_VIEW, geoUri))
-                            }
+                            colors = CardDefaults.cardColors(containerColor = palette.surface)
                         ) {
-                            AndroidView(
-                                factory = { ctx ->
-                                    MapView(ctx).apply {
-                                        setTileSource(TileSourceFactory.MAPNIK)
-                                        setMultiTouchControls(false)
-                                        controller.setZoom(15.0)
-                                        controller.setCenter(GeoPoint(lat, lon))
-                                        val marker = org.osmdroid.views.overlay.Marker(this)
-                                        marker.position = GeoPoint(lat, lon)
-                                        marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
-                                        marker.icon = createPinMarkerDrawable(ctx.resources, accentArgb)
-                                        marker.title = youWereHere
-                                        overlays.add(marker)
-                                    }
-                                },
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(250.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                            )
-                        }
-                    }
-
-                    // Location breadcrumb + address
-                    state.location?.let { loc ->
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = palette.surface)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                // Breadcrumb line: flag Country > Region > City
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
+                            ) {
+                                AndroidView(
+                                    factory = { ctx ->
+                                        MapView(ctx).apply {
+                                            setTileSource(TileSourceFactory.MAPNIK)
+                                            setMultiTouchControls(true)
+                                            // Tell the parent vertical scroll to stop intercepting
+                                            // touches so single-finger drag pans the map instead
+                                            // of scrolling the page.
+                                            setOnTouchListener { v, event ->
+                                                when (event.actionMasked) {
+                                                    MotionEvent.ACTION_DOWN,
+                                                    MotionEvent.ACTION_MOVE,
+                                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                                    MotionEvent.ACTION_UP,
+                                                    MotionEvent.ACTION_CANCEL ->
+                                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                                }
+                                                false
+                                            }
+                                            controller.setZoom(15.0)
+                                            controller.setCenter(GeoPoint(lat, lon))
+                                            val marker = org.osmdroid.views.overlay.Marker(this)
+                                            marker.position = GeoPoint(lat, lon)
+                                            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                                            marker.icon = createPinMarkerDrawable(ctx.resources, accentArgb)
+                                            marker.title = youWereHere
+                                            overlays.add(marker)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                FilledIconButton(
+                                    onClick = {
+                                        val geoUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon")
+                                        try {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, geoUri))
+                                        } catch (_: android.content.ActivityNotFoundException) {
+                                            // No maps app installed — silently ignore
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = palette.surface,
+                                        contentColor = palette.accent
+                                    ),
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp)
                                 ) {
-                                    loc.countryCode?.let { code ->
-                                        val flag = countryCodeToFlag(code)
-                                        Text(text = flag, fontSize = 16.sp)
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                    }
-                                    val localizedCountryName = loc.countryCode?.let { code ->
-                                        java.util.Locale.Builder().setRegion(code).build().getDisplayCountry(java.util.Locale.getDefault())
-                                            .takeIf { it.isNotBlank() && it != code }
-                                    } ?: loc.countryName ?: loc.countryCode
-                                    val breadcrumbParts = listOfNotNull(
-                                        localizedCountryName,
-                                        loc.regionName,
-                                        loc.city
-                                    )
-                                    breadcrumbParts.forEachIndexed { index, part ->
-                                        if (index == 0 && loc.countryCode != null) {
-                                            // Country is tappable
-                                            Text(
-                                                text = part,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = palette.accent,
-                                                modifier = Modifier.clickable { onNavigateToCountriesVisited() }
-                                            )
-                                        } else {
-                                            Text(
-                                                text = part,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = palette.onSurfaceVariant
-                                            )
-                                        }
-                                        if (index < breadcrumbParts.lastIndex) {
-                                            Text(
-                                                text = " > ",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = palette.onSurfaceVariant.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Geofence name or full address (bigger)
-                                val displayAddress = state.geofenceName
-                                    ?: loc.address
-                                if (displayAddress != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = displayAddress,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = palette.onSurface
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.OpenInNew,
+                                        contentDescription = openInMapsLabel
                                     )
                                 }
                             }
                         }
                     }
 
-                    // State card
+                    // Combined "what + where" card: state-aware sentence + breadcrumb + stats
                     state.carState?.let { carState ->
                         val hasLinkedActivity = when (carState) {
                             CarActivityState.DRIVING -> state.driveId != null
@@ -319,11 +296,15 @@ fun WhereWasIScreen(
                             } else Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                // State icon + label (centered)
+                                // Top row: state icon + state-aware sentence + chevron
+                                val placeName = state.geofenceName
+                                    ?: state.location?.address
+                                val titleSentence = stateSentence(carState, placeName)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    // Top-align so the state icon and chevron stay anchored to the
+                                    // first line when a long place name wraps to two lines.
+                                    verticalAlignment = Alignment.Top
                                 ) {
                                     Icon(
                                         imageVector = stateIcon(carState),
@@ -333,11 +314,75 @@ fun WhereWasIScreen(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = stateLabel(carState),
-                                        style = MaterialTheme.typography.headlineSmall,
+                                        text = titleSentence,
+                                        style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
-                                        color = palette.onSurface
+                                        color = palette.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    if (hasLinkedActivity) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = palette.onSurfaceVariant,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
+
+                                // Breadcrumb: flag Country > Region > City
+                                state.location?.let { loc ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        loc.countryCode?.let { code ->
+                                            val flag = countryCodeToFlag(code)
+                                            Text(text = flag, fontSize = 16.sp)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        val localizedCountryName = loc.countryCode?.let { code ->
+                                            java.util.Locale.Builder().setRegion(code).build().getDisplayCountry(java.util.Locale.getDefault())
+                                                .takeIf { it.isNotBlank() && it != code }
+                                        } ?: loc.countryName ?: loc.countryCode
+                                        val breadcrumbParts = listOfNotNull(
+                                            localizedCountryName,
+                                            loc.regionName,
+                                            loc.city
+                                        )
+                                        breadcrumbParts.forEachIndexed { index, part ->
+                                            if (index == 0 && loc.countryCode != null) {
+                                                Text(
+                                                    text = part,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = palette.accent,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.clickable { onNavigateToCountriesVisited() }
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = part,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = palette.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            if (index < breadcrumbParts.lastIndex) {
+                                                Text(
+                                                    text = " > ",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = palette.onSurfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
                                 HorizontalDivider(
@@ -345,7 +390,6 @@ fun WhereWasIScreen(
                                     color = palette.onSurfaceVariant.copy(alpha = 0.2f)
                                 )
 
-                                // Info rows — shared info first, then state-specific
                                 // Row 1: Odometer | Outside Temp
                                 Row(modifier = Modifier.fillMaxWidth()) {
                                     InfoItem(
@@ -368,7 +412,7 @@ fun WhereWasIScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // Row 2-3: State-specific
+                                // Row 2: state-specific
                                 when (carState) {
                                     CarActivityState.DRIVING -> {
                                         Row(modifier = Modifier.fillMaxWidth()) {
@@ -406,70 +450,37 @@ fun WhereWasIScreen(
                                     }
                                     CarActivityState.PARKED -> {
                                         state.parkedDurationMinutes?.takeIf { it > 0 }?.let { totalMin ->
-                                            val days = totalMin / (24 * 60)
-                                            val hours = (totalMin % (24 * 60)) / 60
-                                            val minutes = totalMin % 60
-                                            val durationStr = buildString {
-                                                if (days > 0) append("${days}d ")
-                                                if (hours > 0) append("${hours}h ")
-                                                if (days == 0L && minutes > 0) append("${minutes}m")
-                                            }.trim()
+                                            val durationStr = formatDuration(LocalContext.current.resources, totalMin.toInt())
                                             val parkedForPrefix = stringResource(R.string.parked_for, "").trimEnd()
                                             val sinceStr = state.parkedSince
                                             val sincePrefix = sinceStr?.let { stringResource(R.string.parked_since, "").trimEnd() }
 
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
+                                            Column {
+                                                Text(
+                                                    text = buildAnnotatedString {
+                                                        append("$parkedForPrefix ")
+                                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                                            append(durationStr)
+                                                        }
+                                                    },
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = palette.onSurface
+                                                )
+                                                if (sinceStr != null && sincePrefix != null) {
                                                     Text(
                                                         text = buildAnnotatedString {
-                                                            append("$parkedForPrefix ")
+                                                            append("$sincePrefix ")
                                                             withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                                append(durationStr)
+                                                                append(sinceStr)
                                                             }
                                                         },
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                        color = palette.onSurface
-                                                    )
-                                                    if (sinceStr != null && sincePrefix != null) {
-                                                        Text(
-                                                            text = buildAnnotatedString {
-                                                                append("$sincePrefix ")
-                                                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                                                    append(sinceStr)
-                                                                }
-                                                            },
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = palette.onSurfaceVariant
-                                                        )
-                                                    }
-                                                }
-                                                if (hasLinkedActivity) {
-                                                    Icon(
-                                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        tint = palette.onSurfaceVariant,
-                                                        modifier = Modifier.size(24.dp)
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = palette.onSurfaceVariant
                                                     )
                                                 }
                                             }
                                         }
                                     }
-                                }
-
-                                // Chevron hint for tappable cards (driving/charging)
-                                if (hasLinkedActivity && carState != CarActivityState.PARKED) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = null,
-                                        tint = palette.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .align(Alignment.End)
-                                    )
                                 }
                             }
                         }
@@ -541,6 +552,25 @@ private fun stateLabel(state: CarActivityState): String = when (state) {
     CarActivityState.DRIVING -> stringResource(R.string.where_was_i_driving)
     CarActivityState.CHARGING -> stringResource(R.string.where_was_i_charging)
     CarActivityState.PARKED -> stringResource(R.string.where_was_i_parked)
+}
+
+/**
+ * Builds the state-aware sentence for the merged "what + where" card.
+ *
+ * If the place name is known, returns "Heading to X" / "Charging at X" / "Parked at X" so the
+ * relationship between the activity and the named location is unambiguous (especially for
+ * driving, where the geofence is the destination, not the current position). Falls back to the
+ * bare state label when no place name is available.
+ */
+@Composable
+private fun stateSentence(state: CarActivityState, placeName: String?): String {
+    if (placeName.isNullOrBlank()) return stateLabel(state)
+    val resId = when (state) {
+        CarActivityState.DRIVING -> R.string.where_was_i_heading_to
+        CarActivityState.CHARGING -> R.string.where_was_i_charging_at
+        CarActivityState.PARKED -> R.string.where_was_i_parked_at
+    }
+    return stringResource(resId, placeName)
 }
 
 private fun stateIcon(state: CarActivityState): ImageVector = when (state) {

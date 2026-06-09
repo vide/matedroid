@@ -12,7 +12,10 @@ import com.matedroid.data.repository.GeocodedLocation
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherCondition
+import com.matedroid.domain.LocalDayBoundaries
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,9 +23,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import java.time.format.FormatStyle
 import javax.inject.Inject
 
 enum class CarActivityState { DRIVING, CHARGING, PARKED }
@@ -59,10 +63,14 @@ data class WhereWasIUiState(
 
 @HiltViewModel
 class WhereWasIViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val geocodingRepository: GeocodingRepository,
     private val openMeteoApi: OpenMeteoApi
 ) : ViewModel() {
+
+    private val is24Hour: Boolean
+        get() = android.text.format.DateFormat.is24HourFormat(appContext)
 
     private val _uiState = MutableStateFlow(WhereWasIUiState())
     val uiState: StateFlow<WhereWasIUiState> = _uiState.asStateFlow()
@@ -80,12 +88,14 @@ class WhereWasIViewModel @Inject constructor(
                     return@launch
                 }
 
-                val displayFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
-                _uiState.value = _uiState.value.copy(targetDateTime = targetTime.format(displayFormatter))
+                val locale = java.util.Locale.getDefault()
+                val displayDateStr = targetTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+                val timeStr = targetTime.formatTime(locale, is24Hour)
+                _uiState.value = _uiState.value.copy(targetDateTime = "$displayDateStr, $timeStr")
 
-                val dateStr = targetTime.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                val dayStart = "${dateStr}T00:00:00Z"
-                val dayEnd = "${dateStr}T23:59:59Z"
+                val targetDate = targetTime.toLocalDate()
+                val dayStart = LocalDayBoundaries.startOfDay(targetDate)
+                val dayEnd = LocalDayBoundaries.endOfDay(targetDate)
 
                 // Fetch drives, charges, and units in parallel
                 val drivesDeferred = async { repository.getDrives(carId, dayStart, dayEnd) }
@@ -149,7 +159,9 @@ class WhereWasIViewModel @Inject constructor(
             driveDistance = drive.distance,
             units = units,
             targetDateTime = _uiState.value.targetDateTime,
-            geofenceName = drive.endAddress ?: drive.startAddress
+            // Destination only — falling back to startAddress would mislead, since the screen
+            // frames this as "Heading to X" and X must be where the car is going.
+            geofenceName = drive.endAddress
         )
 
         // Fetch geocoding and weather in background
@@ -231,7 +243,9 @@ class WhereWasIViewModel @Inject constructor(
         }
 
         val parkedMinutes = java.time.Duration.between(result.endTime, targetTime).toMinutes()
-        val sinceFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")
+        val locale = java.util.Locale.getDefault()
+        val sinceDateStr = result.endTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+        val sinceTimeStr = result.endTime.formatTime(locale, is24Hour)
 
         _uiState.value = WhereWasIUiState(
             isLoading = false,
@@ -242,7 +256,7 @@ class WhereWasIViewModel @Inject constructor(
             outsideTemp = result.temp,
             units = units,
             parkedDurationMinutes = parkedMinutes,
-            parkedSince = result.endTime.format(sinceFormatter),
+            parkedSince = "$sinceDateStr, $sinceTimeStr",
             lastActivityDriveId = result.driveId,
             lastActivityChargeId = result.chargeId,
             targetDateTime = _uiState.value.targetDateTime,
@@ -331,8 +345,8 @@ class WhereWasIViewModel @Inject constructor(
      * The API returns results most-recent-first, so show=1 is a cheap query.
      */
     private suspend fun findLastActivityInHistory(carId: Int, targetTime: LocalDateTime): ActivityEnd? = coroutineScope {
-        val searchEnd = targetTime.format(DateTimeFormatter.ISO_LOCAL_DATE) + "T00:00:00Z"
-        val searchStart = targetTime.minusYears(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "T00:00:00Z"
+        val searchEnd = LocalDayBoundaries.startOfDay(targetTime.toLocalDate())
+        val searchStart = LocalDayBoundaries.startOfDay(targetTime.toLocalDate().minusYears(1))
 
         val drivesDeferred = async {
             repository.getDrives(carId, searchStart, searchEnd, page = 1, show = 1)
@@ -447,18 +461,8 @@ class WhereWasIViewModel @Inject constructor(
         }
     }
 
-    private fun parseDateTime(dateStr: String): LocalDateTime? {
-        if (dateStr.isBlank()) return null
-        return try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            try {
-                LocalDateTime.parse(dateStr.replace("Z", ""))
-            } catch (e2: Exception) {
-                null
-            }
-        }
-    }
+    private fun parseDateTime(dateStr: String): LocalDateTime? =
+        parseIsoDateTime(dateStr)
 
     private fun parseEndLatFromAddress(drive: DriveData): Double? = null
     private fun parseEndLonFromAddress(drive: DriveData): Double? = null

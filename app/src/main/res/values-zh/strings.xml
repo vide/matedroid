@@ -38,6 +38,9 @@
     <!-- Error details: button to show technical error details -->
     <string name="error_show_details">显示详情</string>
 
+    <string name="retry">重试</string>
+    <string name="dashboard_car_unavailable">无法加载此车辆</string>
+
     <!-- Error details: dialog title -->
     <string name="error_details_title">错误详情</string>
 
@@ -127,6 +130,45 @@
 
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">车辆信息</string>
+
+    <!-- Activity card section title (bottom dashboard card) -->
+    <string name="activity_title">活动</string>
+    <!-- Content description for the top-right overflow/hamburger menu button -->
+    <string name="menu">菜单</string>
+    <!-- Menu entry: opens the Sentry events / history screen -->
+    <string name="menu_sentry_events">哨兵事件</string>
+    <!-- Title of the standalone tyre pressure card -->
+    <string name="tire_pressure_title">胎压</string>
+    <!-- Tyre pressure verdict line: all tyres within normal range -->
+    <string name="tire_pressure_all_ok">胎压正常</string>
+    <!-- Tyre pressure verdict line: at least one tyre has a low-pressure warning -->
+    <string name="tire_pressure_low">胎压偏低</string>
+    <!-- Trips hero: label above the most recent trip teaser -->
+    <string name="trip_latest_label">最近</string>
+    <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
+    <string name="trips_empty_title">暂无长途旅程</string>
+    <!-- Trips hero empty state hint -->
+    <string name="trips_empty_hint">超过 300 公里的旅程会显示在这里</string>
+    <!-- Trips list empty state: intro before the auto-detection rules -->
+    <string name="trips_empty_intro">满足以下条件时会自动识别为一次旅程：</string>
+    <!-- Trips list empty state: rule 1 -->
+    <string name="trips_empty_rule_drives">连续 2 段或更多行程</string>
+    <!-- Trips list empty state: rule 2 -->
+    <string name="trips_empty_rule_charge">由至少一次 DC 快充停留连接</string>
+    <!-- Trips list empty state: rule 3 -->
+    <string name="trips_empty_rule_distance">总里程达到 300 km 或以上</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">等待自动识别，或点按 + 手动创建一次行程。</string>
+
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">创建行程</string>
+    <string name="trip_create_title">新建行程</string>
+    <string name="trip_create_pick_day">选择行程的日期</string>
+    <string name="trip_create_name_hint">行程名称（可选）</string>
+    <string name="trip_create_add_legs">添加路段</string>
+    <string name="trip_create_empty">选择构成此行程的驾驶和充电</string>
+    <string name="trip_create_save">保存</string>
+    <string name="trip_create_remove">移除路段</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">充电记录</string>
@@ -264,7 +306,7 @@
     <string name="summary">概览</string>
 
     <!-- Summary card labels -->
-    <string name="total_trips">总行程数</string>
+    <string name="total_trips">总旅程数</string>
     <string name="total_distance">总距离</string>
     <string name="total_time">总时间</string>
     <string name="max_speed">最高速度</string>
@@ -345,7 +387,7 @@
 
     <!-- Stats section titles -->
     <string name="speed">速度</string>
-    <string name="trip">行程</string>
+    <string name="trip">旅程</string>
     <string name="power">功率</string>
     <string name="temperature">温度</string>
 
@@ -839,7 +881,7 @@
     <string name="format_days_count">%d 天</string>
 
     <!-- Section header for recent trips list -->
-    <string name="mileage_recent_trips">最近行程</string>
+    <string name="mileage_recent_trips">最近旅程</string>
 
     <!-- Section header for drives list in day detail -->
     <string name="mileage_drives">行程</string>
@@ -1056,12 +1098,10 @@
     <string name="sentry_history_today">今天</string>
     <string name="sentry_history_yesterday">昨天</string>
 
-    <string name="nav_trips">行程</string>
-    <string name="trips_title">行程</string>
-    <string name="trips_empty">尚未检测到公路旅行。\n行程需要至少 2 段驾驶和 1 次直流充电。</string>
-    <string name="trip_detail_title">行程详情</string>
-    <string name="trip_summary">行程概览</string>
-    <string name="trip_legs">行程段落</string>
+    <string name="nav_trips">旅程</string>
+    <string name="trips_title">旅程</string>    <string name="trip_detail_title">旅程详情</string>
+    <string name="trip_summary">旅程概览</string>
+    <string name="trip_legs">旅程段落</string>
     <string name="trip_no_stops">无停靠</string>
     <string name="trip_one_stop">1 个停靠</string>
     <string name="trip_n_stops">%1$d 个停靠</string>
@@ -1077,28 +1117,28 @@
     <string name="trip_timeline_charging_ac">AC 充电</string>
     <string name="trip_timeline_parked">已停车</string>
 
-    <string name="trip_edit_add_leg">添加行程段</string>
-    <string name="trip_edit_merge_trip">合并行程</string>
-    <string name="trip_edit_add_leg_title">添加到此行程</string>
+    <string name="trip_edit_add_leg">添加旅程段</string>
+    <string name="trip_edit_merge_trip">合并旅程</string>
+    <string name="trip_edit_add_leg_title">添加到此旅程</string>
     <string name="trip_edit_add_leg_empty">附近没有驾驶或充电记录</string>
-    <string name="trip_edit_merge_title">合并另一个行程</string>
-    <string name="trip_edit_merge_empty">2 周内没有其他行程</string>
-    <string name="trip_edit_merge_confirm_title">合并行程？</string>
-    <string name="trip_edit_merge_confirm_body">将这些行程合并为一个。您可以通过删除合并后的行程来撤销。</string>
+    <string name="trip_edit_merge_title">合并另一个旅程</string>
+    <string name="trip_edit_merge_empty">2 周内没有其他旅程</string>
+    <string name="trip_edit_merge_confirm_title">合并旅程？</string>
+    <string name="trip_edit_merge_confirm_body">将这些旅程合并为一个。您可以通过删除合并后的旅程来撤销。</string>
     <string name="trip_edit_merge_confirm">合并</string>
-    <string name="trip_edit_delete">删除行程</string>
-    <string name="trip_edit_delete_confirm_title">删除此行程？</string>
-    <string name="trip_edit_delete_confirm_body">这将删除您的编辑。其中自动检测的行程将重新出现。</string>
+    <string name="trip_edit_delete">删除旅程</string>
+    <string name="trip_edit_delete_confirm_title">删除此旅程？</string>
+    <string name="trip_edit_delete_confirm_body">这将删除您的编辑。其中自动检测的旅程将重新出现。</string>
     <string name="delete">删除</string>
 
     <string name="part_of_trip">属于 %s</string>
     <string name="part_of_trip_remove">移除</string>
-    <string name="part_of_trip_remove_confirm_title">从行程中移除？</string>
-    <string name="part_of_trip_remove_confirm_body">此行程段将不再属于 %s。</string>
+    <string name="part_of_trip_remove_confirm_title">从旅程中移除？</string>
+    <string name="part_of_trip_remove_confirm_body">此旅程段将不再属于 %s。</string>
 
     <string name="trip_rename_action">重命名</string>
-    <string name="trip_rename_dialog_title">重命名行程</string>
-    <string name="trip_rename_field_label">行程名称</string>
+    <string name="trip_rename_dialog_title">重命名旅程</string>
+    <string name="trip_rename_field_label">旅程名称</string>
     <string name="trip_rename_field_hint">留空可使用默认名称</string>
     <string name="save">保存</string>
     <string name="add">添加</string>
@@ -1208,4 +1248,20 @@
     <!-- Parked duration shown on the Where Was I screen -->
     <string name="parked_for">已停放 %s</string>
     <string name="parked_since">自 %s 起</string>
+    <string name="where_was_i_heading_to">前往 %s</string>
+    <string name="where_was_i_charging_at">在 %s 充电</string>
+    <string name="where_was_i_parked_at">停放在 %s</string>
+    <string name="where_was_i_open_in_maps">在地图中打开</string>
+
+    <!-- 时长格式（紧凑单位）。%1$d/%2$d 为数量。 -->
+    <string name="duration_minutes">%1$d分钟</string>
+    <string name="duration_hours">%1$d小时</string>
+    <string name="duration_hours_minutes">%1$d小时%2$d分钟</string>
+    <string name="duration_days">%1$d天</string>
+    <string name="duration_days_hours">%1$d天%2$d小时</string>
+    <string name="duration_weeks">%1$d周</string>
+    <string name="duration_weeks_days">%1$d周%2$d天</string>
+    <string name="duration_months">%1$d个月</string>
+    <string name="duration_months_weeks">%1$d个月%2$d周</string>
+    <string name="chart_week_label">第%1$d周</string>
 </resources>

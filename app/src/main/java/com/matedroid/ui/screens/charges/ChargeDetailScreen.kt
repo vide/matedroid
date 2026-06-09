@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.charges
 
 import android.content.Intent
 import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -79,11 +80,10 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
-import java.time.format.FormatStyle
+import com.matedroid.util.formatDurationCompact
+import com.matedroid.util.formatMedium
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,6 +160,7 @@ private fun ChargeDetailContent(
     onRemoveFromTrip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
 
@@ -240,7 +241,7 @@ private fun ChargeDetailContent(
                     StatItem(startLabel, "${s.batteryStart}%"),
                     StatItem(endLabel, "${s.batteryEnd}%"),
                     StatItem(addedLabel, "+${s.batteryAdded}%"),
-                    StatItem(durationLabel, formatDuration(s.durationMin))
+                    StatItem(durationLabel, formatDurationCompact(s.durationMin))
                 )
             )
 
@@ -305,19 +306,11 @@ private fun ChargeDetailContent(
             val chargePoints = detail.chargePoints
             if (!chargePoints.isNullOrEmpty() && chargePoints.size > 2) {
                 // Extract time range for labels
-                val timeLabels = extractTimeLabels(chargePoints)
-                val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                val timeLabels = extractTimeLabels(chargePoints, is24Hour)
                 val fractionToTimeLabel: (Float) -> String = { fraction ->
                     val index = (fraction * chargePoints.lastIndex).roundToInt().coerceIn(0, chargePoints.lastIndex)
                     chargePoints[index].date?.let { dateStr ->
-                        try {
-                            val dt = try {
-                                java.time.OffsetDateTime.parse(dateStr).toLocalDateTime()
-                            } catch (e: java.time.format.DateTimeParseException) {
-                                java.time.LocalDateTime.parse(dateStr.replace("Z", ""))
-                            }
-                            dt.format(timeFormatter)
-                        } catch (e: Exception) { "" }
+                        parseIsoDateTime(dateStr)?.formatTime(java.util.Locale.getDefault(), is24Hour) ?: ""
                     } ?: ""
                 }
 
@@ -390,6 +383,7 @@ private fun ChargeDetailContent(
 
 @Composable
 private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isDcCharge: Boolean) {
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val locationLabel = stringResource(R.string.location)
     val unknownLocationLabel = stringResource(R.string.unknown_location)
     val startedLabel = stringResource(R.string.started)
@@ -453,7 +447,7 @@ private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isD
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = formatDateTime(detail.startDate, unknownLabel),
+                        text = formatDateTime(detail.startDate, unknownLabel, is24Hour),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -476,7 +470,7 @@ private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isD
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = formatDateTime(detail.endDate, unknownLabel),
+                        text = formatDateTime(detail.endDate, unknownLabel, is24Hour),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -606,6 +600,21 @@ private fun ChargeMapCard(latitude: Double, longitude: Double) {
                         MapView(ctx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Tell the parent vertical scroll to stop intercepting
+                            // touches so single-finger drag pans the map instead
+                            // of scrolling the page.
+                            setOnTouchListener { v, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN,
+                                    MotionEvent.ACTION_MOVE,
+                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    MotionEvent.ACTION_UP,
+                                    MotionEvent.ACTION_CANCEL ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                }
+                                false
+                            }
 
                             val geoPoint = GeoPoint(latitude, longitude)
 
@@ -953,23 +962,12 @@ private fun ChargeTypeBadge(isDcCharge: Boolean) {
  * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
  * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
  */
-private fun extractTimeLabels(chargePoints: List<ChargePoint>): List<String> {
+private fun extractTimeLabels(chargePoints: List<ChargePoint>, is24Hour: Boolean? = null): List<String> {
     if (chargePoints.isEmpty()) return listOf("", "", "", "", "")
 
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val locale = java.util.Locale.getDefault()
     val times = chargePoints.mapNotNull { point ->
-        point.date?.let { dateStr ->
-            try {
-                val dateTime = try {
-                    OffsetDateTime.parse(dateStr).toLocalDateTime()
-                } catch (e: DateTimeParseException) {
-                    LocalDateTime.parse(dateStr.replace("Z", ""))
-                }
-                dateTime
-            } catch (e: Exception) {
-                null
-            }
-        }
+        point.date?.let { parseIsoDateTime(it) }
     }
 
     if (times.isEmpty()) return listOf("", "", "", "", "")
@@ -977,28 +975,13 @@ private fun extractTimeLabels(chargePoints: List<ChargePoint>): List<String> {
     // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
     val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
     return indices.map { idx ->
-        times.getOrNull(idx.coerceIn(0, times.size - 1))?.format(timeFormatter) ?: ""
+        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }
 
-private fun formatDateTime(dateStr: String?, unknownLabel: String = "Unknown"): String {
-    if (dateStr == null) return unknownLabel
-    return try {
-        val dateTime = try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
-        } catch (e: DateTimeParseException) {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        }
-        // Use locale-aware formatter for proper date/time localization
-        val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL, FormatStyle.SHORT)
-        dateTime.format(formatter)
-    } catch (e: Exception) {
-        dateStr
-    }
-}
-
-private fun formatDuration(minutes: Int): String {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return "%d:%02d".format(hours, mins)
+private fun formatDateTime(dateStr: String?, unknownLabel: String = "Unknown", is24Hour: Boolean? = null): String {
+    if (dateStr.isNullOrBlank()) return unknownLabel
+    val dt = parseIsoDateTime(dateStr) ?: return dateStr
+    val locale = java.util.Locale.getDefault()
+    return "${dt.toLocalDate().formatMedium(locale)} ${dt.formatTime(locale, is24Hour)}"
 }

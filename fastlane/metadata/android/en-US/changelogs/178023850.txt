@@ -1,0 +1,10 @@
+Back after a short break with a maintenance update — polish and fixes across the app.
+
+Changed:
+- "Where was I?" redesigned: one combined card, fully interactive map, and an Open in Maps button
+
+Fixed:
+- Maps no longer scroll the page when you drag them
+- Dates, times and durations now follow your device's language and 12/24h setting
+- Trips list shows energy consumed, not energy charged
+- "Today" filter now respects your timezone

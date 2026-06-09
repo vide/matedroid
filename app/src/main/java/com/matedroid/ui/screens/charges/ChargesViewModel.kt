@@ -10,8 +10,11 @@ import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.LocalDayBoundaries
+import android.content.Context
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,10 +24,13 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
+import com.matedroid.util.formatMonthYear
+import com.matedroid.util.formatShortNoYear
+import com.matedroid.util.formatWeekLabel
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
-import java.util.Locale
 import javax.inject.Inject
 
 enum class ChartGranularity {
@@ -110,6 +116,7 @@ data class ChargesSummary(
 
 @HiltViewModel
 class ChargesViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
     private val aggregateDao: AggregateDao,
@@ -314,9 +321,9 @@ class ChargesViewModel @Inject constructor(
             // Load the display setting
             showShortDrivesCharges = settingsDataStore.showShortDrivesCharges.first()
 
-            // API expects RFC3339 format: 2006-01-02T15:04:05Z
-            val startDateStr = startDate?.let { "${it}T00:00:00Z" }
-            val endDateStr = endDate?.let { "${it}T23:59:59Z" }
+            // Local-day RFC3339 boundaries (see LocalDayBoundaries for why not UTC).
+            val startDateStr = startDate?.let { LocalDayBoundaries.startOfDay(it) }
+            val endDateStr = endDate?.let { LocalDayBoundaries.endOfDay(it) }
 
             // Fetch charge IDs from local database aggregates
             val dcChargeIds = try {
@@ -476,7 +483,7 @@ class ChargesViewModel @Inject constructor(
                     val itemsInDay = chargesByDay[key] ?: emptyList()
                     result.add(
                         createChargeChartPoint(
-                            label = current.format(DateTimeFormatter.ofPattern("d/M")),
+                            label = current.formatShortNoYear(Locale.getDefault()),
                             sortKey = key,
                             charges = itemsInDay,
                             dcChargeIds = _uiState.value.dcChargeIds
@@ -518,7 +525,7 @@ class ChargesViewModel @Inject constructor(
                     val weekOfYear = currentWeek.get(weekFields.weekOfYear())
                     result.add(
                         createChargeChartPoint(
-                            label = "W$weekOfYear",
+                            label = formatWeekLabel(appContext.resources, weekOfYear),
                             sortKey = key,
                             charges = chargesInWeek,
                             dcChargeIds = _uiState.value.dcChargeIds
@@ -558,7 +565,7 @@ class ChargesViewModel @Inject constructor(
                     val chargesInMonth = chargesByMonth[key] ?: emptyList()
                     result.add(
                         createChargeChartPoint(
-                            label = firstDay.format(DateTimeFormatter.ofPattern("MMM yy")),
+                            label = firstDay.formatMonthYear(Locale.getDefault()),
                             sortKey = key,
                             charges = chargesInMonth,
                             dcChargeIds = _uiState.value.dcChargeIds

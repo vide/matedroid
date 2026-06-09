@@ -68,6 +68,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import com.matedroid.util.formatMediumNoYear
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -331,7 +332,11 @@ private fun SentryHeatmap(
             val dayLabel = when (rowDate) {
                 today -> stringResource(R.string.sentry_history_today)
                 today.minusDays(1) -> stringResource(R.string.sentry_history_yesterday)
-                else -> rowDate.format(DateTimeFormatter.ofPattern("EEE d"))
+                else -> {
+            val locale = java.util.Locale.getDefault()
+            val dow = rowDate.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale)
+            "$dow ${rowDate.formatMediumNoYear(locale)}"
+        }
             }
 
             Row(
@@ -519,7 +524,7 @@ private fun AlertRow(
     val time = Instant.ofEpochMilli(alert.detectedAt)
         .atZone(ZoneId.systemDefault())
         .toLocalTime()
-    val timeStr = time.format(DateTimeFormatter.ofPattern("HH:mm"))
+    val timeStr = time.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
     val displayText = alert.address?.ifBlank { null }
         ?: stringResource(R.string.sentry_alert_detected)

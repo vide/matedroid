@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.trips
 
 import android.graphics.Paint
+import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -72,6 +73,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,6 +99,9 @@ import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusError
 import com.matedroid.ui.theme.StatusSuccess
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatMedium
+import com.matedroid.util.formatMediumNoYear
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
@@ -1157,6 +1162,21 @@ private fun TripMapCard(
                         MapView(mapCtx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Tell the parent vertical scroll to stop intercepting
+                            // touches so single-finger drag pans the map instead
+                            // of scrolling the page.
+                            setOnTouchListener { v, event ->
+                                when (event.actionMasked) {
+                                    MotionEvent.ACTION_DOWN,
+                                    MotionEvent.ACTION_MOVE,
+                                    MotionEvent.ACTION_POINTER_DOWN ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                                    MotionEvent.ACTION_UP,
+                                    MotionEvent.ACTION_CANCEL ->
+                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                                }
+                                false
+                            }
                         }
                     },
                     update = { mapView ->
@@ -1406,7 +1426,7 @@ private fun DriveLegCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = formatDuration(leg.drive.durationMin),
+                    text = formatDuration(LocalContext.current.resources, leg.drive.durationMin),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1478,7 +1498,7 @@ private fun ChargeLegCard(
                     color = chipColor
                 )
                 Text(
-                    text = formatDuration(leg.charge.durationMin),
+                    text = formatDuration(LocalContext.current.resources, leg.charge.durationMin),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1495,34 +1515,20 @@ private fun ChargeLegCard(
 
 // === Formatting ===
 
-private fun formatDuration(minutes: Int): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
-}
-
 private fun formatTripDateRange(startDate: String, endDate: String): String {
     val start = parseTripDate(startDate) ?: return startDate
     val end = parseTripDate(endDate) ?: return endDate
-    val dayMonth = java.time.format.DateTimeFormatter.ofPattern("d MMM")
-    val dayMonthYear = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
+    val locale = java.util.Locale.getDefault()
     val sameDay = start.toLocalDate() == end.toLocalDate()
     val sameMonth = start.year == end.year && start.month == end.month
     val sameYear = start.year == end.year
     return when {
-        sameDay -> start.format(if (sameYear) dayMonth else dayMonthYear)
-        sameMonth -> "${start.dayOfMonth} – ${end.format(dayMonth)}"
-        sameYear -> "${start.format(dayMonth)} – ${end.format(dayMonth)}"
-        else -> "${start.format(dayMonthYear)} – ${end.format(dayMonthYear)}"
+        sameDay -> start.toLocalDate().formatMediumNoYear(locale)
+        sameMonth -> "${start.dayOfMonth} – ${end.toLocalDate().formatMediumNoYear(locale)}"
+        sameYear -> "${start.toLocalDate().formatMediumNoYear(locale)} – ${end.toLocalDate().formatMediumNoYear(locale)}"
+        else -> "${start.toLocalDate().formatMedium(locale)} – ${end.toLocalDate().formatMedium(locale)}"
     }
 }
 
-private fun parseTripDate(value: String): java.time.LocalDateTime? = try {
-    java.time.OffsetDateTime.parse(value).toLocalDateTime()
-} catch (_: java.time.format.DateTimeParseException) {
-    try {
-        java.time.LocalDateTime.parse(value.replace("Z", ""))
-    } catch (_: java.time.format.DateTimeParseException) {
-        null
-    }
-}
+private fun parseTripDate(value: String): java.time.LocalDateTime? =
+    com.matedroid.util.parseIsoDateTime(value)

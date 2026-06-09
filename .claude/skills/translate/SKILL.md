@@ -1,12 +1,12 @@
 ---
 name: translate
-description: Add a new translatable string to all locale files (English, Italian, Spanish, Catalan, Chinese). Use when adding user-visible text to the app.
+description: Add a new translatable string to all locale files (English, Italian, Spanish, Catalan, German, Chinese). Use when adding user-visible text to the app.
 allowed-tools: Read, Edit
 ---
 
 # Translate Skill
 
-Add a new string resource to all 5 locale files.
+Add a new string resource to all 6 locale files.
 
 ## String Resource Files
 
@@ -16,6 +16,7 @@ Add a new string resource to all 5 locale files.
 | Italian | `app/src/main/res/values-it/strings.xml`      |
 | Spanish | `app/src/main/res/values-es/strings.xml`      |
 | Catalan | `app/src/main/res/values-ca/strings.xml`      |
+| German  | `app/src/main/res/values-de/strings.xml`      |
 | Chinese | `app/src/main/res/values-zh/strings.xml`      |
 
 ## Process
@@ -25,9 +26,9 @@ Add a new string resource to all 5 locale files.
    - The English text
    - Context for translators (optional but recommended)
 
-2. Generate translations for Italian, Spanish, Catalan, and Chinese (Simplified)
+2. Generate translations for Italian, Spanish, Catalan, German and Chinese (Simplified)
 
-3. Add to all 5 files with an XML comment for context:
+3. Add to all 6 files with an XML comment for context:
    ```xml
    <!-- Context: Shown as the title of the drive details screen -->
    <string name="drive_details_title">Drive Details</string>

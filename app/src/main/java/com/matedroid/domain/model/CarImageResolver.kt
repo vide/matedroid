@@ -73,6 +73,9 @@ object CarImageResolver {
         "stealthgray" to "PN01",
         "midnightcherryred" to "PR00",
         "ultrared" to "PR01",
+        // Juniper/Highland "Diamond Black". TeslamateAPI reports it as "DiamondBlack";
+        // "blackdiamond" is kept as a defensive alias for the reversed spelling.
+        "diamondblack" to "PX02",
         "blackdiamond" to "PX02",
         // Juniper Model Y blues (distinct from Legacy PPSB Deep Blue Metallic)
         "glacierblue" to "PB01",

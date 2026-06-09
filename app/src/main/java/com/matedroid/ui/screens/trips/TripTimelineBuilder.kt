@@ -4,9 +4,8 @@ import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.domain.model.Trip
 import com.matedroid.ui.components.TripTimelineSegment
+import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
 private const val MIN_PARKING_GAP_MIN = 5L
@@ -73,14 +72,5 @@ fun buildTimelineSegments(
     return segments
 }
 
-private fun parseTimelineDate(dateStr: String): LocalDateTime? {
-    return try {
-        OffsetDateTime.parse(dateStr).toLocalDateTime()
-    } catch (e: DateTimeParseException) {
-        try {
-            LocalDateTime.parse(dateStr.replace("Z", ""))
-        } catch (e2: Exception) {
-            null
-        }
-    }
-}
+private fun parseTimelineDate(dateStr: String): LocalDateTime? =
+    parseIsoDateTime(dateStr)
