@@ -240,6 +240,13 @@
     <string name="settings_accept_invalid_certs">Accept invalid certificates</string>
     <string name="settings_accept_invalid_certs_hint">Enable for self-signed certificates</string>
     <string name="settings_accept_invalid_certs_warning">Disabling certificate validation makes connections vulnerable to man-in-the-middle attacks. Only use on trusted networks.</string>
+    <!-- Custom HTTP headers section in advanced network settings -->
+    <string name="settings_custom_headers_title">Custom HTTP Headers</string>
+    <string name="settings_custom_headers_hint">Add custom headers sent with every API request (e.g., for proxy authentication).</string>
+    <string name="settings_custom_headers_key_placeholder">Header name</string>
+    <string name="settings_custom_headers_value_placeholder">Header value</string>
+    <string name="settings_custom_headers_add">Add header</string>
+    <string name="settings_custom_headers_remove">Remove header</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Display Settings</string>

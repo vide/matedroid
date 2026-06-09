@@ -237,6 +237,13 @@
     <string name="settings_accept_invalid_certs">接受无效证书</string>
     <string name="settings_accept_invalid_certs_hint">为自签名证书启用此选项</string>
     <string name="settings_accept_invalid_certs_warning">禁用证书验证会使连接容易受到中间人攻击。请仅在可信网络上使用。</string>
+    <!-- Custom HTTP headers section in advanced network settings -->
+    <string name="settings_custom_headers_title">自定义 HTTP 请求头</string>
+    <string name="settings_custom_headers_hint">添加随每次 API 请求发送的自定义请求头（例如，用于代理认证）。</string>
+    <string name="settings_custom_headers_key_placeholder">请求头名称</string>
+    <string name="settings_custom_headers_value_placeholder">请求头值</string>
+    <string name="settings_custom_headers_add">添加请求头</string>
+    <string name="settings_custom_headers_remove">删除请求头</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">显示设置</string>

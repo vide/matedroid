@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Custom HTTP headers**: A new "Custom HTTP Headers" section in Advanced Network Settings lets you define arbitrary key-value header pairs that are sent with every API request. Useful for authenticating through reverse proxies or gateways that require headers like `X-API-Key` or `CF-Access-Client-Id`.
+
 ## [1.9.0-beta1] - 2026-06-09
 
 ### Added

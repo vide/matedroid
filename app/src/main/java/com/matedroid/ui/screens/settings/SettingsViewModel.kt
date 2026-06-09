@@ -42,6 +42,7 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
+    val customHeaders: List<Pair<String, String>> = emptyList(),
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -105,6 +106,7 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
+                customHeaders = settings.customHeaders.entries.map { it.key to it.value },
                 isLoading = false
             )
         }
@@ -156,6 +158,30 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.saveHttpBasicAuth(_uiState.value.httpBasicAuthUsername, password)
         }
+    }
+
+    fun addCustomHeader() {
+        _uiState.value = _uiState.value.copy(
+            customHeaders = _uiState.value.customHeaders + ("" to "")
+        )
+    }
+
+    fun removeCustomHeader(index: Int) {
+        _uiState.value = _uiState.value.copy(
+            customHeaders = _uiState.value.customHeaders.toMutableList().also { it.removeAt(index) }
+        )
+    }
+
+    fun updateCustomHeaderKey(index: Int, key: String) {
+        val updated = _uiState.value.customHeaders.toMutableList()
+        updated[index] = key to updated[index].second
+        _uiState.value = _uiState.value.copy(customHeaders = updated)
+    }
+
+    fun updateCustomHeaderValue(index: Int, value: String) {
+        val updated = _uiState.value.customHeaders.toMutableList()
+        updated[index] = updated[index].first to value
+        _uiState.value = _uiState.value.copy(customHeaders = updated)
     }
 
     fun updateAcceptInvalidCerts(accept: Boolean) {
@@ -293,7 +319,10 @@ class SettingsViewModel @Inject constructor(
                     httpBasicAuthUsername = _uiState.value.httpBasicAuthUsername,
                     httpBasicAuthPassword = _uiState.value.httpBasicAuthPassword,
                     acceptInvalidCerts = _uiState.value.acceptInvalidCerts,
-                    currencyCode = _uiState.value.currencyCode
+                    currencyCode = _uiState.value.currencyCode,
+                    customHeaders = _uiState.value.customHeaders
+                        .filter { (key, _) -> key.isNotBlank() }
+                        .toMap()
                 )
 
                 // Trigger sync after settings are saved (handles first-time setup)

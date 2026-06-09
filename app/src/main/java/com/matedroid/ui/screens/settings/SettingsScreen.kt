@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -129,6 +130,10 @@ fun SettingsScreen(
                 onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
                 onTestConnection = viewModel::testConnection,
                 onSave = { viewModel.saveSettings(onNavigateToDashboard) },
+                onAddCustomHeader = viewModel::addCustomHeader,
+                onRemoveCustomHeader = viewModel::removeCustomHeader,
+                onCustomHeaderKeyChange = viewModel::updateCustomHeaderKey,
+                onCustomHeaderValueChange = viewModel::updateCustomHeaderValue,
                 onPalettePreview = onNavigateToPalettePreview,
                 onForceResync = viewModel::forceResync,
                 onSimulateTpmsWarning = viewModel::simulateTpmsWarning,
@@ -200,6 +205,10 @@ private fun SettingsContent(
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
     onSave: () -> Unit,
+    onAddCustomHeader: () -> Unit = {},
+    onRemoveCustomHeader: (Int) -> Unit = {},
+    onCustomHeaderKeyChange: (Int, String) -> Unit = { _, _ -> },
+    onCustomHeaderValueChange: (Int, String) -> Unit = { _, _ -> },
     onPalettePreview: () -> Unit = {},
     onForceResync: () -> Unit = {},
     onSimulateTpmsWarning: (TirePosition) -> Unit = {},
@@ -429,6 +438,92 @@ private fun SettingsContent(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Custom HTTP Headers
+            Text(
+                text = stringResource(R.string.settings_custom_headers_title),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = stringResource(R.string.settings_custom_headers_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+
+            // Per-row visibility state for header values; grows/shrinks with the list
+            val headerValueVisible = remember { mutableStateListOf<Boolean>() }
+            while (headerValueVisible.size < uiState.customHeaders.size) headerValueVisible.add(false)
+            while (headerValueVisible.size > uiState.customHeaders.size) headerValueVisible.removeLastOrNull()
+
+            uiState.customHeaders.forEachIndexed { index, (key, value) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = key,
+                        onValueChange = { onCustomHeaderKeyChange(index, it) },
+                        placeholder = { Text(stringResource(R.string.settings_custom_headers_key_placeholder)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        enabled = !uiState.isTesting && !uiState.isSaving
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { onCustomHeaderValueChange(index, it) },
+                        placeholder = { Text(stringResource(R.string.settings_custom_headers_value_placeholder)) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        visualTransformation = if (headerValueVisible[index]) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { headerValueVisible[index] = !headerValueVisible[index] }) {
+                                Icon(
+                                    imageVector = if (headerValueVisible[index]) {
+                                        Icons.Filled.VisibilityOff
+                                    } else {
+                                        Icons.Filled.Visibility
+                                    },
+                                    contentDescription = stringResource(
+                                        if (headerValueVisible[index]) R.string.hide_password else R.string.show_password
+                                    )
+                                )
+                            }
+                        },
+                        enabled = !uiState.isTesting && !uiState.isSaving
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { onRemoveCustomHeader(index) },
+                        enabled = !uiState.isTesting && !uiState.isSaving
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Error,
+                            contentDescription = stringResource(R.string.settings_custom_headers_remove),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = onAddCustomHeader,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isTesting && !uiState.isSaving
+            ) {
+                Text(stringResource(R.string.settings_custom_headers_add))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
