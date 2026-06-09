@@ -126,10 +126,11 @@ class SoftwareVersionsViewModel @Inject constructor(
             allUpdates
         }
 
-        // Calculate days installed for each version
-        // The first item (index 0) is the current/newest version
-        // Days installed = next version's start date - this version's start date
-        // For current version: now - start date
+        // Calculate days installed for each version.
+        // The list is newest-first, so item index 0 is the current/newest version and the item
+        // at index-1 is the NEWER version that replaced the one at index.
+        // Days installed = (replacing version's start date) - (this version's start date).
+        // For the current version: now - start date.
         val items = filteredUpdates.mapIndexed { index, update ->
             val startDate = parseDate(update.startDate)
             val endDate = parseDate(update.endDate)
@@ -147,11 +148,12 @@ class SoftwareVersionsViewModel @Inject constructor(
             val daysInstalled: Long? = when {
                 startDate == null -> null
                 isCurrent -> Duration.between(startDate, LocalDateTime.now()).toDays()
-                index + 1 < filteredUpdates.size -> {
-                    // Get the next version's start date (which is when this version stopped being used)
-                    val nextVersionStartDate = parseDate(filteredUpdates[index + 1].startDate)
-                    if (nextVersionStartDate != null) {
-                        Duration.between(nextVersionStartDate, startDate).toDays()
+                index - 1 >= 0 -> {
+                    // The newer version that replaced this one is at index-1; this version was
+                    // installed from its own start until that replacing version's start.
+                    val replacedByStart = parseDate(filteredUpdates[index - 1].startDate)
+                    if (replacedByStart != null) {
+                        Duration.between(startDate, replacedByStart).toDays()
                     } else {
                         null
                     }
