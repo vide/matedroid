@@ -224,6 +224,9 @@ class DashboardViewModel @Inject constructor(
                 }
             }
 
+            // Pull-to-refresh also re-reads the trip count + latest trip.
+            loadTripCount(carId)
+
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }

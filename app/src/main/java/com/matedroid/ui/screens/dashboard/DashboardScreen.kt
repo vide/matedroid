@@ -220,15 +220,13 @@ fun DashboardScreen(
         }
     }
 
-    // Refresh the trip count + latest-trip teaser when returning to the dashboard (e.g. after
-    // creating a trip). Skip the first resume so we don't double-load right after the initial load.
+    // Refresh the trip count + latest-trip teaser on every resume so a trip created (or edited)
+    // elsewhere shows up on return. refreshTripCount() no-ops until a car is selected, so the
+    // initial load (driven by selectCar) isn't disturbed.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
-        var firstResume = true
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                if (firstResume) firstResume = false else viewModel.refreshTripCount()
-            }
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshTripCount()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
