@@ -356,6 +356,11 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    /** Re-read the trip count + latest trip — e.g. after returning from creating/editing a trip. */
+    fun refreshTripCount() {
+        _uiState.value.selectedCarId?.let { loadTripCount(it) }
+    }
+
     private fun loadTripCount(carId: Int) {
         viewModelScope.launch {
             // Show cached value instantly
