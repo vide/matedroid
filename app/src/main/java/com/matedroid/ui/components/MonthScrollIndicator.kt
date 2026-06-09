@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -116,6 +117,7 @@ fun MonthScrollIndicator(
     accent: Color,
     modifier: Modifier = Modifier,
     minItemsToShow: Int = 20,
+    bottomInset: Dp = 0.dp,
 ) {
     val totalItems by remember {
         derivedStateOf { state.layoutInfo.totalItemsCount }
@@ -205,7 +207,13 @@ fun MonthScrollIndicator(
             val offsetFraction = state.firstVisibleItemScrollOffset.toFloat() /
                 firstItemHeight.coerceAtLeast(1f)
             val numerator = state.firstVisibleItemIndex + offsetFraction
-            val denominator = (total - 1).coerceAtLeast(1).toFloat()
+            // Denominator is the LAST possible first-visible index — total minus the
+            // items that fit on screen, not total-1. With total-1 the thumb capped near
+            // (total - visibleCount)/(total - 1) and only the canScrollForward override
+            // snapped it to the bottom, which read as a "jump" near the end (very visible
+            // on shorter lists, where visibleCount is a big fraction of total).
+            val visibleCount = state.layoutInfo.visibleItemsInfo.size
+            val denominator = (total - visibleCount).coerceAtLeast(1).toFloat()
             (numerator / denominator).coerceIn(0f, 1f)
         }
     }
@@ -282,6 +290,7 @@ fun MonthScrollIndicator(
 
     Box(
         modifier = modifier
+            .padding(bottom = bottomInset)
             .fillMaxHeight()
             .width(OverlayWidth)
             .onSizeChanged { trackHeightPx = it.height },
@@ -397,7 +406,10 @@ private fun handleDrag(
     val total = info.totalItemsCount
     if (total <= 0) return
 
-    val maxIndex = (total - 1).coerceAtLeast(1)
+    // Map drag fraction over the same range the display fraction uses (total minus the
+    // on-screen item count), so dragging the thumb to the bottom lands exactly at the end.
+    val visibleCount = info.visibleItemsInfo.size
+    val maxIndex = (total - visibleCount).coerceAtLeast(1)
     val rawIdxFloat = newFrac * maxIndex
     val idx = rawIdxFloat.toInt().coerceIn(0, total - 1)
 

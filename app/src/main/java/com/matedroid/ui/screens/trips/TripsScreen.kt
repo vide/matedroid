@@ -324,6 +324,8 @@ private fun TripsContent(
         },
         accent = palette.accent,
         modifier = Modifier.align(Alignment.CenterEnd),
+        // Keep the scroll thumb clear of the create-trip FAB (56dp + 16dp margin).
+        bottomInset = 84.dp,
     )
     }
 }

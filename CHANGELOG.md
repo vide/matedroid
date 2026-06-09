@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The empty Trips screen now explains itself**: when no road-trips have been detected, it lists how one is auto-generated (2+ drives in a row, linked by a DC fast-charge stop, totalling 300 km or more).
 
 ### Fixed
+- **Scroll thumb no longer jumps to the end** on the Trips, Drives and Charges lists — it now tracks the real scroll position the whole way down (the old mapping capped it near 80% and snapped to the bottom), and on the Trips list it stays clear of the new + button.
 - **Software updates list showed each version's "days installed" off by one** — a version displayed the duration that actually belonged to the previous one. Each version now shows how long it was installed before the next update.
 
 ## [1.8.1] - 2026-06-07
