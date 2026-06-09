@@ -93,7 +93,7 @@ class CreateTripViewModel @Inject constructor(
                     st.charges.flatMap { listOf(it.startDate, it.endDate) }
                 (dates.minOrNull() ?: return@launch) to (dates.maxOrNull() ?: return@launch)
             }
-            val eligible = tripRepository.getUnusedLegsAround(carId, anchorStart, anchorEnd)
+            val eligible = tripRepository.getUnusedLegsAround(carId, anchorStart, anchorEnd, windowDays = 1)
             val draftSet = st.draftLegs.toSet()
             val filtered = EligibleLegs(
                 drives = eligible.drives.filter { LegRef(SavedTripLeg.TYPE_DRIVE, it.driveId) !in draftSet },
