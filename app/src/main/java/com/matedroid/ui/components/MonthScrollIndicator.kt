@@ -198,23 +198,24 @@ fun MonthScrollIndicator(
             // — never 1.0. The `canScrollForward = false` override snaps the
             // thumb to the bottom when the list is genuinely at the end, and the
             // equivalent override pins it to the top at the start.
-            val total = state.layoutInfo.totalItemsCount
+            val info = state.layoutInfo
+            val total = info.totalItemsCount
             if (total <= 1) return@derivedStateOf 0f
             if (!state.canScrollBackward) return@derivedStateOf 0f
             if (!state.canScrollForward) return@derivedStateOf 1f
-            val firstItemHeight = state.layoutInfo.visibleItemsInfo
-                .firstOrNull()?.size?.toFloat() ?: 1f
-            val offsetFraction = state.firstVisibleItemScrollOffset.toFloat() /
-                firstItemHeight.coerceAtLeast(1f)
-            val numerator = state.firstVisibleItemIndex + offsetFraction
-            // Denominator is the LAST possible first-visible index — total minus the
-            // items that fit on screen, not total-1. With total-1 the thumb capped near
-            // (total - visibleCount)/(total - 1) and only the canScrollForward override
-            // snapped it to the bottom, which read as a "jump" near the end (very visible
-            // on shorter lists, where visibleCount is a big fraction of total).
-            val visibleCount = state.layoutInfo.visibleItemsInfo.size
-            val denominator = (total - visibleCount).coerceAtLeast(1).toFloat()
-            (numerator / denominator).coerceIn(0f, 1f)
+            val visible = info.visibleItemsInfo
+            if (visible.isEmpty()) return@derivedStateOf 0f
+            // Pixel-estimate mapping. The average visible item size appears in both the
+            // scrolled-px and max-scroll-px terms, so its frame-to-frame changes (as
+            // variable-height rows enter/leave) largely cancel — the thumb tracks
+            // smoothly instead of vibrating — yet it still reaches 1.0 at the end because
+            // the viewport height is subtracted from the estimated content height.
+            // (An index/visibleCount denominator jittered because visibleCount is an int
+            // that flips ±1 every few frames.)
+            val avgSize = (visible.sumOf { it.size }.toFloat() / visible.size).coerceAtLeast(1f)
+            val scrolledPx = state.firstVisibleItemIndex * avgSize + state.firstVisibleItemScrollOffset
+            val maxScrollPx = (avgSize * total - info.viewportSize.height).coerceAtLeast(1f)
+            (scrolledPx / maxScrollPx).coerceIn(0f, 1f)
         }
     }
 
@@ -404,20 +405,17 @@ private fun handleDrag(
 ) {
     val info = state.layoutInfo
     val total = info.totalItemsCount
-    if (total <= 0) return
+    val visible = info.visibleItemsInfo
+    if (total <= 0 || visible.isEmpty()) return
 
-    // Map drag fraction over the same range the display fraction uses (total minus the
-    // on-screen item count), so dragging the thumb to the bottom lands exactly at the end.
-    val visibleCount = info.visibleItemsInfo.size
-    val maxIndex = (total - visibleCount).coerceAtLeast(1)
-    val rawIdxFloat = newFrac * maxIndex
-    val idx = rawIdxFloat.toInt().coerceIn(0, total - 1)
-
-    // Sub-item resolution: integer index + pixel offset within the item, so a
-    // short list with only a handful of distinct integer index stops still
-    // scrolls smoothly under the drag rather than stair-stepping.
-    val itemPx = info.visibleItemsInfo.firstOrNull()?.size?.toFloat() ?: 0f
-    val offsetPx = ((rawIdxFloat - idx) * itemPx).roundToInt().coerceAtLeast(0)
+    // Inverse of the display mapping (see scrollFraction): turn the drag fraction into a
+    // target pixel offset over the estimated content height, then back into an item index
+    // plus an in-item pixel offset, so dragging stays consistent with the thumb position.
+    val avgSize = (visible.sumOf { it.size }.toFloat() / visible.size).coerceAtLeast(1f)
+    val maxScrollPx = (avgSize * total - info.viewportSize.height).coerceAtLeast(1f)
+    val targetPx = newFrac * maxScrollPx
+    val idx = (targetPx / avgSize).toInt().coerceIn(0, total - 1)
+    val offsetPx = (targetPx - idx * avgSize).roundToInt().coerceAtLeast(0)
     onUpdate(newFrac)
     coroutineScope.launch { state.scrollToItem(idx, offsetPx) }
 }
