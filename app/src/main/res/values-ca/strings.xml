@@ -157,6 +157,8 @@
     <string name="trips_empty_rule_charge">connectats per almenys una parada de càrrega ràpida DC</string>
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">que sumin 300 km o més en total</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">Espera que se\'n detecti un, o toca + per crear-ne un manualment.</string>
 
     <!-- Create-trip flow -->
     <string name="trip_create_cd">Crea viatge</string>

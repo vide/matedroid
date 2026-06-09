@@ -160,6 +160,8 @@
     <string name="trips_empty_rule_charge">linked by at least one DC fast-charge stop</string>
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">covering 300 km or more in total</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">Wait for one to be detected, or tap + to build a trip yourself.</string>
 
     <!-- Create-trip flow -->
     <string name="trip_create_cd">Create trip</string>

@@ -157,6 +157,8 @@
     <string name="trips_empty_rule_charge">由至少一次 DC 快充停留连接</string>
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">总里程达到 300 km 或以上</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">等待自动识别，或点按 + 手动创建一次行程。</string>
 
     <!-- Create-trip flow -->
     <string name="trip_create_cd">创建行程</string>

@@ -189,6 +189,13 @@ fun TripsScreen(
                             TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
                             TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
                         }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = stringResource(R.string.trips_empty_create_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
