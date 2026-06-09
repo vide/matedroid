@@ -65,11 +65,12 @@ fun AddLegSheet(
     dcChargeIds: Set<Int>,
     palette: CarColorPalette,
     onPickLegs: (List<LegRef>) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    startInMultiSelect: Boolean = false
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var multiMode by remember { mutableStateOf(false) }
+    var multiMode by remember { mutableStateOf(startInMultiSelect) }
     var selected by remember { mutableStateOf<Set<LegRef>>(emptySet()) }
 
     val merged = remember(eligible) { buildCandidateList(eligible) }

@@ -157,6 +157,18 @@
     <string name="trips_empty_rule_charge">collegati da almeno una sosta di ricarica rapida DC</string>
     <!-- Trips list empty state: rule 3 -->
     <string name="trips_empty_rule_distance">per un totale di almeno 300 km</string>
+    <!-- Trips list empty state: closing note about the two ways to get a trip -->
+    <string name="trips_empty_create_hint">Aspetta che ne venga rilevato uno, o tocca + per crearne uno manualmente.</string>
+
+    <!-- Create-trip flow -->
+    <string name="trip_create_cd">Crea viaggio</string>
+    <string name="trip_create_title">Nuovo viaggio</string>
+    <string name="trip_create_pick_day">Scegli il giorno del viaggio</string>
+    <string name="trip_create_name_hint">Nome del viaggio (facoltativo)</string>
+    <string name="trip_create_add_legs">Aggiungi tratte</string>
+    <string name="trip_create_empty">Scegli i tragitti e le ricariche che compongono questo viaggio</string>
+    <string name="trip_create_save">Salva</string>
+    <string name="trip_create_remove">Rimuovi tratta</string>
 
     <!-- Navigation button to charges list -->
     <string name="nav_charges">Ricariche</string>

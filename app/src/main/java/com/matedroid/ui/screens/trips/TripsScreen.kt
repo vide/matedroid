@@ -24,6 +24,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
@@ -85,6 +88,7 @@ fun TripsScreen(
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
+    onNavigateToCreateTrip: () -> Unit = {},
     viewModel: TripsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -125,6 +129,18 @@ fun TripsScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToCreateTrip,
+                containerColor = palette.accent,
+                contentColor = Color.White
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = stringResource(R.string.trip_create_cd)
+                )
+            }
         }
     ) { padding ->
         when {
@@ -173,6 +189,13 @@ fun TripsScreen(
                             TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
                             TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
                         }
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = stringResource(R.string.trips_empty_create_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }

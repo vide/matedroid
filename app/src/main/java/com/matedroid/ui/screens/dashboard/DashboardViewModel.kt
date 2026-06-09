@@ -224,6 +224,9 @@ class DashboardViewModel @Inject constructor(
                 }
             }
 
+            // Pull-to-refresh also re-reads the trip count + latest trip.
+            loadTripCount(carId)
+
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
@@ -354,6 +357,11 @@ class DashboardViewModel @Inject constructor(
             val count = sentryStateRepository.getEventCount(carId)
             _uiState.update { it.copy(sentryEventCount = count) }
         }
+    }
+
+    /** Re-read the trip count + latest trip — e.g. after returning from creating/editing a trip. */
+    fun refreshTripCount() {
+        _uiState.value.selectedCarId?.let { loadTripCount(it) }
     }
 
     private fun loadTripCount(carId: Int) {
