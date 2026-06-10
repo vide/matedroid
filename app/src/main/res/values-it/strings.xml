@@ -165,7 +165,7 @@
     <string name="trip_create_title">Nuovo viaggio</string>
     <string name="trip_create_pick_day">Scegli il giorno del viaggio</string>
     <string name="trip_create_name_hint">Nome del viaggio (facoltativo)</string>
-    <string name="trip_create_add_legs">Aggiungi tratte</string>
+    <string name="trip_create_add_legs">Aggiungi tratte o ricariche</string>
     <string name="trip_create_empty">Scegli i tragitti e le ricariche che compongono questo viaggio</string>
     <string name="trip_create_save">Salva</string>
     <string name="trip_create_remove">Rimuovi tratta</string>
@@ -1109,7 +1109,7 @@
     <string name="trip_timeline_charging_ac">Ricarica AC</string>
     <string name="trip_timeline_parked">In sosta</string>
 
-    <string name="trip_edit_add_leg">Aggiungi tratta</string>
+    <string name="trip_edit_add_leg">Aggiungi tratta o ricarica</string>
     <string name="trip_edit_merge_trip">Unisci viaggio</string>
     <string name="trip_edit_add_leg_title">Aggiungi a questo viaggio</string>
     <string name="trip_edit_add_leg_empty">Nessuna tratta o ricarica nelle vicinanze</string>

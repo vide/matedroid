@@ -165,7 +165,7 @@
     <string name="trip_create_title">Neuer Trip</string>
     <string name="trip_create_pick_day">Tag des Trips wählen</string>
     <string name="trip_create_name_hint">Trip-Name (optional)</string>
-    <string name="trip_create_add_legs">Etappen hinzufügen</string>
+    <string name="trip_create_add_legs">Etappen/Ladevorgänge hinzufügen</string>
     <string name="trip_create_empty">Wähle die Fahrten und Ladevorgänge dieses Trips</string>
     <string name="trip_create_save">Speichern</string>
     <string name="trip_create_remove">Etappe entfernen</string>
@@ -1149,7 +1149,7 @@
     <string name="trip_timeline_parked">Geparkt</string>
 
     <!-- Button label: opens a bottom sheet to add a drive or charge to this trip -->
-    <string name="trip_edit_add_leg">Etappe hinzufügen</string>
+    <string name="trip_edit_add_leg">Etappe/Ladevorgang hinzufügen</string>
 
     <!-- Button label: opens a bottom sheet to merge another trip into this one -->
     <string name="trip_edit_merge_trip">Trip zusammenführen</string>

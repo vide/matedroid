@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **The "Add leg" buttons on the trip detail and new-trip screens now say "Add leg or charge"** in every language — the old wording didn't make it obvious that charges can be added too. The button labels shrink automatically if the translation needs more room.
 - **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
 
 ### Security
