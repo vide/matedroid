@@ -16,8 +16,8 @@ class StartDestinationViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
-    private val _startDestination = MutableStateFlow<String?>(null)
-    val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
+    private val _startDestination = MutableStateFlow<Screen?>(null)
+    val startDestination: StateFlow<Screen?> = _startDestination.asStateFlow()
 
     private val _notificationPermissionAsked = MutableStateFlow(true) // default true to avoid flash
     val notificationPermissionAsked: StateFlow<Boolean> = _notificationPermissionAsked.asStateFlow()
@@ -26,9 +26,9 @@ class StartDestinationViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = settingsDataStore.settings.first()
             _startDestination.value = if (settings.isConfigured) {
-                Screen.Dashboard.route
+                Screen.Dashboard
             } else {
-                Screen.Settings.route
+                Screen.Settings
             }
         }
         viewModelScope.launch {
