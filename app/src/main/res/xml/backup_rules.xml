@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Exclude the settings DataStore (API token, HTTP Basic Auth credentials)
+    from auto backup on API 28-30 (pre dataExtractionRules).
+-->
+<full-backup-content>
+    <exclude
+        domain="file"
+        path="datastore/matedroid_settings.preferences_pb" />
+</full-backup-content>
