@@ -165,7 +165,7 @@
     <string name="trip_create_title">Nou viatge</string>
     <string name="trip_create_pick_day">Tria el dia del viatge</string>
     <string name="trip_create_name_hint">Nom del viatge (opcional)</string>
-    <string name="trip_create_add_legs">Afegeix trams</string>
+    <string name="trip_create_add_legs">Afegeix trams o càrregues</string>
     <string name="trip_create_empty">Tria els trajectes i càrregues que formen aquest viatge</string>
     <string name="trip_create_save">Desa</string>
     <string name="trip_create_remove">Treu el tram</string>
@@ -1109,7 +1109,7 @@
     <string name="trip_timeline_charging_ac">Càrrega AC</string>
     <string name="trip_timeline_parked">Aparcat</string>
 
-    <string name="trip_edit_add_leg">Afegeix tram</string>
+    <string name="trip_edit_add_leg">Afegeix tram o càrrega</string>
     <string name="trip_edit_merge_trip">Uneix viatge</string>
     <string name="trip_edit_add_leg_title">Afegeix a aquest viatge</string>
     <string name="trip_edit_add_leg_empty">No hi ha trajectes o càrregues properes</string>

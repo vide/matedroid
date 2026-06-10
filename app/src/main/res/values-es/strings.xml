@@ -165,7 +165,7 @@
     <string name="trip_create_title">Nuevo viaje</string>
     <string name="trip_create_pick_day">Elige el día del viaje</string>
     <string name="trip_create_name_hint">Nombre del viaje (opcional)</string>
-    <string name="trip_create_add_legs">Añadir tramos</string>
+    <string name="trip_create_add_legs">Añadir tramos o cargas</string>
     <string name="trip_create_empty">Elige los trayectos y cargas que forman este viaje</string>
     <string name="trip_create_save">Guardar</string>
     <string name="trip_create_remove">Quitar tramo</string>
@@ -1109,7 +1109,7 @@
     <string name="trip_timeline_charging_ac">Carga AC</string>
     <string name="trip_timeline_parked">Estacionado</string>
 
-    <string name="trip_edit_add_leg">Añadir tramo</string>
+    <string name="trip_edit_add_leg">Añadir tramo o carga</string>
     <string name="trip_edit_merge_trip">Combinar viaje</string>
     <string name="trip_edit_add_leg_title">Añadir a este viaje</string>
     <string name="trip_edit_add_leg_empty">Sin trayectos o cargas cercanos</string>

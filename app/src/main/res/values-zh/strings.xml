@@ -165,7 +165,7 @@
     <string name="trip_create_title">新建行程</string>
     <string name="trip_create_pick_day">选择行程的日期</string>
     <string name="trip_create_name_hint">行程名称（可选）</string>
-    <string name="trip_create_add_legs">添加路段</string>
+    <string name="trip_create_add_legs">添加路段或充电</string>
     <string name="trip_create_empty">选择构成此行程的驾驶和充电</string>
     <string name="trip_create_save">保存</string>
     <string name="trip_create_remove">移除路段</string>
@@ -1110,7 +1110,7 @@
     <string name="trip_timeline_charging_ac">AC 充电</string>
     <string name="trip_timeline_parked">已停车</string>
 
-    <string name="trip_edit_add_leg">添加旅程段</string>
+    <string name="trip_edit_add_leg">添加旅程段或充电</string>
     <string name="trip_edit_merge_trip">合并旅程</string>
     <string name="trip_edit_add_leg_title">添加到此旅程</string>
     <string name="trip_edit_add_leg_empty">附近没有驾驶或充电记录</string>
