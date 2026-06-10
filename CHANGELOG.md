@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Server credentials are no longer included in Android backups**: the API token and HTTP Basic Auth password are excluded from Google cloud backups and device-to-device transfers.
+- **The debug endpoint-switching receiver no longer exists in release builds** — it was already inert there, but is now only declared in debug builds.
+- **The Authorization header is redacted from debug HTTP logs.**
+
 ## [1.9.0-beta1] - 2026-06-09
 
 ### Added

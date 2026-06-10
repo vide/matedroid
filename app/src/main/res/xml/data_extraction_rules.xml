@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Exclude the settings DataStore (API token, HTTP Basic Auth credentials)
+    from cloud backups and device-to-device transfers (API 31+).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+            domain="file"
+            path="datastore/matedroid_settings.preferences_pb" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude
+            domain="file"
+            path="datastore/matedroid_settings.preferences_pb" />
+    </device-transfer>
+</data-extraction-rules>

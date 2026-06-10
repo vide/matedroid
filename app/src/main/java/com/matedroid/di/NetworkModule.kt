@@ -192,6 +192,8 @@ class TeslamateApiFactory(
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.HEADERS
+                // Keep credentials (Bearer token / Basic auth) out of logcat
+                redactHeader("Authorization")
             }
             builder.addInterceptor(loggingInterceptor)
         }

@@ -18,6 +18,8 @@
     <application
         android:name=".MateDroidApp"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locale_config"
@@ -60,15 +62,6 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <!-- Switch API endpoint via ADB broadcast (guarded by BuildConfig.DEBUG in code) -->
-        <receiver
-            android:name=".receiver.DebugEndpointReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.matedroid.SET_ENDPOINT" />
             </intent-filter>
         </receiver>
 
