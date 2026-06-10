@@ -94,7 +94,7 @@ class TeslamateRepository @Inject constructor(
 
     private suspend fun getSettings(): AppSettings = settingsDataStore.settings.first()
 
-    private fun getApiForUrl(url: String): TeslamateApi? {
+    private suspend fun getApiForUrl(url: String): TeslamateApi? {
         if (url.isBlank()) return null
         return apiFactory.create(url)
     }

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
+
 ### Security
 - **Server credentials are no longer included in Android backups**: the API token and HTTP Basic Auth password are excluded from Google cloud backups and device-to-device transfers.
 - **The debug endpoint-switching receiver no longer exists in release builds** — it was already inert there, but is now only declared in debug builds.
