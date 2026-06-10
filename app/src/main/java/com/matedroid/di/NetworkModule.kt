@@ -12,7 +12,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -121,9 +120,9 @@ class TeslamateApiFactory(
      * @param acceptInvalidCerts Override for accepting invalid certificates. If null, uses the setting from DataStore.
      * @return A TeslamateApi instance configured for the given URL
      */
-    fun create(baseUrl: String, acceptInvalidCerts: Boolean? = null): TeslamateApi {
+    suspend fun create(baseUrl: String, acceptInvalidCerts: Boolean? = null): TeslamateApi {
         val normalizedUrl = baseUrl.trimEnd('/') + "/"
-        val settings = runBlocking { settingsDataStore.settings.first() }
+        val settings = settingsDataStore.settings.first()
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername

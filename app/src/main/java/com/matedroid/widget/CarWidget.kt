@@ -240,7 +240,21 @@ class CarWidget : GlanceAppWidget() {
                             val stateIsCharging = stateLower == "charging"
 
                             // -- Background bitmap (car + glow + scrim only) --
-                            val bgBitmap = buildBackgroundBitmap(ctx, prefs)
+                            // Cached by appearance + charge state: battery ticks and
+                            // text changes reuse the previously rendered bitmap.
+                            val bgKey = WidgetBackgroundCache.Key(
+                                exteriorColor = exteriorColor,
+                                model = prefs[MODEL_KEY],
+                                trimBadging = prefs[TRIM_BADGING_KEY],
+                                wheelType = prefs[WHEEL_TYPE_KEY],
+                                overrideVariant = prefs[IMAGE_OVERRIDE_VARIANT_KEY],
+                                overrideWheel = prefs[IMAGE_OVERRIDE_WHEEL_KEY],
+                                isCharging = isCharging,
+                                isDcCharging = isDcCharging
+                            )
+                            val bgBitmap = WidgetBackgroundCache.getOrCreate(ctx, bgKey) {
+                                buildBackgroundBitmap(ctx, prefs)
+                            }
                             Image(
                                 provider = ImageProvider(bgBitmap),
                                 contentDescription = null,
