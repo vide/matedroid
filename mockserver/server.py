@@ -42,6 +42,8 @@ config = {
         "limit_soc": 80,
         "power_kw": None,  # None = auto (11 for AC, 150 for DC)
         "start_time": None,
+        "materialize_delay": 0,
+        "current_latency": 0.0,
     },
 }
 
@@ -200,6 +202,20 @@ def current_charge(car_id: int):
         return Response(status=204, content_type="application/json")
 
     charging_cfg = config["charging"]
+
+    # Simulate TeslaMate's DB lag: the charge isn't materialized yet, but
+    # /status already says Charging. Matches the real API's response verbatim.
+    if charging_cfg.get("materialize_delay"):
+        if time.time() - charging_cfg["start_time"] < charging_cfg["materialize_delay"]:
+            return Response(
+                json.dumps({"error": "No active charging in progress."}),
+                status=200,
+                content_type="application/json",
+            )
+
+    if charging_cfg.get("current_latency"):
+        time.sleep(charging_cfg["current_latency"])
+
     is_dc = charging_cfg["dc"]
     start_soc = charging_cfg["start_soc"]
     limit_soc = charging_cfg["limit_soc"]
@@ -539,6 +555,22 @@ def main():
         metavar="KW",
         help="Charger power in kW (default: 11 for AC, 150 for DC)",
     )
+    charging_group.add_argument(
+        "--charging-materialize-delay",
+        type=int,
+        default=0,
+        metavar="SEC",
+        help="For the first SEC seconds, /charges/current returns the real API's "
+             "'No active charging in progress' 200-with-error-body response while "
+             "/status already reports Charging (reproduces TeslaMate's DB lag at charge start)",
+    )
+    charging_group.add_argument(
+        "--charging-current-latency",
+        type=float,
+        default=0.0,
+        metavar="SEC",
+        help="Artificial time-to-first-byte added to /charges/current responses",
+    )
 
     args = parser.parse_args()
 
@@ -587,6 +619,8 @@ def main():
         "limit_soc": args.charging_limit_soc,
         "power_kw": args.charging_power,
         "start_time": time.time(),
+        "materialize_delay": args.charging_materialize_delay,
+        "current_latency": args.charging_current_latency,
     }
 
     effective_power = args.charging_power or (150 if args.charging_dc else 11)
