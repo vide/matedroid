@@ -1,0 +1,9 @@
+Una beta più discreta e sicura: protezioni extra sotto il cofano e un widget più leggero per la batteria.
+
+Modifiche:
+- I pulsanti "Aggiungi tratta" nelle schermate dei viaggi ora dicono "Aggiungi tratta o ricarica"
+- Il widget ridisegna lo sfondo solo quando cambia l'aspetto dell'auto o lo stato di ricarica — meno memoria e batteria
+
+Sicurezza:
+- Le credenziali del server non sono più incluse nei backup Android
+- Componenti e log di debug non possono più esporre il token API

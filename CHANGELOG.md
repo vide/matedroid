@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0-beta2] - 2026-06-10
+
 ### Changed
 - **The "Add leg" buttons on the trip detail and new-trip screens now say "Add leg or charge"** in every language — the old wording didn't make it obvious that charges can be added too. The button labels shrink automatically if the translation needs more room.
 - **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
@@ -647,7 +649,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta2...HEAD
+[1.9.0-beta2]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...v1.9.0-beta2
 [1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
 [1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0
