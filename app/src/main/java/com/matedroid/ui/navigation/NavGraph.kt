@@ -15,11 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.navigation.toRoute
 import com.matedroid.R
 import com.matedroid.ui.screens.battery.BatteryScreen
 import com.matedroid.ui.screens.charges.ChargeDetailScreen
@@ -34,9 +33,6 @@ import com.matedroid.ui.screens.settings.SettingsScreen
 import com.matedroid.ui.screens.stats.CountriesVisitedScreen
 import com.matedroid.ui.screens.stats.RegionsVisitedScreen
 import com.matedroid.ui.screens.stats.StatsScreen
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import com.matedroid.ui.screens.sentry.SentryHistoryScreen
 import com.matedroid.ui.screens.trips.CreateTripScreen
 import com.matedroid.ui.screens.trips.TripDetailScreen
@@ -45,156 +41,79 @@ import com.matedroid.ui.screens.updates.SoftwareVersionsScreen
 import com.matedroid.ui.screens.wherewasi.WhereWasIScreen
 import com.matedroid.domain.model.YearFilter
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
-sealed class Screen(val route: String) {
-    data object Settings : Screen("settings")
-    data object Dashboard : Screen("dashboard")
-    data object Charges : Screen("charges/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "charges/$carId?exteriorColor=$exteriorColor"
-            } else {
-                "charges/$carId"
-            }
-        }
-    }
-    data object ChargeDetail : Screen("charges/{carId}/detail/{chargeId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, chargeId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "charges/$carId/detail/$chargeId?exteriorColor=$exteriorColor"
-            } else {
-                "charges/$carId/detail/$chargeId"
-            }
-        }
-    }
-    data object Drives : Screen("drives/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "drives/$carId?exteriorColor=$exteriorColor"
-            } else {
-                "drives/$carId"
-            }
-        }
-    }
-    data object DriveDetail : Screen("drives/{carId}/detail/{driveId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, driveId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "drives/$carId/detail/$driveId?exteriorColor=$exteriorColor"
-            } else {
-                "drives/$carId/detail/$driveId"
-            }
-        }
-    }
-    data object Battery : Screen("battery/{carId}?efficiency={efficiency}&exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, efficiency: Double? = null, exteriorColor: String? = null): String {
-            val params = mutableListOf<String>()
-            if (efficiency != null) params.add("efficiency=$efficiency")
-            if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
-            return if (params.isNotEmpty()) {
-                "battery/$carId?${params.joinToString("&")}"
-            } else {
-                "battery/$carId"
-            }
-        }
-    }
-    data object Mileage : Screen("mileage/{carId}?exteriorColor={exteriorColor}&targetDay={targetDay}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null, targetDay: String? = null): String {
-            val params = mutableListOf<String>()
-            if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
-            if (targetDay != null) params.add("targetDay=$targetDay")
-            return if (params.isNotEmpty()) {
-                "mileage/$carId?${params.joinToString("&")}"
-            } else {
-                "mileage/$carId"
-            }
-        }
-    }
-    data object Updates : Screen("updates/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "updates/$carId?exteriorColor=$exteriorColor"
-            } else {
-                "updates/$carId"
-            }
-        }
-    }
-    data object CurrentCharge : Screen("charges/{carId}/current?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "charges/$carId/current?exteriorColor=$exteriorColor"
-            } else {
-                "charges/$carId/current"
-            }
-        }
-    }
-    data object PalettePreview : Screen("palette_preview")
-    data object Stats : Screen("stats/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "stats/$carId?exteriorColor=$exteriorColor"
-            } else {
-                "stats/$carId"
-            }
-        }
-    }
-    data object CountriesVisited : Screen("stats/{carId}/countries?exteriorColor={exteriorColor}&year={year}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null, year: Int? = null): String {
-            val params = mutableListOf<String>()
-            if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
-            if (year != null) params.add("year=$year")
-            return if (params.isNotEmpty()) {
-                "stats/$carId/countries?${params.joinToString("&")}"
-            } else {
-                "stats/$carId/countries"
-            }
-        }
-    }
-    data object RegionsVisited : Screen("stats/{carId}/countries/{countryCode}/regions?exteriorColor={exteriorColor}&year={year}&countryName={countryName}") {
-        fun createRoute(carId: Int, countryCode: String, countryName: String, exteriorColor: String? = null, year: Int? = null): String {
-            val encodedName = URLEncoder.encode(countryName, StandardCharsets.UTF_8.toString())
-            val params = mutableListOf<String>()
-            if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
-            if (year != null) params.add("year=$year")
-            params.add("countryName=$encodedName")
-            return "stats/$carId/countries/$countryCode/regions?${params.joinToString("&")}"
-        }
-    }
-    data object WhereWasI : Screen("wherewasi/{carId}?timestamp={timestamp}&exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, timestamp: String, exteriorColor: String? = null): String {
-            val encodedTimestamp = URLEncoder.encode(timestamp, StandardCharsets.UTF_8.toString())
-            val params = mutableListOf("timestamp=$encodedTimestamp")
-            if (exteriorColor != null) params.add("exteriorColor=$exteriorColor")
-            return "wherewasi/$carId?${params.joinToString("&")}"
-        }
-    }
-    data object Trips : Screen("trips/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) "trips/$carId?exteriorColor=$exteriorColor"
-            else "trips/$carId"
-        }
-    }
-    data object TripDetail : Screen("trips/{carId}/detail/{tripStartDate}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, tripStartDate: String, exteriorColor: String? = null): String {
-            val encoded = java.net.URLEncoder.encode(tripStartDate, "UTF-8")
-            return if (exteriorColor != null) "trips/$carId/detail/$encoded?exteriorColor=$exteriorColor"
-            else "trips/$carId/detail/$encoded"
-        }
-    }
-    data object CreateTrip : Screen("trips/{carId}/new?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) "trips/$carId/new?exteriorColor=$exteriorColor"
-            else "trips/$carId/new"
-        }
-    }
-    data object SentryHistory : Screen("sentry/{carId}?exteriorColor={exteriorColor}") {
-        fun createRoute(carId: Int, exteriorColor: String? = null): String {
-            return if (exteriorColor != null) {
-                "sentry/$carId?exteriorColor=$exteriorColor"
-            } else {
-                "sentry/$carId"
-            }
-        }
-    }
+/**
+ * Type-safe navigation routes. Arguments are (de)serialized by Navigation's
+ * kotlinx.serialization integration — no manual route strings or URL encoding.
+ *
+ * Conventions kept from the previous string-route implementation:
+ * - `efficiency = 0f` means "not provided" (mapped to null at the screen boundary)
+ * - `year = -1` means [YearFilter.AllTime]
+ */
+sealed interface Screen {
+    @Serializable
+    data object Settings : Screen
+
+    @Serializable
+    data object Dashboard : Screen
+
+    @Serializable
+    data object PalettePreview : Screen
+
+    @Serializable
+    data class Charges(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class ChargeDetail(val carId: Int, val chargeId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CurrentCharge(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class Drives(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class DriveDetail(val carId: Int, val driveId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class Battery(val carId: Int, val efficiency: Float = 0f, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class Mileage(val carId: Int, val exteriorColor: String? = null, val targetDay: String? = null) : Screen
+
+    @Serializable
+    data class Updates(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class Stats(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CountriesVisited(val carId: Int, val exteriorColor: String? = null, val year: Int = -1) : Screen
+
+    @Serializable
+    data class RegionsVisited(
+        val carId: Int,
+        val countryCode: String,
+        val countryName: String = "",
+        val exteriorColor: String? = null,
+        val year: Int = -1
+    ) : Screen
+
+    @Serializable
+    data class WhereWasI(val carId: Int, val timestamp: String, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class Trips(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class TripDetail(val carId: Int, val tripStartDate: String, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CreateTrip(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class SentryHistory(val carId: Int, val exteriorColor: String? = null) : Screen
 }
 
 @Composable
@@ -212,7 +131,7 @@ fun NavGraph(
     }
 
     // One-time notification permission dialog (Android 13+)
-    if (startDestination == Screen.Dashboard.route &&
+    if (startDestination == Screen.Dashboard &&
         !notificationPermissionAsked &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     ) {
@@ -245,20 +164,20 @@ fun NavGraph(
             val carId = it.getIntExtra("EXTRA_CAR_ID", -1)
             val exteriorColor = it.getStringExtra("EXTRA_EXTERIOR_COLOR")
             if (navigateTo != null && carId > 0) {
-                val route = when (navigateTo) {
-                    "current_charge" -> Screen.CurrentCharge.createRoute(carId, exteriorColor)
-                    "charges" -> Screen.Charges.createRoute(carId, exteriorColor)
-                    "drives" -> Screen.Drives.createRoute(carId, exteriorColor)
-                    "mileage" -> Screen.Mileage.createRoute(carId, exteriorColor)
-                    "battery" -> Screen.Battery.createRoute(carId, exteriorColor = exteriorColor)
-                    "stats" -> Screen.Stats.createRoute(carId, exteriorColor)
-                    "countries_visited" -> Screen.CountriesVisited.createRoute(carId, exteriorColor)
-                    "updates" -> Screen.Updates.createRoute(carId, exteriorColor)
-                    "sentry_history" -> Screen.SentryHistory.createRoute(carId, exteriorColor)
+                val screen: Screen? = when (navigateTo) {
+                    "current_charge" -> Screen.CurrentCharge(carId, exteriorColor)
+                    "charges" -> Screen.Charges(carId, exteriorColor)
+                    "drives" -> Screen.Drives(carId, exteriorColor)
+                    "mileage" -> Screen.Mileage(carId, exteriorColor)
+                    "battery" -> Screen.Battery(carId, exteriorColor = exteriorColor)
+                    "stats" -> Screen.Stats(carId, exteriorColor)
+                    "countries_visited" -> Screen.CountriesVisited(carId, exteriorColor)
+                    "updates" -> Screen.Updates(carId, exteriorColor)
+                    "sentry_history" -> Screen.SentryHistory(carId, exteriorColor)
                     else -> null
                 }
-                route?.let { r ->
-                    navController.navigate(r) {
+                screen?.let { s ->
+                    navController.navigate(s) {
                         launchSingleTop = true
                     }
                 }
@@ -270,506 +189,285 @@ fun NavGraph(
         navController = navController,
         startDestination = startDestination!!
     ) {
-        composable(Screen.Settings.route) {
+        composable<Screen.Settings> {
             SettingsScreen(
                 onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Settings.route) { inclusive = true }
+                    navController.navigate(Screen.Dashboard) {
+                        popUpTo<Screen.Settings> { inclusive = true }
                     }
                 },
                 onNavigateToPalettePreview = {
-                    navController.navigate(Screen.PalettePreview.route)
+                    navController.navigate(Screen.PalettePreview)
                 }
             )
         }
 
-        composable(Screen.Dashboard.route) {
+        composable<Screen.Dashboard> {
             DashboardScreen(
                 intent = intent,
                 onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
+                    navController.navigate(Screen.Settings)
                 },
                 onNavigateToCharges = { carId, exteriorColor ->
-                    navController.navigate(Screen.Charges.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Charges(carId, exteriorColor))
                 },
                 onNavigateToDrives = { carId, exteriorColor ->
-                    navController.navigate(Screen.Drives.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Drives(carId, exteriorColor))
                 },
                 onNavigateToBattery = { carId, efficiency, exteriorColor ->
-                    navController.navigate(Screen.Battery.createRoute(carId, efficiency, exteriorColor))
+                    navController.navigate(Screen.Battery(carId, efficiency?.toFloat() ?: 0f, exteriorColor))
                 },
                 onNavigateToMileage = { carId, exteriorColor ->
-                    navController.navigate(Screen.Mileage.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Mileage(carId, exteriorColor))
                 },
                 onNavigateToUpdates = { carId, exteriorColor ->
-                    navController.navigate(Screen.Updates.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Updates(carId, exteriorColor))
                 },
                 onNavigateToStats = { carId, exteriorColor ->
-                    navController.navigate(Screen.Stats.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Stats(carId, exteriorColor))
                 },
                 onNavigateToCurrentCharge = { carId, exteriorColor ->
-                    navController.navigate(Screen.CurrentCharge.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.CurrentCharge(carId, exteriorColor))
                 },
                 onNavigateToWhereWasI = { carId, timestamp, exteriorColor ->
-                    navController.navigate(Screen.WhereWasI.createRoute(carId, timestamp, exteriorColor))
+                    navController.navigate(Screen.WhereWasI(carId, timestamp, exteriorColor))
                 },
                 onNavigateToSentryHistory = { carId, exteriorColor ->
-                    navController.navigate(Screen.SentryHistory.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.SentryHistory(carId, exteriorColor))
                 },
                 onNavigateToTrips = { carId, exteriorColor ->
-                    navController.navigate(Screen.Trips.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.Trips(carId, exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.Charges.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Charges> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Charges>()
             ChargesScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToChargeDetail = { chargeId ->
-                    navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
+                    navController.navigate(Screen.ChargeDetail(route.carId, chargeId, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.ChargeDetail.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("chargeId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val chargeId = backStackEntry.arguments?.getInt("chargeId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.ChargeDetail> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.ChargeDetail>()
             ChargeDetailScreen(
-                carId = carId,
-                chargeId = chargeId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                chargeId = route.chargeId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
-                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                    navController.navigate(Screen.TripDetail(route.carId, tripStartDate, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.CurrentCharge.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.CurrentCharge> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CurrentCharge>()
             CurrentChargeScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        composable(
-            route = Screen.Drives.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Drives> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Drives>()
             DrivesScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->
-                    navController.navigate(Screen.DriveDetail.createRoute(carId, driveId, exteriorColor))
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.DriveDetail.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("driveId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val driveId = backStackEntry.arguments?.getInt("driveId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.DriveDetail> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.DriveDetail>()
             DriveDetailScreen(
-                carId = carId,
-                driveId = driveId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                driveId = route.driveId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
-                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                    navController.navigate(Screen.TripDetail(route.carId, tripStartDate, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.Battery.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("efficiency") {
-                    type = NavType.FloatType
-                    defaultValue = 0f
-                },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val efficiency = backStackEntry.arguments?.getFloat("efficiency")?.toDouble()
-                ?.takeIf { it > 0 }
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Battery> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Battery>()
             BatteryScreen(
-                carId = carId,
-                efficiency = efficiency,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                efficiency = route.efficiency.toDouble().takeIf { it > 0 },
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        composable(
-            route = Screen.Mileage.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("targetDay") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
-            val targetDay = backStackEntry.arguments?.getString("targetDay")
+        composable<Screen.Mileage> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Mileage>()
             MileageScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
-                targetDay = targetDay,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
+                targetDay = route.targetDay,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->
-                    navController.navigate(Screen.DriveDetail.createRoute(carId, driveId, exteriorColor))
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.Updates.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Updates> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Updates>()
             SoftwareVersionsScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        composable(Screen.PalettePreview.route) {
+        composable<Screen.PalettePreview> {
             PalettePreviewScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        composable(
-            route = Screen.Stats.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Stats> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Stats>()
             StatsScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->
-                    navController.navigate(Screen.DriveDetail.createRoute(carId, driveId, exteriorColor))
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 },
                 onNavigateToChargeDetail = { chargeId ->
-                    navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
+                    navController.navigate(Screen.ChargeDetail(route.carId, chargeId, route.exteriorColor))
                 },
                 onNavigateToDayDetail = { targetDay ->
-                    navController.navigate(Screen.Mileage.createRoute(carId, exteriorColor, targetDay))
+                    navController.navigate(Screen.Mileage(route.carId, route.exteriorColor, targetDay))
                 },
                 onNavigateToCountriesVisited = { year ->
-                    navController.navigate(Screen.CountriesVisited.createRoute(carId, exteriorColor, year))
+                    navController.navigate(Screen.CountriesVisited(route.carId, route.exteriorColor, year ?: -1))
                 }
             )
         }
 
-        composable(
-            route = Screen.CountriesVisited.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("year") {
-                    type = NavType.IntType
-                    defaultValue = -1 // -1 means AllTime
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
-            val year = backStackEntry.arguments?.getInt("year")?.takeIf { it > 0 }
+        composable<Screen.CountriesVisited> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CountriesVisited>()
+            val year = route.year.takeIf { it > 0 }
             val yearFilter = if (year != null) YearFilter.Year(year) else YearFilter.AllTime
 
             CountriesVisitedScreen(
-                carId = carId,
+                carId = route.carId,
                 yearFilter = yearFilter,
-                exteriorColor = exteriorColor,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToRegions = { countryCode, countryName ->
-                    navController.navigate(Screen.RegionsVisited.createRoute(carId, countryCode, countryName, exteriorColor, year))
+                    navController.navigate(
+                        Screen.RegionsVisited(route.carId, countryCode, countryName, route.exteriorColor, route.year)
+                    )
                 }
             )
         }
 
-        composable(
-            route = Screen.RegionsVisited.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("countryCode") { type = NavType.StringType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("year") {
-                    type = NavType.IntType
-                    defaultValue = -1 // -1 means AllTime
-                },
-                navArgument("countryName") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val countryCode = backStackEntry.arguments?.getString("countryCode") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
-            val year = backStackEntry.arguments?.getInt("year")?.takeIf { it > 0 }
+        composable<Screen.RegionsVisited> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.RegionsVisited>()
+            val year = route.year.takeIf { it > 0 }
             val yearFilter = if (year != null) YearFilter.Year(year) else YearFilter.AllTime
-            val countryName = backStackEntry.arguments?.getString("countryName")?.let {
-                URLDecoder.decode(it, StandardCharsets.UTF_8.toString())
-            } ?: countryCode
+            val countryName = route.countryName.ifEmpty { route.countryCode }
 
             RegionsVisitedScreen(
-                carId = carId,
-                countryCode = countryCode,
+                carId = route.carId,
+                countryCode = route.countryCode,
                 countryName = countryName,
                 yearFilter = yearFilter,
-                exteriorColor = exteriorColor,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        composable(
-            route = Screen.WhereWasI.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("timestamp") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            // Compose Navigation 2.7+ auto-decodes query-parameter values, so the
-            // timestamp is already URL-decoded by the time we read it. The
-            // previous manual URLDecoder.decode here was double-decoding — and
-            // since `URLDecoder.decode` treats `+` as a literal space (URL
-            // form-encoding rule), it mangled the `+` in the timezone offset
-            // (e.g. `+02:00` → ` 02:00`), making the resulting string
-            // unparseable as an OffsetDateTime and surfacing as the "Invalid
-            // date" error in WhereWasIViewModel for any non-UTC date.
-            val timestamp = backStackEntry.arguments?.getString("timestamp")
-                ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
-
+        composable<Screen.WhereWasI> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.WhereWasI>()
             WhereWasIScreen(
-                carId = carId,
-                targetTimestamp = timestamp,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                targetTimestamp = route.timestamp,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->
-                    navController.navigate(Screen.DriveDetail.createRoute(carId, driveId, exteriorColor))
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 },
                 onNavigateToChargeDetail = { chargeId ->
-                    navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
+                    navController.navigate(Screen.ChargeDetail(route.carId, chargeId, route.exteriorColor))
                 },
                 onNavigateToCountriesVisited = {
-                    navController.navigate(Screen.CountriesVisited.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.CountriesVisited(route.carId, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.Trips.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.Trips> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.Trips>()
             TripsScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
-                    navController.navigate(Screen.TripDetail.createRoute(carId, tripStartDate, exteriorColor))
+                    navController.navigate(Screen.TripDetail(route.carId, tripStartDate, route.exteriorColor))
                 },
                 onNavigateToCreateTrip = {
-                    navController.navigate(Screen.CreateTrip.createRoute(carId, exteriorColor))
+                    navController.navigate(Screen.CreateTrip(route.carId, route.exteriorColor))
                 }
             )
         }
 
-        composable(
-            route = Screen.CreateTrip.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.CreateTrip> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CreateTrip>()
             CreateTripScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onTripCreated = { startDate ->
-                    navController.navigate(Screen.TripDetail.createRoute(carId, startDate, exteriorColor)) {
-                        popUpTo(Screen.CreateTrip.route) { inclusive = true }
+                    navController.navigate(Screen.TripDetail(route.carId, startDate, route.exteriorColor)) {
+                        popUpTo<Screen.CreateTrip> { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(
-            route = Screen.TripDetail.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("tripStartDate") { type = NavType.StringType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val tripStartDate = backStackEntry.arguments?.getString("tripStartDate") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.TripDetail> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.TripDetail>()
             TripDetailScreen(
-                carId = carId,
-                tripStartDate = tripStartDate,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                tripStartDate = route.tripStartDate,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToDriveDetail = { driveId ->
-                    navController.navigate(Screen.DriveDetail.createRoute(carId, driveId, exteriorColor))
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 },
                 onNavigateToChargeDetail = { chargeId ->
-                    navController.navigate(Screen.ChargeDetail.createRoute(carId, chargeId, exteriorColor))
+                    navController.navigate(Screen.ChargeDetail(route.carId, chargeId, route.exteriorColor))
                 },
                 onNavigateToCountryStats = { countryCode ->
                     val countryName = java.util.Locale.Builder().setRegion(countryCode).build().displayCountry
-                    navController.navigate(Screen.RegionsVisited.createRoute(carId, countryCode, countryName, exteriorColor))
+                    navController.navigate(
+                        Screen.RegionsVisited(route.carId, countryCode, countryName, route.exteriorColor)
+                    )
                 }
             )
         }
 
-        composable(
-            route = Screen.SentryHistory.route,
-            arguments = listOf(
-                navArgument("carId") { type = NavType.IntType },
-                navArgument("exteriorColor") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val carId = backStackEntry.arguments?.getInt("carId") ?: return@composable
-            val exteriorColor = backStackEntry.arguments?.getString("exteriorColor")
+        composable<Screen.SentryHistory> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.SentryHistory>()
             SentryHistoryScreen(
-                carId = carId,
-                exteriorColor = exteriorColor,
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
