@@ -1,0 +1,15 @@
+Nou menú d'accessos a dalt a la dreta, creació manual de viatges i mapa d'Ubicació a pantalla completa, per obrir a Maps amb un toc.
+
+Afegit:
+- Menú: Stats, Salut bateria, On era?, Sentry, Configuració
+- Crea un viatge a mà des de la llista de viatges
+
+Canviat:
+- Targeta d'Activitat reorganitzada; rodes en targeta pròpia
+
+Corregit:
+- Càrrega en directe a l'instant després d'endollar
+- Valors del tooltip tensió/corrent restaurats
+
+Seguretat:
+- Credencials ja no als backups d'Android

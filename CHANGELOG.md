@@ -7,10 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-11
+
+A reorganized dashboard with a new top-right menu, manual trip creation, an immersive Location map, plus live-charge reliability and security hardening.
+
+### Added
+- **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I?, Sentry events and Settings.
+- **Create a trip by hand**: a + button on the Trips list lets you build a road-trip manually — pick the day, then choose the drives and charges that belong to it (handy when auto-detection misses one).
+
+### Changed
+- **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.
+- **Redesigned the Location card** into an immersive, full-bleed map (muted to match light/dark theme) with the place name and details over it; tap anywhere to open it in your maps app.
+- **Tyre pressure moved into its own card** with a cleaner 2×2 grid — one tile per wheel with its pressure and an OK/low status dot.
+- **The empty Trips screen now explains itself**: when no road-trips have been detected, it lists how one is auto-generated (2+ drives in a row, linked by a DC fast-charge stop, totalling 300 km or more).
+- **The "Add leg" buttons on the trip detail and new-trip screens now say "Add leg or charge"** in every language — the old wording didn't make it obvious that charges can be added too. The button labels shrink automatically if the translation needs more room.
+- **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
+
 ### Fixed
+- **Scroll thumb no longer jumps to the end** on the Trips, Drives and Charges lists — it now tracks the real scroll position the whole way down (the old mapping capped it near 80% and snapped to the bottom), and on the Trips list it stays clear of the new + button.
+- **Software updates list showed each version's "days installed" off by one** — a version displayed the duration that actually belonged to the previous one. Each version now shows how long it was installed before the next update.
 - **Opening the live charge view right after plugging in no longer takes forever**: while TeslaMate hasn't published the new charge yet, the screen now shows a "charge starting" indicator and checks every few seconds instead of silently giving up — the live view appears as soon as the data exists.
 - **A momentary connection problem no longer closes the live charge view** — it shows an error and keeps retrying instead of pretending the car stopped charging.
 - **The voltage & current graph tooltip now shows the values again** — on charges longer than ~12 minutes it only showed the time (and near the start of the chart it could show values from the wrong moment).
+
+### Security
+- **Server credentials are no longer included in Android backups**: the API token and HTTP Basic Auth password are excluded from Google cloud backups and device-to-device transfers.
+- **The debug endpoint-switching receiver no longer exists in release builds** — it was already inert there, but is now only declared in debug builds.
+- **The Authorization header is redacted from debug HTTP logs.**
 
 ## [1.9.0-beta2] - 2026-06-10
 
@@ -654,7 +677,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta2...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0
 [1.9.0-beta2]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...v1.9.0-beta2
 [1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
 [1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
