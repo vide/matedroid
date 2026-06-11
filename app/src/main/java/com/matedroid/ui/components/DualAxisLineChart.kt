@@ -78,7 +78,10 @@ fun DualAxisLineChart(
     val chartHeightPx = with(density) { chartHeight.toPx() }
     var canvasWidthPx by remember { mutableStateOf(0f) }
 
-    val dataSize = maxOf(dataLeft.size, dataRight.size)
+    // Selection works in display-space: the rendered curves use the downsampled
+    // points, so tap indices must index those too. Raw indices past
+    // MAX_DISPLAY_POINTS would look up nothing and leave the tooltip valueless.
+    val dataSize = maxOf(chartDataLeft.displayPoints.size, chartDataRight.displayPoints.size)
     val rightLabelWidth = 70f
 
     // Pre-compute smooth paths
@@ -117,14 +120,15 @@ fun DualAxisLineChart(
         val cWidth = canvasWidthPx - rightLabelWidth
         val stepX = cWidth / (dataSize - 1).coerceAtLeast(1)
         val pointX = index * stepX
-        val leftVal = chartDataLeft.displayPoints.getOrNull(index)
+        val fraction = if (dataSize > 1) index.toFloat() / (dataSize - 1) else 0f
+        val leftVal = valueAtFraction(chartDataLeft.displayPoints, fraction)
         val leftY = if (leftVal != null) {
             chartHeightPx * (1 - (leftVal - chartDataLeft.minValue) / chartDataLeft.range)
         } else chartHeightPx / 2
         DualSelectedPoint(
             index = index,
             valueLeft = leftVal,
-            valueRight = chartDataRight.displayPoints.getOrNull(index),
+            valueRight = valueAtFraction(chartDataRight.displayPoints, fraction),
             position = Offset(pointX, leftY)
         )
     }
@@ -157,8 +161,8 @@ fun DualAxisLineChart(
                         val index = ((xOffset / stepX).roundToInt()).coerceIn(0, dataSize - 1)
                         val fraction = if (dataSize > 1) index.toFloat() / (dataSize - 1) else 0f
                         val pointX = index * stepX
-                        val leftVal = chartDataLeft.displayPoints.getOrNull(index)
-                        val rightVal = chartDataRight.displayPoints.getOrNull(index)
+                        val leftVal = valueAtFraction(chartDataLeft.displayPoints, fraction)
+                        val rightVal = valueAtFraction(chartDataRight.displayPoints, fraction)
                         val leftY = if (leftVal != null) {
                             chartHeightPx * (1 - (leftVal - chartDataLeft.minValue) / chartDataLeft.range)
                         } else yOffset
@@ -332,4 +336,14 @@ fun DualAxisLineChart(
             }
         }
     }
+}
+
+/**
+ * Looks up the display point nearest to [fraction] (0..1 across the X axis).
+ * The two series may downsample to different lengths, so each is sampled by
+ * fraction rather than by a shared index.
+ */
+private fun valueAtFraction(points: List<Float>, fraction: Float): Float? {
+    if (points.isEmpty()) return null
+    return points.getOrNull((fraction * (points.size - 1)).roundToInt())
 }
