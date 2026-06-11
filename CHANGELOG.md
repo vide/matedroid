@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Opening the live charge view right after plugging in no longer takes forever**: while TeslaMate hasn't published the new charge yet, the screen now shows a "charge starting" indicator and checks every few seconds instead of silently giving up — the live view appears as soon as the data exists.
+- **A momentary connection problem no longer closes the live charge view** — it shows an error and keeps retrying instead of pretending the car stopped charging.
 - **The voltage & current graph tooltip now shows the values again** — on charges longer than ~12 minutes it only showed the time (and near the start of the chart it could show values from the wrong moment).
 
 ## [1.9.0-beta2] - 2026-06-10

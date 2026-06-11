@@ -1268,6 +1268,7 @@
     <string name="current_charge_unsupported">Die aktuelle Ladekontrolle erfordert TeslaMate API 1.24 oder neuer</string>
     <!-- Shown when the car is not currently charging -->
     <string name="current_charge_not_charging">Das Auto lädt derzeit nicht</string>
+    <string name="current_charge_starting">Ladevorgang startet — warte auf die ersten Daten…</string>
     <!-- Chart title for voltage and current dual-axis chart -->
     <string name="voltage_and_current_profile">Spannung &amp; Strom</string>
     <!-- SoC labels for the 3-column row in live charge header -->

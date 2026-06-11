@@ -143,6 +143,22 @@ fun CurrentChargeScreen(
             uiState.isLoading -> {
                 MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
             }
+            uiState.isChargeStarting && uiState.chargeDetail == null -> {
+                // Car is charging but TeslaMate hasn't published the charge yet —
+                // the ViewModel is polling fast; tell the user instead of bouncing out.
+                Box(modifier = Modifier.padding(padding)) {
+                    MateDroidLoadingPlaceholder()
+                    Text(
+                        text = stringResource(R.string.current_charge_starting),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 32.dp, vertical = 96.dp)
+                    )
+                }
+            }
             uiState.isUnsupportedApi -> {
                 FallbackMessage(
                     message = stringResource(R.string.current_charge_unsupported),

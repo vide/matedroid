@@ -40,6 +40,15 @@ data class CarStatusWithUnits(
 )
 
 /**
+ * Typed outcome of the current-charge endpoint: the server answering
+ * "no active charge" is an authoritative response, distinct from errors.
+ */
+sealed class CurrentChargeOutcome {
+    data class Active(val detail: ChargeDetail) : CurrentChargeOutcome()
+    data object NoActiveCharge : CurrentChargeOutcome()
+}
+
+/**
  * Represents exceptions that should trigger a fallback to the secondary server.
  * These are network-level errors where the server is unreachable, not application-level errors.
  */
@@ -285,16 +294,21 @@ class TeslamateRepository @Inject constructor(
         }
     }
 
-    suspend fun getCurrentCharge(carId: Int): ApiResult<ChargeDetail> {
+    suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
         return executeWithFallback { api ->
             try {
                 val response = api.getCurrentCharge(carId)
                 if (response.isSuccessful) {
-                    val detail = response.body()?.data?.charge
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No current charge data returned")
+                    val body = response.body()
+                    val detail = body?.data?.charge
+                    when {
+                        detail != null -> ApiResult.Success(CurrentChargeOutcome.Active(detail))
+                        // TeslamateAPI answers 200 + {"error": "..."} (or 204) when there is
+                        // no active charge — an authoritative answer, not a failure. At charge
+                        // start this is returned for a short while before the charge appears.
+                        body?.error != null || response.code() == 204 ->
+                            ApiResult.Success(CurrentChargeOutcome.NoActiveCharge)
+                        else -> ApiResult.Error("No current charge data returned")
                     }
                 } else {
                     ApiResult.Error("Failed to fetch current charge: ${response.code()}", response.code())
