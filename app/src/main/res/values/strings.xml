@@ -1271,6 +1271,9 @@
     <string name="current_charge_unsupported">Current charge monitoring requires TeslaMate API 1.24 or newer</string>
     <!-- Shown when the car is not currently charging -->
     <string name="current_charge_not_charging">The car is not currently charging</string>
+
+    <!-- Shown while the car reports charging but the charge data hasn't appeared in the API yet -->
+    <string name="current_charge_starting">Charge starting — waiting for the first data…</string>
     <!-- Chart title for voltage and current dual-axis chart -->
     <string name="voltage_and_current_profile">Voltage &amp; Current</string>
     <!-- SoC labels for the 3-column row in live charge header -->

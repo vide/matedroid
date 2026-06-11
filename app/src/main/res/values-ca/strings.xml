@@ -1181,6 +1181,7 @@
     <string name="current_charge_unsupported">La monitorització de càrrega en curs requereix TeslaMate API 1.24 o superior</string>
     <!-- Mostrat quan el cotxe no està carregant actualment -->
     <string name="current_charge_not_charging">El cotxe no està carregant actualment</string>
+    <string name="current_charge_starting">Càrrega iniciant-se — esperant les primeres dades…</string>
     <!-- Títol del gràfic de voltatge i corrent de doble eix -->
     <string name="voltage_and_current_profile">Voltatge &amp; Corrent</string>
     <!-- Etiquetes SoC per a la fila de 3 columnes a la capçalera de càrrega en temps real -->

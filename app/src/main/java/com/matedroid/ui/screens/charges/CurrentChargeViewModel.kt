@@ -7,9 +7,12 @@ import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.repository.ApiResult
+import com.matedroid.data.repository.CurrentChargeOutcome
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +30,8 @@ data class CurrentChargeUiState(
     val isDcCharge: Boolean = false,
     val isUnsupportedApi: Boolean = false,
     val isNotCharging: Boolean = false,
+    /** Car status reports charging but the charge isn't in the API yet (TeslaMate DB lag at charge start). */
+    val isChargeStarting: Boolean = false,
     val isDcFinishedPluggedIn: Boolean = false,
     val dcFinishedSince: String? = null,
     val timeToFullCharge: Double? = null,
@@ -43,6 +48,9 @@ class CurrentChargeViewModel @Inject constructor(
 
     companion object {
         private const val REFRESH_INTERVAL_MS = 30_000L
+
+        /** Poll quickly while waiting for a just-started charge to appear in the API. */
+        private const val CHARGE_STARTING_REFRESH_INTERVAL_MS = 4_000L
     }
 
     private val _uiState = MutableStateFlow(CurrentChargeUiState())
@@ -61,7 +69,12 @@ class CurrentChargeViewModel @Inject constructor(
         refreshJob = viewModelScope.launch {
             while (true) {
                 fetchData()
-                delay(REFRESH_INTERVAL_MS)
+                val interval = if (_uiState.value.isChargeStarting) {
+                    CHARGE_STARTING_REFRESH_INTERVAL_MS
+                } else {
+                    REFRESH_INTERVAL_MS
+                }
+                delay(interval)
             }
         }
     }
@@ -74,8 +87,11 @@ class CurrentChargeViewModel @Inject constructor(
         }
 
         // Fetch current charge and car status concurrently
-        val chargeResult = repository.getCurrentCharge(carId)
-        val statusResult = repository.getCarStatus(carId)
+        val (chargeResult, statusResult) = coroutineScope {
+            val charge = async { repository.getCurrentCharge(carId) }
+            val status = async { repository.getCarStatus(carId) }
+            charge.await() to status.await()
+        }
 
         val units = when (statusResult) {
             is ApiResult.Success -> statusResult.data.units
@@ -108,32 +124,76 @@ class CurrentChargeViewModel @Inject constructor(
         val stateSince = status?.stateSince
 
         when (chargeResult) {
-            is ApiResult.Success -> {
-                val detail = chargeResult.data
+            is ApiResult.Success -> when (val outcome = chargeResult.data) {
+                is CurrentChargeOutcome.Active -> {
+                    val detail = outcome.detail
 
-                // API returns charge_details sorted newest-first; reverse to chronological
-                val chronoPoints = detail.chargePoints?.reversed() ?: emptyList()
-                val detailWithChronoPoints = detail.copy(chargePoints = chronoPoints)
+                    // API returns charge_details sorted newest-first; reverse to chronological
+                    val chronoPoints = detail.chargePoints?.reversed() ?: emptyList()
+                    val detailWithChronoPoints = detail.copy(chargePoints = chronoPoints)
 
-                val stats = ChargeStatsCalculator.calculateStats(detailWithChronoPoints)
-                val isDcCharge = isDcChargeFromStatus ?: ChargeStatsCalculator.detectDcCharge(detailWithChronoPoints)
+                    val stats = ChargeStatsCalculator.calculateStats(detailWithChronoPoints)
+                    val isDcCharge = isDcChargeFromStatus ?: ChargeStatsCalculator.detectDcCharge(detailWithChronoPoints)
 
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        chargeDetail = detailWithChronoPoints,
-                        units = units,
-                        stats = stats,
-                        isDcCharge = isDcCharge,
-                        isUnsupportedApi = false,
-                        isNotCharging = detail.isCharging == false && !isDcFinishedPluggedIn,
-                        isDcFinishedPluggedIn = isDcFinishedPluggedIn,
-                        dcFinishedSince = if (isDcFinishedPluggedIn) stateSince else null,
-                        timeToFullCharge = timeToFullCharge,
-                        chargeLimitSoc = chargeLimitSoc,
-                        chronologicalPoints = chronoPoints,
-                        error = null
-                    )
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isChargeStarting = false,
+                            chargeDetail = detailWithChronoPoints,
+                            units = units,
+                            stats = stats,
+                            isDcCharge = isDcCharge,
+                            isUnsupportedApi = false,
+                            isNotCharging = detail.isCharging == false && !isDcFinishedPluggedIn,
+                            isDcFinishedPluggedIn = isDcFinishedPluggedIn,
+                            dcFinishedSince = if (isDcFinishedPluggedIn) stateSince else null,
+                            timeToFullCharge = timeToFullCharge,
+                            chargeLimitSoc = chargeLimitSoc,
+                            chronologicalPoints = chronoPoints,
+                            error = null
+                        )
+                    }
+                }
+                CurrentChargeOutcome.NoActiveCharge -> when {
+                    status?.isCharging == true -> {
+                        // The car is charging but TeslaMate hasn't materialized the charge
+                        // in the API yet (happens for the first moments of every session).
+                        // Show the "charge starting" state and let the loop poll fast.
+                        _uiState.update {
+                            it.copy(isLoading = false, isChargeStarting = true, error = null)
+                        }
+                    }
+                    isDcFinishedPluggedIn -> {
+                        // DC charge finished but still plugged — keep showing last data with warning
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isChargeStarting = false,
+                                isNotCharging = false,
+                                isDcFinishedPluggedIn = true,
+                                dcFinishedSince = stateSince,
+                                error = null
+                            )
+                        }
+                        // Keep refresh loop running to detect unplug
+                    }
+                    status == null -> {
+                        // No status to corroborate (its fetch failed). Don't kick the user
+                        // out on a one-off failure — leave the state as is and poll again.
+                    }
+                    else -> {
+                        // Status confirms: charging has stopped and cable unplugged
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isChargeStarting = false,
+                                isNotCharging = true,
+                                isDcFinishedPluggedIn = false,
+                                error = null
+                            )
+                        }
+                        refreshJob?.cancel()
+                    }
                 }
             }
             is ApiResult.Error -> {
@@ -144,28 +204,9 @@ class CurrentChargeViewModel @Inject constructor(
                         }
                         refreshJob?.cancel()
                     }
-                    null -> {
-                        if (isDcFinishedPluggedIn) {
-                            // DC charge finished but still plugged — keep showing last data with warning
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    isNotCharging = false,
-                                    isDcFinishedPluggedIn = true,
-                                    dcFinishedSince = stateSince,
-                                    error = null
-                                )
-                            }
-                            // Keep refresh loop running to detect unplug
-                        } else {
-                            // Charging has stopped and cable unplugged
-                            _uiState.update {
-                                it.copy(isLoading = false, isNotCharging = true, isDcFinishedPluggedIn = false, error = null)
-                            }
-                            refreshJob?.cancel()
-                        }
-                    }
                     else -> {
+                        // Network problem or server error — never treat as "not charging".
+                        // Show the error, keep any data on screen and keep polling.
                         _uiState.update {
                             it.copy(isLoading = false, error = chargeResult.message)
                         }

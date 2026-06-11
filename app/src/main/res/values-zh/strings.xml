@@ -1183,6 +1183,7 @@
     <string name="current_charge_unsupported">实时充电监控需要 TeslaMate API 1.24 或更高版本</string>
     <!-- Shown when the car is not currently charging -->
     <string name="current_charge_not_charging">车辆当前未在充电</string>
+    <string name="current_charge_starting">充电启动中 — 等待首批数据…</string>
     <!-- Chart title for voltage and current dual-axis chart -->
     <string name="voltage_and_current_profile">电压与电流</string>
     <!-- SoC labels for the 3-column row in live charge header -->

@@ -1181,6 +1181,7 @@
     <string name="current_charge_unsupported">Il monitoraggio della ricarica in corso richiede TeslaMate API 1.24 o superiore</string>
     <!-- Mostrato quando l\'auto non è in carica -->
     <string name="current_charge_not_charging">L\'auto non è attualmente in carica</string>
+    <string name="current_charge_starting">Ricarica in avvio — in attesa dei primi dati…</string>
     <!-- Titolo grafico tensione e corrente a doppio asse -->
     <string name="voltage_and_current_profile">Tensione &amp; Corrente</string>
     <!-- Etichette SoC per la riga a 3 colonne nell'intestazione della ricarica in tempo reale -->
