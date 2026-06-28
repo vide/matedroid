@@ -4,19 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -35,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +55,8 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ComparableCharge
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.OverlayCurve
+import com.matedroid.ui.components.PowerSocOverlayChart
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDurationCompact
@@ -106,6 +118,8 @@ fun CompareChargesScreen(
                 sort = uiState.sort,
                 currencySymbol = uiState.currencySymbol,
                 units = uiState.units,
+                curves = uiState.curves,
+                curvesLoading = uiState.curvesLoading,
                 palette = palette,
                 onSortChange = viewModel::setSort,
                 onChargeClick = onNavigateToChargeDetail,
@@ -121,6 +135,8 @@ private fun CompareContent(
     sort: CompareSort,
     currencySymbol: String,
     units: Units?,
+    curves: List<SessionCurve>,
+    curvesLoading: Boolean,
     palette: CarColorPalette,
     onSortChange: (CompareSort) -> Unit,
     onChargeClick: (Int) -> Unit,
@@ -164,6 +180,14 @@ private fun CompareContent(
             }
         }
 
+        // Power-vs-SoC overlay of the top sessions for the current sort
+        OverlayChartCard(
+            comparison = comparison,
+            curves = curves,
+            curvesLoading = curvesLoading,
+            palette = palette
+        )
+
         // Leaderboard
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ranked.forEachIndexed { index, charge ->
@@ -193,6 +217,103 @@ private fun SortChip(label: String, selected: Boolean, accent: Color, onClick: (
             selectedLabelColor = accent
         )
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OverlayChartCard(
+    comparison: com.matedroid.domain.ChargeComparison,
+    curves: List<SessionCurve>,
+    curvesLoading: Boolean,
+    palette: CarColorPalette
+) {
+    val byId = remember(comparison) { comparison.all.associateBy { it.chargeId } }
+    val otherColors = listOf(
+        Color(0xFF5B8DD9), Color(0xFF4CAF50), Color(0xFF9B6BD9), Color(0xFF6D7A92)
+    )
+    val thisChargeLabel = stringResource(R.string.compare_this_charge)
+
+    var otherIndex = 0
+    val overlay = curves.map { sessionCurve ->
+        val meta = byId[sessionCurve.chargeId]
+        val color = if (sessionCurve.isBase) palette.accent else otherColors[otherIndex++ % otherColors.size]
+        val label = if (sessionCurve.isBase) {
+            thisChargeLabel
+        } else {
+            meta?.brand?.takeIf { it.isNotBlank() }
+                ?: meta?.startDate?.let { parseIsoDateTime(it)?.toLocalDate()?.formatMedium(Locale.getDefault()) }
+                ?: ""
+        }
+        OverlayCurve(
+            label = label,
+            color = color,
+            isBase = sessionCurve.isBase,
+            points = sessionCurve.points.map { Offset(it.soc, it.power) }
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.compare_power_vs_soc),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (overlay.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(190.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (curvesLoading) CircularProgressIndicator(color = palette.accent)
+                }
+            } else {
+                PowerSocOverlayChart(curves = overlay)
+                Spacer(modifier = Modifier.height(10.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    overlay.forEach { LegendItem(it.color, it.label) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable

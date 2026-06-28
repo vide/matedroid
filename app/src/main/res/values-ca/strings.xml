@@ -1240,6 +1240,7 @@
     <string name="ranked_by">Ordena per</string>
     <string name="compare_this_charge">Aquesta càrrega</string>
     <string name="compare_empty">No hi ha càrregues ràpides comparables a prop</string>
+    <string name="compare_power_vs_soc">Potència vs SoC</string>
     <string name="compare_scope">%1$d càrregues · en %2$d km</string>
     <plurals name="compare_sessions_nearby">
         <item quantity="one">%d càrrega comparable a prop</item>
