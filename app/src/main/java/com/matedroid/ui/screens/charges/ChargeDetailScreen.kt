@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -221,16 +222,6 @@ private fun ChargeDetailContent(
             onEditCost = onEditCost
         )
 
-        // Part-of-trip banner
-        if (containingTrip != null) {
-            val (_, trip) = containingTrip
-            com.matedroid.ui.components.PartOfTripCard(
-                tripRoute = trip.displayName(),
-                onNavigateToTrip = { onNavigateToTripDetail(trip.startDate) },
-                onConfirmRemove = onRemoveFromTrip
-            )
-        }
-
         // Accent stat tiles — the headline secondary figures
         stats?.let { s ->
             ChargeStatTiles(stats = s, units = units, palette = palette)
@@ -276,13 +267,24 @@ private fun ChargeDetailContent(
             )
         }
 
+        // Part-of-trip banner — kept at the very end, below the details
+        if (containingTrip != null) {
+            val (_, trip) = containingTrip
+            com.matedroid.ui.components.PartOfTripCard(
+                tripRoute = trip.displayName(),
+                onNavigateToTrip = { onNavigateToTripDetail(trip.startDate) },
+                onConfirmRemove = onRemoveFromTrip
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 /**
- * Compact hero: location, the two headline figures (energy added and peak power) in the car's
- * accent colour, a one-line summary, and the start timestamp. Replaces the old verbose header.
+ * Compact hero: location, the dominant figure (energy added) in the car's accent colour, a
+ * balanced row of labelled key figures (peak power, battery swing, duration), and a footer with
+ * the start time and the (editable) cost. Replaces the old verbose header.
  */
 @Composable
 private fun ChargeHeroSection(
@@ -297,8 +299,11 @@ private fun ChargeHeroSection(
     val unknownLocationLabel = stringResource(R.string.unknown_location)
     val unknownLabel = stringResource(R.string.unknown)
     val freeLabel = stringResource(R.string.charge_free)
+    val peakLabel = stringResource(R.string.peak)
+    val batteryLabel = stringResource(R.string.battery)
+    val durationLabel = stringResource(R.string.duration)
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         // Location
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -316,12 +321,15 @@ private fun ChargeHeroSection(
             )
         }
 
-        // Headline figures: energy added [· peak power] + AC/DC badge
-        Row(verticalAlignment = Alignment.Bottom) {
-            detail.chargeEnergyAdded?.let { energy ->
+        // Dominant figure: energy added, with the AC/DC badge on the right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "%.1f".format(energy),
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = "%.1f".format(detail.chargeEnergyAdded ?: 0.0),
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = palette.accent
                 )
@@ -329,41 +337,61 @@ private fun ChargeHeroSection(
                     text = " kWh",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 1.dp)
+                    modifier = Modifier.padding(start = 2.dp, bottom = 3.dp)
                 )
             }
-            if (stats != null && stats.powerMax > 0) {
-                Text(
-                    text = "  ·  ${stats.powerMax}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.accent
-                )
-                Text(
-                    text = " kW",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 1.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.weight(1f))
             ChargeTypeBadge(isDcCharge = isDcCharge)
         }
 
-        // Summary line: SoC range · duration   |   cost (tappable to edit in TeslaMate)
+        // Balanced row of labelled key figures
+        if (stats != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (stats.powerMax > 0) {
+                    HeroStat(
+                        label = peakLabel,
+                        value = "${stats.powerMax} kW",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                HeroStat(
+                    label = batteryLabel,
+                    value = "${stats.batteryStart}% → ${stats.batteryEnd}%",
+                    modifier = Modifier.weight(1f)
+                )
+                HeroStat(
+                    label = durationLabel,
+                    value = formatDurationCompact(stats.durationMin),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Footer: start time (left) and cost (right, tappable to edit in TeslaMate)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (stats != null)
-                    "${stats.batteryStart}% → ${stats.batteryEnd}%  ·  ${formatDurationCompact(stats.durationMin)}"
-                else "",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = formatDateTime(detail.startDate, unknownLabel, is24Hour),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             val cost = detail.cost ?: 0.0
             if (cost > 0 || onEditCost != null) {
@@ -395,26 +423,35 @@ private fun ChargeHeroSection(
                 }
             }
         }
-
-        // Start timestamp — quiet caption
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Schedule,
-                contentDescription = null,
-                modifier = Modifier.size(13.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = formatDateTime(detail.startDate, unknownLabel, is24Hour),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 
-/** Two-up grid of accent tiles for the headline secondary figures. */
+/** A single labelled figure: small uppercase label over a bold value. Left-aligned in a column. */
+@Composable
+private fun HeroStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = label.uppercase(java.util.Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
+    }
+}
+
+/** A single row of accent tiles for the secondary "quality" figures (avg power, efficiency, temp). */
 @Composable
 private fun ChargeStatTiles(
     stats: ChargeDetailStats,
@@ -423,33 +460,26 @@ private fun ChargeStatTiles(
 ) {
     val avgLabel = stringResource(R.string.average)
     val efficiencyLabel = stringResource(R.string.efficiency)
-    val batteryLabel = stringResource(R.string.battery)
     val temperatureLabel = stringResource(R.string.temperature)
 
     val tiles = buildList {
         if (stats.powerMax > 0) add(avgLabel to "${stats.powerAvg.roundToInt()} kW")
         add(efficiencyLabel to "${stats.efficiency.roundToInt()}%")
-        add(batteryLabel to "+${stats.batteryAdded}%")
         if (stats.tempMax > -100) add(temperatureLabel to UnitFormatter.formatTemperature(stats.tempAvg, units))
     }
     if (tiles.isEmpty()) return
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        tiles.chunked(2).forEach { rowTiles ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                rowTiles.forEach { (label, value) ->
-                    ChargeStatTile(
-                        label = label,
-                        value = value,
-                        accent = palette.accent,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (rowTiles.size < 2) Spacer(modifier = Modifier.weight(1f))
-            }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        tiles.forEach { (label, value) ->
+            ChargeStatTile(
+                label = label,
+                value = value,
+                accent = palette.accent,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

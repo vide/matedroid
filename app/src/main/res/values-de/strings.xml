@@ -1350,4 +1350,5 @@
     <string name="chart_week_label">KW%1$d</string>
     <string name="more_details">Mehr Details</string>
     <string name="hide_details">Details ausblenden</string>
+    <string name="peak">Spitze</string>
 </resources>

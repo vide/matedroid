@@ -1235,4 +1235,5 @@
     <string name="chart_week_label">S%1$d</string>
     <string name="more_details">Più dettagli</string>
     <string name="hide_details">Nascondi dettagli</string>
+    <string name="peak">Picco</string>
 </resources>

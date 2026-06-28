@@ -1235,4 +1235,5 @@
     <string name="chart_week_label">S%1$d</string>
     <string name="more_details">Més detalls</string>
     <string name="hide_details">Amaga els detalls</string>
+    <string name="peak">Pic</string>
 </resources>

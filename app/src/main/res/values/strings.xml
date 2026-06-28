@@ -1358,4 +1358,6 @@
     <!-- Charge detail: toggle that expands/collapses the secondary stats and charts -->
     <string name="more_details">More details</string>
     <string name="hide_details">Hide details</string>
+    <!-- Charge detail hero: label for the maximum/peak charging power figure -->
+    <string name="peak">Peak</string>
 </resources>
