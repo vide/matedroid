@@ -36,6 +36,9 @@ interface AggregateDao {
     @Query("SELECT * FROM charge_detail_aggregates WHERE chargeId = :chargeId")
     suspend fun getChargeAggregate(chargeId: Int): ChargeDetailAggregate?
 
+    @Query("SELECT * FROM charge_detail_aggregates WHERE carId = :carId")
+    suspend fun getChargeAggregatesForCar(carId: Int): List<ChargeDetailAggregate>
+
     @Query("DELETE FROM charge_detail_aggregates WHERE carId = :carId")
     suspend fun deleteChargeAggregatesForCar(carId: Int)
 

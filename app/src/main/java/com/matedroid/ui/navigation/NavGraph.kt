@@ -23,6 +23,7 @@ import com.matedroid.R
 import com.matedroid.ui.screens.battery.BatteryScreen
 import com.matedroid.ui.screens.charges.ChargeDetailScreen
 import com.matedroid.ui.screens.charges.ChargesScreen
+import com.matedroid.ui.screens.charges.CompareChargesScreen
 import com.matedroid.ui.screens.charges.CurrentChargeScreen
 import com.matedroid.ui.screens.dashboard.DashboardScreen
 import com.matedroid.ui.screens.demo.PalettePreviewScreen
@@ -66,6 +67,9 @@ sealed interface Screen {
 
     @Serializable
     data class ChargeDetail(val carId: Int, val chargeId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CompareCharges(val carId: Int, val baseChargeId: Int, val exteriorColor: String? = null) : Screen
 
     @Serializable
     data class CurrentCharge(val carId: Int, val exteriorColor: String? = null) : Screen
@@ -262,6 +266,22 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
                     navController.navigate(Screen.TripDetail(route.carId, tripStartDate, route.exteriorColor))
+                },
+                onNavigateToCompare = { baseChargeId ->
+                    navController.navigate(Screen.CompareCharges(route.carId, baseChargeId, route.exteriorColor))
+                }
+            )
+        }
+
+        composable<Screen.CompareCharges> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CompareCharges>()
+            CompareChargesScreen(
+                carId = route.carId,
+                baseChargeId = route.baseChargeId,
+                exteriorColor = route.exteriorColor,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToChargeDetail = { chargeId ->
+                    navController.navigate(Screen.ChargeDetail(route.carId, chargeId, route.exteriorColor))
                 }
             )
         }

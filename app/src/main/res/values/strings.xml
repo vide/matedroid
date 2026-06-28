@@ -1360,4 +1360,16 @@
     <string name="hide_details">Hide details</string>
     <!-- Charge detail hero: label for the maximum/peak charging power figure -->
     <string name="peak">Peak</string>
+    <!-- Charge comparison feature -->
+    <string name="compare_charges_title">Compare fast charges</string>
+    <string name="ranked_by">Ranked by</string>
+    <string name="compare_this_charge">This charge</string>
+    <string name="compare_empty">No comparable DC charges nearby</string>
+    <!-- %1$d = number of charges, %2$d = radius in km -->
+    <string name="compare_scope">%1$d charges · within %2$d km</string>
+    <!-- %d = number of comparable charges near this one -->
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d comparable charge nearby</item>
+        <item quantity="other">%d comparable charges nearby</item>
+    </plurals>
 </resources>

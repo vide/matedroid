@@ -1351,4 +1351,13 @@
     <string name="more_details">Mehr Details</string>
     <string name="hide_details">Details ausblenden</string>
     <string name="peak">Spitze</string>
+    <string name="compare_charges_title">Schnellladungen vergleichen</string>
+    <string name="ranked_by">Sortiert nach</string>
+    <string name="compare_this_charge">Diese Ladung</string>
+    <string name="compare_empty">Keine vergleichbaren Schnellladungen in der Nähe</string>
+    <string name="compare_scope">%1$d Ladungen · im Umkreis von %2$d km</string>
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d vergleichbare Ladung in der Nähe</item>
+        <item quantity="other">%d vergleichbare Ladungen in der Nähe</item>
+    </plurals>
 </resources>

@@ -1236,4 +1236,13 @@
     <string name="more_details">Més detalls</string>
     <string name="hide_details">Amaga els detalls</string>
     <string name="peak">Pic</string>
+    <string name="compare_charges_title">Compara càrregues ràpides</string>
+    <string name="ranked_by">Ordena per</string>
+    <string name="compare_this_charge">Aquesta càrrega</string>
+    <string name="compare_empty">No hi ha càrregues ràpides comparables a prop</string>
+    <string name="compare_scope">%1$d càrregues · en %2$d km</string>
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d càrrega comparable a prop</item>
+        <item quantity="other">%d càrregues comparables a prop</item>
+    </plurals>
 </resources>

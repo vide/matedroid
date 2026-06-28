@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.BatteryChargingFull
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Schedule
@@ -68,6 +71,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -78,6 +82,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.ChargeComparison
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -102,6 +107,7 @@ fun ChargeDetailScreen(
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit,
     onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
+    onNavigateToCompare: (baseChargeId: Int) -> Unit = {},
     viewModel: ChargeDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -151,6 +157,8 @@ fun ChargeDetailScreen(
                     isDcCharge = uiState.isDcCharge,
                     exteriorColor = exteriorColor,
                     containingTrip = uiState.containingTrip,
+                    comparison = uiState.comparison,
+                    onCompareClick = { onNavigateToCompare(chargeId) },
                     onNavigateToTripDetail = onNavigateToTripDetail,
                     onRemoveFromTrip = viewModel::removeFromTrip,
                     onEditCost = if (teslamateBaseUrl.isNotBlank()) {
@@ -175,6 +183,8 @@ private fun ChargeDetailContent(
     isDcCharge: Boolean,
     exteriorColor: String?,
     containingTrip: Pair<Long, com.matedroid.domain.model.Trip>?,
+    comparison: ChargeComparison?,
+    onCompareClick: () -> Unit,
     onNavigateToTripDetail: (String) -> Unit,
     onRemoveFromTrip: () -> Unit,
     onEditCost: (() -> Unit)? = null,
@@ -225,6 +235,11 @@ private fun ChargeDetailContent(
         // Accent stat tiles — the headline secondary figures
         stats?.let { s ->
             ChargeStatTiles(stats = s, units = units, palette = palette)
+        }
+
+        // Compare entry — appears for DC charges with comparable sessions nearby
+        comparison?.let { cmp ->
+            ChargeCompareCard(comparison = cmp, palette = palette, onClick = onCompareClick)
         }
 
         // Primary chart: power curve, accent-tinted by charge type (DC orange / AC green)
@@ -511,6 +526,61 @@ private fun ChargeStatTile(
             fontWeight = FontWeight.Bold,
             color = accent,
             maxLines = 1
+        )
+    }
+}
+
+/** Entry point into the charge-comparison screen, shown only for DC charges with nearby siblings. */
+@Composable
+private fun ChargeCompareCard(
+    comparison: ChargeComparison,
+    palette: CarColorPalette,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.accent.copy(alpha = 0.12f))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(palette.accent.copy(alpha = 0.20f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Insights,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.compare_charges_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.compare_sessions_nearby,
+                    comparison.others.size,
+                    comparison.others.size
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
