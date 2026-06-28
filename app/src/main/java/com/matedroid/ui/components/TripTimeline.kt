@@ -8,8 +8,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
@@ -229,9 +227,7 @@ fun TripTimeline(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Durations on their own full-width line so they never get starved into
-            // wrapping; FlowRow lets them spill to a second line gracefully if a large
-            // font scale leaves no room for all three on one line.
+            // Driving / charging totals as hero tiles, with the overall total beneath.
             DurationSummary(
                 totalDurationMin = totalDurationMin,
                 totalDrivingDurationMin = totalDrivingDurationMin,
@@ -243,7 +239,6 @@ fun TripTimeline(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationSummary(
     totalDurationMin: Int,
@@ -253,49 +248,91 @@ private fun DurationSummary(
     modifier: Modifier = Modifier
 ) {
     val resources = LocalContext.current.resources
-    FlowRow(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        DurationItem(
-            icon = CustomIcons.SteeringWheel,
-            text = formatDuration(resources, totalDrivingDurationMin),
-            tint = palette.accent
-        )
-        if (totalChargingDurationMin > 0) {
-            DurationItem(
-                icon = Icons.Filled.ElectricBolt,
-                text = formatDuration(resources, totalChargingDurationMin),
-                tint = palette.accent
+        // Hero tiles: driving + charging are the headline figures.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DurationTile(
+                icon = CustomIcons.SteeringWheel,
+                label = stringResource(R.string.trip_timeline_driving),
+                value = formatDuration(resources, totalDrivingDurationMin),
+                accent = palette.accent,
+                modifier = Modifier.weight(1f)
+            )
+            if (totalChargingDurationMin > 0) {
+                DurationTile(
+                    icon = Icons.Filled.ElectricBolt,
+                    label = stringResource(R.string.charging),
+                    value = formatDuration(resources, totalChargingDurationMin),
+                    accent = palette.accent,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        // Overall total — demoted to a quiet caption beneath the tiles.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.Schedule,
+                contentDescription = null,
+                modifier = Modifier.size(13.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "${formatDuration(resources, totalDurationMin)} · ${stringResource(R.string.total)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false
             )
         }
-        DurationItem(
-            icon = Icons.Filled.Schedule,
-            text = formatDuration(resources, totalDurationMin),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
 @Composable
-private fun DurationItem(
+private fun DurationTile(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-    tint: Color
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(12.dp),
-            tint = tint
-        )
-        Spacer(Modifier.width(3.dp))
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(vertical = 12.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+                tint = accent
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label.uppercase(Locale.getDefault()),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
         Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
             maxLines = 1,
             softWrap = false
         )
