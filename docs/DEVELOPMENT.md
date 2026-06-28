@@ -83,6 +83,21 @@ When adding a new `drive_*`/`*_drive*` string, translate "drive" with the drive-
 reserve the trip-column term for `trip_*`/`trips_*` strings — never let the two collapse to the
 same word in a locale, or the Drives/Trips navigation and stats become ambiguous.
 
+#### Hiding short drives / charges
+
+The "Show short drives / charges" setting (`showShortDrivesCharges`, default off) hides trivial
+entries — drives under 1 min or 0.1 km, and charges of 0.1 kWh or less — from **list-like
+surfaces** while still counting them in totals, averages and statistics.
+
+The rule lives in **one place**: `domain/ShortEntryFilter.kt`. It exposes the thresholds plus
+`isSignificant()` helpers for every drive/charge model (`DriveData`, `ChargeData`, `DriveSummary`,
+`ChargeSummary`). **Any screen that renders individual drives/charges must filter through these
+helpers** — never re-implement the thresholds at a call site. This is what keeps the behaviour
+consistent (it previously diverged: the trip timeline shipped without the filter and showed short
+legs). Current call sites: `DrivesViewModel`, `ChargesViewModel`, `TripTimelineBuilder` and the
+trip leg list / counts in `TripsScreen` + `TripDetailScreen`. Add a new model? Add its
+`isSignificant()` helper in `ShortEntryFilter.kt`.
+
 #### Adding/Modifying Translations
 
 1. **All user-visible strings must be in string resources** - never hardcode text in Kotlin files

@@ -72,6 +72,7 @@ data class TripDetailUiState(
     val countries: List<TripCountry> = emptyList(),
     val units: Units? = null,
     val currencySymbol: String = "€",
+    val showShortDrivesCharges: Boolean = false,
 
     // Edit / merge / delete (PR 2)
     val savedTripId: Long? = null,
@@ -118,6 +119,10 @@ class TripDetailViewModel @Inject constructor(
         currentStartDate = tripStartDate
 
         viewModelScope.launch {
+            // Read on every load so a toggle of the setting is reflected after navigating back.
+            val showShort = settingsDataStore.showShortDrivesCharges.first()
+            _uiState.update { it.copy(showShortDrivesCharges = showShort) }
+
             // Skip these on revalidation — units and currency don't change between same-session
             // navigations, and the network call was the slowest step of the reload.
             val isFirstLoad = _uiState.value.units == null

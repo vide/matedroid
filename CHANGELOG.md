@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), tiny legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
+
 ## [1.9.0] - 2026-06-11
 
 A reorganized dashboard with a new top-right menu, manual trip creation, an immersive Location map, plus live-charge reliability and security hardening.
