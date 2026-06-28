@@ -61,7 +61,8 @@ fun buildTimelineSegments(
                     TripTimelineSegment.Drive(
                         durationMin = event.durationMin,
                         index = driveIdx,
-                        distanceKm = event.distance
+                        distanceKm = event.distance,
+                        driveId = event.driveId
                     )
                 )
             }
@@ -72,7 +73,8 @@ fun buildTimelineSegments(
                         durationMin = event.durationMin,
                         index = chargeIdx,
                         energyKwh = event.energyAdded,
-                        isDc = event.chargeId in dcChargeIds
+                        isDc = event.chargeId in dcChargeIds,
+                        chargeId = event.chargeId
                     )
                 )
             }

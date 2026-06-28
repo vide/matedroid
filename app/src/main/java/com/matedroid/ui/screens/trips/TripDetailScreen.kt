@@ -347,7 +347,9 @@ private fun TripDetailContent(
             totalDurationMin = trip.totalDurationMin,
             totalDrivingDurationMin = trip.totalDrivingDurationMin,
             totalChargingDurationMin = totalChargingDurationMin,
-            onCountryClick = onCountryClick
+            onCountryClick = onCountryClick,
+            onDriveClick = onDriveClick,
+            onChargeClick = onChargeClick
         )
 
         if ((trip.totalChargeCost ?: 0.0) > 0.0) {

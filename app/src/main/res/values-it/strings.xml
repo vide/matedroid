@@ -255,7 +255,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Tragitti e ricariche brevi</string>
-    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Tragitti sotto 1 minuto o meno di 0,1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
+    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Tragitti sotto 1 minuto o meno di 1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Forza risincronizzazione completa</string>

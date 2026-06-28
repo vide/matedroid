@@ -255,7 +255,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Trayectos y cargas cortos</string>
-    <string name="settings_short_dialog_text">Cuando está desactivado (por defecto), los siguientes elementos están ocultos de las listas:\n\n• Trayectos de menos de 1 minuto o menos de 0,1 km\n• Cargas de 0,1 kWh o menos\n\nEstos elementos siguen incluidos en totales, promedios y estadísticas. Activa este ajuste para ver todos los elementos en las listas.</string>
+    <string name="settings_short_dialog_text">Cuando está desactivado (por defecto), los siguientes elementos están ocultos de las listas:\n\n• Trayectos de menos de 1 minuto o menos de 1 km\n• Cargas de 0,1 kWh o menos\n\nEstos elementos siguen incluidos en totales, promedios y estadísticas. Activa este ajuste para ver todos los elementos en las listas.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Forzar resincronización completa</string>

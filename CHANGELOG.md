@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.
+
+### Changed
+- **"Short" drives are now those under 1 km** (was 0.1 km), so brief repositioning hops stop cluttering the lists and trip timelines when "Show short drives / charges" is off. Charges are unchanged (0.1 kWh or less).
+
 ### Fixed
-- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), tiny legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
+- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), short legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
 
 ## [1.9.0] - 2026-06-11
 

@@ -86,7 +86,7 @@ same word in a locale, or the Drives/Trips navigation and stats become ambiguous
 #### Hiding short drives / charges
 
 The "Show short drives / charges" setting (`showShortDrivesCharges`, default off) hides trivial
-entries — drives under 1 min or 0.1 km, and charges of 0.1 kWh or less — from **list-like
+entries — drives under 1 min or 1 km, and charges of 0.1 kWh or less — from **list-like
 surfaces** while still counting them in totals, averages and statistics.
 
 The rule lives in **one place**: `domain/ShortEntryFilter.kt`. It exposes the thresholds plus

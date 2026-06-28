@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Power
@@ -81,14 +82,16 @@ sealed class TripTimelineSegment {
     data class Drive(
         override val durationMin: Int,
         val index: Int,
-        val distanceKm: Double
+        val distanceKm: Double,
+        val driveId: Int
     ) : TripTimelineSegment()
 
     data class Charge(
         override val durationMin: Int,
         val index: Int,
         val energyKwh: Double,
-        val isDc: Boolean
+        val isDc: Boolean,
+        val chargeId: Int
     ) : TripTimelineSegment()
 
     data class Parking(
@@ -132,6 +135,8 @@ fun TripTimeline(
     totalDrivingDurationMin: Int,
     totalChargingDurationMin: Int,
     onCountryClick: (countryCode: String) -> Unit = {},
+    onDriveClick: (driveId: Int) -> Unit = {},
+    onChargeClick: (chargeId: Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (segments.isEmpty()) return
@@ -172,7 +177,9 @@ fun TripTimeline(
                 countries = countries,
                 palette = palette,
                 parkingColor = parkingColor,
-                onCountryClick = onCountryClick
+                onCountryClick = onCountryClick,
+                onDriveClick = onDriveClick,
+                onChargeClick = onChargeClick
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -296,7 +303,9 @@ private fun InfoPanel(
     countries: List<TripTimelineCountry>,
     palette: CarColorPalette,
     parkingColor: Color,
-    onCountryClick: (countryCode: String) -> Unit
+    onCountryClick: (countryCode: String) -> Unit,
+    onDriveClick: (driveId: Int) -> Unit,
+    onChargeClick: (chargeId: Int) -> Unit
 ) {
     // Reserve a constant height so tapping segments doesn't shift the bar position
     Box(
@@ -309,7 +318,9 @@ private fun InfoPanel(
             SegmentInfoContent(
                 segment = selection.second,
                 palette = palette,
-                parkingColor = parkingColor
+                parkingColor = parkingColor,
+                onDriveClick = onDriveClick,
+                onChargeClick = onChargeClick
             )
         } else {
             RouteHeaderContent(
@@ -326,12 +337,16 @@ private fun InfoPanel(
 private fun SegmentInfoContent(
     segment: TripTimelineSegment,
     palette: CarColorPalette,
-    parkingColor: Color
+    parkingColor: Color,
+    onDriveClick: (driveId: Int) -> Unit,
+    onChargeClick: (chargeId: Int) -> Unit
 ) {
     val resources = LocalContext.current.resources
     val title: String
     val subtitle: String
     val dotColor: Color
+    // Drives and charges link to their detail screen; parking gaps have no detail.
+    val onClick: (() -> Unit)?
     when (segment) {
         is TripTimelineSegment.Drive -> {
             title = "${stringResource(R.string.trip_timeline_driving)} · " +
@@ -341,6 +356,7 @@ private fun SegmentInfoContent(
                 formatDuration(resources, segment.durationMin)
             )
             dotColor = palette.accent
+            onClick = { onDriveClick(segment.driveId) }
         }
         is TripTimelineSegment.Charge -> {
             val chargeLabel = if (segment.isDc) {
@@ -355,14 +371,26 @@ private fun SegmentInfoContent(
                 formatDuration(resources, segment.durationMin)
             )
             dotColor = if (segment.isDc) palette.dcColor else palette.acColor
+            onClick = { onChargeClick(segment.chargeId) }
         }
         is TripTimelineSegment.Parking -> {
             title = stringResource(R.string.trip_timeline_parked)
             subtitle = formatDuration(resources, segment.durationMin)
             dotColor = parkingColor
+            onClick = null
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = if (onClick != null) {
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+        } else {
+            Modifier.fillMaxWidth()
+        },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
                 .size(12.dp)
@@ -370,7 +398,7 @@ private fun SegmentInfoContent(
                 .background(dotColor)
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
@@ -380,6 +408,15 @@ private fun SegmentInfoContent(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // Chevron signals the detail is tappable (project convention for linked rows).
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

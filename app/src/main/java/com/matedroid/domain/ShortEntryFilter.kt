@@ -13,6 +13,8 @@ import com.matedroid.data.local.entity.DriveSummary
  * from every list-like surface: the drives list, the charges list, and the trip timelines /
  * leg lists. They are still counted in totals, averages and statistics.
  *
+ * "Short" means a drive under 1 minute OR under 1 km, or a charge that added 0.1 kWh or less.
+ *
  * IMPORTANT: keep ALL thresholds and the predicate logic here, and never re-implement them at a
  * call site. Any new screen that renders individual drives/charges MUST filter through one of the
  * [isSignificant] helpers below — that is what keeps the behaviour from silently diverging again
@@ -23,7 +25,7 @@ object ShortEntryFilter {
     const val MIN_DRIVE_DURATION_MIN = 1
 
     /** A drive shorter than this many km is "short". */
-    const val MIN_DRIVE_DISTANCE_KM = 0.1
+    const val MIN_DRIVE_DISTANCE_KM = 1.0
 
     /** A charge that added this much energy (kWh) or less is "short". */
     const val MIN_CHARGE_ENERGY_KWH = 0.1
