@@ -1348,4 +1348,6 @@
     <string name="duration_months_weeks">%1$dMon %2$dWo</string>
     <!-- Compact week-of-year label for chart X axes, e.g. "KW23" (Kalenderwoche) -->
     <string name="chart_week_label">KW%1$d</string>
+    <string name="more_details">Mehr Details</string>
+    <string name="hide_details">Details ausblenden</string>
 </resources>

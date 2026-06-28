@@ -1233,4 +1233,6 @@
     <string name="duration_months">%1$dmes</string>
     <string name="duration_months_weeks">%1$dmes %2$dsem</string>
     <string name="chart_week_label">S%1$d</string>
+    <string name="more_details">Más detalles</string>
+    <string name="hide_details">Ocultar detalles</string>
 </resources>

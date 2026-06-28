@@ -1355,4 +1355,7 @@
     <string name="duration_months_weeks">%1$dmo %2$dw</string>
     <!-- Compact week-of-year label for chart X axes, e.g. "W23" -->
     <string name="chart_week_label">W%1$d</string>
+    <!-- Charge detail: toggle that expands/collapses the secondary stats and charts -->
+    <string name="more_details">More details</string>
+    <string name="hide_details">Hide details</string>
 </resources>
