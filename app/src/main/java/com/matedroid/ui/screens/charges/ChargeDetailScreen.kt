@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
@@ -131,6 +132,8 @@ fun ChargeDetailScreen(
         if (uiState.isLoading) {
             MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
         } else {
+            val context = LocalContext.current
+            val teslamateBaseUrl = uiState.teslamateBaseUrl
             uiState.chargeDetail?.let { detail ->
                 ChargeDetailContent(
                     detail = detail,
@@ -141,6 +144,12 @@ fun ChargeDetailScreen(
                     containingTrip = uiState.containingTrip,
                     onNavigateToTripDetail = onNavigateToTripDetail,
                     onRemoveFromTrip = viewModel::removeFromTrip,
+                    onEditCost = if (teslamateBaseUrl.isNotBlank()) {
+                        {
+                            val url = "$teslamateBaseUrl/charge-cost/$chargeId"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    } else null,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -158,6 +167,7 @@ private fun ChargeDetailContent(
     containingTrip: Pair<Long, com.matedroid.domain.model.Trip>?,
     onNavigateToTripDetail: (String) -> Unit,
     onRemoveFromTrip: () -> Unit,
+    onEditCost: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
@@ -221,6 +231,7 @@ private fun ChargeDetailContent(
             val currentAvgLabel = stringResource(R.string.current_avg)
             val totalLabel = stringResource(R.string.total)
             val perKwhLabel = stringResource(R.string.per_kwh)
+            val freeLabel = stringResource(R.string.charge_free)
 
             // Energy section
             StatsSectionCard(
@@ -288,18 +299,27 @@ private fun ChargeDetailContent(
                 )
             }
 
-            // Cost section
-            s.cost?.let { cost ->
-                if (cost > 0) {
-                    StatsSectionCard(
-                        title = costLabel,
-                        icon = Icons.Default.Paid,
-                        stats = listOf(
-                            StatItem(totalLabel, "$currencySymbol%.2f".format(cost)),
-                            StatItem(perKwhLabel, "$currencySymbol%.3f".format(cost / s.energyAdded.coerceAtLeast(0.001)))
-                        )
-                    )
-                }
+            // Cost section. Tappable (when a TeslaMate URL is configured) so the user can edit
+            // the cost in TeslaMate — including adding one to a free/uncosted charge, which is
+            // why the card still shows for cost == 0 as long as editing is possible.
+            val cost = s.cost ?: 0.0
+            if (cost > 0) {
+                StatsSectionCard(
+                    title = costLabel,
+                    icon = Icons.Default.Paid,
+                    stats = listOf(
+                        StatItem(totalLabel, "$currencySymbol%.2f".format(cost)),
+                        StatItem(perKwhLabel, "$currencySymbol%.3f".format(cost / s.energyAdded.coerceAtLeast(0.001)))
+                    ),
+                    onClick = onEditCost
+                )
+            } else if (onEditCost != null) {
+                StatsSectionCard(
+                    title = costLabel,
+                    icon = Icons.Default.Paid,
+                    stats = listOf(StatItem(totalLabel, freeLabel)),
+                    onClick = onEditCost
+                )
             }
 
             // Charts
@@ -645,7 +665,8 @@ data class StatItem(val label: String, val value: String)
 private fun StatsSectionCard(
     title: String,
     icon: ImageVector,
-    stats: List<StatItem>
+    stats: List<StatItem>,
+    onClick: (() -> Unit)? = null
 ) {
     // Get the current screen settings
     val configuration = LocalConfiguration.current
@@ -659,7 +680,9 @@ private fun StatsSectionCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
@@ -669,7 +692,9 @@ private fun StatsSectionCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
             ) {
                 Icon(
                     imageVector = icon,
@@ -683,6 +708,16 @@ private fun StatsSectionCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                // External-link affordance: signals the card opens TeslaMate's cost editor.
+                if (onClick != null) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             // Divide the list of statistics according to the calculated number of columns
