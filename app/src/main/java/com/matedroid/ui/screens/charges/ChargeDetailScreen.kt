@@ -188,7 +188,7 @@ private fun ChargeDetailContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Location header card
-        LocationHeaderCard(detail = detail, currencySymbol = currencySymbol, isDcCharge = isDcCharge)
+        LocationHeaderCard(detail = detail, currencySymbol = currencySymbol, isDcCharge = isDcCharge, onEditCost = onEditCost)
 
         // Part-of-trip banner
         if (containingTrip != null) {
@@ -402,7 +402,12 @@ private fun ChargeDetailContent(
 }
 
 @Composable
-private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isDcCharge: Boolean) {
+private fun LocationHeaderCard(
+    detail: ChargeDetail,
+    currencySymbol: String,
+    isDcCharge: Boolean,
+    onEditCost: (() -> Unit)? = null
+) {
     val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val locationLabel = stringResource(R.string.location)
     val unknownLocationLabel = stringResource(R.string.unknown_location)
@@ -544,10 +549,18 @@ private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isD
                         }
                     }
 
-                    // Cost (right side)
+                    // Cost (right side) — tappable to open TeslaMate's cost editor when configured.
                     detail.cost?.let { cost ->
                         if (cost > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = if (onEditCost != null) {
+                                    Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable(onClick = onEditCost)
+                                        .padding(4.dp)
+                                } else Modifier
+                            ) {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = costLabel,
@@ -563,9 +576,9 @@ private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isD
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Icon(
-                                    imageVector = Icons.Default.Paid,
+                                    imageVector = if (onEditCost != null) Icons.AutoMirrored.Filled.OpenInNew else Icons.Default.Paid,
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(if (onEditCost != null) 20.dp else 24.dp),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
