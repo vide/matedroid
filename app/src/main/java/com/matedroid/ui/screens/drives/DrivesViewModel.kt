@@ -10,6 +10,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.LocalDayBoundaries
+import com.matedroid.domain.isSignificant
 import com.matedroid.R
 import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -125,9 +126,6 @@ class DrivesViewModel @Inject constructor(
     private var isInitialized: Boolean = false
 
     companion object {
-        private const val MIN_DURATION_MINUTES = 1
-        private const val MIN_DISTANCE_KM = 0.1
-
         private const val KEY_DATE_FILTER = "filter_date"
         private const val KEY_DISTANCE_FILTER = "filter_distance"
         private const val KEY_CUSTOM_START = "filter_custom_start"
@@ -303,14 +301,11 @@ class DrivesViewModel @Inject constructor(
         val distanceFilter = state.distanceFilter
         val granularity = state.chartGranularity
 
-        // First apply short drives filter
+        // First apply short drives filter (see ShortEntryFilter for the shared rule)
         var filteredDrives = if (showShortDrivesCharges) {
             allDrives
         } else {
-            allDrives.filter { drive ->
-                (drive.durationMin ?: 0) >= MIN_DURATION_MINUTES &&
-                    (drive.distance ?: 0.0) >= MIN_DISTANCE_KM
-            }
+            allDrives.filter { it.isSignificant() }
         }
 
         // Apply distance filter for list display

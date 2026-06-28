@@ -258,7 +258,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Short drives &amp; charges</string>
-    <string name="settings_short_dialog_text">When disabled (default), the following are hidden from the lists:\n\n• Drives under 1 minute or less than 0.1 km\n• Charges of 0.1 kWh or less\n\nThese entries are still included in totals, averages, and statistics. Enable this setting to see all entries in the lists.</string>
+    <string name="settings_short_dialog_text">When disabled (default), the following are hidden from the lists:\n\n• Drives under 1 minute or less than 1 km\n• Charges of 0.1 kWh or less\n\nThese entries are still included in totals, averages, and statistics. Enable this setting to see all entries in the lists.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Force Full Resync</string>

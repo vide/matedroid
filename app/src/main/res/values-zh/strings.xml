@@ -255,7 +255,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">短途行程和充电</string>
-    <string name="settings_short_dialog_text">关闭时（默认），以下内容将从列表中隐藏：\n\n• 不足 1 分钟或不到 0.1 km 的行程\n• 0.1 kWh 以下的充电\n\n这些记录仍会计入总计、平均值和统计数据。启用此设置可在列表中查看所有记录。</string>
+    <string name="settings_short_dialog_text">关闭时（默认），以下内容将从列表中隐藏：\n\n• 不足 1 分钟或不到 1 km 的行程\n• 0.1 kWh 以下的充电\n\n这些记录仍会计入总计、平均值和统计数据。启用此设置可在列表中查看所有记录。</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">强制全量同步</string>

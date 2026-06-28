@@ -11,6 +11,7 @@ import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.LocalDayBoundaries
+import com.matedroid.domain.isSignificant
 import android.content.Context
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -131,8 +132,6 @@ class ChargesViewModel @Inject constructor(
     private var allCharges: List<ChargeData> = emptyList()
 
     companion object {
-        private const val MIN_ENERGY_KWH = 0.1
-
         private const val KEY_DATE_FILTER = "filter_date"
         private const val KEY_CHARGE_TYPE_FILTER = "filter_charge_type"
         private const val KEY_COST_FILTER = "filter_cost"
@@ -374,13 +373,11 @@ class ChargesViewModel @Inject constructor(
         val dcChargeIds = state.dcChargeIds
         val granularity = state.chartGranularity
 
-        // First apply short charges filter
+        // First apply short charges filter (see ShortEntryFilter for the shared rule)
         var filteredCharges = if (showShortDrivesCharges) {
             allCharges
         } else {
-            allCharges.filter { charge ->
-                (charge.chargeEnergyAdded ?: 0.0) > MIN_ENERGY_KWH
-            }
+            allCharges.filter { it.isSignificant() }
         }
 
         // Apply charge type filter (AC/DC) for list display

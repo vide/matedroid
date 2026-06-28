@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.isSignificant
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
@@ -216,6 +217,7 @@ fun TripsScreen(
                         units = uiState.units,
                         palette = palette,
                         dcChargeIds = uiState.dcChargeIds,
+                        showShortDrivesCharges = uiState.showShortDrivesCharges,
                         onTripClick = { trip ->
                             viewModel.cacheTrip(trip)
                             onNavigateToTripDetail(trip.startDate)
@@ -243,6 +245,7 @@ private fun TripsContent(
     units: Units?,
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
+    showShortDrivesCharges: Boolean,
     onTripClick: (Trip) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -311,6 +314,7 @@ private fun TripsContent(
                 units = units,
                 palette = palette,
                 dcChargeIds = dcChargeIds,
+                showShort = showShortDrivesCharges,
                 onClick = { onTripClick(trip) }
             )
         }
@@ -429,13 +433,17 @@ private fun TripItem(
     units: Units?,
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
+    showShort: Boolean,
     onClick: () -> Unit
 ) {
     // Segments memoized per trip — pure computation on the in-memory Trip, cheap enough for
     // every visible list row (LazyColumn composes ~10 at a time). Keys include dcChargeIds so
-    // the strip recolors if the DC set ever changes.
-    val segments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) }
-    val chargeCount = trip.charges.size
+    // the strip recolors if the DC set ever changes, and showShort so the strip rebuilds when
+    // the short-entries setting is toggled.
+    val segments = remember(trip, dcChargeIds, showShort) {
+        buildTimelineSegments(trip, dcChargeIds, showShort = showShort)
+    }
+    val chargeCount = if (showShort) trip.charges.size else trip.charges.count { it.isSignificant() }
 
     Card(
         modifier = Modifier

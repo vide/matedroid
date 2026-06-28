@@ -82,6 +82,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.isSignificant
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
@@ -231,7 +232,8 @@ fun TripDetailScreen(
                         onCountryClick = onNavigateToCountryStats,
                         onAddLeg = viewModel::openAddLegSheet,
                         onMergeTrip = viewModel::openMergeSheet,
-                        currencySymbol = uiState.currencySymbol
+                        currencySymbol = uiState.currencySymbol,
+                        showShortDrivesCharges = uiState.showShortDrivesCharges
                     )
                 }
             }
@@ -296,6 +298,7 @@ private fun TripDetailContent(
     onAddLeg: () -> Unit,
     onMergeTrip: () -> Unit,
     currencySymbol: String,
+    showShortDrivesCharges: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -313,7 +316,9 @@ private fun TripDetailContent(
         }
         val startCity = remember(trip.startAddress) { extractCity(trip.startAddress) }
         val endCity = remember(trip.endAddress) { extractCity(trip.endAddress) }
-        val timelineSegments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) }
+        val timelineSegments = remember(trip, dcChargeIds, showShortDrivesCharges) {
+            buildTimelineSegments(trip, dcChargeIds, showShort = showShortDrivesCharges)
+        }
         val timelineCountries = remember(countries) {
             countries.map { TripTimelineCountry(it.countryCode, it.flagEmoji) }
         }
@@ -342,7 +347,9 @@ private fun TripDetailContent(
             totalDurationMin = trip.totalDurationMin,
             totalDrivingDurationMin = trip.totalDrivingDurationMin,
             totalChargingDurationMin = totalChargingDurationMin,
-            onCountryClick = onCountryClick
+            onCountryClick = onCountryClick,
+            onDriveClick = onDriveClick,
+            onChargeClick = onChargeClick
         )
 
         if ((trip.totalChargeCost ?: 0.0) > 0.0) {
@@ -363,7 +370,9 @@ private fun TripDetailContent(
             units = units
         )
 
-        val legs = remember(trip) { buildLegList(trip) }
+        val legs = remember(trip, showShortDrivesCharges) { buildLegList(trip, showShortDrivesCharges) }
+        val driveLegCount = remember(legs) { legs.count { it is TripLeg.Drive } }
+        val chargeLegCount = remember(legs) { legs.count { it is TripLeg.Charge } }
         var legsExpanded by rememberSaveable { mutableStateOf(false) }
         val legsChevronRotation by animateFloatAsState(
             targetValue = if (legsExpanded) 90f else 0f,
@@ -399,7 +408,7 @@ private fun TripDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${trip.drives.size}",
+                        text = "$driveLegCount",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = palette.accent
@@ -411,7 +420,7 @@ private fun TripDetailContent(
                         modifier = Modifier.size(16.dp),
                         tint = palette.accent
                     )
-                    if (trip.charges.isNotEmpty()) {
+                    if (chargeLegCount > 0) {
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = "+",
@@ -420,7 +429,7 @@ private fun TripDetailContent(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = "${trip.charges.size}",
+                            text = "$chargeLegCount",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = palette.accent
@@ -1360,13 +1369,16 @@ private sealed class TripLeg {
     ) : TripLeg()
 }
 
-private fun buildLegList(trip: Trip): List<TripLeg> {
+private fun buildLegList(trip: Trip, showShort: Boolean): List<TripLeg> {
     val legs = mutableListOf<TripLeg>()
     var driveIdx = 0
     var chargeIdx = 0
+    // Hide short legs unless the user opted in — same rule as the timeline (ShortEntryFilter).
+    val drives = if (showShort) trip.drives else trip.drives.filter { it.isSignificant() }
+    val charges = if (showShort) trip.charges else trip.charges.filter { it.isSignificant() }
     val allEvents = mutableListOf<Pair<String, Any>>()
-    trip.drives.forEach { allEvents.add(it.startDate to it) }
-    trip.charges.forEach { allEvents.add(it.startDate to it) }
+    drives.forEach { allEvents.add(it.startDate to it) }
+    charges.forEach { allEvents.add(it.startDate to it) }
     allEvents.sortBy { it.first }
     for ((_, event) in allEvents) {
         when (event) {

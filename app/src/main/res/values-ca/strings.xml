@@ -255,7 +255,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Trajectes i càrregues curts</string>
-    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Trajectes de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
+    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Trajectes de menys d\'1 minut o menys d\'1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Força resincronització completa</string>

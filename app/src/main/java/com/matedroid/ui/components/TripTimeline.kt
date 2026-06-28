@@ -8,8 +8,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
@@ -25,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Power
@@ -70,7 +69,6 @@ import com.matedroid.util.formatDuration
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
-import kotlin.math.max
 import kotlin.math.sqrt
 
 /** A segment in a trip timeline, representing a slice of the trip's wall-clock time. */
@@ -81,14 +79,16 @@ sealed class TripTimelineSegment {
     data class Drive(
         override val durationMin: Int,
         val index: Int,
-        val distanceKm: Double
+        val distanceKm: Double,
+        val driveId: Int
     ) : TripTimelineSegment()
 
     data class Charge(
         override val durationMin: Int,
         val index: Int,
         val energyKwh: Double,
-        val isDc: Boolean
+        val isDc: Boolean,
+        val chargeId: Int
     ) : TripTimelineSegment()
 
     data class Parking(
@@ -112,7 +112,15 @@ data class TripTimelineCountry(
 private const val IDLE_LINEAR_THRESHOLD_MIN = 30f
 private const val IDLE_COMPRESSION_SCALE = 0.5f
 
-private const val MIN_SEGMENT_RATIO = 0.02f
+/**
+ * Per-segment "base" share of the bar, added to every segment before the remaining width is
+ * handed out strictly in proportion to duration. Using an *additive* base (instead of a hard
+ * `max(weight, floor)`) keeps the briefest legs visible and tappable without inflating them to
+ * the floor: a 2-minute drive no longer renders nearly as wide as one 40× longer. Capped so the
+ * bases never swallow more than [SEGMENT_BASE_MAX_TOTAL] of the bar when there are many segments.
+ */
+private const val SEGMENT_BASE_FRACTION = 0.012f
+private const val SEGMENT_BASE_MAX_TOTAL = 0.4f
 
 /**
  * Horizontal trip timeline bar. Each segment's width is proportional to its duration,
@@ -132,6 +140,8 @@ fun TripTimeline(
     totalDrivingDurationMin: Int,
     totalChargingDurationMin: Int,
     onCountryClick: (countryCode: String) -> Unit = {},
+    onDriveClick: (driveId: Int) -> Unit = {},
+    onChargeClick: (chargeId: Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (segments.isEmpty()) return
@@ -172,7 +182,9 @@ fun TripTimeline(
                 countries = countries,
                 palette = palette,
                 parkingColor = parkingColor,
-                onCountryClick = onCountryClick
+                onCountryClick = onCountryClick,
+                onDriveClick = onDriveClick,
+                onChargeClick = onChargeClick
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -215,9 +227,7 @@ fun TripTimeline(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Durations on their own full-width line so they never get starved into
-            // wrapping; FlowRow lets them spill to a second line gracefully if a large
-            // font scale leaves no room for all three on one line.
+            // Driving / charging totals as hero tiles, with the overall total beneath.
             DurationSummary(
                 totalDurationMin = totalDurationMin,
                 totalDrivingDurationMin = totalDrivingDurationMin,
@@ -229,7 +239,6 @@ fun TripTimeline(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DurationSummary(
     totalDurationMin: Int,
@@ -239,49 +248,91 @@ private fun DurationSummary(
     modifier: Modifier = Modifier
 ) {
     val resources = LocalContext.current.resources
-    FlowRow(
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        DurationItem(
-            icon = CustomIcons.SteeringWheel,
-            text = formatDuration(resources, totalDrivingDurationMin),
-            tint = palette.accent
-        )
-        if (totalChargingDurationMin > 0) {
-            DurationItem(
-                icon = Icons.Filled.ElectricBolt,
-                text = formatDuration(resources, totalChargingDurationMin),
-                tint = palette.accent
+        // Hero tiles: driving + charging are the headline figures.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DurationTile(
+                icon = CustomIcons.SteeringWheel,
+                label = stringResource(R.string.trip_timeline_driving),
+                value = formatDuration(resources, totalDrivingDurationMin),
+                accent = palette.accent,
+                modifier = Modifier.weight(1f)
+            )
+            if (totalChargingDurationMin > 0) {
+                DurationTile(
+                    icon = Icons.Filled.ElectricBolt,
+                    label = stringResource(R.string.charging),
+                    value = formatDuration(resources, totalChargingDurationMin),
+                    accent = palette.accent,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        // Overall total — demoted to a quiet caption beneath the tiles.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.Schedule,
+                contentDescription = null,
+                modifier = Modifier.size(13.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = "${formatDuration(resources, totalDurationMin)} · ${stringResource(R.string.total)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false
             )
         }
-        DurationItem(
-            icon = Icons.Filled.Schedule,
-            text = formatDuration(resources, totalDurationMin),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
 @Composable
-private fun DurationItem(
+private fun DurationTile(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    text: String,
-    tint: Color
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(12.dp),
-            tint = tint
-        )
-        Spacer(Modifier.width(3.dp))
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(vertical = 12.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+                tint = accent
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label.uppercase(Locale.getDefault()),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
         Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
             maxLines = 1,
             softWrap = false
         )
@@ -296,7 +347,9 @@ private fun InfoPanel(
     countries: List<TripTimelineCountry>,
     palette: CarColorPalette,
     parkingColor: Color,
-    onCountryClick: (countryCode: String) -> Unit
+    onCountryClick: (countryCode: String) -> Unit,
+    onDriveClick: (driveId: Int) -> Unit,
+    onChargeClick: (chargeId: Int) -> Unit
 ) {
     // Reserve a constant height so tapping segments doesn't shift the bar position
     Box(
@@ -309,7 +362,9 @@ private fun InfoPanel(
             SegmentInfoContent(
                 segment = selection.second,
                 palette = palette,
-                parkingColor = parkingColor
+                parkingColor = parkingColor,
+                onDriveClick = onDriveClick,
+                onChargeClick = onChargeClick
             )
         } else {
             RouteHeaderContent(
@@ -326,12 +381,16 @@ private fun InfoPanel(
 private fun SegmentInfoContent(
     segment: TripTimelineSegment,
     palette: CarColorPalette,
-    parkingColor: Color
+    parkingColor: Color,
+    onDriveClick: (driveId: Int) -> Unit,
+    onChargeClick: (chargeId: Int) -> Unit
 ) {
     val resources = LocalContext.current.resources
     val title: String
     val subtitle: String
     val dotColor: Color
+    // Drives and charges link to their detail screen; parking gaps have no detail.
+    val onClick: (() -> Unit)?
     when (segment) {
         is TripTimelineSegment.Drive -> {
             title = "${stringResource(R.string.trip_timeline_driving)} · " +
@@ -341,6 +400,7 @@ private fun SegmentInfoContent(
                 formatDuration(resources, segment.durationMin)
             )
             dotColor = palette.accent
+            onClick = { onDriveClick(segment.driveId) }
         }
         is TripTimelineSegment.Charge -> {
             val chargeLabel = if (segment.isDc) {
@@ -355,14 +415,26 @@ private fun SegmentInfoContent(
                 formatDuration(resources, segment.durationMin)
             )
             dotColor = if (segment.isDc) palette.dcColor else palette.acColor
+            onClick = { onChargeClick(segment.chargeId) }
         }
         is TripTimelineSegment.Parking -> {
             title = stringResource(R.string.trip_timeline_parked)
             subtitle = formatDuration(resources, segment.durationMin)
             dotColor = parkingColor
+            onClick = null
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = if (onClick != null) {
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+        } else {
+            Modifier.fillMaxWidth()
+        },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
                 .size(12.dp)
@@ -370,7 +442,7 @@ private fun SegmentInfoContent(
                 .background(dotColor)
         )
         Spacer(modifier = Modifier.width(10.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
@@ -380,6 +452,15 @@ private fun SegmentInfoContent(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // Chevron signals the detail is tappable (project convention for linked rows).
+        if (onClick != null) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -483,8 +564,12 @@ private fun Endpoint(
     }
 }
 
-/** Minimum width per segment in the scrollable detail bar. */
-private val DETAIL_MIN_SEGMENT_DP = 28.dp
+/**
+ * Base width every segment gets in the scrollable detail bar, *added* to its proportional width
+ * (not used as a hard floor). Keeps the briefest leg a tappable sliver while a longer leg always
+ * stays proportionally wider — a 2-minute drive no longer matches the width of a 90-minute one.
+ */
+private val DETAIL_BASE_SEGMENT_DP = 6.dp
 
 /** Dp per minute of (compressed) weight when sizing the detail bar. Higher = wider. */
 private const val DETAIL_WEIGHT_TO_DP = 0.5f
@@ -500,12 +585,12 @@ private fun TimelineBar(
     val density = LocalDensity.current
 
     // Pixel widths each segment would occupy in the detail bar (not yet laid out).
+    // Additive base + proportional, so brief legs stay thin instead of snapping to a fat floor.
     val detailWidthsPx = remember(segments, density.density) {
-        val minPx = with(density) { DETAIL_MIN_SEGMENT_DP.toPx() }
+        val basePx = with(density) { DETAIL_BASE_SEGMENT_DP.toPx() }
         val pxPerWeight = DETAIL_WEIGHT_TO_DP * density.density
         segments.map { seg ->
-            val w = segmentWeight(seg)
-            max(w * pxPerWeight, minPx)
+            basePx + segmentWeight(seg) * pxPerWeight
         }
     }
     val totalDetailPx = detailWidthsPx.sum()
@@ -878,17 +963,21 @@ private fun segmentWeight(seg: TripTimelineSegment): Float = when (seg) {
     is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
 }
 
-/** Compute visual width ratios for each segment, with shared compression on idle segments. */
+/**
+ * Compute visual width ratios for each segment. Each segment gets a small fixed base share, and
+ * the remaining width is split strictly in proportion to (compressed) duration. This keeps the
+ * shortest legs as visible slivers while preserving honest proportions — unlike a hard minimum
+ * floor, which would round every brief leg up to the same fat width. Ratios sum to 1.
+ */
 private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
     val weights = segments.map { segmentWeight(it) }
     val total = weights.sum().coerceAtLeast(1f)
     val raw = weights.map { it / total }
-    // Lift to minimum and renormalize (cap min so n * min <= 1)
-    val effectiveMin = MIN_SEGMENT_RATIO.coerceAtMost(1f / segments.size)
-    val lifted = raw.map { max(it, effectiveMin) }
-    val liftedSum = lifted.sum()
-    return lifted.map { it / liftedSum }
+    // Per-segment base, capped so all bases together never exceed SEGMENT_BASE_MAX_TOTAL.
+    val base = SEGMENT_BASE_FRACTION.coerceAtMost(SEGMENT_BASE_MAX_TOTAL / segments.size)
+    val proportionalShare = 1f - base * segments.size
+    return raw.map { base + it * proportionalShare }
 }
 
 /** Linear up to 30min, then sqrt-compressed and scaled down. Used for both parking gaps and AC charges. */

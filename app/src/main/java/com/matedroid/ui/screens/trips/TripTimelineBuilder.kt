@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.trips
 
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveSummary
+import com.matedroid.domain.isSignificant
 import com.matedroid.domain.model.Trip
 import com.matedroid.ui.components.TripTimelineSegment
 import com.matedroid.util.parseIsoDateTime
@@ -16,14 +17,23 @@ private const val MIN_PARKING_GAP_MIN = 5L
  *
  * [dcChargeIds] is the set of charge IDs that are DC fast chargers, used to color the
  * charge segments correctly (orange for DC, green for AC). For legs not in the set, AC is assumed.
+ *
+ * [showShort] mirrors the `showShortDrivesCharges` setting: when false (the default), short
+ * drives/charges are dropped from the timeline so tiny legs don't clutter the strip. See
+ * [com.matedroid.domain.ShortEntryFilter] for the shared rule. Totals shown elsewhere on the
+ * screen come from the full trip and are unaffected by this flag.
  */
 fun buildTimelineSegments(
     trip: Trip,
-    dcChargeIds: Set<Int> = emptySet()
+    dcChargeIds: Set<Int> = emptySet(),
+    showShort: Boolean
 ): List<TripTimelineSegment> {
+    val drives = if (showShort) trip.drives else trip.drives.filter { it.isSignificant() }
+    val charges = if (showShort) trip.charges else trip.charges.filter { it.isSignificant() }
+
     val allEvents = mutableListOf<Pair<String, Any>>()
-    trip.drives.forEach { allEvents.add(it.startDate to it) }
-    trip.charges.forEach { allEvents.add(it.startDate to it) }
+    drives.forEach { allEvents.add(it.startDate to it) }
+    charges.forEach { allEvents.add(it.startDate to it) }
     allEvents.sortBy { it.first }
 
     val segments = mutableListOf<TripTimelineSegment>()
@@ -51,7 +61,8 @@ fun buildTimelineSegments(
                     TripTimelineSegment.Drive(
                         durationMin = event.durationMin,
                         index = driveIdx,
-                        distanceKm = event.distance
+                        distanceKm = event.distance,
+                        driveId = event.driveId
                     )
                 )
             }
@@ -62,7 +73,8 @@ fun buildTimelineSegments(
                         durationMin = event.durationMin,
                         index = chargeIdx,
                         energyKwh = event.energyAdded,
-                        isDc = event.chargeId in dcChargeIds
+                        isDc = event.chargeId in dcChargeIds,
+                        chargeId = event.chargeId
                     )
                 )
             }
