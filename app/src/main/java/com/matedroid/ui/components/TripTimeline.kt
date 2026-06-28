@@ -71,7 +71,6 @@ import com.matedroid.util.formatDuration
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
-import kotlin.math.max
 import kotlin.math.sqrt
 
 /** A segment in a trip timeline, representing a slice of the trip's wall-clock time. */
@@ -115,7 +114,15 @@ data class TripTimelineCountry(
 private const val IDLE_LINEAR_THRESHOLD_MIN = 30f
 private const val IDLE_COMPRESSION_SCALE = 0.5f
 
-private const val MIN_SEGMENT_RATIO = 0.02f
+/**
+ * Per-segment "base" share of the bar, added to every segment before the remaining width is
+ * handed out strictly in proportion to duration. Using an *additive* base (instead of a hard
+ * `max(weight, floor)`) keeps the briefest legs visible and tappable without inflating them to
+ * the floor: a 2-minute drive no longer renders nearly as wide as one 40× longer. Capped so the
+ * bases never swallow more than [SEGMENT_BASE_MAX_TOTAL] of the bar when there are many segments.
+ */
+private const val SEGMENT_BASE_FRACTION = 0.012f
+private const val SEGMENT_BASE_MAX_TOTAL = 0.4f
 
 /**
  * Horizontal trip timeline bar. Each segment's width is proportional to its duration,
@@ -520,8 +527,12 @@ private fun Endpoint(
     }
 }
 
-/** Minimum width per segment in the scrollable detail bar. */
-private val DETAIL_MIN_SEGMENT_DP = 28.dp
+/**
+ * Base width every segment gets in the scrollable detail bar, *added* to its proportional width
+ * (not used as a hard floor). Keeps the briefest leg a tappable sliver while a longer leg always
+ * stays proportionally wider — a 2-minute drive no longer matches the width of a 90-minute one.
+ */
+private val DETAIL_BASE_SEGMENT_DP = 6.dp
 
 /** Dp per minute of (compressed) weight when sizing the detail bar. Higher = wider. */
 private const val DETAIL_WEIGHT_TO_DP = 0.5f
@@ -537,12 +548,12 @@ private fun TimelineBar(
     val density = LocalDensity.current
 
     // Pixel widths each segment would occupy in the detail bar (not yet laid out).
+    // Additive base + proportional, so brief legs stay thin instead of snapping to a fat floor.
     val detailWidthsPx = remember(segments, density.density) {
-        val minPx = with(density) { DETAIL_MIN_SEGMENT_DP.toPx() }
+        val basePx = with(density) { DETAIL_BASE_SEGMENT_DP.toPx() }
         val pxPerWeight = DETAIL_WEIGHT_TO_DP * density.density
         segments.map { seg ->
-            val w = segmentWeight(seg)
-            max(w * pxPerWeight, minPx)
+            basePx + segmentWeight(seg) * pxPerWeight
         }
     }
     val totalDetailPx = detailWidthsPx.sum()
@@ -915,17 +926,21 @@ private fun segmentWeight(seg: TripTimelineSegment): Float = when (seg) {
     is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
 }
 
-/** Compute visual width ratios for each segment, with shared compression on idle segments. */
+/**
+ * Compute visual width ratios for each segment. Each segment gets a small fixed base share, and
+ * the remaining width is split strictly in proportion to (compressed) duration. This keeps the
+ * shortest legs as visible slivers while preserving honest proportions — unlike a hard minimum
+ * floor, which would round every brief leg up to the same fat width. Ratios sum to 1.
+ */
 private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
     val weights = segments.map { segmentWeight(it) }
     val total = weights.sum().coerceAtLeast(1f)
     val raw = weights.map { it / total }
-    // Lift to minimum and renormalize (cap min so n * min <= 1)
-    val effectiveMin = MIN_SEGMENT_RATIO.coerceAtMost(1f / segments.size)
-    val lifted = raw.map { max(it, effectiveMin) }
-    val liftedSum = lifted.sum()
-    return lifted.map { it / liftedSum }
+    // Per-segment base, capped so all bases together never exceed SEGMENT_BASE_MAX_TOTAL.
+    val base = SEGMENT_BASE_FRACTION.coerceAtMost(SEGMENT_BASE_MAX_TOTAL / segments.size)
+    val proportionalShare = 1f - base * segments.size
+    return raw.map { base + it * proportionalShare }
 }
 
 /** Linear up to 30min, then sqrt-compressed and scaled down. Used for both parking gaps and AC charges. */
