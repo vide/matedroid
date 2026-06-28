@@ -1367,6 +1367,18 @@
     <string name="compare_empty">No comparable DC charges nearby</string>
     <!-- Chart title: charging power against state of charge -->
     <string name="compare_power_vs_soc">Power vs SoC</string>
+    <!-- Drive comparison feature -->
+    <string name="compare_drives_title">Compare drives</string>
+    <string name="compare_this_drive">This drive</string>
+    <!-- %1$d = number of drives -->
+    <string name="compare_drives_scope">%1$d drives · same route</string>
+    <string name="compare_drives_empty">No comparable drives on this route</string>
+    <string name="compare_speed_vs_distance">Speed vs distance</string>
+    <!-- %d = number of comparable drives on this route -->
+    <plurals name="compare_drives_nearby">
+        <item quantity="one">%d comparable drive</item>
+        <item quantity="other">%d comparable drives</item>
+    </plurals>
     <!-- %1$d = number of charges, %2$d = radius in km -->
     <string name="compare_scope">%1$d charges · within %2$d km</string>
     <!-- %d = number of comparable charges near this one -->

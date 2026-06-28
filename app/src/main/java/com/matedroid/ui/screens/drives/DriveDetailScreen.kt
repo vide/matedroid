@@ -21,14 +21,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocationOn
 import com.matedroid.ui.icons.CustomIcons
@@ -67,6 +70,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -78,6 +82,7 @@ import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.WeatherPoint
+import com.matedroid.domain.DriveComparison
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -102,6 +107,7 @@ fun DriveDetailScreen(
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit,
     onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
+    onNavigateToCompare: (baseDriveId: Int) -> Unit = {},
     viewModel: DriveDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -154,6 +160,8 @@ fun DriveDetailScreen(
                     weatherPoints = uiState.weatherPoints,
                     isLoadingWeather = uiState.isLoadingWeather,
                     containingTrip = uiState.containingTrip,
+                    comparison = uiState.comparison,
+                    onCompareClick = { onNavigateToCompare(driveId) },
                     onNavigateToTripDetail = onNavigateToTripDetail,
                     onRemoveFromTrip = viewModel::removeFromTrip,
                     modifier = Modifier.padding(padding)
@@ -172,6 +180,8 @@ private fun DriveDetailContent(
     weatherPoints: List<WeatherPoint>,
     isLoadingWeather: Boolean,
     containingTrip: Pair<Long, com.matedroid.domain.model.Trip>?,
+    comparison: DriveComparison?,
+    onCompareClick: () -> Unit,
     onNavigateToTripDetail: (String) -> Unit,
     onRemoveFromTrip: () -> Unit,
     modifier: Modifier = Modifier
@@ -214,6 +224,11 @@ private fun DriveDetailContent(
 
         // Accent stat tiles — efficiency and its main confounders
         stats?.let { s -> DriveStatTiles(stats = s, units = units, palette = palette) }
+
+        // Compare entry — appears for drives with comparable sessions on the same route
+        comparison?.let { cmp ->
+            DriveCompareCard(comparison = cmp, palette = palette, onClick = onCompareClick)
+        }
 
         // Primary chart: speed profile, accent-tinted
         if (hasCharts && positions!!.any { it.speed != null }) {
@@ -472,6 +487,61 @@ private fun DriveStatTile(
             fontWeight = FontWeight.Bold,
             color = accent,
             maxLines = 1
+        )
+    }
+}
+
+/** Entry point into the drive-comparison screen, shown only for drives with comparable siblings. */
+@Composable
+private fun DriveCompareCard(
+    comparison: DriveComparison,
+    palette: CarColorPalette,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.accent.copy(alpha = 0.12f))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(palette.accent.copy(alpha = 0.20f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Insights,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.compare_drives_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.compare_drives_nearby,
+                    comparison.others.size,
+                    comparison.others.size
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

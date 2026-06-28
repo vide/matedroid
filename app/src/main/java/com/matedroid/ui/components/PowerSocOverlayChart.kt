@@ -61,7 +61,10 @@ data class OverlayCurve(
 fun PowerSocOverlayChart(
     curves: List<OverlayCurve>,
     modifier: Modifier = Modifier,
-    chartHeight: Dp = 190.dp
+    chartHeight: Dp = 190.dp,
+    xUnit: String = "%",
+    xCaption: String = " SoC",
+    valueUnit: String = "kW"
 ) {
     val valid = curves.filter { it.points.size >= 2 }
     if (valid.isEmpty()) return
@@ -129,7 +132,7 @@ fun PowerSocOverlayChart(
             for (i in 0..4) {
                 val soc = socMin + socRange * i / 4f
                 val x = xFor(soc)
-                val txt = "${soc.roundToInt()}%"
+                val txt = "${soc.roundToInt()}$xUnit"
                 val tw = labelPaint.measureText(txt)
                 val tx = when (i) {
                     0 -> 0f
@@ -203,7 +206,7 @@ fun PowerSocOverlayChart(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "${soc.roundToInt()}% SoC",
+                        text = "${soc.roundToInt()}$xUnit$xCaption",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -218,7 +221,7 @@ fun PowerSocOverlayChart(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${power.roundToInt()} kW",
+                                text = "${power.roundToInt()} $valueUnit",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
