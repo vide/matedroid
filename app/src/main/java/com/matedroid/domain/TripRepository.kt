@@ -498,7 +498,8 @@ class TripRepository @Inject constructor(
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val trip = TripAggregator.buildTrip(
             tripDrivesIn(match, drives),
-            tripChargesIn(match, charges)
+            tripChargesIn(match, charges),
+            name = match.trip.name
         ) ?: return null
         return match.trip.id to trip
     }

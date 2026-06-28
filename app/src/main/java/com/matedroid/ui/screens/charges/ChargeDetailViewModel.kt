@@ -29,7 +29,8 @@ data class ChargeDetailUiState(
     val stats: ChargeDetailStats? = null,
     val currencySymbol: String = "€",
     val isDcCharge: Boolean = false,
-    val containingTrip: Pair<Long, Trip>? = null
+    val containingTrip: Pair<Long, Trip>? = null,
+    val teslamateBaseUrl: String = ""
 )
 
 data class ChargeDetailStats(
@@ -76,7 +77,12 @@ class ChargeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = settingsDataStore.settings.first()
             val currency = Currency.findByCode(settings.currencyCode)
-            _uiState.update { it.copy(currencySymbol = currency.symbol) }
+            _uiState.update {
+                it.copy(
+                    currencySymbol = currency.symbol,
+                    teslamateBaseUrl = settings.teslamateBaseUrl
+                )
+            }
         }
     }
 

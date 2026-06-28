@@ -77,7 +77,7 @@ import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDuration
-import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
 import java.util.Locale
@@ -537,7 +537,7 @@ private fun pluralStopsLabel(count: Int): String =
 
 private fun formatDateChip(dateStr: String): String {
     val dt = parseIsoDateTime(dateStr) ?: return dateStr
-    return dt.toLocalDate().formatMediumNoYear(Locale.getDefault()).uppercase(Locale.getDefault())
+    return dt.toLocalDate().formatMedium(Locale.getDefault()).uppercase(Locale.getDefault())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
