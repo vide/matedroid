@@ -380,18 +380,29 @@ class ChargesViewModel @Inject constructor(
             allCharges.filter { it.isSignificant() }
         }
 
+        // DC/AC classification matching the list badge: exact for processed charges, average-power
+        // heuristic for not-yet-synced ones (issue #313).
+        val processedChargeIds = state.processedChargeIds
+        fun isDc(charge: ChargeData) = ChargeStatsCalculator.isDcCharge(
+            chargeId = charge.chargeId,
+            energyAddedKwh = charge.chargeEnergyAdded,
+            durationMin = charge.durationMin,
+            dcChargeIds = dcChargeIds,
+            processedChargeIds = processedChargeIds
+        )
+
         // Apply charge type filter (AC/DC) for list display
         val displayCharges = when (chargeTypeFilter) {
             ChargeTypeFilter.ALL -> filteredCharges
-            ChargeTypeFilter.DC -> filteredCharges.filter { it.chargeId in dcChargeIds }
-            ChargeTypeFilter.AC -> filteredCharges.filter { it.chargeId !in dcChargeIds }
+            ChargeTypeFilter.DC -> filteredCharges.filter { isDc(it) }
+            ChargeTypeFilter.AC -> filteredCharges.filter { !isDc(it) }
         }
 
         // Apply charge type filter to all charges for summary/charts (include short charges)
         val chargesForStats = when (chargeTypeFilter) {
             ChargeTypeFilter.ALL -> allCharges
-            ChargeTypeFilter.DC -> allCharges.filter { it.chargeId in dcChargeIds }
-            ChargeTypeFilter.AC -> allCharges.filter { it.chargeId !in dcChargeIds }
+            ChargeTypeFilter.DC -> allCharges.filter { isDc(it) }
+            ChargeTypeFilter.AC -> allCharges.filter { !isDc(it) }
         }
 
         // Extract unique locations from the complete set

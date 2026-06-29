@@ -146,6 +146,7 @@ fun ChargesScreen(
                 ChargesContent(
                     charges = uiState.charges,
                     dcChargeIds = uiState.dcChargeIds,
+                    processedChargeIds = uiState.processedChargeIds,
                     chartData = uiState.chartData,
                     chartGranularity = uiState.chartGranularity,
                     summary = uiState.summary,
@@ -184,6 +185,7 @@ fun ChargesScreen(
 private fun ChargesContent(
     charges: List<ChargeData>,
     dcChargeIds: Set<Int>,
+    processedChargeIds: Set<Int>,
     chartData: List<ChargeChartData>,
     chartGranularity: ChartGranularity,
     summary: ChargesSummary,
@@ -328,9 +330,15 @@ private fun ChargesContent(
             items(charges, key = { it.chargeId }) { charge ->
                 ChargeItem(
                     charge = charge,
-                    // Show DC badge if in dcChargeIds, AC otherwise
-                    // Will be correct once sync has processed charge details
-                    isDcCharge = charge.chargeId in dcChargeIds,
+                    // Exact for processed charges; for not-yet-synced ones, fall back to an
+                    // average-power heuristic so recent DC charges aren't shown as AC (issue #313).
+                    isDcCharge = ChargeStatsCalculator.isDcCharge(
+                        chargeId = charge.chargeId,
+                        energyAddedKwh = charge.chargeEnergyAdded,
+                        durationMin = charge.durationMin,
+                        dcChargeIds = dcChargeIds,
+                        processedChargeIds = processedChargeIds
+                    ),
                     currencySymbol = currencySymbol,
                     palette = palette,
                     onEditCost = if (teslamateBaseUrl.isNotBlank()) {
