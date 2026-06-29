@@ -204,6 +204,7 @@ private fun CompareContent(
             val keep = sortedSetOf<Int>()
             listOf(0, 1, 2).forEach { if (it in ranked.indices) keep.add(it) }
             for (d in -1..1) (baseIndex + d).let { if (it in ranked.indices) keep.add(it) }
+            if (ranked.isNotEmpty()) keep.add(ranked.lastIndex) // always show the worst run
             keep.toList()
         }
 
@@ -231,13 +232,6 @@ private fun CompareContent(
                 title = stringResource(R.string.compare_average),
                 caption = pluralStringResource(R.plurals.compare_drives_nearby, comparison.average.count, comparison.average.count),
                 value = averageValue(comparison.average, sort, units),
-                palette = palette
-            )
-            ReferenceRow(
-                leading = "↑",
-                title = "P100",
-                caption = null,
-                value = p100Value(comparison.all, sort, units),
                 palette = palette
             )
         }
@@ -314,13 +308,6 @@ private fun averageValue(average: DriveAverage, sort: DriveCompareSort, units: U
         DriveCompareSort.EFFICIENCY -> average.efficiency?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
         DriveCompareSort.DURATION -> formatDurationCompact(average.durationMin)
         DriveCompareSort.SPEED -> UnitFormatter.formatSpeed(average.speedAvg.toDouble(), units)
-    }
-
-private fun p100Value(all: List<ComparableDrive>, sort: DriveCompareSort, units: Units?): String =
-    when (sort) {
-        DriveCompareSort.EFFICIENCY -> all.mapNotNull { it.efficiency }.maxOrNull()?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
-        DriveCompareSort.DURATION -> all.maxOfOrNull { it.durationMin }?.let { formatDurationCompact(it) } ?: "—"
-        DriveCompareSort.SPEED -> all.maxOfOrNull { it.speedAvg }?.let { UnitFormatter.formatSpeed(it.toDouble(), units) } ?: "—"
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
