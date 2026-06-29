@@ -1258,4 +1258,16 @@
     <string name="duration_months">%1$d个月</string>
     <string name="duration_months_weeks">%1$d个月%2$d周</string>
     <string name="chart_week_label">第%1$d周</string>
+    <string name="more_details">更多详情</string>
+    <string name="hide_details">隐藏详情</string>
+    <string name="peak">峰值</string>
+    <string name="compare_charges_title">比较快充</string>
+    <string name="ranked_by">排序方式</string>
+    <string name="compare_this_charge">本次充电</string>
+    <string name="compare_empty">附近没有可比的快充</string>
+    <string name="compare_power_vs_soc">功率 vs 电量</string>
+    <string name="compare_scope">%1$d 次充电 · %2$d 公里内</string>
+    <plurals name="compare_sessions_nearby">
+        <item quantity="other">附近 %d 次可比充电</item>
+    </plurals>
 </resources>

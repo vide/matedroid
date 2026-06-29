@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.
 
 ### Changed
+- **Redesigned the charge detail screen** — a compact hero (energy added and peak power in the car's accent colour) with quick stat tiles and the power curve up front, while the detailed stats and the battery, temperature and AC charts now live behind a "More details" toggle.
 - **The Trips list now shows the year on each trip's date chip**, not just day and month.
 - **"Short" drives are now those under 1 km** (was 0.1 km), so brief repositioning hops stop cluttering the lists and trip timelines when "Show short drives / charges" is off. Charges are unchanged (0.1 kWh or less).
 - **The trip timeline gives brief legs an honest sliver** instead of a fixed minimum block, so a quick 1 km hop no longer looks nearly as wide as a long highway leg.

@@ -1355,4 +1355,23 @@
     <string name="duration_months_weeks">%1$dmo %2$dw</string>
     <!-- Compact week-of-year label for chart X axes, e.g. "W23" -->
     <string name="chart_week_label">W%1$d</string>
+    <!-- Charge detail: toggle that expands/collapses the secondary stats and charts -->
+    <string name="more_details">More details</string>
+    <string name="hide_details">Hide details</string>
+    <!-- Charge detail hero: label for the maximum/peak charging power figure -->
+    <string name="peak">Peak</string>
+    <!-- Charge comparison feature -->
+    <string name="compare_charges_title">Compare fast charges</string>
+    <string name="ranked_by">Ranked by</string>
+    <string name="compare_this_charge">This charge</string>
+    <string name="compare_empty">No comparable DC charges nearby</string>
+    <!-- Chart title: charging power against state of charge -->
+    <string name="compare_power_vs_soc">Power vs SoC</string>
+    <!-- %1$d = number of charges, %2$d = radius in km -->
+    <string name="compare_scope">%1$d charges · within %2$d km</string>
+    <!-- %d = number of comparable charges near this one -->
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d comparable charge nearby</item>
+        <item quantity="other">%d comparable charges nearby</item>
+    </plurals>
 </resources>

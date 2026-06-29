@@ -1233,4 +1233,17 @@
     <string name="duration_months">%1$dmesi</string>
     <string name="duration_months_weeks">%1$dmesi %2$dsett</string>
     <string name="chart_week_label">S%1$d</string>
+    <string name="more_details">Più dettagli</string>
+    <string name="hide_details">Nascondi dettagli</string>
+    <string name="peak">Picco</string>
+    <string name="compare_charges_title">Confronta ricariche rapide</string>
+    <string name="ranked_by">Ordina per</string>
+    <string name="compare_this_charge">Questa ricarica</string>
+    <string name="compare_empty">Nessuna ricarica rapida confrontabile nelle vicinanze</string>
+    <string name="compare_power_vs_soc">Potenza vs SoC</string>
+    <string name="compare_scope">%1$d ricariche · entro %2$d km</string>
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d ricarica confrontabile nelle vicinanze</item>
+        <item quantity="other">%d ricariche confrontabili nelle vicinanze</item>
+    </plurals>
 </resources>

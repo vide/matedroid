@@ -9,6 +9,8 @@ import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ChargeComparison
+import com.matedroid.domain.ChargeComparisonRepository
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
@@ -30,7 +32,8 @@ data class ChargeDetailUiState(
     val currencySymbol: String = "€",
     val isDcCharge: Boolean = false,
     val containingTrip: Pair<Long, Trip>? = null,
-    val teslamateBaseUrl: String = ""
+    val teslamateBaseUrl: String = "",
+    val comparison: ChargeComparison? = null
 )
 
 data class ChargeDetailStats(
@@ -60,7 +63,8 @@ data class ChargeDetailStats(
 class ChargeDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val chargeComparisonRepository: ChargeComparisonRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChargeDetailUiState())
@@ -97,6 +101,11 @@ class ChargeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val containing = tripRepository.findTripContaining(carId, SavedTripLeg.TYPE_CHARGE, chargeId)
             _uiState.update { it.copy(containingTrip = containing) }
+        }
+
+        viewModelScope.launch {
+            val comparison = chargeComparisonRepository.findComparable(carId, chargeId)
+            _uiState.update { it.copy(comparison = comparison) }
         }
 
         viewModelScope.launch {
