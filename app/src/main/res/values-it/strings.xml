@@ -1246,6 +1246,11 @@
     <string name="compare_drives_scope">%1$d tragitti · stesso percorso</string>
     <string name="compare_drives_empty">Nessun tragitto confrontabile su questo percorso</string>
     <string name="compare_speed_vs_distance">Velocità vs distanza</string>
+    <string name="compare_average">Media</string>
+    <plurals name="compare_more">
+        <item quantity="one">+%d altro</item>
+        <item quantity="other">+%d altri</item>
+    </plurals>
     <plurals name="compare_drives_nearby">
         <item quantity="one">%d tragitto confrontabile</item>
         <item quantity="other">%d tragitti confrontabili</item>

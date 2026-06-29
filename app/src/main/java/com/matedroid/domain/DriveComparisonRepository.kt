@@ -22,6 +22,14 @@ data class ComparableDrive(
     val isBase: Boolean
 )
 
+/** Reference figures averaged across every drive in the comparison set. */
+data class DriveAverage(
+    val efficiency: Double?,
+    val durationMin: Int,
+    val speedAvg: Int,
+    val count: Int
+)
+
 /** A base drive plus the other drives along the same route. */
 data class DriveComparison(
     val base: ComparableDrive,
@@ -30,6 +38,20 @@ data class DriveComparison(
 ) {
     val all: List<ComparableDrive> get() = others + base
     val totalCount: Int get() = others.size + 1
+
+    /** The "average drive" on this route, used as a reference in the leaderboard. */
+    val average: DriveAverage
+        get() {
+            val list = all
+            if (list.isEmpty()) return DriveAverage(null, 0, 0, 0)
+            val efficiencies = list.mapNotNull { it.efficiency }
+            return DriveAverage(
+                efficiency = if (efficiencies.isNotEmpty()) efficiencies.average() else null,
+                durationMin = list.sumOf { it.durationMin } / list.size,
+                speedAvg = list.sumOf { it.speedAvg } / list.size,
+                count = list.size
+            )
+        }
 }
 
 /**

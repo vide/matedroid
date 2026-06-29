@@ -1374,6 +1374,13 @@
     <string name="compare_drives_scope">%1$d drives · same route</string>
     <string name="compare_drives_empty">No comparable drives on this route</string>
     <string name="compare_speed_vs_distance">Speed vs distance</string>
+    <!-- Leaderboard: the averaged reference row -->
+    <string name="compare_average">Average</string>
+    <!-- Leaderboard: tappable row to reveal the hidden drives. %d = how many are hidden -->
+    <plurals name="compare_more">
+        <item quantity="one">+%d more</item>
+        <item quantity="other">+%d more</item>
+    </plurals>
     <!-- %d = number of comparable drives on this route -->
     <plurals name="compare_drives_nearby">
         <item quantity="one">%d comparable drive</item>

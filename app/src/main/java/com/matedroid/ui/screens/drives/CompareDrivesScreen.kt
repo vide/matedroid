@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.drives
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -40,12 +41,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +58,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ComparableDrive
+import com.matedroid.domain.DriveAverage
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.OverlayCurve
@@ -185,18 +191,108 @@ private fun CompareContent(
             palette = palette
         )
 
+        // Curate the leaderboard: top 3 of this dimension + the current run with its neighbours,
+        // the rest collapsed behind a tappable "+N more", and an averaged reference row.
+        var showAll by rememberSaveable { mutableStateOf(false) }
+        val baseIndex = ranked.indexOfFirst { it.isBase }.coerceAtLeast(0)
+        val keptIndices = if (showAll) {
+            ranked.indices.toList()
+        } else {
+            val keep = sortedSetOf<Int>()
+            listOf(0, 1, 2).forEach { if (it in ranked.indices) keep.add(it) }
+            for (d in -1..1) (baseIndex + d).let { if (it in ranked.indices) keep.add(it) }
+            keep.toList()
+        }
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ranked.forEachIndexed { index, drive ->
+            var prev = -1
+            keptIndices.forEach { idx ->
+                val gap = idx - prev - 1
+                if (gap > 0) GapRow(gap) { showAll = true }
+                val drive = ranked[idx]
                 CompareRow(
-                    rank = index + 1,
+                    rank = idx + 1,
                     drive = drive,
                     sort = sort,
                     units = units,
                     palette = palette,
                     onClick = if (drive.isBase) null else { { onDriveClick(drive.driveId) } }
                 )
+                prev = idx
             }
+            val tailGap = ranked.lastIndex - prev
+            if (tailGap > 0) GapRow(tailGap) { showAll = true }
+
+            AverageRow(average = comparison.average, sort = sort, units = units, palette = palette)
         }
+    }
+}
+
+@Composable
+private fun GapRow(hiddenCount: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "⋯  " + pluralStringResource(R.plurals.compare_more, hiddenCount, hiddenCount),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun AverageRow(
+    average: DriveAverage,
+    sort: DriveCompareSort,
+    units: Units?,
+    palette: CarColorPalette
+) {
+    val value = when (sort) {
+        DriveCompareSort.EFFICIENCY -> average.efficiency?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
+        DriveCompareSort.DURATION -> formatDurationCompact(average.durationMin)
+        DriveCompareSort.SPEED -> UnitFormatter.formatSpeed(average.speedAvg.toDouble(), units)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, palette.accent.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Ø",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = palette.accent,
+            modifier = Modifier.width(28.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = stringResource(R.string.compare_average),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = palette.accent,
+                maxLines = 1
+            )
+            Pill(pluralStringResource(R.plurals.compare_drives_nearby, average.count, average.count))
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = palette.accent
+        )
     }
 }
 
