@@ -11,6 +11,9 @@ import com.matedroid.domain.DriveComparisonRepository
 import com.matedroid.util.haversineMeters
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +41,7 @@ private data class DriveCurveData(val driveId: Int, val isBase: Boolean, val sam
 data class DriveComparisonUiState(
     val isLoading: Boolean = true,
     val comparison: DriveComparison? = null,
-    val sort: DriveCompareSort = DriveCompareSort.EFFICIENCY,
+    val sort: DriveCompareSort = DriveCompareSort.SPEED,
     val units: Units? = null,
     val curves: List<DriveSessionCurve> = emptyList(),
     val curvesLoading: Boolean = false,
@@ -100,35 +103,57 @@ class DriveComparisonViewModel @Inject constructor(
         curveFetchJob = viewModelScope.launch {
             _uiState.update { it.copy(curvesLoading = true) }
 
-            (ordered.map { it.driveId } + sampleIds).distinct().forEach { id ->
-                if (!curveDataCache.containsKey(id)) {
-                    buildCurveData(carId, id, id == comparison.base.driveId, imperial)?.let { curveDataCache[id] = it }
-                }
+            // Fetch any missing drive details concurrently (network calls overlap).
+            suspend fun ensureFetched(ids: List<Int>) = coroutineScope {
+                ids.distinct()
+                    .filter { !curveDataCache.containsKey(it) }
+                    .map { id -> async { id to buildCurveData(carId, id, id == comparison.base.driveId, imperial) } }
+                    .awaitAll()
+                    .forEach { (id, data) -> if (data != null) curveDataCache[id] = data }
             }
 
+            // Phase 1: the overlaid curves — show them as soon as they're ready.
+            ensureFetched(ordered.map { it.driveId })
             val curves = ordered.mapNotNull { drive ->
                 curveDataCache[drive.driveId]?.let { data ->
-                    DriveSessionCurve(
-                        driveId = drive.driveId,
-                        isBase = drive.isBase,
-                        points = data.samples.map { DriveCurvePoint(it.distance, metricValue(it, sort)) }
-                    )
+                    DriveSessionCurve(drive.driveId, drive.isBase, metricPoints(data.samples, sort))
                 }
             }
-            val sampleCurves = sampleIds
-                .mapNotNull { id -> curveDataCache[id]?.samples?.map { DriveCurvePoint(it.distance, metricValue(it, sort)) } }
-                .filter { it.size >= 2 }
-            val average = averageCurves(sampleCurves)
+            _uiState.update { it.copy(curves = curves, curvesLoading = false) }
 
-            _uiState.update { it.copy(curves = curves, averageCurve = average, curvesLoading = false) }
+            // Phase 2: the dashed average from a wider sample — fills in afterwards.
+            ensureFetched(sampleIds)
+            val sampleCurves = sampleIds
+                .mapNotNull { id -> curveDataCache[id]?.samples?.let { metricPoints(it, sort) } }
+                .filter { it.size >= 2 }
+            _uiState.update { it.copy(averageCurve = averageCurves(sampleCurves)) }
         }
     }
 
-    private fun metricValue(sample: DriveCurveSample, sort: DriveCompareSort): Float =
-        when (sort) {
-            DriveCompareSort.EFFICIENCY -> sample.energyKwh
-            else -> sample.speed
+    /**
+     * Per-point series for the chart. Speed is plotted directly; consumption is the instantaneous
+     * Wh/(km|mi) over a short trailing-distance window (ΔkWh / Δdistance × 1000) — smooth and bounded,
+     * unlike raw power/speed which blows up at low speed.
+     */
+    private fun metricPoints(samples: List<DriveCurveSample>, sort: DriveCompareSort): List<DriveCurvePoint> {
+        if (sort != DriveCompareSort.EFFICIENCY) {
+            return samples.map { DriveCurvePoint(it.distance, it.speed) }
         }
+        val maxDistance = samples.lastOrNull()?.distance ?: 0f
+        if (maxDistance <= 0f) return emptyList()
+        val window = (maxDistance / 25f).coerceAtLeast(0.2f) // ~25 segments along the route
+        val points = ArrayList<DriveCurvePoint>(samples.size)
+        var lo = 0
+        for (i in samples.indices) {
+            while (lo < i && samples[i].distance - samples[lo].distance > window) lo++
+            val dDist = samples[i].distance - samples[lo].distance
+            if (dDist > 0f) {
+                val dEnergy = samples[i].energyKwh - samples[lo].energyKwh
+                points.add(DriveCurvePoint(samples[i].distance, (dEnergy / dDist) * 1000f))
+            }
+        }
+        return points
+    }
 
     private fun sortedOthers(others: List<ComparableDrive>, sort: DriveCompareSort): List<ComparableDrive> =
         when (sort) {

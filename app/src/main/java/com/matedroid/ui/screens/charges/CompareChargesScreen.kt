@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.charges
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -40,10 +41,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -151,10 +156,19 @@ private fun CompareContent(
     }
     val radiusKm = (comparison.radiusMeters / 1000.0).roundToInt()
 
+    // Bumped on an outside tap or a scroll to dismiss the chart tooltip.
+    var dismissKey by remember { mutableStateOf(0) }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { if (it) dismissKey++ }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            .pointerInput(Unit) { detectTapGestures { dismissKey++ } }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -185,7 +199,8 @@ private fun CompareContent(
             comparison = comparison,
             curves = curves,
             curvesLoading = curvesLoading,
-            palette = palette
+            palette = palette,
+            dismissKey = dismissKey
         )
 
         // Leaderboard
@@ -225,7 +240,8 @@ private fun OverlayChartCard(
     comparison: com.matedroid.domain.ChargeComparison,
     curves: List<SessionCurve>,
     curvesLoading: Boolean,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    dismissKey: Any?
 ) {
     val byId = remember(comparison) { comparison.all.associateBy { it.chargeId } }
     val otherColors = listOf(
@@ -285,7 +301,7 @@ private fun OverlayChartCard(
                     if (curvesLoading) CircularProgressIndicator(color = palette.accent)
                 }
             } else {
-                PowerSocOverlayChart(curves = overlay)
+                PowerSocOverlayChart(curves = overlay, dismissKey = dismissKey)
                 Spacer(modifier = Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

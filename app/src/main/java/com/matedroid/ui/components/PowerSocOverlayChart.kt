@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +67,8 @@ fun PowerSocOverlayChart(
     chartHeight: Dp = 190.dp,
     xUnit: String = "%",
     xCaption: String = " SoC",
-    valueUnit: String = "kW"
+    valueUnit: String = "kW",
+    dismissKey: Any? = null
 ) {
     val valid = curves.filter { it.points.size >= 2 }
     if (valid.isEmpty()) return
@@ -87,6 +89,9 @@ fun PowerSocOverlayChart(
     val topPad = with(density) { 6.dp.toPx() }
 
     var selectedSoc by remember { mutableStateOf<Float?>(null) }
+
+    // Parent bumps dismissKey (on an outside tap or a scroll) to clear the tooltip.
+    LaunchedEffect(dismissKey) { selectedSoc = null }
 
     val labelPaint = remember(labelColor) {
         android.graphics.Paint().apply {

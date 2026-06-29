@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.drives
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,16 +42,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -160,10 +164,19 @@ private fun CompareContent(
         }
     }
 
+    // Bumped on an outside tap or a scroll to dismiss the chart tooltip.
+    var dismissKey by remember { mutableStateOf(0) }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }
+            .collect { if (it) dismissKey++ }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
+            .pointerInput(Unit) { detectTapGestures { dismissKey++ } }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -181,9 +194,9 @@ private fun CompareContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SortChip(stringResource(R.string.speed), sort == DriveCompareSort.SPEED, palette.accent) { onSortChange(DriveCompareSort.SPEED) }
                 SortChip(stringResource(R.string.efficiency), sort == DriveCompareSort.EFFICIENCY, palette.accent) { onSortChange(DriveCompareSort.EFFICIENCY) }
                 SortChip(stringResource(R.string.duration), sort == DriveCompareSort.DURATION, palette.accent) { onSortChange(DriveCompareSort.DURATION) }
-                SortChip(stringResource(R.string.speed), sort == DriveCompareSort.SPEED, palette.accent) { onSortChange(DriveCompareSort.SPEED) }
             }
         }
 
@@ -194,7 +207,8 @@ private fun CompareContent(
             averageCurve = averageCurve,
             sort = sort,
             units = units,
-            palette = palette
+            palette = palette,
+            dismissKey = dismissKey
         )
 
         // Curate the leaderboard: top 3 of this dimension + the current run with its neighbours,
@@ -335,7 +349,8 @@ private fun OverlayChartCard(
     averageCurve: List<DriveCurvePoint>,
     sort: DriveCompareSort,
     units: Units?,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    dismissKey: Any?
 ) {
     val isDuration = sort == DriveCompareSort.DURATION
     val isConsumption = sort == DriveCompareSort.EFFICIENCY
@@ -364,18 +379,24 @@ private fun OverlayChartCard(
                 Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
 
-            if (isDuration) {
-                DurationBars(comparison = comparison, palette = palette)
-            } else {
-                LineOverlay(
-                    comparison = comparison,
-                    curves = curves,
-                    curvesLoading = curvesLoading,
-                    averageCurve = averageCurve,
-                    valueUnit = if (isConsumption) "kWh" else UnitFormatter.getSpeedUnit(units),
-                    distanceUnit = if (units?.isImperial == true) "mi" else "km",
-                    palette = palette
-                )
+            // Fixed body height so switching dimension (line + legend vs bars) never jumps.
+            Box(modifier = Modifier.fillMaxWidth().height(CHART_BODY_HEIGHT)) {
+                if (isDuration) {
+                    DurationBars(comparison = comparison, palette = palette)
+                } else {
+                    LineOverlay(
+                        comparison = comparison,
+                        curves = curves,
+                        curvesLoading = curvesLoading,
+                        averageCurve = averageCurve,
+                        valueUnit = if (isConsumption) {
+                            if (units?.isImperial == true) "Wh/mi" else "Wh/km"
+                        } else UnitFormatter.getSpeedUnit(units),
+                        distanceUnit = if (units?.isImperial == true) "mi" else "km",
+                        palette = palette,
+                        dismissKey = dismissKey
+                    )
+                }
             }
         }
     }
@@ -390,7 +411,8 @@ private fun LineOverlay(
     averageCurve: List<DriveCurvePoint>,
     valueUnit: String,
     distanceUnit: String,
-    palette: CarColorPalette
+    palette: CarColorPalette,
+    dismissKey: Any?
 ) {
     val byId = remember(comparison) { comparison.all.associateBy { it.driveId } }
     val otherColors = listOf(
@@ -427,19 +449,19 @@ private fun LineOverlay(
 
     if (overlay.isEmpty()) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(190.dp),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             if (curvesLoading) CircularProgressIndicator(color = palette.accent)
         }
     } else {
+        Column {
         PowerSocOverlayChart(
             curves = allOverlay,
             xUnit = " $distanceUnit",
             xCaption = "",
-            valueUnit = valueUnit
+            valueUnit = valueUnit,
+            dismissKey = dismissKey
         )
         Spacer(modifier = Modifier.height(10.dp))
         FlowRow(
@@ -448,8 +470,12 @@ private fun LineOverlay(
         ) {
             allOverlay.forEach { LegendItem(it.color, it.label) }
         }
+        }
     }
 }
+
+/** Fixed height for the comparison chart body, so line+legend and the duration bars match. */
+private val CHART_BODY_HEIGHT = 268.dp
 
 /** Horizontal bars for the Duration dimension: top 3, the current run, average and worst, fastest first. */
 @Composable
@@ -482,7 +508,10 @@ private fun DurationBars(
     val ordered = entries.sortedBy { it.durationMin }
     val maxDuration = (ordered.maxOfOrNull { it.durationMin } ?: 1).coerceAtLeast(1)
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.SpaceEvenly
+    ) {
         ordered.forEach { entry ->
             val barColor = when {
                 entry.isBase -> palette.accent
