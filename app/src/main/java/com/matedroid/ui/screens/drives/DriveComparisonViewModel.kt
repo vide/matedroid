@@ -37,7 +37,8 @@ data class DriveComparisonUiState(
     val sort: DriveCompareSort = DriveCompareSort.EFFICIENCY,
     val units: Units? = null,
     val curves: List<DriveSessionCurve> = emptyList(),
-    val curvesLoading: Boolean = false
+    val curvesLoading: Boolean = false,
+    val averageCurve: List<DriveCurvePoint> = emptyList()
 )
 
 @HiltViewModel
@@ -67,6 +68,7 @@ class DriveComparisonViewModel @Inject constructor(
             val comparison = comparisonRepository.findComparable(carId, baseDriveId)
             _uiState.update { it.copy(isLoading = false, comparison = comparison, units = units) }
             refreshCurves(carId)
+            computeAverageCurve(carId)
         }
     }
 
@@ -133,7 +135,71 @@ class DriveComparisonViewModel @Inject constructor(
         return if (points.size >= 2) DriveSessionCurve(driveId, isBase, points) else null
     }
 
+    /**
+     * Builds a dashed "average" speed-vs-distance curve from a sample of the route's runs:
+     * resamples each run onto a shared distance grid and averages the speed at each step.
+     */
+    private fun computeAverageCurve(carId: Int) {
+        val comparison = _uiState.value.comparison ?: return
+        val imperial = _uiState.value.units?.isImperial == true
+
+        viewModelScope.launch {
+            val sampleIds = sampleDriveIds(comparison.all.map { it.driveId })
+            val sampled = sampleIds.mapNotNull { id ->
+                curveCache[id]?.points
+                    ?: buildCurve(carId, id, isBase = false, imperial = imperial)?.also { curveCache[id] = it }?.points
+            }.filter { it.size >= 2 }
+
+            val average = averageCurves(sampled)
+            if (average.isNotEmpty()) {
+                _uiState.update { it.copy(averageCurve = average) }
+            }
+        }
+    }
+
+    /** Pick up to [AVERAGE_SAMPLE] drive ids spread evenly across the set, to bound detail fetches. */
+    private fun sampleDriveIds(ids: List<Int>): List<Int> {
+        if (ids.size <= AVERAGE_SAMPLE) return ids
+        return (0 until AVERAGE_SAMPLE)
+            .map { ids[it * (ids.size - 1) / (AVERAGE_SAMPLE - 1)] }
+            .distinct()
+    }
+
+    private fun averageCurves(curves: List<List<DriveCurvePoint>>): List<DriveCurvePoint> {
+        if (curves.isEmpty()) return emptyList()
+        val maxDistance = curves.maxOf { it.lastOrNull()?.distance ?: 0f }
+        if (maxDistance <= 0f) return emptyList()
+
+        val buckets = 40
+        val result = ArrayList<DriveCurvePoint>(buckets + 1)
+        for (b in 0..buckets) {
+            val distance = maxDistance * b / buckets
+            val speeds = curves.mapNotNull { interpolateSpeed(it, distance) }
+            if (speeds.isNotEmpty()) {
+                result.add(DriveCurvePoint(distance, speeds.average().toFloat()))
+            }
+        }
+        return result
+    }
+
+    private fun interpolateSpeed(points: List<DriveCurvePoint>, distance: Float): Float? {
+        if (points.isEmpty() || distance < points.first().distance || distance > points.last().distance) return null
+        for (i in 1 until points.size) {
+            val a = points[i - 1]
+            val b = points[i]
+            if (distance <= b.distance) {
+                val span = b.distance - a.distance
+                if (span <= 0f) return a.speed
+                val t = (distance - a.distance) / span
+                return a.speed + t * (b.speed - a.speed)
+            }
+        }
+        return points.last().speed
+    }
+
     companion object {
         const val MAX_CURVES = 5
+        /** How many runs to sample when computing the average curve (bounds detail fetches). */
+        const val AVERAGE_SAMPLE = 10
     }
 }

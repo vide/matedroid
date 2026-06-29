@@ -127,6 +127,7 @@ fun CompareDrivesScreen(
                 units = uiState.units,
                 curves = uiState.curves,
                 curvesLoading = uiState.curvesLoading,
+                averageCurve = uiState.averageCurve,
                 palette = palette,
                 onSortChange = viewModel::setSort,
                 onDriveClick = onNavigateToDriveDetail,
@@ -143,6 +144,7 @@ private fun CompareContent(
     units: Units?,
     curves: List<DriveSessionCurve>,
     curvesLoading: Boolean,
+    averageCurve: List<DriveCurvePoint>,
     palette: CarColorPalette,
     onSortChange: (DriveCompareSort) -> Unit,
     onDriveClick: (Int) -> Unit,
@@ -187,6 +189,7 @@ private fun CompareContent(
             comparison = comparison,
             curves = curves,
             curvesLoading = curvesLoading,
+            averageCurve = averageCurve,
             units = units,
             palette = palette
         )
@@ -223,7 +226,20 @@ private fun CompareContent(
             val tailGap = ranked.lastIndex - prev
             if (tailGap > 0) GapRow(tailGap) { showAll = true }
 
-            AverageRow(average = comparison.average, sort = sort, units = units, palette = palette)
+            ReferenceRow(
+                leading = "Ø",
+                title = stringResource(R.string.compare_average),
+                caption = pluralStringResource(R.plurals.compare_drives_nearby, comparison.average.count, comparison.average.count),
+                value = averageValue(comparison.average, sort, units),
+                palette = palette
+            )
+            ReferenceRow(
+                leading = "↑",
+                title = "P100",
+                caption = null,
+                value = p100Value(comparison.all, sort, units),
+                palette = palette
+            )
         }
     }
 }
@@ -248,18 +264,15 @@ private fun GapRow(hiddenCount: Int, onClick: () -> Unit) {
     }
 }
 
+/** A reference row (Average, P100, …) styled with an accent outline. */
 @Composable
-private fun AverageRow(
-    average: DriveAverage,
-    sort: DriveCompareSort,
-    units: Units?,
+private fun ReferenceRow(
+    leading: String,
+    title: String,
+    caption: String?,
+    value: String,
     palette: CarColorPalette
 ) {
-    val value = when (sort) {
-        DriveCompareSort.EFFICIENCY -> average.efficiency?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
-        DriveCompareSort.DURATION -> formatDurationCompact(average.durationMin)
-        DriveCompareSort.SPEED -> UnitFormatter.formatSpeed(average.speedAvg.toDouble(), units)
-    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,7 +282,7 @@ private fun AverageRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Ø",
+            text = leading,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = palette.accent,
@@ -278,13 +291,13 @@ private fun AverageRow(
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = stringResource(R.string.compare_average),
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = palette.accent,
                 maxLines = 1
             )
-            Pill(pluralStringResource(R.plurals.compare_drives_nearby, average.count, average.count))
+            if (caption != null) Pill(caption)
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
@@ -295,6 +308,20 @@ private fun AverageRow(
         )
     }
 }
+
+private fun averageValue(average: DriveAverage, sort: DriveCompareSort, units: Units?): String =
+    when (sort) {
+        DriveCompareSort.EFFICIENCY -> average.efficiency?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
+        DriveCompareSort.DURATION -> formatDurationCompact(average.durationMin)
+        DriveCompareSort.SPEED -> UnitFormatter.formatSpeed(average.speedAvg.toDouble(), units)
+    }
+
+private fun p100Value(all: List<ComparableDrive>, sort: DriveCompareSort, units: Units?): String =
+    when (sort) {
+        DriveCompareSort.EFFICIENCY -> all.mapNotNull { it.efficiency }.maxOrNull()?.let { UnitFormatter.formatEfficiency(it, units) } ?: "—"
+        DriveCompareSort.DURATION -> all.maxOfOrNull { it.durationMin }?.let { formatDurationCompact(it) } ?: "—"
+        DriveCompareSort.SPEED -> all.maxOfOrNull { it.speedAvg }?.let { UnitFormatter.formatSpeed(it.toDouble(), units) } ?: "—"
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -316,6 +343,7 @@ private fun OverlayChartCard(
     comparison: com.matedroid.domain.DriveComparison,
     curves: List<DriveSessionCurve>,
     curvesLoading: Boolean,
+    averageCurve: List<DriveCurvePoint>,
     units: Units?,
     palette: CarColorPalette
 ) {
@@ -343,6 +371,16 @@ private fun OverlayChartCard(
             points = sessionCurve.points.map { Offset(it.distance, it.speed) }
         )
     }
+    val averageOverlay = averageCurve.takeIf { it.isNotEmpty() }?.let { avg ->
+        OverlayCurve(
+            label = stringResource(R.string.compare_average),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            isBase = false,
+            dashed = true,
+            points = avg.map { Offset(it.distance, it.speed) }
+        )
+    }
+    val allOverlay = overlay + listOfNotNull(averageOverlay)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -378,7 +416,7 @@ private fun OverlayChartCard(
                 }
             } else {
                 PowerSocOverlayChart(
-                    curves = overlay,
+                    curves = allOverlay,
                     xUnit = " $distanceUnit",
                     xCaption = "",
                     valueUnit = speedUnit
@@ -388,7 +426,7 @@ private fun OverlayChartCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    overlay.forEach { LegendItem(it.color, it.label) }
+                    allOverlay.forEach { LegendItem(it.color, it.label) }
                 }
             }
         }

@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -44,12 +45,13 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-/** One session's charging curve in power-vs-SoC space. [points] are (SoC %, power kW). */
+/** One session's curve. [points] are (x, y). [dashed] draws it as a thin dashed reference line. */
 data class OverlayCurve(
     val label: String,
     val color: Color,
     val isBase: Boolean,
-    val points: List<Offset>
+    val points: List<Offset>,
+    val dashed: Boolean = false
 )
 
 /**
@@ -169,9 +171,10 @@ fun PowerSocOverlayChart(
                     path,
                     c.color,
                     style = Stroke(
-                        width = if (c.isBase) 7f else 4f,
+                        width = if (c.isBase) 7f else if (c.dashed) 3f else 4f,
                         cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                        join = StrokeJoin.Round,
+                        pathEffect = if (c.dashed) PathEffect.dashPathEffect(floatArrayOf(12f, 10f)) else null
                     )
                 )
             }
