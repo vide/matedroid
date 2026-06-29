@@ -1361,6 +1361,7 @@
     <string name="compare_drives_scope">%1$d Fahrten · gleiche Strecke</string>
     <string name="compare_drives_empty">Keine vergleichbaren Fahrten auf dieser Strecke</string>
     <string name="compare_speed_vs_distance">Geschwindigkeit vs. Distanz</string>
+    <string name="compare_consumption_vs_distance">Verbrauch vs. Distanz</string>
     <string name="compare_average">Durchschnitt</string>
     <plurals name="compare_more">
         <item quantity="one">+%d weitere</item>

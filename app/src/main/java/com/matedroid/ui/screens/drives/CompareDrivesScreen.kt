@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -190,6 +192,7 @@ private fun CompareContent(
             curves = curves,
             curvesLoading = curvesLoading,
             averageCurve = averageCurve,
+            sort = sort,
             units = units,
             palette = palette
         )
@@ -324,14 +327,69 @@ private fun SortChip(label: String, selected: Boolean, accent: Color, onClick: (
     )
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun OverlayChartCard(
     comparison: com.matedroid.domain.DriveComparison,
     curves: List<DriveSessionCurve>,
     curvesLoading: Boolean,
     averageCurve: List<DriveCurvePoint>,
+    sort: DriveCompareSort,
     units: Units?,
+    palette: CarColorPalette
+) {
+    val isDuration = sort == DriveCompareSort.DURATION
+    val isConsumption = sort == DriveCompareSort.EFFICIENCY
+    val title = when {
+        isDuration -> stringResource(R.string.duration)
+        isConsumption -> stringResource(R.string.compare_consumption_vs_distance)
+        else -> stringResource(R.string.compare_speed_vs_distance)
+    }
+    val icon = when {
+        isDuration -> Icons.Default.Schedule
+        isConsumption -> Icons.Default.Bolt
+        else -> Icons.Default.Speed
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = palette.accent, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+
+            if (isDuration) {
+                DurationBars(comparison = comparison, palette = palette)
+            } else {
+                LineOverlay(
+                    comparison = comparison,
+                    curves = curves,
+                    curvesLoading = curvesLoading,
+                    averageCurve = averageCurve,
+                    valueUnit = if (isConsumption) "kWh" else UnitFormatter.getSpeedUnit(units),
+                    distanceUnit = if (units?.isImperial == true) "mi" else "km",
+                    palette = palette
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LineOverlay(
+    comparison: com.matedroid.domain.DriveComparison,
+    curves: List<DriveSessionCurve>,
+    curvesLoading: Boolean,
+    averageCurve: List<DriveCurvePoint>,
+    valueUnit: String,
+    distanceUnit: String,
     palette: CarColorPalette
 ) {
     val byId = remember(comparison) { comparison.all.associateBy { it.driveId } }
@@ -339,8 +397,6 @@ private fun OverlayChartCard(
         Color(0xFF5B8DD9), Color(0xFF4CAF50), Color(0xFF9B6BD9), Color(0xFF6D7A92)
     )
     val thisDriveLabel = stringResource(R.string.compare_this_drive)
-    val distanceUnit = if (units?.isImperial == true) "mi" else "km"
-    val speedUnit = UnitFormatter.getSpeedUnit(units)
 
     var otherIndex = 0
     val overlay = curves.map { sessionCurve ->
@@ -355,7 +411,7 @@ private fun OverlayChartCard(
             label = label,
             color = color,
             isBase = sessionCurve.isBase,
-            points = sessionCurve.points.map { Offset(it.distance, it.speed) }
+            points = sessionCurve.points.map { Offset(it.distance, it.value) }
         )
     }
     val averageOverlay = averageCurve.takeIf { it.isNotEmpty() }?.let { avg ->
@@ -363,57 +419,110 @@ private fun OverlayChartCard(
             label = stringResource(R.string.compare_average),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             isBase = false,
-            dashed = true,
-            points = avg.map { Offset(it.distance, it.speed) }
+            points = avg.map { Offset(it.distance, it.value) },
+            dashed = true
         )
     }
     val allOverlay = overlay + listOfNotNull(averageOverlay)
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Speed,
-                    contentDescription = null,
-                    tint = palette.accent,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.compare_speed_vs_distance),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+    if (overlay.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(190.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (curvesLoading) CircularProgressIndicator(color = palette.accent)
+        }
+    } else {
+        PowerSocOverlayChart(
+            curves = allOverlay,
+            xUnit = " $distanceUnit",
+            xCaption = "",
+            valueUnit = valueUnit
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            allOverlay.forEach { LegendItem(it.color, it.label) }
+        }
+    }
+}
 
-            if (overlay.isEmpty()) {
+/** Horizontal bars for the Duration dimension: top 3, the current run, average and worst, fastest first. */
+@Composable
+private fun DurationBars(
+    comparison: com.matedroid.domain.DriveComparison,
+    palette: CarColorPalette
+) {
+    val thisDriveLabel = stringResource(R.string.compare_this_drive)
+    val averageLabel = stringResource(R.string.compare_average)
+
+    data class Entry(val label: String, val durationMin: Int, val isBase: Boolean, val isAverage: Boolean)
+
+    val sortedAsc = comparison.all.sortedBy { it.durationMin }
+    val kept = LinkedHashMap<Int, ComparableDrive>()
+    sortedAsc.take(3).forEach { kept[it.driveId] = it }
+    kept[comparison.base.driveId] = comparison.base
+    sortedAsc.lastOrNull()?.let { kept[it.driveId] = it }
+
+    val entries = kept.values.map { drive ->
+        Entry(
+            label = if (drive.isBase) thisDriveLabel
+            else parseIsoDateTime(drive.startDate)?.toLocalDate()?.formatMedium(Locale.getDefault()) ?: drive.startAddress,
+            durationMin = drive.durationMin,
+            isBase = drive.isBase,
+            isAverage = false
+        )
+    }.toMutableList()
+    entries.add(Entry(averageLabel, comparison.average.durationMin, isBase = false, isAverage = true))
+
+    val ordered = entries.sortedBy { it.durationMin }
+    val maxDuration = (ordered.maxOfOrNull { it.durationMin } ?: 1).coerceAtLeast(1)
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ordered.forEach { entry ->
+            val barColor = when {
+                entry.isBase -> palette.accent
+                entry.isAverage -> palette.accent.copy(alpha = 0.4f)
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            }
+            val labelColor = if (entry.isBase || entry.isAverage) palette.accent else MaterialTheme.colorScheme.onSurface
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = entry.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (entry.isBase || entry.isAverage) FontWeight.Bold else FontWeight.Normal,
+                        color = labelColor,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = formatDurationCompact(entry.durationMin),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = labelColor
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(190.dp),
-                    contentAlignment = Alignment.Center
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    if (curvesLoading) CircularProgressIndicator(color = palette.accent)
-                }
-            } else {
-                PowerSocOverlayChart(
-                    curves = allOverlay,
-                    xUnit = " $distanceUnit",
-                    xCaption = "",
-                    valueUnit = speedUnit
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    allOverlay.forEach { LegendItem(it.color, it.label) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(entry.durationMin.toFloat() / maxDuration)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(barColor)
+                    )
                 }
             }
         }

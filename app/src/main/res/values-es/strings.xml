@@ -1246,6 +1246,7 @@
     <string name="compare_drives_scope">%1$d trayectos · misma ruta</string>
     <string name="compare_drives_empty">No hay trayectos comparables en esta ruta</string>
     <string name="compare_speed_vs_distance">Velocidad vs distancia</string>
+    <string name="compare_consumption_vs_distance">Consumo vs distancia</string>
     <string name="compare_average">Media</string>
     <plurals name="compare_more">
         <item quantity="one">+%d más</item>

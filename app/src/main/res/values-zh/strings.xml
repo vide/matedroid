@@ -1271,6 +1271,7 @@
     <string name="compare_drives_scope">%1$d 段行程 · 相同路线</string>
     <string name="compare_drives_empty">此路线没有可比的行程</string>
     <string name="compare_speed_vs_distance">速度 vs 距离</string>
+    <string name="compare_consumption_vs_distance">消耗 vs 距离</string>
     <string name="compare_average">平均</string>
     <plurals name="compare_more">
         <item quantity="other">其余 %d 个</item>

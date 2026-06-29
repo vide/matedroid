@@ -18,18 +18,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** How the comparison leaderboard is ranked. */
+/** How the comparison leaderboard is ranked (and, for line charts, which metric is plotted). */
 enum class DriveCompareSort { EFFICIENCY, DURATION, SPEED }
 
-/** One point of a drive curve: speed at a given distance along the route, in display units. */
-data class DriveCurvePoint(val distance: Float, val speed: Float)
+/** A resampled point of a drive's overlay line: the metric [value] at a [distance] along the route. */
+data class DriveCurvePoint(val distance: Float, val value: Float)
 
-/** A drive's speed-vs-distance curve, for the overlay chart. */
+/** A drive's overlay line in the currently-selected metric. */
 data class DriveSessionCurve(
     val driveId: Int,
     val isBase: Boolean,
     val points: List<DriveCurvePoint>
 )
+
+/** Raw per-point data for a drive, kept metric-independent so switching metric needs no refetch. */
+private data class DriveCurveSample(val distance: Float, val speed: Float, val energyKwh: Float)
+private data class DriveCurveData(val driveId: Int, val isBase: Boolean, val samples: List<DriveCurveSample>)
 
 data class DriveComparisonUiState(
     val isLoading: Boolean = true,
@@ -52,7 +56,7 @@ class DriveComparisonViewModel @Inject constructor(
 
     private var loaded = false
     private var carId: Int? = null
-    private val curveCache = mutableMapOf<Int, DriveSessionCurve>()
+    private val curveDataCache = mutableMapOf<Int, DriveCurveData>()
     private var curveFetchJob: Job? = null
 
     fun load(carId: Int, baseDriveId: Int) {
@@ -67,34 +71,64 @@ class DriveComparisonViewModel @Inject constructor(
             }
             val comparison = comparisonRepository.findComparable(carId, baseDriveId)
             _uiState.update { it.copy(isLoading = false, comparison = comparison, units = units) }
-            refreshCurves(carId)
-            computeAverageCurve(carId)
+            refresh(carId)
         }
     }
 
     fun setSort(sort: DriveCompareSort) {
         _uiState.update { it.copy(sort = sort) }
-        carId?.let { refreshCurves(it) }
+        carId?.let { refresh(it) }
     }
 
-    private fun refreshCurves(carId: Int) {
+    /** Rebuild the line overlay (curves + average) for the active metric. Duration uses bars, no curves. */
+    private fun refresh(carId: Int) {
         val comparison = _uiState.value.comparison ?: return
-        val ordered = listOf(comparison.base) +
-            sortedOthers(comparison.others, _uiState.value.sort).take(MAX_CURVES - 1)
+        val sort = _uiState.value.sort
+
+        // Duration is shown as bars from the leaderboard values — no per-point curves needed.
+        if (sort == DriveCompareSort.DURATION) {
+            curveFetchJob?.cancel()
+            _uiState.update { it.copy(curves = emptyList(), averageCurve = emptyList(), curvesLoading = false) }
+            return
+        }
+
         val imperial = _uiState.value.units?.isImperial == true
+        val ordered = listOf(comparison.base) + sortedOthers(comparison.others, sort).take(MAX_CURVES - 1)
+        val sampleIds = sampleDriveIds(comparison.all.map { it.driveId })
 
         curveFetchJob?.cancel()
         curveFetchJob = viewModelScope.launch {
             _uiState.update { it.copy(curvesLoading = true) }
-            ordered.forEach { drive ->
-                if (!curveCache.containsKey(drive.driveId)) {
-                    buildCurve(carId, drive.driveId, drive.isBase, imperial)?.let { curveCache[drive.driveId] = it }
+
+            (ordered.map { it.driveId } + sampleIds).distinct().forEach { id ->
+                if (!curveDataCache.containsKey(id)) {
+                    buildCurveData(carId, id, id == comparison.base.driveId, imperial)?.let { curveDataCache[id] = it }
                 }
             }
-            val curves = ordered.mapNotNull { curveCache[it.driveId] }
-            _uiState.update { it.copy(curves = curves, curvesLoading = false) }
+
+            val curves = ordered.mapNotNull { drive ->
+                curveDataCache[drive.driveId]?.let { data ->
+                    DriveSessionCurve(
+                        driveId = drive.driveId,
+                        isBase = drive.isBase,
+                        points = data.samples.map { DriveCurvePoint(it.distance, metricValue(it, sort)) }
+                    )
+                }
+            }
+            val sampleCurves = sampleIds
+                .mapNotNull { id -> curveDataCache[id]?.samples?.map { DriveCurvePoint(it.distance, metricValue(it, sort)) } }
+                .filter { it.size >= 2 }
+            val average = averageCurves(sampleCurves)
+
+            _uiState.update { it.copy(curves = curves, averageCurve = average, curvesLoading = false) }
         }
     }
+
+    private fun metricValue(sample: DriveCurveSample, sort: DriveCompareSort): Float =
+        when (sort) {
+            DriveCompareSort.EFFICIENCY -> sample.energyKwh
+            else -> sample.speed
+        }
 
     private fun sortedOthers(others: List<ComparableDrive>, sort: DriveCompareSort): List<ComparableDrive> =
         when (sort) {
@@ -103,61 +137,48 @@ class DriveComparisonViewModel @Inject constructor(
             DriveCompareSort.SPEED -> others.sortedByDescending { it.speedAvg }
         }
 
-    private suspend fun buildCurve(carId: Int, driveId: Int, isBase: Boolean, imperial: Boolean): DriveSessionCurve? {
+    /**
+     * Fetch a drive and derive its per-point samples: display distance, display speed, and cumulative
+     * energy used (kWh). Energy is integrated as power × (segment distance / speed), so no timestamps.
+     */
+    private suspend fun buildCurveData(carId: Int, driveId: Int, isBase: Boolean, imperial: Boolean): DriveCurveData? {
         val detail = when (val result = repository.getDriveDetail(carId, driveId)) {
             is ApiResult.Success -> result.data
             is ApiResult.Error -> return null
         }
         val positions = detail.positions ?: return null
-        val toDisplay = if (imperial) 0.621371f else 1f // km→mi and km/h→mph share the factor
+        val toDisplay = if (imperial) 0.621371f else 1f
 
-        var cumulativeMeters = 0.0
+        var cumDistanceDisplay = 0f
+        var cumEnergyKwh = 0.0
         var prevLat: Double? = null
         var prevLon: Double? = null
-        val points = ArrayList<DriveCurvePoint>(positions.size)
+        val samples = ArrayList<DriveCurveSample>(positions.size)
         positions.forEach { position ->
             val lat = position.latitude
             val lon = position.longitude
+            val speed = position.speed
             if (lat != null && lon != null) {
                 val pLat = prevLat
                 val pLon = prevLon
                 if (pLat != null && pLon != null) {
-                    cumulativeMeters += haversineMeters(pLat, pLon, lat, lon)
+                    val segKm = haversineMeters(pLat, pLon, lat, lon) / 1000.0
+                    cumDistanceDisplay += (segKm * toDisplay).toFloat()
+                    val power = position.power
+                    if (speed != null && speed > 0 && power != null) {
+                        cumEnergyKwh += power.toDouble() * (segKm / speed.toDouble()) // kW × h
+                    }
                 }
                 prevLat = lat
                 prevLon = lon
-                position.speed?.let { speed ->
-                    val distanceDisplay = (cumulativeMeters / 1000.0).toFloat() * toDisplay
-                    points.add(DriveCurvePoint(distanceDisplay, speed.toFloat() * toDisplay))
+                if (speed != null) {
+                    samples.add(DriveCurveSample(cumDistanceDisplay, speed.toFloat() * toDisplay, cumEnergyKwh.toFloat()))
                 }
             }
         }
-        return if (points.size >= 2) DriveSessionCurve(driveId, isBase, points) else null
+        return if (samples.size >= 2) DriveCurveData(driveId, isBase, samples) else null
     }
 
-    /**
-     * Builds a dashed "average" speed-vs-distance curve from a sample of the route's runs:
-     * resamples each run onto a shared distance grid and averages the speed at each step.
-     */
-    private fun computeAverageCurve(carId: Int) {
-        val comparison = _uiState.value.comparison ?: return
-        val imperial = _uiState.value.units?.isImperial == true
-
-        viewModelScope.launch {
-            val sampleIds = sampleDriveIds(comparison.all.map { it.driveId })
-            val sampled = sampleIds.mapNotNull { id ->
-                curveCache[id]?.points
-                    ?: buildCurve(carId, id, isBase = false, imperial = imperial)?.also { curveCache[id] = it }?.points
-            }.filter { it.size >= 2 }
-
-            val average = averageCurves(sampled)
-            if (average.isNotEmpty()) {
-                _uiState.update { it.copy(averageCurve = average) }
-            }
-        }
-    }
-
-    /** Pick up to [AVERAGE_SAMPLE] drive ids spread evenly across the set, to bound detail fetches. */
     private fun sampleDriveIds(ids: List<Int>): List<Int> {
         if (ids.size <= AVERAGE_SAMPLE) return ids
         return (0 until AVERAGE_SAMPLE)
@@ -174,32 +195,29 @@ class DriveComparisonViewModel @Inject constructor(
         val result = ArrayList<DriveCurvePoint>(buckets + 1)
         for (b in 0..buckets) {
             val distance = maxDistance * b / buckets
-            val speeds = curves.mapNotNull { interpolateSpeed(it, distance) }
-            if (speeds.isNotEmpty()) {
-                result.add(DriveCurvePoint(distance, speeds.average().toFloat()))
-            }
+            val values = curves.mapNotNull { interpolate(it, distance) }
+            if (values.isNotEmpty()) result.add(DriveCurvePoint(distance, values.average().toFloat()))
         }
         return result
     }
 
-    private fun interpolateSpeed(points: List<DriveCurvePoint>, distance: Float): Float? {
+    private fun interpolate(points: List<DriveCurvePoint>, distance: Float): Float? {
         if (points.isEmpty() || distance < points.first().distance || distance > points.last().distance) return null
         for (i in 1 until points.size) {
             val a = points[i - 1]
             val b = points[i]
             if (distance <= b.distance) {
                 val span = b.distance - a.distance
-                if (span <= 0f) return a.speed
+                if (span <= 0f) return a.value
                 val t = (distance - a.distance) / span
-                return a.speed + t * (b.speed - a.speed)
+                return a.value + t * (b.value - a.value)
             }
         }
-        return points.last().speed
+        return points.last().value
     }
 
     companion object {
         const val MAX_CURVES = 5
-        /** How many runs to sample when computing the average curve (bounds detail fetches). */
         const val AVERAGE_SAMPLE = 10
     }
 }
