@@ -148,7 +148,7 @@
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
     <string name="trips_empty_title">Encara no hi ha viatges</string>
     <!-- Trips hero empty state hint -->
-    <string name="trips_empty_hint">Els viatges de més de 300 km apareixen aquí</string>
+    <string name="trips_empty_hint">Els trajectes llargs units per una càrrega ràpida DC apareixen aquí</string>
     <!-- Trips list empty state: intro before the auto-detection rules -->
     <string name="trips_empty_intro">Un viatge es detecta automàticament quan tens:</string>
     <!-- Trips list empty state: rule 1 -->

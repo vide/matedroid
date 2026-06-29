@@ -148,7 +148,7 @@
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
     <string name="trips_empty_title">暂无长途旅程</string>
     <!-- Trips hero empty state hint -->
-    <string name="trips_empty_hint">超过 300 公里的旅程会显示在这里</string>
+    <string name="trips_empty_hint">由直流快充连接的长途行程会显示在这里</string>
     <!-- Trips list empty state: intro before the auto-detection rules -->
     <string name="trips_empty_intro">满足以下条件时会自动识别为一次旅程：</string>
     <!-- Trips list empty state: rule 1 -->

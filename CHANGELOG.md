@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Time spent driving and charging now headline the trip timeline** as bold accent stat tiles, with the overall total as a quiet caption beneath.
 
 ### Fixed
+- **The empty-Trips hint on the dashboard now describes road-trip detection accurately** — it no longer implies distance alone qualifies; a road-trip needs multiple drives linked by a DC fast-charge (#314).
 - **Recent DC charges no longer show as AC in the charges list** — until a charge's details are synced, its type is now inferred from average power instead of defaulting to AC, so a fast charge isn't mislabeled while it waits to be processed (#313).
 - **Drives and charges in a merged-and-renamed trip now show the trip's current name** on their detail screen, instead of the original auto-generated "city → city" name.
 - **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), short legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
