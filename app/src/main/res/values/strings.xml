@@ -151,7 +151,7 @@
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
     <string name="trips_empty_title">No road-trips yet</string>
     <!-- Trips hero empty state hint -->
-    <string name="trips_empty_hint">Trips over 300 km show up here</string>
+    <string name="trips_empty_hint">Long drives joined by a DC fast-charge show up here</string>
     <!-- Trips list empty state: intro before the auto-detection rules -->
     <string name="trips_empty_intro">A road-trip is detected automatically when you have:</string>
     <!-- Trips list empty state: rule 1 -->

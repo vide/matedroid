@@ -148,7 +148,7 @@
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
     <string name="trips_empty_title">Noch keine Trips</string>
     <!-- Trips hero empty state hint -->
-    <string name="trips_empty_hint">Trips über 300 km erscheinen hier</string>
+    <string name="trips_empty_hint">Lange Fahrten, verbunden durch eine DC-Schnellladung, erscheinen hier</string>
     <!-- Trips list empty state: intro before the auto-detection rules -->
     <string name="trips_empty_intro">Ein Trip wird automatisch erkannt, wenn du Folgendes hast:</string>
     <!-- Trips list empty state: rule 1 -->
