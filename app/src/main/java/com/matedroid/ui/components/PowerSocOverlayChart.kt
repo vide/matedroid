@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -44,12 +46,13 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
-/** One session's charging curve in power-vs-SoC space. [points] are (SoC %, power kW). */
+/** One session's curve. [points] are (x, y). [dashed] draws it as a thin dashed reference line. */
 data class OverlayCurve(
     val label: String,
     val color: Color,
     val isBase: Boolean,
-    val points: List<Offset>
+    val points: List<Offset>,
+    val dashed: Boolean = false
 )
 
 /**
@@ -61,7 +64,11 @@ data class OverlayCurve(
 fun PowerSocOverlayChart(
     curves: List<OverlayCurve>,
     modifier: Modifier = Modifier,
-    chartHeight: Dp = 190.dp
+    chartHeight: Dp = 190.dp,
+    xUnit: String = "%",
+    xCaption: String = " SoC",
+    valueUnit: String = "kW",
+    dismissKey: Any? = null
 ) {
     val valid = curves.filter { it.points.size >= 2 }
     if (valid.isEmpty()) return
@@ -82,6 +89,9 @@ fun PowerSocOverlayChart(
     val topPad = with(density) { 6.dp.toPx() }
 
     var selectedSoc by remember { mutableStateOf<Float?>(null) }
+
+    // Parent bumps dismissKey (on an outside tap or a scroll) to clear the tooltip.
+    LaunchedEffect(dismissKey) { selectedSoc = null }
 
     val labelPaint = remember(labelColor) {
         android.graphics.Paint().apply {
@@ -129,7 +139,7 @@ fun PowerSocOverlayChart(
             for (i in 0..4) {
                 val soc = socMin + socRange * i / 4f
                 val x = xFor(soc)
-                val txt = "${soc.roundToInt()}%"
+                val txt = "${soc.roundToInt()}$xUnit"
                 val tw = labelPaint.measureText(txt)
                 val tx = when (i) {
                     0 -> 0f
@@ -166,9 +176,10 @@ fun PowerSocOverlayChart(
                     path,
                     c.color,
                     style = Stroke(
-                        width = if (c.isBase) 7f else 4f,
+                        width = if (c.isBase) 7f else if (c.dashed) 3f else 4f,
                         cap = StrokeCap.Round,
-                        join = StrokeJoin.Round
+                        join = StrokeJoin.Round,
+                        pathEffect = if (c.dashed) PathEffect.dashPathEffect(floatArrayOf(12f, 10f)) else null
                     )
                 )
             }
@@ -203,7 +214,7 @@ fun PowerSocOverlayChart(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "${soc.roundToInt()}% SoC",
+                        text = "${soc.roundToInt()}$xUnit$xCaption",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -218,7 +229,7 @@ fun PowerSocOverlayChart(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${power.roundToInt()} kW",
+                                text = "${power.roundToInt()} $valueUnit",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

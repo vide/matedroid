@@ -1241,6 +1241,21 @@
     <string name="compare_this_charge">Aquesta càrrega</string>
     <string name="compare_empty">No hi ha càrregues ràpides comparables a prop</string>
     <string name="compare_power_vs_soc">Potència vs SoC</string>
+    <string name="compare_drives_title">Compara trajectes</string>
+    <string name="compare_this_drive">Aquest trajecte</string>
+    <string name="compare_drives_scope">%1$d trajectes · mateixa ruta</string>
+    <string name="compare_drives_empty">No hi ha trajectes comparables en aquesta ruta</string>
+    <string name="compare_speed_vs_distance">Velocitat vs distància</string>
+    <string name="compare_consumption_vs_distance">Consum vs distància</string>
+    <string name="compare_average">Mitjana</string>
+    <plurals name="compare_more">
+        <item quantity="one">+%d més</item>
+        <item quantity="other">+%d més</item>
+    </plurals>
+    <plurals name="compare_drives_nearby">
+        <item quantity="one">%d trajecte comparable</item>
+        <item quantity="other">%d trajectes comparables</item>
+    </plurals>
     <string name="compare_scope">%1$d càrregues · en %2$d km</string>
     <plurals name="compare_sessions_nearby">
         <item quantity="one">%d càrrega comparable a prop</item>

@@ -1356,6 +1356,21 @@
     <string name="compare_this_charge">Diese Ladung</string>
     <string name="compare_empty">Keine vergleichbaren Schnellladungen in der Nähe</string>
     <string name="compare_power_vs_soc">Leistung vs. SoC</string>
+    <string name="compare_drives_title">Fahrten vergleichen</string>
+    <string name="compare_this_drive">Diese Fahrt</string>
+    <string name="compare_drives_scope">%1$d Fahrten · gleiche Strecke</string>
+    <string name="compare_drives_empty">Keine vergleichbaren Fahrten auf dieser Strecke</string>
+    <string name="compare_speed_vs_distance">Geschwindigkeit vs. Distanz</string>
+    <string name="compare_consumption_vs_distance">Verbrauch vs. Distanz</string>
+    <string name="compare_average">Durchschnitt</string>
+    <plurals name="compare_more">
+        <item quantity="one">+%d weitere</item>
+        <item quantity="other">+%d weitere</item>
+    </plurals>
+    <plurals name="compare_drives_nearby">
+        <item quantity="one">%d vergleichbare Fahrt</item>
+        <item quantity="other">%d vergleichbare Fahrten</item>
+    </plurals>
     <string name="compare_scope">%1$d Ladungen · im Umkreis von %2$d km</string>
     <plurals name="compare_sessions_nearby">
         <item quantity="one">%d vergleichbare Ladung in der Nähe</item>

@@ -23,6 +23,9 @@ interface DriveSummaryDao {
     @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate DESC")
     fun observeAll(carId: Int): Flow<List<DriveSummary>>
 
+    @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate ASC")
+    suspend fun getAllForCar(carId: Int): List<DriveSummary>
+
     @Query("SELECT MAX(driveId) FROM drives_summary WHERE carId = :carId")
     suspend fun getMaxDriveId(carId: Int): Int?
 

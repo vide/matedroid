@@ -9,6 +9,8 @@ import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.data.repository.WeatherRepository
+import com.matedroid.domain.DriveComparison
+import com.matedroid.domain.DriveComparisonRepository
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
@@ -28,7 +30,8 @@ data class DriveDetailUiState(
     val stats: DriveDetailStats? = null,
     val weatherPoints: List<WeatherPoint> = emptyList(),
     val isLoadingWeather: Boolean = false,
-    val containingTrip: Pair<Long, Trip>? = null
+    val containingTrip: Pair<Long, Trip>? = null,
+    val comparison: DriveComparison? = null
 )
 
 data class DriveDetailStats(
@@ -58,7 +61,8 @@ data class DriveDetailStats(
 class DriveDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val weatherRepository: WeatherRepository,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val driveComparisonRepository: DriveComparisonRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveDetailUiState())
@@ -78,6 +82,11 @@ class DriveDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val containing = tripRepository.findTripContaining(carId, SavedTripLeg.TYPE_DRIVE, driveId)
             _uiState.update { it.copy(containingTrip = containing) }
+        }
+
+        viewModelScope.launch {
+            val comparison = driveComparisonRepository.findComparable(carId, driveId)
+            _uiState.update { it.copy(comparison = comparison) }
         }
 
         viewModelScope.launch {

@@ -27,6 +27,7 @@ import com.matedroid.ui.screens.charges.CompareChargesScreen
 import com.matedroid.ui.screens.charges.CurrentChargeScreen
 import com.matedroid.ui.screens.dashboard.DashboardScreen
 import com.matedroid.ui.screens.demo.PalettePreviewScreen
+import com.matedroid.ui.screens.drives.CompareDrivesScreen
 import com.matedroid.ui.screens.drives.DriveDetailScreen
 import com.matedroid.ui.screens.drives.DrivesScreen
 import com.matedroid.ui.screens.mileage.MileageScreen
@@ -79,6 +80,9 @@ sealed interface Screen {
 
     @Serializable
     data class DriveDetail(val carId: Int, val driveId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CompareDrives(val carId: Int, val baseDriveId: Int, val exteriorColor: String? = null) : Screen
 
     @Serializable
     data class Battery(val carId: Int, val efficiency: Float = 0f, val exteriorColor: String? = null) : Screen
@@ -316,6 +320,22 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTripDetail = { tripStartDate ->
                     navController.navigate(Screen.TripDetail(route.carId, tripStartDate, route.exteriorColor))
+                },
+                onNavigateToCompare = { baseDriveId ->
+                    navController.navigate(Screen.CompareDrives(route.carId, baseDriveId, route.exteriorColor))
+                }
+            )
+        }
+
+        composable<Screen.CompareDrives> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CompareDrives>()
+            CompareDrivesScreen(
+                carId = route.carId,
+                baseDriveId = route.baseDriveId,
+                exteriorColor = route.exteriorColor,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDriveDetail = { driveId ->
+                    navController.navigate(Screen.DriveDetail(route.carId, driveId, route.exteriorColor))
                 }
             )
         }
