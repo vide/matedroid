@@ -1375,6 +1375,16 @@
     <string name="compare_drives_empty">No comparable drives on this route</string>
     <string name="compare_speed_vs_distance">Speed vs distance</string>
     <string name="compare_consumption_vs_distance">Consumption vs distance</string>
+    <!-- Comparison stats: verdict banner and per-row deltas -->
+    <string name="compare_pct_better_than_avg">%1$d%% better than average</string>
+    <string name="compare_pct_worse_than_avg">%1$d%% worse than average</string>
+    <string name="compare_on_par_average">On par with the average</string>
+    <string name="compare_pct_off_best">%1$d%% off your best</string>
+    <string name="compare_personal_best">Your best yet</string>
+    <!-- Charge comparison cost stat (%1$s = price per kWh, %2$d = percent) -->
+    <string name="compare_cost_below_avg">%1$s/kWh · %2$d%% below average</string>
+    <string name="compare_cost_above_avg">%1$s/kWh · %2$d%% above average</string>
+    <string name="compare_cost_at_avg">%1$s/kWh · average for here</string>
     <!-- Leaderboard: the averaged reference row -->
     <string name="compare_average">Average</string>
     <!-- Leaderboard: tappable row to reveal the hidden drives. %d = how many are hidden -->

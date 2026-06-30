@@ -1272,6 +1272,14 @@
     <string name="compare_drives_empty">此路线没有可比的行程</string>
     <string name="compare_speed_vs_distance">速度 vs 距离</string>
     <string name="compare_consumption_vs_distance">消耗 vs 距离</string>
+    <string name="compare_pct_better_than_avg">比平均好 %1$d%%</string>
+    <string name="compare_pct_worse_than_avg">比平均差 %1$d%%</string>
+    <string name="compare_on_par_average">与平均持平</string>
+    <string name="compare_pct_off_best">距最佳 %1$d%%</string>
+    <string name="compare_personal_best">目前最佳</string>
+    <string name="compare_cost_below_avg">%1$s/kWh · 比平均低 %2$d%%</string>
+    <string name="compare_cost_above_avg">%1$s/kWh · 比平均高 %2$d%%</string>
+    <string name="compare_cost_at_avg">%1$s/kWh · 此处平均</string>
     <string name="compare_average">平均</string>
     <plurals name="compare_more">
         <item quantity="other">其余 %d 个</item>

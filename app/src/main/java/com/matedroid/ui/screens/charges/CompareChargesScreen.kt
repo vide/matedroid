@@ -57,17 +57,25 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.ChargeAverage
 import com.matedroid.domain.ComparableCharge
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.ComparisonVerdict
+import com.matedroid.ui.components.DeltaChip
+import com.matedroid.ui.components.DeltaTone
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.OverlayCurve
 import com.matedroid.ui.components.PowerSocOverlayChart
+import com.matedroid.ui.components.RowDelta
+import com.matedroid.ui.components.isBetter
+import com.matedroid.ui.components.percentDelta
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -156,6 +164,13 @@ private fun CompareContent(
     }
     val radiusKm = (comparison.radiusMeters / 1000.0).roundToInt()
 
+    val higherBetter = chargeHigherIsBetter(sort)
+    val baseVal = chargeMetricValue(comparison.base, sort)
+    fun deltaVs(value: Double?): RowDelta? {
+        if (value == null || baseVal == null || baseVal == 0.0) return null
+        return RowDelta(percentDelta(value, baseVal), isBetter(value, baseVal, higherBetter))
+    }
+
     // Bumped on an outside tap or a scroll to dismiss the chart tooltip.
     var dismissKey by remember { mutableStateOf(0) }
     val scrollState = rememberScrollState()
@@ -194,6 +209,46 @@ private fun CompareContent(
             }
         }
 
+        // Verdict: this charge vs the area's average and best, plus a cost line when all are costed
+        val avgVal = chargeAvgMetricValue(comparison.average, sort)
+        val costLine: String? = if (comparison.allHaveCost) {
+            val baseCost = comparison.base.costPerKwh
+            val avgCost = comparison.average.costPerKwh
+            if (baseCost != null && avgCost != null && avgCost != 0.0) {
+                val priceStr = "$currencySymbol${"%.3f".format(baseCost)}"
+                val pct = percentDelta(baseCost, avgCost)
+                when {
+                    abs(pct) < 1 -> stringResource(R.string.compare_cost_at_avg, priceStr)
+                    pct < 0 -> stringResource(R.string.compare_cost_below_avg, priceStr, abs(pct))
+                    else -> stringResource(R.string.compare_cost_above_avg, priceStr, pct)
+                }
+            } else null
+        } else null
+        if (baseVal != null && avgVal != null && avgVal != 0.0) {
+            val avgPct = percentDelta(baseVal, avgVal)
+            val mag = abs(avgPct)
+            val betterThanAvg = isBetter(baseVal, avgVal, higherBetter)
+            val (primary, tone) = when {
+                mag < 1 -> stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
+                betterThanAvg -> stringResource(R.string.compare_pct_better_than_avg, mag) to DeltaTone.GOOD
+                else -> stringResource(R.string.compare_pct_worse_than_avg, mag) to DeltaTone.BAD
+            }
+            val rank = ranked.indexOfFirst { it.isBase } + 1
+            val bestVal = ranked.firstOrNull()?.let { chargeMetricValue(it, sort) }
+            val bestPart = if (rank <= 1 || bestVal == null) {
+                stringResource(R.string.compare_personal_best)
+            } else {
+                stringResource(R.string.compare_pct_off_best, abs(percentDelta(baseVal, bestVal)))
+            }
+            ComparisonVerdict(
+                accent = palette.accent,
+                primary = primary,
+                tone = tone,
+                secondary = "#$rank/${comparison.totalCount} · $bestPart",
+                costLine = costLine
+            )
+        }
+
         // Power-vs-SoC overlay of the top sessions for the current sort
         OverlayChartCard(
             comparison = comparison,
@@ -213,6 +268,7 @@ private fun CompareContent(
                     currencySymbol = currencySymbol,
                     units = units,
                     palette = palette,
+                    delta = if (charge.isBase) null else deltaVs(chargeMetricValue(charge, sort)),
                     onClick = if (charge.isBase) null else { { onChargeClick(charge.chargeId) } }
                 )
             }
@@ -340,6 +396,7 @@ private fun CompareRow(
     currencySymbol: String,
     units: Units?,
     palette: CarColorPalette,
+    delta: RowDelta?,
     onClick: (() -> Unit)?
 ) {
     val bg = if (charge.isBase) palette.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
@@ -382,14 +439,16 @@ private fun CompareRow(
         }
 
         Spacer(modifier = Modifier.width(8.dp))
-        Column(horizontalAlignment = Alignment.End) {
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = if (charge.isBase) palette.accent else MaterialTheme.colorScheme.onSurface
             )
-            if (unit.isNotEmpty()) {
+            if (delta != null) {
+                DeltaChip(delta)
+            } else if (unit.isNotEmpty()) {
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.labelSmall,
@@ -399,6 +458,20 @@ private fun CompareRow(
         }
     }
 }
+
+private fun chargeMetricValue(c: ComparableCharge, sort: CompareSort): Double? = when (sort) {
+    CompareSort.PEAK -> c.peakKw?.toDouble()
+    CompareSort.DURATION -> c.durationMin.toDouble()
+    CompareSort.COST -> c.costPerKwh
+}
+
+private fun chargeAvgMetricValue(a: ChargeAverage, sort: CompareSort): Double? = when (sort) {
+    CompareSort.PEAK -> a.peakKw?.toDouble()
+    CompareSort.DURATION -> a.durationMin.toDouble()
+    CompareSort.COST -> a.costPerKwh
+}
+
+private fun chargeHigherIsBetter(sort: CompareSort): Boolean = sort == CompareSort.PEAK
 
 @Composable
 private fun Pill(text: String) {

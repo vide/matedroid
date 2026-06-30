@@ -1247,6 +1247,14 @@
     <string name="compare_drives_empty">Nessun tragitto confrontabile su questo percorso</string>
     <string name="compare_speed_vs_distance">Velocità vs distanza</string>
     <string name="compare_consumption_vs_distance">Consumo vs distanza</string>
+    <string name="compare_pct_better_than_avg">%1$d%% meglio della media</string>
+    <string name="compare_pct_worse_than_avg">%1$d%% peggio della media</string>
+    <string name="compare_on_par_average">In linea con la media</string>
+    <string name="compare_pct_off_best">%1$d%% dal tuo migliore</string>
+    <string name="compare_personal_best">Il tuo migliore finora</string>
+    <string name="compare_cost_below_avg">%1$s/kWh · %2$d%% sotto la media</string>
+    <string name="compare_cost_above_avg">%1$s/kWh · %2$d%% sopra la media</string>
+    <string name="compare_cost_at_avg">%1$s/kWh · nella media qui</string>
     <string name="compare_average">Media</string>
     <plurals name="compare_more">
         <item quantity="one">+%d altro</item>

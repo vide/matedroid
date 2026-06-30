@@ -4,6 +4,7 @@ import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.util.haversineMeters
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +29,14 @@ data class ComparableCharge(
         get() = cost?.takeIf { it > 0 && energyAdded > 0 }?.let { it / energyAdded }
 }
 
+/** Reference figures averaged across every charge in the comparison set. */
+data class ChargeAverage(
+    val peakKw: Int?,
+    val durationMin: Int,
+    val costPerKwh: Double?,
+    val count: Int
+)
+
 /** A base DC charge plus the other comparable DC charges in the same area. */
 data class ChargeComparison(
     val base: ComparableCharge,
@@ -42,6 +51,24 @@ data class ChargeComparison(
     /** 1-based rank of the base charge by peak power among all sessions (1 = highest peak). */
     val basePeakRank: Int
         get() = all.sortedByDescending { it.peakKw ?: -1 }.indexOfFirst { it.isBase } + 1
+
+    /** True only when every charge in the set has a usable per-kWh cost. */
+    val allHaveCost: Boolean get() = all.all { it.costPerKwh != null }
+
+    /** The "average charge" at this location, used for the comparison stats. */
+    val average: ChargeAverage
+        get() {
+            val list = all
+            if (list.isEmpty()) return ChargeAverage(null, 0, null, 0)
+            val peaks = list.mapNotNull { it.peakKw }
+            val costs = list.mapNotNull { it.costPerKwh }
+            return ChargeAverage(
+                peakKw = if (peaks.isNotEmpty()) peaks.average().roundToInt() else null,
+                durationMin = list.sumOf { it.durationMin } / list.size,
+                costPerKwh = if (costs.isNotEmpty()) costs.average() else null,
+                count = list.size
+            )
+        }
 }
 
 /**
