@@ -4,6 +4,7 @@ import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.util.haversineMeters
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,6 +17,7 @@ data class ComparableCharge(
     val peakKw: Int?,
     val energyAdded: Double,
     val durationMin: Int,
+    val durationSeconds: Int,
     val cost: Double?,
     val startBattery: Int,
     val endBattery: Int,
@@ -23,10 +25,23 @@ data class ComparableCharge(
     val distanceMeters: Double,
     val isBase: Boolean
 ) {
-    /** Cost per kWh, or null when the charge is free/uncosted or has no energy. */
+    /**
+     * Cost per kWh. A charge with no cost set is treated as free (0), since that usually means free
+     * credits (Tesla or another provider) rather than unknown — so it counts as the cheapest, not as
+     * missing. Null only when there's no energy to divide by.
+     */
     val costPerKwh: Double?
-        get() = cost?.takeIf { it > 0 && energyAdded > 0 }?.let { it / energyAdded }
+        get() = if (energyAdded > 0) (cost ?: 0.0).coerceAtLeast(0.0) / energyAdded else null
 }
+
+/** Reference figures averaged across every charge in the comparison set. */
+data class ChargeAverage(
+    val peakKw: Int?,
+    val durationMin: Int,
+    val durationSeconds: Int,
+    val costPerKwh: Double?,
+    val count: Int
+)
 
 /** A base DC charge plus the other comparable DC charges in the same area. */
 data class ChargeComparison(
@@ -42,6 +57,25 @@ data class ChargeComparison(
     /** 1-based rank of the base charge by peak power among all sessions (1 = highest peak). */
     val basePeakRank: Int
         get() = all.sortedByDescending { it.peakKw ?: -1 }.indexOfFirst { it.isBase } + 1
+
+    /** True only when every charge in the set has a usable per-kWh cost. */
+    val allHaveCost: Boolean get() = all.all { it.costPerKwh != null }
+
+    /** The "average charge" at this location, used for the comparison stats. */
+    val average: ChargeAverage
+        get() {
+            val list = all
+            if (list.isEmpty()) return ChargeAverage(null, 0, 0, null, 0)
+            val peaks = list.mapNotNull { it.peakKw }
+            val costs = list.mapNotNull { it.costPerKwh }
+            return ChargeAverage(
+                peakKw = if (peaks.isNotEmpty()) peaks.average().roundToInt() else null,
+                durationMin = list.sumOf { it.durationMin } / list.size,
+                durationSeconds = list.sumOf { it.durationSeconds } / list.size,
+                costPerKwh = if (costs.isNotEmpty()) costs.average() else null,
+                count = list.size
+            )
+        }
 }
 
 /**
@@ -82,6 +116,7 @@ class ChargeComparisonRepository @Inject constructor(
                 peakKw = agg?.maxChargerPower,
                 energyAdded = s.energyAdded,
                 durationMin = s.durationMin,
+                durationSeconds = durationSeconds(s.startDate, s.endDate, s.durationMin),
                 cost = s.cost,
                 startBattery = s.startBatteryLevel,
                 endBattery = s.endBatteryLevel,

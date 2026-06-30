@@ -4,11 +4,30 @@ import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.util.haversineMeters
+import com.matedroid.util.parseIsoDateTime
+import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** One drive in a comparison set, assembled from cached summary data. */
+/** Exact duration in seconds from start/end timestamps, falling back to whole minutes when unparseable. */
+internal fun durationSeconds(start: String, end: String?, durationMin: Int): Int {
+    val s = parseIsoDateTime(start)
+    val e = end?.let { parseIsoDateTime(it) }
+    if (s != null && e != null) {
+        val secs = ChronoUnit.SECONDS.between(s, e)
+        if (secs > 0) return secs.toInt()
+    }
+    return durationMin * 60
+}
+
+/**
+ * One drive in a comparison set, assembled from cached summary data.
+ *
+ * [durationSeconds] and [avgSpeedPrecise] are higher-resolution versions of [durationMin] /
+ * [speedAvg] used only for ranking and percentage deltas (not for display), to avoid ties when
+ * several runs round to the same whole minute or km/h.
+ */
 data class ComparableDrive(
     val driveId: Int,
     val startDate: String,
@@ -17,7 +36,9 @@ data class ComparableDrive(
     val efficiency: Double?,
     val distance: Double,
     val durationMin: Int,
+    val durationSeconds: Int,
     val speedAvg: Int,
+    val avgSpeedPrecise: Double,
     val outsideTempAvg: Double?,
     val isBase: Boolean
 )
@@ -26,7 +47,9 @@ data class ComparableDrive(
 data class DriveAverage(
     val efficiency: Double?,
     val durationMin: Int,
+    val durationSeconds: Int,
     val speedAvg: Int,
+    val avgSpeedPrecise: Double,
     val count: Int
 )
 
@@ -43,12 +66,14 @@ data class DriveComparison(
     val average: DriveAverage
         get() {
             val list = all
-            if (list.isEmpty()) return DriveAverage(null, 0, 0, 0)
+            if (list.isEmpty()) return DriveAverage(null, 0, 0, 0, 0.0, 0)
             val efficiencies = list.mapNotNull { it.efficiency }
             return DriveAverage(
                 efficiency = if (efficiencies.isNotEmpty()) efficiencies.average() else null,
                 durationMin = list.sumOf { it.durationMin } / list.size,
+                durationSeconds = list.sumOf { it.durationSeconds } / list.size,
                 speedAvg = list.sumOf { it.speedAvg } / list.size,
+                avgSpeedPrecise = list.map { it.avgSpeedPrecise }.average(),
                 count = list.size
             )
         }
@@ -87,18 +112,24 @@ class DriveComparisonRepository @Inject constructor(
         val baseEndLon = baseAgg.endLongitude ?: return null
         val baseDistance = baseSummary.distance
 
-        fun toComparable(s: DriveSummary): ComparableDrive = ComparableDrive(
-            driveId = s.driveId,
-            startDate = s.startDate,
-            startAddress = s.startAddress,
-            endAddress = s.endAddress,
-            efficiency = s.efficiency,
-            distance = s.distance,
-            durationMin = s.durationMin,
-            speedAvg = s.speedAvg,
-            outsideTempAvg = s.outsideTempAvg,
-            isBase = s.driveId == baseDriveId
-        )
+        fun toComparable(s: DriveSummary): ComparableDrive {
+            val seconds = durationSeconds(s.startDate, s.endDate, s.durationMin)
+            val precise = if (seconds > 0) s.distance / (seconds / 3600.0) else s.speedAvg.toDouble()
+            return ComparableDrive(
+                driveId = s.driveId,
+                startDate = s.startDate,
+                startAddress = s.startAddress,
+                endAddress = s.endAddress,
+                efficiency = s.efficiency,
+                distance = s.distance,
+                durationMin = s.durationMin,
+                durationSeconds = seconds,
+                speedAvg = s.speedAvg,
+                avgSpeedPrecise = precise,
+                outsideTempAvg = s.outsideTempAvg,
+                isBase = s.driveId == baseDriveId
+            )
+        }
 
         val others = summaries
             .filter { s ->

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Percentage stats in the comparison screens** — a verdict line summarises how this run compares ("8% better than average", rank, and gap to your best), each leaderboard row shows a coloured +/- delta versus your run, and DC charge comparisons add a per-kWh cost line when every charge has a price set.
 - **Compare similar charges and drives** — the charge and drive detail screens now show a "Compare" card. For a DC charge it overlays the power-vs-SoC curves of other fast-charging sessions in the same area with a re-sortable leaderboard (peak / time / price); for a drive it overlays the speed-vs-distance curves of other runs of the same route, ranked by efficiency.
 - **Edit a charge's cost from its detail screen** — the Cost section now shows an external-link icon and the whole card opens TeslaMate's cost editor (previously possible only from the charges list). It appears even for free/uncosted charges so you can add a cost.
 - **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.

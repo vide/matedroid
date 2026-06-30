@@ -66,15 +66,22 @@ import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ComparableDrive
 import com.matedroid.domain.DriveAverage
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.ComparisonVerdict
+import com.matedroid.ui.components.DeltaChip
+import com.matedroid.ui.components.DeltaTone
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.OverlayCurve
 import com.matedroid.ui.components.PowerSocOverlayChart
+import com.matedroid.ui.components.RowDelta
+import com.matedroid.ui.components.isBetter
+import com.matedroid.ui.components.percentDelta
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,12 +163,21 @@ private fun CompareContent(
     onDriveClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Tie-break in favour of the base run, so a run tied for best ranks first (not demoted to #2).
     val ranked = remember(comparison, sort) {
         when (sort) {
-            DriveCompareSort.EFFICIENCY -> comparison.all.sortedBy { it.efficiency ?: Double.MAX_VALUE }
-            DriveCompareSort.DURATION -> comparison.all.sortedBy { it.durationMin }
-            DriveCompareSort.SPEED -> comparison.all.sortedByDescending { it.speedAvg }
+            DriveCompareSort.EFFICIENCY -> comparison.all.sortedWith(compareBy({ it.efficiency ?: Double.MAX_VALUE }, { !it.isBase }))
+            DriveCompareSort.DURATION -> comparison.all.sortedWith(compareBy({ it.durationSeconds }, { !it.isBase }))
+            DriveCompareSort.SPEED -> comparison.all.sortedWith(compareByDescending<ComparableDrive> { it.avgSpeedPrecise }.thenBy { !it.isBase })
         }
+    }
+
+    val higherBetter = driveHigherIsBetter(sort)
+    val baseVal = driveMetricValue(comparison.base, sort)
+    // Per-run delta vs the base run (null for the base itself or when the metric is missing).
+    fun deltaVs(value: Double?): RowDelta? {
+        if (value == null || baseVal == null || baseVal == 0.0) return null
+        return RowDelta(percentDelta(value, baseVal), isBetter(value, baseVal, higherBetter))
     }
 
     // Bumped on an outside tap or a scroll to dismiss the chart tooltip.
@@ -198,6 +214,36 @@ private fun CompareContent(
                 SortChip(stringResource(R.string.efficiency), sort == DriveCompareSort.EFFICIENCY, palette.accent) { onSortChange(DriveCompareSort.EFFICIENCY) }
                 SortChip(stringResource(R.string.duration), sort == DriveCompareSort.DURATION, palette.accent) { onSortChange(DriveCompareSort.DURATION) }
             }
+        }
+
+        // Verdict: this run vs the route's average and best
+        val avgVal = driveAvgMetricValue(comparison.average, sort)
+        if (baseVal != null && avgVal != null && avgVal != 0.0) {
+            val mag = abs(percentDelta(baseVal, avgVal))
+            val betterThanAvg = isBetter(baseVal, avgVal, higherBetter)
+            val (primary, tone) = if (mag < 1) {
+                stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
+            } else {
+                val res = when (sort) {
+                    DriveCompareSort.EFFICIENCY -> if (betterThanAvg) R.string.compare_eff_better else R.string.compare_eff_worse
+                    DriveCompareSort.SPEED -> if (betterThanAvg) R.string.compare_speed_better else R.string.compare_speed_worse
+                    DriveCompareSort.DURATION -> if (betterThanAvg) R.string.compare_dur_better else R.string.compare_dur_worse
+                }
+                stringResource(res, mag) to (if (betterThanAvg) DeltaTone.GOOD else DeltaTone.BAD)
+            }
+            val rank = ranked.indexOfFirst { it.isBase } + 1
+            val isBest = rank == 1
+            val bestVal = ranked.firstOrNull()?.let { driveMetricValue(it, sort) }
+            val offBest = if (!isBest && bestVal != null) abs(percentDelta(baseVal, bestVal)) else null
+            val rankText = stringResource(R.string.compare_rank_of, rank, comparison.totalCount)
+            ComparisonVerdict(
+                accent = palette.accent,
+                primary = primary,
+                tone = tone,
+                secondary = if (offBest != null) "$rankText · " + stringResource(R.string.compare_pct_off_best, offBest) else rankText,
+                costLine = null,
+                badge = if (isBest) stringResource(R.string.compare_personal_best) else null
+            )
         }
 
         OverlayChartCard(
@@ -237,6 +283,7 @@ private fun CompareContent(
                     sort = sort,
                     units = units,
                     palette = palette,
+                    delta = if (drive.isBase) null else deltaVs(driveMetricValue(drive, sort)),
                     onClick = if (drive.isBase) null else { { onDriveClick(drive.driveId) } }
                 )
                 prev = idx
@@ -249,6 +296,7 @@ private fun CompareContent(
                 title = stringResource(R.string.compare_average),
                 caption = pluralStringResource(R.plurals.compare_drives_nearby, comparison.average.count, comparison.average.count),
                 value = averageValue(comparison.average, sort, units),
+                delta = deltaVs(driveAvgMetricValue(comparison.average, sort)),
                 palette = palette
             )
         }
@@ -282,6 +330,7 @@ private fun ReferenceRow(
     title: String,
     caption: String?,
     value: String,
+    delta: RowDelta?,
     palette: CarColorPalette
 ) {
     Row(
@@ -311,14 +360,31 @@ private fun ReferenceRow(
             if (caption != null) Pill(caption)
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = palette.accent
-        )
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = palette.accent
+            )
+            DeltaChip(delta)
+        }
     }
 }
+
+private fun driveMetricValue(d: ComparableDrive, sort: DriveCompareSort): Double? = when (sort) {
+    DriveCompareSort.EFFICIENCY -> d.efficiency
+    DriveCompareSort.DURATION -> d.durationSeconds.toDouble()
+    DriveCompareSort.SPEED -> d.avgSpeedPrecise
+}
+
+private fun driveAvgMetricValue(a: DriveAverage, sort: DriveCompareSort): Double? = when (sort) {
+    DriveCompareSort.EFFICIENCY -> a.efficiency
+    DriveCompareSort.DURATION -> a.durationSeconds.toDouble()
+    DriveCompareSort.SPEED -> a.avgSpeedPrecise
+}
+
+private fun driveHigherIsBetter(sort: DriveCompareSort): Boolean = sort == DriveCompareSort.SPEED
 
 private fun averageValue(average: DriveAverage, sort: DriveCompareSort, units: Units?): String =
     when (sort) {
@@ -583,6 +649,7 @@ private fun CompareRow(
     sort: DriveCompareSort,
     units: Units?,
     palette: CarColorPalette,
+    delta: RowDelta?,
     onClick: (() -> Unit)?
 ) {
     val bg = if (drive.isBase) palette.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
@@ -622,12 +689,15 @@ private fun CompareRow(
         }
 
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = if (drive.isBase) palette.accent else MaterialTheme.colorScheme.onSurface
-        )
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (drive.isBase) palette.accent else MaterialTheme.colorScheme.onSurface
+            )
+            DeltaChip(delta)
+        }
     }
 }
 
