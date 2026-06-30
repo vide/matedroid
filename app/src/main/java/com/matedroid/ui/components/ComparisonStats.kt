@@ -3,8 +3,12 @@ package com.matedroid.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,6 +66,7 @@ fun ComparisonVerdict(
     tone: DeltaTone,
     secondary: String?,
     costLine: String?,
+    badge: String? = null,
     modifier: Modifier = Modifier
 ) {
     val primaryColor = when (tone) {
@@ -69,32 +74,51 @@ fun ComparisonVerdict(
         DeltaTone.BAD -> DeltaBad
         DeltaTone.NEUTRAL -> accent
     }
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(accent.copy(alpha = 0.12f))
             .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = primary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = primaryColor
-        )
-        if (secondary != null) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             Text(
-                text = secondary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = primary,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = primaryColor
             )
+            if (secondary != null) {
+                Text(
+                    text = secondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (costLine != null) {
+                Text(
+                    text = costLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        if (costLine != null) {
+        // Special badge when this run is the best on the route / at this location.
+        if (badge != null) {
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = costLine,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "🏆 $badge",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(accent.copy(alpha = 0.22f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }
     }

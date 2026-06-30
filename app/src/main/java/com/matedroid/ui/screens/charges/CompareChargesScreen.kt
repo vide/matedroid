@@ -155,11 +155,12 @@ private fun CompareContent(
     onChargeClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Tie-break in favour of the base charge, so a charge tied for best ranks first (not #2).
     val ranked = remember(comparison, sort) {
         when (sort) {
-            CompareSort.PEAK -> comparison.all.sortedByDescending { it.peakKw ?: -1 }
-            CompareSort.DURATION -> comparison.all.sortedBy { it.durationMin }
-            CompareSort.COST -> comparison.all.sortedBy { it.costPerKwh ?: Double.MAX_VALUE }
+            CompareSort.PEAK -> comparison.all.sortedWith(compareByDescending<ComparableCharge> { it.peakKw ?: -1 }.thenBy { !it.isBase })
+            CompareSort.DURATION -> comparison.all.sortedWith(compareBy({ it.durationSeconds }, { !it.isBase }))
+            CompareSort.COST -> comparison.all.sortedWith(compareBy({ it.costPerKwh ?: Double.MAX_VALUE }, { !it.isBase }))
         }
     }
     val radiusKm = (comparison.radiusMeters / 1000.0).roundToInt()
@@ -209,43 +210,34 @@ private fun CompareContent(
             }
         }
 
-        // Verdict: this charge vs the area's average and best, plus a cost line when all are costed
+        // Verdict: this charge vs the area's average and best. Cost is compared via the Cost sort,
+        // so the verdict doesn't repeat €/kWh on every dimension.
         val avgVal = chargeAvgMetricValue(comparison.average, sort)
-        val costLine: String? = if (comparison.allHaveCost) {
-            val baseCost = comparison.base.costPerKwh
-            val avgCost = comparison.average.costPerKwh
-            if (baseCost != null && avgCost != null && avgCost != 0.0) {
-                val priceStr = "$currencySymbol${"%.3f".format(baseCost)}"
-                val pct = percentDelta(baseCost, avgCost)
-                when {
-                    abs(pct) < 1 -> stringResource(R.string.compare_cost_at_avg, priceStr)
-                    pct < 0 -> stringResource(R.string.compare_cost_below_avg, priceStr, abs(pct))
-                    else -> stringResource(R.string.compare_cost_above_avg, priceStr, pct)
-                }
-            } else null
-        } else null
         if (baseVal != null && avgVal != null && avgVal != 0.0) {
-            val avgPct = percentDelta(baseVal, avgVal)
-            val mag = abs(avgPct)
+            val mag = abs(percentDelta(baseVal, avgVal))
             val betterThanAvg = isBetter(baseVal, avgVal, higherBetter)
-            val (primary, tone) = when {
-                mag < 1 -> stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
-                betterThanAvg -> stringResource(R.string.compare_pct_better_than_avg, mag) to DeltaTone.GOOD
-                else -> stringResource(R.string.compare_pct_worse_than_avg, mag) to DeltaTone.BAD
+            val (primary, tone) = if (mag < 1) {
+                stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
+            } else {
+                val res = when (sort) {
+                    CompareSort.PEAK -> if (betterThanAvg) R.string.compare_peak_better else R.string.compare_peak_worse
+                    CompareSort.DURATION -> if (betterThanAvg) R.string.compare_dur_better else R.string.compare_dur_worse
+                    CompareSort.COST -> if (betterThanAvg) R.string.compare_cost_better else R.string.compare_cost_worse
+                }
+                stringResource(res, mag) to (if (betterThanAvg) DeltaTone.GOOD else DeltaTone.BAD)
             }
             val rank = ranked.indexOfFirst { it.isBase } + 1
+            val isBest = rank == 1
             val bestVal = ranked.firstOrNull()?.let { chargeMetricValue(it, sort) }
-            val bestPart = if (rank <= 1 || bestVal == null) {
-                stringResource(R.string.compare_personal_best)
-            } else {
-                stringResource(R.string.compare_pct_off_best, abs(percentDelta(baseVal, bestVal)))
-            }
+            val offBest = if (!isBest && bestVal != null) abs(percentDelta(baseVal, bestVal)) else null
+            val rankText = stringResource(R.string.compare_rank_of, rank, comparison.totalCount)
             ComparisonVerdict(
                 accent = palette.accent,
                 primary = primary,
                 tone = tone,
-                secondary = "#$rank/${comparison.totalCount} · $bestPart",
-                costLine = costLine
+                secondary = if (offBest != null) "$rankText · " + stringResource(R.string.compare_pct_off_best, offBest) else rankText,
+                costLine = null,
+                badge = if (isBest) stringResource(R.string.compare_personal_best) else null
             )
         }
 
@@ -446,14 +438,21 @@ private fun CompareRow(
                 fontWeight = FontWeight.Bold,
                 color = if (charge.isBase) palette.accent else MaterialTheme.colorScheme.onSurface
             )
-            if (delta != null) {
-                DeltaChip(delta)
-            } else if (unit.isNotEmpty()) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Keep the unit (e.g. kW) visible on every row, with the delta chip alongside it.
+            if (unit.isNotEmpty() || delta != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (unit.isNotEmpty()) {
+                        Text(
+                            text = unit,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    DeltaChip(delta)
+                }
             }
         }
     }
@@ -461,13 +460,13 @@ private fun CompareRow(
 
 private fun chargeMetricValue(c: ComparableCharge, sort: CompareSort): Double? = when (sort) {
     CompareSort.PEAK -> c.peakKw?.toDouble()
-    CompareSort.DURATION -> c.durationMin.toDouble()
+    CompareSort.DURATION -> c.durationSeconds.toDouble()
     CompareSort.COST -> c.costPerKwh
 }
 
 private fun chargeAvgMetricValue(a: ChargeAverage, sort: CompareSort): Double? = when (sort) {
     CompareSort.PEAK -> a.peakKw?.toDouble()
-    CompareSort.DURATION -> a.durationMin.toDouble()
+    CompareSort.DURATION -> a.durationSeconds.toDouble()
     CompareSort.COST -> a.costPerKwh
 }
 

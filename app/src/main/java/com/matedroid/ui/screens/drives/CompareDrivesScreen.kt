@@ -163,11 +163,12 @@ private fun CompareContent(
     onDriveClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Tie-break in favour of the base run, so a run tied for best ranks first (not demoted to #2).
     val ranked = remember(comparison, sort) {
         when (sort) {
-            DriveCompareSort.EFFICIENCY -> comparison.all.sortedBy { it.efficiency ?: Double.MAX_VALUE }
-            DriveCompareSort.DURATION -> comparison.all.sortedBy { it.durationMin }
-            DriveCompareSort.SPEED -> comparison.all.sortedByDescending { it.speedAvg }
+            DriveCompareSort.EFFICIENCY -> comparison.all.sortedWith(compareBy({ it.efficiency ?: Double.MAX_VALUE }, { !it.isBase }))
+            DriveCompareSort.DURATION -> comparison.all.sortedWith(compareBy({ it.durationSeconds }, { !it.isBase }))
+            DriveCompareSort.SPEED -> comparison.all.sortedWith(compareByDescending<ComparableDrive> { it.avgSpeedPrecise }.thenBy { !it.isBase })
         }
     }
 
@@ -218,27 +219,30 @@ private fun CompareContent(
         // Verdict: this run vs the route's average and best
         val avgVal = driveAvgMetricValue(comparison.average, sort)
         if (baseVal != null && avgVal != null && avgVal != 0.0) {
-            val avgPct = percentDelta(baseVal, avgVal)
-            val mag = abs(avgPct)
+            val mag = abs(percentDelta(baseVal, avgVal))
             val betterThanAvg = isBetter(baseVal, avgVal, higherBetter)
-            val (primary, tone) = when {
-                mag < 1 -> stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
-                betterThanAvg -> stringResource(R.string.compare_pct_better_than_avg, mag) to DeltaTone.GOOD
-                else -> stringResource(R.string.compare_pct_worse_than_avg, mag) to DeltaTone.BAD
+            val (primary, tone) = if (mag < 1) {
+                stringResource(R.string.compare_on_par_average) to DeltaTone.NEUTRAL
+            } else {
+                val res = when (sort) {
+                    DriveCompareSort.EFFICIENCY -> if (betterThanAvg) R.string.compare_eff_better else R.string.compare_eff_worse
+                    DriveCompareSort.SPEED -> if (betterThanAvg) R.string.compare_speed_better else R.string.compare_speed_worse
+                    DriveCompareSort.DURATION -> if (betterThanAvg) R.string.compare_dur_better else R.string.compare_dur_worse
+                }
+                stringResource(res, mag) to (if (betterThanAvg) DeltaTone.GOOD else DeltaTone.BAD)
             }
             val rank = ranked.indexOfFirst { it.isBase } + 1
+            val isBest = rank == 1
             val bestVal = ranked.firstOrNull()?.let { driveMetricValue(it, sort) }
-            val bestPart = if (rank <= 1 || bestVal == null) {
-                stringResource(R.string.compare_personal_best)
-            } else {
-                stringResource(R.string.compare_pct_off_best, abs(percentDelta(baseVal, bestVal)))
-            }
+            val offBest = if (!isBest && bestVal != null) abs(percentDelta(baseVal, bestVal)) else null
+            val rankText = stringResource(R.string.compare_rank_of, rank, comparison.totalCount)
             ComparisonVerdict(
                 accent = palette.accent,
                 primary = primary,
                 tone = tone,
-                secondary = "#$rank/${comparison.totalCount} · $bestPart",
-                costLine = null
+                secondary = if (offBest != null) "$rankText · " + stringResource(R.string.compare_pct_off_best, offBest) else rankText,
+                costLine = null,
+                badge = if (isBest) stringResource(R.string.compare_personal_best) else null
             )
         }
 
@@ -370,14 +374,14 @@ private fun ReferenceRow(
 
 private fun driveMetricValue(d: ComparableDrive, sort: DriveCompareSort): Double? = when (sort) {
     DriveCompareSort.EFFICIENCY -> d.efficiency
-    DriveCompareSort.DURATION -> d.durationMin.toDouble()
-    DriveCompareSort.SPEED -> d.speedAvg.toDouble()
+    DriveCompareSort.DURATION -> d.durationSeconds.toDouble()
+    DriveCompareSort.SPEED -> d.avgSpeedPrecise
 }
 
 private fun driveAvgMetricValue(a: DriveAverage, sort: DriveCompareSort): Double? = when (sort) {
     DriveCompareSort.EFFICIENCY -> a.efficiency
-    DriveCompareSort.DURATION -> a.durationMin.toDouble()
-    DriveCompareSort.SPEED -> a.speedAvg.toDouble()
+    DriveCompareSort.DURATION -> a.durationSeconds.toDouble()
+    DriveCompareSort.SPEED -> a.avgSpeedPrecise
 }
 
 private fun driveHigherIsBetter(sort: DriveCompareSort): Boolean = sort == DriveCompareSort.SPEED

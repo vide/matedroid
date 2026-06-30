@@ -1376,15 +1376,20 @@
     <string name="compare_speed_vs_distance">Speed vs distance</string>
     <string name="compare_consumption_vs_distance">Consumption vs distance</string>
     <!-- Comparison stats: verdict banner and per-row deltas -->
-    <string name="compare_pct_better_than_avg">%1$d%% better than average</string>
-    <string name="compare_pct_worse_than_avg">%1$d%% worse than average</string>
+    <string name="compare_eff_better">%1$d%% less consumption than average</string>
+    <string name="compare_eff_worse">%1$d%% more consumption than average</string>
+    <string name="compare_speed_better">%1$d%% faster than average</string>
+    <string name="compare_speed_worse">%1$d%% slower than average</string>
+    <string name="compare_dur_better">%1$d%% quicker than average</string>
+    <string name="compare_dur_worse">%1$d%% slower than average</string>
+    <string name="compare_peak_better">%1$d%% higher peak than average</string>
+    <string name="compare_peak_worse">%1$d%% lower peak than average</string>
+    <string name="compare_cost_better">%1$d%% cheaper than average</string>
+    <string name="compare_cost_worse">%1$d%% pricier than average</string>
+    <string name="compare_rank_of">#%1$d of %2$d</string>
     <string name="compare_on_par_average">On par with the average</string>
     <string name="compare_pct_off_best">%1$d%% off your best</string>
     <string name="compare_personal_best">Your best yet</string>
-    <!-- Charge comparison cost stat (%1$s = price per kWh, %2$d = percent) -->
-    <string name="compare_cost_below_avg">%1$s/kWh · %2$d%% below average</string>
-    <string name="compare_cost_above_avg">%1$s/kWh · %2$d%% above average</string>
-    <string name="compare_cost_at_avg">%1$s/kWh · average for here</string>
     <!-- Leaderboard: the averaged reference row -->
     <string name="compare_average">Average</string>
     <!-- Leaderboard: tappable row to reveal the hidden drives. %d = how many are hidden -->

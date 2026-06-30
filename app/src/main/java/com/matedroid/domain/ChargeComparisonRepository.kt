@@ -17,6 +17,7 @@ data class ComparableCharge(
     val peakKw: Int?,
     val energyAdded: Double,
     val durationMin: Int,
+    val durationSeconds: Int,
     val cost: Double?,
     val startBattery: Int,
     val endBattery: Int,
@@ -33,6 +34,7 @@ data class ComparableCharge(
 data class ChargeAverage(
     val peakKw: Int?,
     val durationMin: Int,
+    val durationSeconds: Int,
     val costPerKwh: Double?,
     val count: Int
 )
@@ -59,12 +61,13 @@ data class ChargeComparison(
     val average: ChargeAverage
         get() {
             val list = all
-            if (list.isEmpty()) return ChargeAverage(null, 0, null, 0)
+            if (list.isEmpty()) return ChargeAverage(null, 0, 0, null, 0)
             val peaks = list.mapNotNull { it.peakKw }
             val costs = list.mapNotNull { it.costPerKwh }
             return ChargeAverage(
                 peakKw = if (peaks.isNotEmpty()) peaks.average().roundToInt() else null,
                 durationMin = list.sumOf { it.durationMin } / list.size,
+                durationSeconds = list.sumOf { it.durationSeconds } / list.size,
                 costPerKwh = if (costs.isNotEmpty()) costs.average() else null,
                 count = list.size
             )
@@ -109,6 +112,7 @@ class ChargeComparisonRepository @Inject constructor(
                 peakKw = agg?.maxChargerPower,
                 energyAdded = s.energyAdded,
                 durationMin = s.durationMin,
+                durationSeconds = durationSeconds(s.startDate, s.endDate, s.durationMin),
                 cost = s.cost,
                 startBattery = s.startBatteryLevel,
                 endBattery = s.endBatteryLevel,
