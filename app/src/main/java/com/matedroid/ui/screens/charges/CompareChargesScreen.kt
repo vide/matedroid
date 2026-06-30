@@ -392,7 +392,7 @@ private fun CompareRow(
     onClick: (() -> Unit)?
 ) {
     val bg = if (charge.isBase) palette.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    val (value, unit) = valueFor(charge, sort, currencySymbol)
+    val (value, unit) = valueFor(charge, sort, currencySymbol, stringResource(R.string.charge_free))
 
     Row(
         modifier = Modifier
@@ -492,9 +492,21 @@ private fun rankBadge(rank: Int): String = when (rank) {
     else -> "$rank"
 }
 
-private fun valueFor(charge: ComparableCharge, sort: CompareSort, currencySymbol: String): Pair<String, String> =
+private fun valueFor(
+    charge: ComparableCharge,
+    sort: CompareSort,
+    currencySymbol: String,
+    freeLabel: String
+): Pair<String, String> =
     when (sort) {
         CompareSort.PEAK -> (charge.peakKw?.let { "$it" } ?: "—") to "kW"
         CompareSort.DURATION -> formatDurationCompact(charge.durationMin) to ""
-        CompareSort.COST -> (charge.costPerKwh?.let { "$currencySymbol${"%.3f".format(it)}" } ?: "—") to "/kWh"
+        CompareSort.COST -> {
+            val cpk = charge.costPerKwh
+            when {
+                cpk == null -> "—" to ""
+                cpk <= 0.0 -> freeLabel to ""
+                else -> "$currencySymbol${"%.3f".format(cpk)}" to "/kWh"
+            }
+        }
     }

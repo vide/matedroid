@@ -25,9 +25,13 @@ data class ComparableCharge(
     val distanceMeters: Double,
     val isBase: Boolean
 ) {
-    /** Cost per kWh, or null when the charge is free/uncosted or has no energy. */
+    /**
+     * Cost per kWh. A charge with no cost set is treated as free (0), since that usually means free
+     * credits (Tesla or another provider) rather than unknown — so it counts as the cheapest, not as
+     * missing. Null only when there's no energy to divide by.
+     */
     val costPerKwh: Double?
-        get() = cost?.takeIf { it > 0 && energyAdded > 0 }?.let { it / energyAdded }
+        get() = if (energyAdded > 0) (cost ?: 0.0).coerceAtLeast(0.0) / energyAdded else null
 }
 
 /** Reference figures averaged across every charge in the comparison set. */
