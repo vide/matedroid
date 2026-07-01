@@ -1,0 +1,13 @@
+Descubre cómo se compara cada trayecto y carga con tu historial: clasificaciones, porcentajes y curvas lado a lado. Las pantallas de detalle son más limpias.
+
+Añadido:
+- Compara trayectos y cargas similares, con estadísticas
+- Edita el coste de una carga desde su detalle
+- Toca un tramo en la línea del viaje para abrir su detalle
+
+Cambiado:
+- Pantallas de detalle rediseñadas
+- La línea del viaje destaca el tiempo de conducción y carga
+
+Corregido:
+- Las cargas DC ya no se etiquetan como AC

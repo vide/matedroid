@@ -1,0 +1,13 @@
+Scopri come ogni tragitto e ricarica si confronta con il tuo storico: classifiche, percentuali e curve affiancate. Le schermate di dettaglio sono più pulite.
+
+Aggiunto:
+- Confronta tragitti e ricariche simili
+- Modifica il costo di una ricarica dal suo dettaglio
+- Tocca una tappa nella timeline per aprirne il dettaglio
+
+Modificato:
+- Schermate di dettaglio ridisegnate
+- La timeline evidenzia tempo di guida e ricarica
+
+Corretto:
+- Le ricariche DC non sono più etichettate come AC

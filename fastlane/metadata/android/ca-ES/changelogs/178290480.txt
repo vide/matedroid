@@ -1,0 +1,13 @@
+Descobreix com es compara cada trajecte i càrrega amb el teu historial: classificacions, percentatges i corbes costat a costat. Les pantalles de detall són més netes.
+
+Afegit:
+- Compara trajectes i càrregues similars
+- Edita el cost d'una càrrega des del seu detall
+- Toca un tram a la línia del viatge per obrir-ne el detall
+
+Canviat:
+- Pantalles de detall redissenyades
+- La línia del viatge destaca el temps de conducció i càrrega
+
+Corregit:
+- Les càrregues DC ja no s'etiqueten com a AC

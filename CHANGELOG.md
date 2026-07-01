@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0-beta1] - 2026-07-01
+
 ### Added
 - **Percentage stats in the comparison screens** — a verdict line summarises how this run compares ("8% better than average", rank, and gap to your best), each leaderboard row shows a coloured +/- delta versus your run, and DC charge comparisons add a per-kWh cost line when every charge has a price set.
 - **Compare similar charges and drives** — the charge and drive detail screens now show a "Compare" card. For a DC charge it overlays the power-vs-SoC curves of other fast-charging sessions in the same area with a re-sortable leaderboard (peak / time / price); for a drive it overlays the speed-vs-distance curves of other runs of the same route, ranked by efficiency.
@@ -697,7 +699,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...HEAD
+[1.10.0-beta1]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0-beta1
 [1.9.0]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0
 [1.9.0-beta2]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...v1.9.0-beta2
 [1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
