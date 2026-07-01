@@ -1,0 +1,12 @@
+Compara cualquier trayecto o carga con tu historial — con clasificaciones y veredictos en porcentaje — y mira los números clave de cada viaje en su mapa.
+
+Añadido:
+- Compara trayectos y cargas similares, con estadísticas y clasificaciones
+- Distancia, consumo y coste/100km del viaje en el mapa — toca para pantalla completa
+- Edita el coste de una carga desde su detalle
+
+Cambiado:
+- Pantallas de detalle de carga y trayecto rediseñadas
+
+Corregido:
+- Las cargas DC ya no se etiquetan como AC

@@ -1,0 +1,12 @@
+Confronta qualsiasi tragitto o ricarica con il tuo storico — con classifiche e percentuali — e vedi i numeri chiave di ogni viaggio sulla sua mappa.
+
+Aggiunto:
+- Confronta tragitti e ricariche simili, con statistiche e classifiche
+- Distanza, consumo e costo/100km sulla mappa — tocca per schermo intero
+- Modifica il costo di una ricarica dal suo dettaglio
+
+Modificato:
+- Schermate di dettaglio ricarica e tragitto ridisegnate
+
+Corretto:
+- Le ricariche DC non sono più etichettate come AC

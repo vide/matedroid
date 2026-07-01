@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-01
+
+Compare drives and charges against your own history, a trip-detail screen that puts the map and its key numbers front and centre, and redesigned charge & drive detail screens.
+
+### Added
+- **Compare similar charges and drives** — the charge and drive detail screens now show a "Compare" card. For a DC charge it overlays the power-vs-SoC curves of other fast-charging sessions in the same area with a re-sortable leaderboard (peak / time / price); for a drive it overlays the speed-vs-distance curves of other runs of the same route, ranked by efficiency.
+- **Percentage stats in the comparison screens** — a verdict line summarises how this run compares ("8% better than average", rank, and gap to your best), each leaderboard row shows a coloured +/- delta versus your run, and DC charge comparisons add a per-kWh cost line when every charge has a price set.
+- **Trip vitals on the map** — the trip detail map is now a full-height hero showing the trip's distance, average consumption (Wh/km) and charging cost per 100 km in a bar across the bottom, so the figures you compare trips by are front and centre. Tap the expand button to view the map full screen; drag with two fingers to pan it.
+- **Edit a charge's cost from its detail screen** — the Cost section now shows an external-link icon and the whole card opens TeslaMate's cost editor (previously possible only from the charges list). It appears even for free/uncosted charges so you can add a cost.
+- **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.
+
+### Changed
+- **Redesigned the charge detail screen** — a compact hero (energy added and peak power in the car's accent colour) with quick stat tiles and the power curve up front, while the detailed stats and the battery, temperature and AC charts now live behind a "More details" toggle.
+- **Redesigned the drive detail screen** to match — a compact hero (distance in the accent colour, an efficiency tile, and labelled avg-speed / battery / duration figures) with the speed profile up front, while the detailed stats and the power, battery and elevation charts move behind a "More details" toggle.
+- **The Trips list now shows the year on each trip's date chip**, not just day and month.
+- **"Short" drives are now those under 1 km** (was 0.1 km), so brief repositioning hops stop cluttering the lists and trip timelines when "Show short drives / charges" is off. Charges are unchanged (0.1 kWh or less).
+- **The trip timeline gives brief legs an honest sliver** instead of a fixed minimum block, so a quick 1 km hop no longer looks nearly as wide as a long highway leg.
+- **Time spent driving and charging now headline the trip timeline** as bold accent stat tiles, with the overall total as a quiet caption beneath.
+
+### Fixed
+- **The empty-Trips hint on the dashboard now describes road-trip detection accurately** — it no longer implies distance alone qualifies; a road-trip needs multiple drives linked by a DC fast-charge (#314).
+- **Recent DC charges no longer show as AC in the charges list** — until a charge's details are synced, its type is now inferred from average power instead of defaulting to AC, so a fast charge isn't mislabeled while it waits to be processed (#313).
+- **Drives and charges in a merged-and-renamed trip now show the trip's current name** on their detail screen, instead of the original auto-generated "city → city" name.
+- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), short legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
+
 ## [1.10.0-beta2] - 2026-07-01
 
 ### Added
@@ -704,7 +729,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0-beta2...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0
 [1.10.0-beta2]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...v1.10.0-beta2
 [1.10.0-beta1]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0-beta1
 [1.9.0]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0
