@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Headline metrics on the trip detail screen** — the trip's average consumption (Wh/km) and charging cost per 100 km now appear as two accent tiles right below the route map, so the figures you compare trips by are up front instead of buried further down.
+- **Trip vitals on the map** — the trip detail map is now a full-height hero with the trip's average consumption (Wh/km) and charging cost per 100 km shown in a bar across the bottom, so the figures you compare trips by are front and centre (previously they were only in the energy-flow and cost cards further down).
 
 ## [1.10.0-beta1] - 2026-07-01
 

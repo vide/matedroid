@@ -1,5 +1,7 @@
 package com.matedroid.ui.screens.trips
 
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
@@ -9,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
@@ -31,8 +34,6 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -78,7 +79,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -314,9 +314,6 @@ private fun TripDetailContent(
         val dateRangeLabel = remember(trip.startDate, trip.endDate) {
             formatTripDateRange(trip.startDate, trip.endDate)
         }
-        val distanceLabel = remember(trip.totalDistance, units) {
-            UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0)
-        }
         val startCity = remember(trip.startAddress) { extractCity(trip.startAddress) }
         val endCity = remember(trip.endAddress) { extractCity(trip.endAddress) }
         val timelineSegments = remember(trip, dcChargeIds, showShortDrivesCharges) {
@@ -335,15 +332,10 @@ private fun TripDetailContent(
             isMapLoading = isMapLoading,
             palette = palette,
             dateRangeLabel = dateRangeLabel,
-            distanceLabel = distanceLabel,
-            onChargeClick = onChargeClick
-        )
-
-        TripHeadlineMetrics(
             trip = trip,
             units = units,
             currencySymbol = currencySymbol,
-            palette = palette
+            onChargeClick = onChargeClick
         )
 
         TripTimeline(
@@ -376,8 +368,7 @@ private fun TripDetailContent(
         BatteryEnergyFlowCard(
             trip = trip,
             dcChargeIds = dcChargeIds,
-            palette = palette,
-            units = units
+            palette = palette
         )
 
         val legs = remember(trip, showShortDrivesCharges) { buildLegList(trip, showShortDrivesCharges) }
@@ -504,97 +495,6 @@ private fun TripDetailContent(
     }
 }
 
-// === Headline metrics — the two figures you compare trips by, right under the map ===
-
-@Composable
-private fun TripHeadlineMetrics(
-    trip: Trip,
-    units: Units?,
-    currencySymbol: String,
-    palette: CarColorPalette
-) {
-    // Average consumption (Wh/km or Wh/mi). Prefer the pre-computed value; fall back to
-    // energy-consumed / distance (same fallback the energy-flow card uses).
-    val efficiency = trip.avgEfficiency
-        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { trip.totalEnergyConsumed * 1000.0 / it }
-    val consumptionValue = efficiency
-        ?.let { UnitFormatter.formatEfficiency(it, units, decimals = 0) }
-        ?: "—"
-
-    // Charging cost per 100 distance units. Distance is already in the user's unit (API
-    // pre-converts), so this arithmetic yields "/100 km" or "/100 mi" with no conversion.
-    val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
-        ?.let { it / trip.totalDistance * 100.0 }
-    val costValue = per100?.let { "%.2f %s".format(it, currencySymbol) } ?: "—"
-    val distanceUnit = UnitFormatter.getDistanceUnit(units)
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        HeadlineMetricTile(
-            icon = Icons.Filled.Speed,
-            label = stringResource(R.string.consumption),
-            value = consumptionValue,
-            accent = palette.accent,
-            modifier = Modifier.weight(1f)
-        )
-        HeadlineMetricTile(
-            icon = Icons.Filled.Payments,
-            label = stringResource(R.string.trip_cost_per_100, distanceUnit),
-            value = costValue,
-            accent = palette.accent,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-// Accent stat tile — mirrors DurationTile so the headline metrics read as one family with
-// the Driving / Charging tiles in the timeline below.
-@Composable
-private fun HeadlineMetricTile(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(accent.copy(alpha = 0.12f))
-            .padding(vertical = 12.dp, horizontal = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(15.dp),
-                tint = accent
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = label.uppercase(java.util.Locale.getDefault()),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                softWrap = false
-            )
-        }
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-            maxLines = 1,
-            softWrap = false
-        )
-    }
-}
-
 // === Charge Cost Card ===
 
 @Composable
@@ -677,32 +577,20 @@ private fun ChargeCostCard(
                     currencySymbol = currencySymbol
                 )
 
-                // Always-visible efficiency pills below the donut — the "at-a-glance verdict"
-                // on how expensive the trip was per distance / per energy.
-                val distanceUnit = UnitFormatter.getDistanceUnit(units)
-                val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
-                    ?.let { it / trip.totalDistance * 100.0 }
+                // Per-kWh cost pill below the donut — the "at-a-glance verdict" on how expensive
+                // the energy was. (Cost per 100 km now lives in the map vitals bar.)
                 val perKwh = trip.totalChargeCost?.takeIf { trip.totalEnergyCharged > 0.0 }
                     ?.let { it / trip.totalEnergyCharged }
-                if (per100 != null || perKwh != null) {
+                if (perKwh != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                     ) {
-                        per100?.let {
-                            EfficiencyPill(
-                                value = "%.2f %s".format(it, currencySymbol),
-                                unit = "/ 100 $distanceUnit",
-                                palette = palette
-                            )
-                        }
-                        perKwh?.let {
-                            EfficiencyPill(
-                                value = "%.2f %s".format(it, currencySymbol),
-                                unit = "/ kWh",
-                                palette = palette
-                            )
-                        }
+                        EfficiencyPill(
+                            value = "%.2f %s".format(perKwh, currencySymbol),
+                            unit = "/ kWh",
+                            palette = palette
+                        )
                     }
                 }
             }
@@ -806,8 +694,7 @@ private fun EfficiencyPill(
 private fun BatteryEnergyFlowCard(
     trip: Trip,
     dcChargeIds: Set<Int>,
-    palette: CarColorPalette,
-    units: Units?
+    palette: CarColorPalette
 ) {
     val dcCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId in dcChargeIds } }
     val acCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId !in dcChargeIds } }
@@ -818,9 +705,6 @@ private fun BatteryEnergyFlowCard(
     val dcAvgKw = if (dcDurationMin > 0) dcKwh * 60.0 / dcDurationMin else 0.0
     val acAvgKw = if (acDurationMin > 0) acKwh * 60.0 / acDurationMin else 0.0
     val usedKwh = trip.totalEnergyConsumed
-    val efficiencyWhPerDist = trip.avgEfficiency
-        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { usedKwh * 1000.0 / it }
-    val efficiencyUnit = UnitFormatter.getEfficiencyUnit(units)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -850,8 +734,6 @@ private fun BatteryEnergyFlowCard(
                 dcKwh = dcKwh, dcAvgKw = dcAvgKw,
                 acKwh = acKwh, acAvgKw = acAvgKw,
                 usedKwh = usedKwh,
-                efficiencyWhPerDist = efficiencyWhPerDist,
-                efficiencyUnit = efficiencyUnit,
                 palette = palette
             )
         }
@@ -863,8 +745,6 @@ private fun HorizontalEnergyFlow(
     dcKwh: Double, dcAvgKw: Double,
     acKwh: Double, acAvgKw: Double,
     usedKwh: Double,
-    efficiencyWhPerDist: Double?,
-    efficiencyUnit: String,
     palette: CarColorPalette
 ) {
     val totalCharged = dcKwh + acKwh
@@ -1150,13 +1030,6 @@ private fun HorizontalEnergyFlow(
                 fontWeight = FontWeight.Bold,
                 color = usedColor
             )
-            if (efficiencyWhPerDist != null) {
-                Text(
-                    text = "%.0f %s".format(efficiencyWhPerDist, efficiencyUnit),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -1185,9 +1058,13 @@ private fun TripMapCard(
     isMapLoading: Boolean,
     palette: CarColorPalette,
     dateRangeLabel: String,
-    distanceLabel: String,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
     onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
+    val isDark = isSystemInDarkTheme()
+
     // Bridge: Android View click → Compose state → Compose navigation
     var pendingChargeNav by remember { mutableIntStateOf(0) }
     LaunchedEffect(pendingChargeNav) {
@@ -1244,11 +1121,13 @@ private fun TripMapCard(
                 val south = allPoints.minOf { it.latitude }
                 val east = allPoints.maxOf { it.longitude }
                 val west = allPoints.minOf { it.longitude }
-                val latPad = (north - south) * 0.15
+                val latSpan = north - south
                 val lonPad = (east - west) * 0.15
+                // Bias the route into the upper ~70% of the map by reserving extra space below
+                // it (pad the south edge more than the north) for the docked vitals bar.
                 BoundingBox(
-                    north + latPad, east + lonPad,
-                    south - latPad, west - lonPad
+                    north + latSpan * 0.15, east + lonPad,
+                    south - latSpan * 0.55, west - lonPad
                 )
             } else null
             PreparedRoute(geoPointSegments, bb)
@@ -1264,7 +1143,7 @@ private fun TripMapCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .height(400.dp)
                 .clip(RoundedCornerShape(12.dp))
         ) {
                 if (mapMounted) AndroidView(
@@ -1272,6 +1151,9 @@ private fun TripMapCard(
                         MapView(mapCtx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // Dim + desaturate the tiles so the accent route and the docked
+                            // vitals bar read as a deliberate hero rather than raw map data.
+                            overlayManager.tilesOverlay.setColorFilter(mapDimFilter(isDark))
                             // Tell the parent vertical scroll to stop intercepting
                             // touches so single-finger drag pans the map instead
                             // of scrolling the page.
@@ -1423,13 +1305,150 @@ private fun TripMapCard(
                         .align(Alignment.TopStart)
                         .padding(12.dp)
                 )
-                MapOverlayChip(
-                    text = distanceLabel,
-                    palette = palette,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(12.dp)
+                MapVitalsOverlay(
+                    trip = trip,
+                    units = units,
+                    currencySymbol = currencySymbol
                 )
+        }
+    }
+}
+
+// Dim + desaturate map tiles so overlaid data stays legible. The route polyline and markers
+// are separate overlays and are unaffected by this tile-only filter.
+private fun mapDimFilter(isDark: Boolean): ColorMatrixColorFilter {
+    val matrix = ColorMatrix().apply { setSaturation(if (isDark) 0.35f else 0.55f) }
+    val toneScale = if (isDark) 0.60f else 0.92f
+    val toneLift = if (isDark) 0f else 18f
+    matrix.postConcat(
+        ColorMatrix(
+            floatArrayOf(
+                toneScale, 0f, 0f, 0f, toneLift,
+                0f, toneScale, 0f, 0f, toneLift,
+                0f, 0f, toneScale, 0f, toneLift,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
+    )
+    return ColorMatrixColorFilter(matrix)
+}
+
+// Docked vitals bar — the two figures you compare trips by (consumption, cost/100), sitting on
+// a scrim across the bottom of the hero map. Values are white so they stay legible over the map
+// regardless of the car's accent luminance; the context line carries distance + duration.
+@Composable
+private fun BoxScope.MapVitalsOverlay(
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String
+) {
+    val efficiency = trip.avgEfficiency
+        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { trip.totalEnergyConsumed * 1000.0 / it }
+    val consumptionNumber = efficiency?.let { "%.0f".format(it) } ?: "—"
+    val consumptionUnit = if (efficiency != null) UnitFormatter.getEfficiencyUnit(units) else ""
+
+    // Distance is already in the user's unit (API pre-converts), so this yields cost per
+    // 100 km or per 100 mi with no conversion.
+    val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
+        ?.let { it / trip.totalDistance * 100.0 }
+    val costNumber = per100?.let { "%.2f".format(it) } ?: "—"
+    val costUnit = if (per100 != null) currencySymbol else ""
+    val distanceUnit = UnitFormatter.getDistanceUnit(units)
+
+    val resources = LocalContext.current.resources
+    val contextLine = remember(trip.totalDistance, trip.totalDurationMin, units) {
+        val dist = UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0)
+        val dur = formatDuration(resources, trip.totalDurationMin)
+        "$dist · $dur"
+    }
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.45f to Color.Black.copy(alpha = 0.55f),
+                    1f to Color.Black.copy(alpha = 0.90f)
+                )
+            )
+            .padding(start = 18.dp, end = 18.dp, top = 44.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MapVitalStat(
+                label = stringResource(R.string.consumption),
+                number = consumptionNumber,
+                unit = consumptionUnit,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 2.dp)
+                    .background(Color.White.copy(alpha = 0.16f))
+            )
+            MapVitalStat(
+                label = stringResource(R.string.trip_cost_per_100, distanceUnit),
+                number = costNumber,
+                unit = costUnit,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Text(
+            text = contextLine,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.68f),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+@Composable
+private fun MapVitalStat(
+    label: String,
+    number: String,
+    unit: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            text = label.uppercase(java.util.Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White.copy(alpha = 0.62f),
+            maxLines = 1,
+            softWrap = false
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = number,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1
+            )
+            if (unit.isNotEmpty()) {
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.82f),
+                    modifier = Modifier.padding(bottom = 3.dp)
+                )
+            }
         }
     }
 }
