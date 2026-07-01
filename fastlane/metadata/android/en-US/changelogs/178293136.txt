@@ -1,0 +1,6 @@
+Your trip's key numbers now live right on the map. The trip detail screen leads with a full-height map and a stats bar across the bottom.
+
+Added:
+- Distance, consumption (Wh/km) and charging cost per 100 km, front and centre on the trip map
+- Tap to open the trip map full screen
+- Two-finger drag pans the map

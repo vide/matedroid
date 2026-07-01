@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0-beta2] - 2026-07-01
+
 ### Added
 - **Trip vitals on the map** — the trip detail map is now a full-height hero showing the trip's distance, average consumption (Wh/km) and charging cost per 100 km in a bar across the bottom, so the figures you compare trips by are front and centre (previously they were only in the energy-flow and cost cards further down). Tap the expand button to view the map full screen; drag with two fingers to pan it.
 
@@ -702,7 +704,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0-beta2...HEAD
+[1.10.0-beta2]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...v1.10.0-beta2
 [1.10.0-beta1]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0-beta1
 [1.9.0]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0
 [1.9.0-beta2]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...v1.9.0-beta2
