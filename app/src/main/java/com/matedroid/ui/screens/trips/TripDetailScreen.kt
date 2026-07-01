@@ -1354,12 +1354,11 @@ private fun BoxScope.MapVitalsOverlay(
     val costNumber = per100?.let { "%.2f".format(it) } ?: "—"
     val costUnit = if (per100 != null) currencySymbol else ""
     val distanceUnit = UnitFormatter.getDistanceUnit(units)
+    val distanceNumber = "%,.0f".format(trip.totalDistance)
 
     val resources = LocalContext.current.resources
-    val contextLine = remember(trip.totalDistance, trip.totalDurationMin, units) {
-        val dist = UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0)
-        val dur = formatDuration(resources, trip.totalDurationMin)
-        "$dist · $dur"
+    val durationLine = remember(trip.totalDurationMin) {
+        formatDuration(resources, trip.totalDurationMin)
     }
 
     Column(
@@ -1383,18 +1382,19 @@ private fun BoxScope.MapVitalsOverlay(
             verticalAlignment = Alignment.CenterVertically
         ) {
             MapVitalStat(
+                label = stringResource(R.string.distance),
+                number = distanceNumber,
+                unit = distanceUnit,
+                modifier = Modifier.weight(1f)
+            )
+            VitalDivider()
+            MapVitalStat(
                 label = stringResource(R.string.consumption),
                 number = consumptionNumber,
                 unit = consumptionUnit,
                 modifier = Modifier.weight(1f)
             )
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .padding(vertical = 2.dp)
-                    .background(Color.White.copy(alpha = 0.16f))
-            )
+            VitalDivider()
             MapVitalStat(
                 label = stringResource(R.string.trip_cost_per_100, distanceUnit),
                 number = costNumber,
@@ -1403,12 +1403,23 @@ private fun BoxScope.MapVitalsOverlay(
             )
         }
         Text(
-            text = contextLine,
+            text = durationLine,
             style = MaterialTheme.typography.bodySmall,
             color = Color.White.copy(alpha = 0.68f),
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
     }
+}
+
+@Composable
+private fun VitalDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .padding(vertical = 2.dp)
+            .background(Color.White.copy(alpha = 0.16f))
+    )
 }
 
 @Composable
