@@ -1,5 +1,7 @@
 package com.matedroid.ui.screens.trips
 
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
@@ -9,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
@@ -21,7 +24,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
@@ -31,6 +38,8 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,12 +82,16 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
@@ -311,9 +324,6 @@ private fun TripDetailContent(
         val dateRangeLabel = remember(trip.startDate, trip.endDate) {
             formatTripDateRange(trip.startDate, trip.endDate)
         }
-        val distanceLabel = remember(trip.totalDistance, units) {
-            UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0)
-        }
         val startCity = remember(trip.startAddress) { extractCity(trip.startAddress) }
         val endCity = remember(trip.endAddress) { extractCity(trip.endAddress) }
         val timelineSegments = remember(trip, dcChargeIds, showShortDrivesCharges) {
@@ -332,7 +342,9 @@ private fun TripDetailContent(
             isMapLoading = isMapLoading,
             palette = palette,
             dateRangeLabel = dateRangeLabel,
-            distanceLabel = distanceLabel,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
             onChargeClick = onChargeClick
         )
 
@@ -366,8 +378,7 @@ private fun TripDetailContent(
         BatteryEnergyFlowCard(
             trip = trip,
             dcChargeIds = dcChargeIds,
-            palette = palette,
-            units = units
+            palette = palette
         )
 
         val legs = remember(trip, showShortDrivesCharges) { buildLegList(trip, showShortDrivesCharges) }
@@ -576,32 +587,20 @@ private fun ChargeCostCard(
                     currencySymbol = currencySymbol
                 )
 
-                // Always-visible efficiency pills below the donut — the "at-a-glance verdict"
-                // on how expensive the trip was per distance / per energy.
-                val distanceUnit = UnitFormatter.getDistanceUnit(units)
-                val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
-                    ?.let { it / trip.totalDistance * 100.0 }
+                // Per-kWh cost pill below the donut — the "at-a-glance verdict" on how expensive
+                // the energy was. (Cost per 100 km now lives in the map vitals bar.)
                 val perKwh = trip.totalChargeCost?.takeIf { trip.totalEnergyCharged > 0.0 }
                     ?.let { it / trip.totalEnergyCharged }
-                if (per100 != null || perKwh != null) {
+                if (perKwh != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                     ) {
-                        per100?.let {
-                            EfficiencyPill(
-                                value = "%.2f %s".format(it, currencySymbol),
-                                unit = "/ 100 $distanceUnit",
-                                palette = palette
-                            )
-                        }
-                        perKwh?.let {
-                            EfficiencyPill(
-                                value = "%.2f %s".format(it, currencySymbol),
-                                unit = "/ kWh",
-                                palette = palette
-                            )
-                        }
+                        EfficiencyPill(
+                            value = "%.2f %s".format(perKwh, currencySymbol),
+                            unit = "/ kWh",
+                            palette = palette
+                        )
                     }
                 }
             }
@@ -705,8 +704,7 @@ private fun EfficiencyPill(
 private fun BatteryEnergyFlowCard(
     trip: Trip,
     dcChargeIds: Set<Int>,
-    palette: CarColorPalette,
-    units: Units?
+    palette: CarColorPalette
 ) {
     val dcCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId in dcChargeIds } }
     val acCharges = remember(trip, dcChargeIds) { trip.charges.filter { it.chargeId !in dcChargeIds } }
@@ -717,9 +715,6 @@ private fun BatteryEnergyFlowCard(
     val dcAvgKw = if (dcDurationMin > 0) dcKwh * 60.0 / dcDurationMin else 0.0
     val acAvgKw = if (acDurationMin > 0) acKwh * 60.0 / acDurationMin else 0.0
     val usedKwh = trip.totalEnergyConsumed
-    val efficiencyWhPerDist = trip.avgEfficiency
-        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { usedKwh * 1000.0 / it }
-    val efficiencyUnit = UnitFormatter.getEfficiencyUnit(units)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -749,8 +744,6 @@ private fun BatteryEnergyFlowCard(
                 dcKwh = dcKwh, dcAvgKw = dcAvgKw,
                 acKwh = acKwh, acAvgKw = acAvgKw,
                 usedKwh = usedKwh,
-                efficiencyWhPerDist = efficiencyWhPerDist,
-                efficiencyUnit = efficiencyUnit,
                 palette = palette
             )
         }
@@ -762,8 +755,6 @@ private fun HorizontalEnergyFlow(
     dcKwh: Double, dcAvgKw: Double,
     acKwh: Double, acAvgKw: Double,
     usedKwh: Double,
-    efficiencyWhPerDist: Double?,
-    efficiencyUnit: String,
     palette: CarColorPalette
 ) {
     val totalCharged = dcKwh + acKwh
@@ -1049,13 +1040,6 @@ private fun HorizontalEnergyFlow(
                 fontWeight = FontWeight.Bold,
                 color = usedColor
             )
-            if (efficiencyWhPerDist != null) {
-                Text(
-                    text = "%.0f %s".format(efficiencyWhPerDist, efficiencyUnit),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -1084,20 +1068,12 @@ private fun TripMapCard(
     isMapLoading: Boolean,
     palette: CarColorPalette,
     dateRangeLabel: String,
-    distanceLabel: String,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
     onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
-    // Bridge: Android View click → Compose state → Compose navigation
-    var pendingChargeNav by remember { mutableIntStateOf(0) }
-    LaunchedEffect(pendingChargeNav) {
-        if (pendingChargeNav != 0) {
-            onChargeClick(pendingChargeNav)
-            pendingChargeNav = 0
-        }
-    }
-
-    // Track when the map has zoomed to the route — hides the world-view flash
-    var mapReady by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
 
     val mapColors = remember(palette) {
         MapColors(
@@ -1111,26 +1087,9 @@ private fun TripMapCard(
         )
     }
 
-    // Cache marker drawables per color — drawables are heavy to create each pass.
-    val markerDrawables = remember { mutableMapOf<Pair<Int, Boolean>, android.graphics.drawable.Drawable>() }
-
-    // Track the last applied data so we can skip redrawing overlays when nothing changed.
-    val lastApplied = remember { arrayOfNulls<Any>(3) }
-
-    // Defer MapView instantiation by a short delay so the first frame of the surrounding screen
-    // paints and touch/scroll handlers become responsive before osmdroid's synchronous MapView
-    // constructor runs on the main thread. This matters most on back-navigation: the composition
-    // is torn down and rebuilt by NavHost, and mounting the MapView immediately would freeze the
-    // main thread for ~100–300ms.
-    var mapMounted by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(120)
-        mapMounted = true
-    }
-
-    // Precompute GeoPoint lists + BoundingBox off the main thread. For long trips this moves
-    // hundreds-to-thousands of object allocations + min/max scans off the UI thread, so when
-    // the AndroidView update runs it only does cheap attach work.
+    // Precompute GeoPoint lists + BoundingBox off the main thread, once, shared by the inline and
+    // fullscreen maps. For long trips this moves hundreds-to-thousands of allocations + min/max
+    // scans off the UI thread.
     var preparedRoute by remember(routeSegments) { mutableStateOf<PreparedRoute?>(null) }
     LaunchedEffect(routeSegments) {
         preparedRoute = if (routeSegments.isEmpty()) null else withContext(Dispatchers.Default) {
@@ -1143,16 +1102,20 @@ private fun TripMapCard(
                 val south = allPoints.minOf { it.latitude }
                 val east = allPoints.maxOf { it.longitude }
                 val west = allPoints.minOf { it.longitude }
-                val latPad = (north - south) * 0.15
+                val latSpan = north - south
                 val lonPad = (east - west) * 0.15
+                // Bias the route into the upper ~70% of the map by reserving extra space below
+                // it (pad the south edge more than the north) for the docked vitals bar.
                 BoundingBox(
-                    north + latPad, east + lonPad,
-                    south - latPad, west - lonPad
+                    north + latSpan * 0.15, east + lonPad,
+                    south - latSpan * 0.55, west - lonPad
                 )
             } else null
             PreparedRoute(geoPointSegments, bb)
         }
     }
+
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1160,175 +1123,513 @@ private fun TripMapCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Box(
+        TripMapContent(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            singleFingerScrollsPage = true,
+            onChargeClick = onChargeClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(320.dp)
+                .height(400.dp)
                 .clip(RoundedCornerShape(12.dp))
         ) {
-                if (mapMounted) AndroidView(
-                    factory = { mapCtx ->
-                        MapView(mapCtx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // Tell the parent vertical scroll to stop intercepting
-                            // touches so single-finger drag pans the map instead
-                            // of scrolling the page.
-                            setOnTouchListener { v, event ->
-                                when (event.actionMasked) {
-                                    MotionEvent.ACTION_DOWN,
-                                    MotionEvent.ACTION_MOVE,
-                                    MotionEvent.ACTION_POINTER_DOWN ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                                    MotionEvent.ACTION_UP,
-                                    MotionEvent.ACTION_CANCEL ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+            MapCornerButton(
+                icon = Icons.Default.Fullscreen,
+                contentDescription = stringResource(R.string.fullscreen),
+                onClick = { isFullscreen = true }
+            )
+        }
+    }
+
+    if (isFullscreen) {
+        TripMapFullscreen(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            onChargeClick = onChargeClick,
+            onDismiss = { isFullscreen = false }
+        )
+    }
+}
+
+// Map + its overlays (date chip, docked vitals bar, and a corner button). Shared by the inline
+// hero card and the fullscreen dialog so both stay identical.
+@Composable
+private fun TripMapContent(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
+    dateRangeLabel: String,
+    palette: CarColorPalette,
+    singleFingerScrollsPage: Boolean,
+    onChargeClick: (chargeId: Int) -> Unit,
+    modifier: Modifier = Modifier,
+    overlayInsets: WindowInsets = WindowInsets(0, 0, 0, 0),
+    cornerButton: @Composable BoxScope.() -> Unit = {}
+) {
+    Box(modifier = modifier) {
+        TripMapAndroidView(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            singleFingerScrollsPage = singleFingerScrollsPage,
+            onChargeClick = onChargeClick,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Overlays sit inside an inset box so they clear the system bars in fullscreen, while the
+        // map itself stays full-bleed behind them. Inline (zero insets) this is a no-op.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .windowInsetsPadding(overlayInsets)
+        ) {
+            MapOverlayChip(
+                text = dateRangeLabel,
+                palette = palette,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp)
+            )
+            MapVitalsOverlay(
+                trip = trip,
+                units = units,
+                currencySymbol = currencySymbol
+            )
+            cornerButton()
+        }
+    }
+}
+
+@Composable
+private fun TripMapAndroidView(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    singleFingerScrollsPage: Boolean,
+    onChargeClick: (chargeId: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Bridge: Android View click → Compose state → Compose navigation
+    var pendingChargeNav by remember { mutableIntStateOf(0) }
+    LaunchedEffect(pendingChargeNav) {
+        if (pendingChargeNav != 0) {
+            onChargeClick(pendingChargeNav)
+            pendingChargeNav = 0
+        }
+    }
+
+    // Track when the map has zoomed to the route — hides the world-view flash
+    var mapReady by remember { mutableStateOf(false) }
+
+    // Cache marker drawables per color — drawables are heavy to create each pass.
+    val markerDrawables = remember { mutableMapOf<Pair<Int, Boolean>, android.graphics.drawable.Drawable>() }
+
+    // Track the last applied data so we can skip redrawing overlays when nothing changed.
+    val lastApplied = remember { arrayOfNulls<Any>(3) }
+
+    // Defer MapView instantiation by a short delay so the first frame paints before osmdroid's
+    // synchronous MapView constructor runs on the main thread.
+    var mapMounted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(120)
+        mapMounted = true
+    }
+
+    Box(modifier = modifier) {
+        if (mapMounted) AndroidView(
+            factory = { mapCtx ->
+                MapView(mapCtx).apply {
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    // Dim + desaturate the tiles so the accent route and the docked vitals bar
+                    // read as a deliberate hero rather than raw map data.
+                    overlayManager.tilesOverlay.setColorFilter(mapDimFilter(isDark))
+                    if (singleFingerScrollsPage) {
+                        // Inline hero: one finger scrolls the surrounding page; two fingers
+                        // pan/zoom the map (we hold the parent off only with a second finger).
+                        setOnTouchListener { v, event ->
+                            v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
+                            false
+                        }
+                    }
+                }
+            },
+            update = { mapView ->
+                val prep = preparedRoute ?: return@AndroidView
+
+                // Skip the expensive overlay rebuild when the inputs haven't changed.
+                if (lastApplied[0] == prep &&
+                    lastApplied[1] == markers &&
+                    lastApplied[2] == mapColors
+                ) return@AndroidView
+                lastApplied[0] = prep
+                lastApplied[1] = markers
+                lastApplied[2] = mapColors
+
+                // Defer overlay creation to the next main-thread message so the first frame paints.
+                mapView.post {
+                    mapView.overlays.clear()
+
+                    var previousEnd: GeoPoint? = null
+                    prep.geoPointSegments.forEachIndexed { index, geoPoints ->
+                        if (geoPoints.size < 2) return@forEachIndexed
+
+                        // If this leg's start is far from the previous leg's end (car transported,
+                        // or a merge of non-contiguous trips), draw a dashed connector.
+                        val firstPoint = geoPoints.first()
+                        val prev = previousEnd
+                        if (prev != null) {
+                            val distanceMeters = prev.distanceToAsDouble(firstPoint)
+                            if (distanceMeters > GEO_JUMP_THRESHOLD_METERS) {
+                                val dashed = Polyline().apply {
+                                    setPoints(listOf(prev, firstPoint))
+                                    outlinePaint.color = mapColors.oddLeg
+                                    outlinePaint.strokeWidth = 6f
+                                    outlinePaint.strokeCap = Paint.Cap.ROUND
+                                    outlinePaint.pathEffect =
+                                        android.graphics.DashPathEffect(floatArrayOf(20f, 15f), 0f)
                                 }
-                                false
+                                mapView.overlays.add(dashed)
                             }
                         }
-                    },
-                    update = { mapView ->
-                        val prep = preparedRoute ?: return@AndroidView
 
-                        // Skip the expensive overlay rebuild when the inputs haven't changed.
-                        // Lists and MapColors compare structurally so this short-circuits on
-                        // return-from-child when the VM emits structurally-equal data.
-                        if (lastApplied[0] == prep &&
-                            lastApplied[1] == markers &&
-                            lastApplied[2] == mapColors
-                        ) return@AndroidView
-                        lastApplied[0] = prep
-                        lastApplied[1] = markers
-                        lastApplied[2] = mapColors
-
-                        // Defer all overlay creation to the next main-thread message so the
-                        // surrounding composition's first frame can paint (and the scroll view
-                        // becomes responsive) before we build polylines + markers.
-                        mapView.post {
-                        mapView.overlays.clear()
-
-                        var previousEnd: GeoPoint? = null
-                        prep.geoPointSegments.forEachIndexed { index, geoPoints ->
-                            if (geoPoints.size < 2) return@forEachIndexed
-
-                            // If there's a previous leg, check if this leg's start is geographically
-                            // far from the previous leg's end (car was transported, or between
-                            // non-contiguous trips that were merged). Draw a dashed connector.
-                            val firstPoint = geoPoints.first()
-                            val prev = previousEnd
-                            if (prev != null) {
-                                val distanceMeters = prev.distanceToAsDouble(firstPoint)
-                                if (distanceMeters > GEO_JUMP_THRESHOLD_METERS) {
-                                    val dashed = Polyline().apply {
-                                        setPoints(listOf(prev, firstPoint))
-                                        outlinePaint.color = mapColors.oddLeg
-                                        outlinePaint.strokeWidth = 6f
-                                        outlinePaint.strokeCap = Paint.Cap.ROUND
-                                        outlinePaint.pathEffect =
-                                            android.graphics.DashPathEffect(floatArrayOf(20f, 15f), 0f)
-                                    }
-                                    mapView.overlays.add(dashed)
-                                }
-                            }
-
-                            val polyline = Polyline().apply {
-                                setPoints(geoPoints)
-                                outlinePaint.color =
-                                    if (index % 2 == 0) mapColors.oddLeg
-                                    else mapColors.evenLeg
-                                outlinePaint.strokeWidth = 8f
-                                outlinePaint.strokeCap = Paint.Cap.ROUND
-                                outlinePaint.strokeJoin = Paint.Join.ROUND
-                            }
-                            mapView.overlays.add(polyline)
-                            previousEnd = geoPoints.last()
+                        val polyline = Polyline().apply {
+                            setPoints(geoPoints)
+                            outlinePaint.color =
+                                if (index % 2 == 0) mapColors.oddLeg
+                                else mapColors.evenLeg
+                            outlinePaint.strokeWidth = 8f
+                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                            outlinePaint.strokeJoin = Paint.Join.ROUND
                         }
+                        mapView.overlays.add(polyline)
+                        previousEnd = geoPoints.last()
+                    }
 
-                        val mapCtx = mapView.context
-                        markers.forEach { point ->
-                            val color = when (point.type) {
-                                TripMapPointType.START -> mapColors.start
-                                TripMapPointType.CHARGE -> mapColors.charge
-                                TripMapPointType.END -> mapColors.end
-                            }
-                            val isCharge = point.type == TripMapPointType.CHARGE
-                            val markerIcon = markerDrawables.getOrPut(color to isCharge) {
-                                if (isCharge) createZapMarkerDrawable(mapCtx.resources, color)
-                                else createPinMarkerDrawable(mapCtx.resources, color)
-                            }
-                            val marker = Marker(mapView).apply {
-                                position = GeoPoint(point.latitude, point.longitude)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                title = point.label
-                                icon = markerIcon
-                                if (point.chargeId != null) {
-                                    val cid = point.chargeId
-                                    infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
-                                        org.osmdroid.library.R.layout.bonuspack_bubble, mapView
-                                    ) {
-                                        override fun onOpen(item: Any?) {
-                                            super.onOpen(item)
-                                            val clickListener = android.view.View.OnClickListener {
-                                                close()
-                                                pendingChargeNav = cid
-                                            }
-                                            view?.setOnClickListener(clickListener)
-                                            (view as? android.view.ViewGroup)?.let { vg ->
-                                                for (i in 0 until vg.childCount) {
-                                                    vg.getChildAt(i).setOnClickListener(clickListener)
-                                                }
+                    val mapCtx = mapView.context
+                    markers.forEach { point ->
+                        val color = when (point.type) {
+                            TripMapPointType.START -> mapColors.start
+                            TripMapPointType.CHARGE -> mapColors.charge
+                            TripMapPointType.END -> mapColors.end
+                        }
+                        val isCharge = point.type == TripMapPointType.CHARGE
+                        val markerIcon = markerDrawables.getOrPut(color to isCharge) {
+                            if (isCharge) createZapMarkerDrawable(mapCtx.resources, color)
+                            else createPinMarkerDrawable(mapCtx.resources, color)
+                        }
+                        val marker = Marker(mapView).apply {
+                            position = GeoPoint(point.latitude, point.longitude)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = point.label
+                            icon = markerIcon
+                            if (point.chargeId != null) {
+                                val cid = point.chargeId
+                                infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                                    org.osmdroid.library.R.layout.bonuspack_bubble, mapView
+                                ) {
+                                    override fun onOpen(item: Any?) {
+                                        super.onOpen(item)
+                                        val clickListener = android.view.View.OnClickListener {
+                                            close()
+                                            pendingChargeNav = cid
+                                        }
+                                        view?.setOnClickListener(clickListener)
+                                        (view as? android.view.ViewGroup)?.let { vg ->
+                                            for (i in 0 until vg.childCount) {
+                                                vg.getChildAt(i).setOnClickListener(clickListener)
                                             }
                                         }
                                     }
                                 }
                             }
-                            mapView.overlays.add(marker)
                         }
+                        mapView.overlays.add(marker)
+                    }
 
-                        val bb = prep.boundingBox
-                        if (bb != null) {
-                            mapView.zoomToBoundingBox(bb, false)
-                            mapView.invalidate()
-                            mapReady = true
-                        }
-                        } // end mapView.post
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-                // Opaque cover hides the world-view zoom until route is drawn
-                val overlayAlpha by animateFloatAsState(
-                    targetValue = if (mapReady) 0f else 1f,
-                    animationSpec = tween(durationMillis = 300),
-                    label = "mapOverlay"
-                )
-                if (overlayAlpha > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = overlayAlpha)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isMapLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        }
+                    val bb = prep.boundingBox
+                    if (bb != null) {
+                        mapView.zoomToBoundingBox(bb, false)
+                        mapView.invalidate()
+                        mapReady = true
                     }
                 }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
 
-                MapOverlayChip(
-                    text = dateRangeLabel,
-                    palette = palette,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
+        // Opaque cover hides the world-view zoom until the route is drawn
+        val overlayAlpha by animateFloatAsState(
+            targetValue = if (mapReady) 0f else 1f,
+            animationSpec = tween(durationMillis = 300),
+            label = "mapOverlay"
+        )
+        if (overlayAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = overlayAlpha)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isMapLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                }
+            }
+        }
+    }
+}
+
+// Fullscreen map overlay — fills the screen in the current orientation (no landscape lock). The
+// map draws full-bleed behind the system bars; the overlays are inset so they clear the status
+// bar / clock. Back or the corner button exits.
+@Composable
+private fun TripMapFullscreen(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
+    dateRangeLabel: String,
+    palette: CarColorPalette,
+    onChargeClick: (chargeId: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    BackHandler { onDismiss() }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        TripMapContent(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            singleFingerScrollsPage = false,
+            onChargeClick = onChargeClick,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+            overlayInsets = WindowInsets.systemBars
+        ) {
+            MapCornerButton(
+                icon = Icons.Default.FullscreenExit,
+                contentDescription = stringResource(R.string.exit_fullscreen),
+                onClick = onDismiss
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.MapCornerButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(12.dp)
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+// Dim + desaturate map tiles so overlaid data stays legible. The route polyline and markers
+// are separate overlays and are unaffected by this tile-only filter.
+private fun mapDimFilter(isDark: Boolean): ColorMatrixColorFilter {
+    val matrix = ColorMatrix().apply { setSaturation(if (isDark) 0.35f else 0.55f) }
+    val toneScale = if (isDark) 0.60f else 0.92f
+    val toneLift = if (isDark) 0f else 18f
+    matrix.postConcat(
+        ColorMatrix(
+            floatArrayOf(
+                toneScale, 0f, 0f, 0f, toneLift,
+                0f, toneScale, 0f, 0f, toneLift,
+                0f, 0f, toneScale, 0f, toneLift,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
+    )
+    return ColorMatrixColorFilter(matrix)
+}
+
+// Docked vitals bar — the two figures you compare trips by (consumption, cost/100), sitting on
+// a scrim across the bottom of the hero map. Values are white so they stay legible over the map
+// regardless of the car's accent luminance; the context line carries distance + duration.
+@Composable
+private fun BoxScope.MapVitalsOverlay(
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String
+) {
+    val efficiency = trip.avgEfficiency
+        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { trip.totalEnergyConsumed * 1000.0 / it }
+    val consumptionNumber = efficiency?.let { "%.0f".format(it) } ?: "—"
+    val consumptionUnit = if (efficiency != null) UnitFormatter.getEfficiencyUnit(units) else ""
+
+    // Distance is already in the user's unit (API pre-converts), so this yields cost per
+    // 100 km or per 100 mi with no conversion.
+    val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
+        ?.let { it / trip.totalDistance * 100.0 }
+    val costNumber = per100?.let { "%.2f".format(it) } ?: "—"
+    val costUnit = if (per100 != null) currencySymbol else ""
+    val distanceUnit = UnitFormatter.getDistanceUnit(units)
+    val distanceNumber = "%,.0f".format(trip.totalDistance)
+
+    val resources = LocalContext.current.resources
+    val durationLine = remember(trip.totalDurationMin) {
+        formatDuration(resources, trip.totalDurationMin)
+    }
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.45f to Color.Black.copy(alpha = 0.55f),
+                    1f to Color.Black.copy(alpha = 0.90f)
                 )
-                MapOverlayChip(
-                    text = distanceLabel,
-                    palette = palette,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(12.dp)
+            )
+            .padding(start = 18.dp, end = 18.dp, top = 44.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            MapVitalStat(
+                label = stringResource(R.string.distance),
+                number = distanceNumber,
+                unit = distanceUnit,
+                modifier = Modifier.weight(1f)
+            )
+            VitalDivider()
+            MapVitalStat(
+                label = stringResource(R.string.consumption),
+                number = consumptionNumber,
+                unit = consumptionUnit,
+                modifier = Modifier.weight(1f)
+            )
+            VitalDivider()
+            MapVitalStat(
+                label = stringResource(R.string.trip_cost_per_100, distanceUnit),
+                number = costNumber,
+                unit = costUnit,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Text(
+            text = durationLine,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.68f),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+@Composable
+private fun VitalDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .padding(vertical = 2.dp)
+            .background(Color.White.copy(alpha = 0.16f))
+    )
+}
+
+@Composable
+private fun MapVitalStat(
+    label: String,
+    number: String,
+    unit: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            text = label.uppercase(java.util.Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White.copy(alpha = 0.62f),
+            maxLines = 1,
+            softWrap = false
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = number,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                maxLines = 1
+            )
+            if (unit.isNotEmpty()) {
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    text = unit,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.82f),
+                    modifier = Modifier.padding(bottom = 3.dp)
                 )
+            }
         }
     }
 }

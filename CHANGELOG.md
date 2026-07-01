@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Trip vitals on the map** — the trip detail map is now a full-height hero showing the trip's distance, average consumption (Wh/km) and charging cost per 100 km in a bar across the bottom, so the figures you compare trips by are front and centre (previously they were only in the energy-flow and cost cards further down). Tap the expand button to view the map full screen; drag with two fingers to pan it.
+
 ## [1.10.0-beta1] - 2026-07-01
 
 ### Added

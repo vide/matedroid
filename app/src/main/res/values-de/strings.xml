@@ -1128,6 +1128,10 @@
     <string name="trip_energy_charged">Geladene Energie</string>
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Ladekosten</string>
+    <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
+    <string name="consumption">Verbrauch</string>
+    <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
+    <string name="trip_cost_per_100">Kosten / 100 %1$s</string>
     <!-- Drive leg label with number -->
     <string name="trip_leg_drive">Fahrt %1$d</string>
     <!-- Charge leg label with number -->
