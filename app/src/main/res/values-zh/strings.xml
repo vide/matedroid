@@ -1101,6 +1101,10 @@
     <string name="trip_driving_time">驾驶时间</string>
     <string name="trip_energy_charged">充入能量</string>
     <string name="trip_charge_cost">充电费用</string>
+    <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
+    <string name="consumption">能耗</string>
+    <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
+    <string name="trip_cost_per_100">费用 / 100 %1$s</string>
     <string name="trip_leg_drive">行驶 %1$d</string>
     <string name="trip_leg_charge">充电 %1$d</string>
 

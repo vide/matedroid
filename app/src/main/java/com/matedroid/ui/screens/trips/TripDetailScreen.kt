@@ -31,6 +31,8 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,6 +78,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -336,6 +339,13 @@ private fun TripDetailContent(
             onChargeClick = onChargeClick
         )
 
+        TripHeadlineMetrics(
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            palette = palette
+        )
+
         TripTimeline(
             segments = timelineSegments,
             startDate = trip.startDate,
@@ -491,6 +501,97 @@ private fun TripDetailContent(
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+// === Headline metrics — the two figures you compare trips by, right under the map ===
+
+@Composable
+private fun TripHeadlineMetrics(
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
+    palette: CarColorPalette
+) {
+    // Average consumption (Wh/km or Wh/mi). Prefer the pre-computed value; fall back to
+    // energy-consumed / distance (same fallback the energy-flow card uses).
+    val efficiency = trip.avgEfficiency
+        ?: trip.totalDistance.takeIf { it > 0.0 }?.let { trip.totalEnergyConsumed * 1000.0 / it }
+    val consumptionValue = efficiency
+        ?.let { UnitFormatter.formatEfficiency(it, units, decimals = 0) }
+        ?: "—"
+
+    // Charging cost per 100 distance units. Distance is already in the user's unit (API
+    // pre-converts), so this arithmetic yields "/100 km" or "/100 mi" with no conversion.
+    val per100 = trip.totalChargeCost?.takeIf { trip.totalDistance > 0.0 }
+        ?.let { it / trip.totalDistance * 100.0 }
+    val costValue = per100?.let { "%.2f %s".format(it, currencySymbol) } ?: "—"
+    val distanceUnit = UnitFormatter.getDistanceUnit(units)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        HeadlineMetricTile(
+            icon = Icons.Filled.Speed,
+            label = stringResource(R.string.consumption),
+            value = consumptionValue,
+            accent = palette.accent,
+            modifier = Modifier.weight(1f)
+        )
+        HeadlineMetricTile(
+            icon = Icons.Filled.Payments,
+            label = stringResource(R.string.trip_cost_per_100, distanceUnit),
+            value = costValue,
+            accent = palette.accent,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+// Accent stat tile — mirrors DurationTile so the headline metrics read as one family with
+// the Driving / Charging tiles in the timeline below.
+@Composable
+private fun HeadlineMetricTile(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(vertical = 12.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp),
+                tint = accent
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label.uppercase(java.util.Locale.getDefault()),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 

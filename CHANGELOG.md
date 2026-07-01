@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Headline metrics on the trip detail screen** — the trip's average consumption (Wh/km) and charging cost per 100 km now appear as two accent tiles right below the route map, so the figures you compare trips by are up front instead of buried further down.
+
 ## [1.10.0-beta1] - 2026-07-01
 
 ### Added
