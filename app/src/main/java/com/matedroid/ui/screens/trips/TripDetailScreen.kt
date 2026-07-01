@@ -24,7 +24,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
@@ -34,6 +38,8 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,12 +82,16 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
@@ -1065,18 +1075,6 @@ private fun TripMapCard(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    // Bridge: Android View click → Compose state → Compose navigation
-    var pendingChargeNav by remember { mutableIntStateOf(0) }
-    LaunchedEffect(pendingChargeNav) {
-        if (pendingChargeNav != 0) {
-            onChargeClick(pendingChargeNav)
-            pendingChargeNav = 0
-        }
-    }
-
-    // Track when the map has zoomed to the route — hides the world-view flash
-    var mapReady by remember { mutableStateOf(false) }
-
     val mapColors = remember(palette) {
         MapColors(
             start = StatusSuccess.toArgb(),
@@ -1089,26 +1087,9 @@ private fun TripMapCard(
         )
     }
 
-    // Cache marker drawables per color — drawables are heavy to create each pass.
-    val markerDrawables = remember { mutableMapOf<Pair<Int, Boolean>, android.graphics.drawable.Drawable>() }
-
-    // Track the last applied data so we can skip redrawing overlays when nothing changed.
-    val lastApplied = remember { arrayOfNulls<Any>(3) }
-
-    // Defer MapView instantiation by a short delay so the first frame of the surrounding screen
-    // paints and touch/scroll handlers become responsive before osmdroid's synchronous MapView
-    // constructor runs on the main thread. This matters most on back-navigation: the composition
-    // is torn down and rebuilt by NavHost, and mounting the MapView immediately would freeze the
-    // main thread for ~100–300ms.
-    var mapMounted by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(120)
-        mapMounted = true
-    }
-
-    // Precompute GeoPoint lists + BoundingBox off the main thread. For long trips this moves
-    // hundreds-to-thousands of object allocations + min/max scans off the UI thread, so when
-    // the AndroidView update runs it only does cheap attach work.
+    // Precompute GeoPoint lists + BoundingBox off the main thread, once, shared by the inline and
+    // fullscreen maps. For long trips this moves hundreds-to-thousands of allocations + min/max
+    // scans off the UI thread.
     var preparedRoute by remember(routeSegments) { mutableStateOf<PreparedRoute?>(null) }
     LaunchedEffect(routeSegments) {
         preparedRoute = if (routeSegments.isEmpty()) null else withContext(Dispatchers.Default) {
@@ -1134,183 +1115,372 @@ private fun TripMapCard(
         }
     }
 
+    var isFullscreen by rememberSaveable { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Box(
+        TripMapContent(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            singleFingerScrollsPage = true,
+            onChargeClick = onChargeClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(400.dp)
                 .clip(RoundedCornerShape(12.dp))
         ) {
-                if (mapMounted) AndroidView(
-                    factory = { mapCtx ->
-                        MapView(mapCtx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // Dim + desaturate the tiles so the accent route and the docked
-                            // vitals bar read as a deliberate hero rather than raw map data.
-                            overlayManager.tilesOverlay.setColorFilter(mapDimFilter(isDark))
-                            // Tell the parent vertical scroll to stop intercepting
-                            // touches so single-finger drag pans the map instead
-                            // of scrolling the page.
-                            setOnTouchListener { v, event ->
-                                when (event.actionMasked) {
-                                    MotionEvent.ACTION_DOWN,
-                                    MotionEvent.ACTION_MOVE,
-                                    MotionEvent.ACTION_POINTER_DOWN ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                                    MotionEvent.ACTION_UP,
-                                    MotionEvent.ACTION_CANCEL ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(false)
+            MapCornerButton(
+                icon = Icons.Default.Fullscreen,
+                contentDescription = stringResource(R.string.fullscreen),
+                onClick = { isFullscreen = true }
+            )
+        }
+    }
+
+    if (isFullscreen) {
+        TripMapFullscreen(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            onChargeClick = onChargeClick,
+            onDismiss = { isFullscreen = false }
+        )
+    }
+}
+
+// Map + its overlays (date chip, docked vitals bar, and a corner button). Shared by the inline
+// hero card and the fullscreen dialog so both stay identical.
+@Composable
+private fun TripMapContent(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
+    dateRangeLabel: String,
+    palette: CarColorPalette,
+    singleFingerScrollsPage: Boolean,
+    onChargeClick: (chargeId: Int) -> Unit,
+    modifier: Modifier = Modifier,
+    overlayInsets: WindowInsets = WindowInsets(0, 0, 0, 0),
+    cornerButton: @Composable BoxScope.() -> Unit = {}
+) {
+    Box(modifier = modifier) {
+        TripMapAndroidView(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            singleFingerScrollsPage = singleFingerScrollsPage,
+            onChargeClick = onChargeClick,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Overlays sit inside an inset box so they clear the system bars in fullscreen, while the
+        // map itself stays full-bleed behind them. Inline (zero insets) this is a no-op.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .windowInsetsPadding(overlayInsets)
+        ) {
+            MapOverlayChip(
+                text = dateRangeLabel,
+                palette = palette,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp)
+            )
+            MapVitalsOverlay(
+                trip = trip,
+                units = units,
+                currencySymbol = currencySymbol
+            )
+            cornerButton()
+        }
+    }
+}
+
+@Composable
+private fun TripMapAndroidView(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    singleFingerScrollsPage: Boolean,
+    onChargeClick: (chargeId: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Bridge: Android View click → Compose state → Compose navigation
+    var pendingChargeNav by remember { mutableIntStateOf(0) }
+    LaunchedEffect(pendingChargeNav) {
+        if (pendingChargeNav != 0) {
+            onChargeClick(pendingChargeNav)
+            pendingChargeNav = 0
+        }
+    }
+
+    // Track when the map has zoomed to the route — hides the world-view flash
+    var mapReady by remember { mutableStateOf(false) }
+
+    // Cache marker drawables per color — drawables are heavy to create each pass.
+    val markerDrawables = remember { mutableMapOf<Pair<Int, Boolean>, android.graphics.drawable.Drawable>() }
+
+    // Track the last applied data so we can skip redrawing overlays when nothing changed.
+    val lastApplied = remember { arrayOfNulls<Any>(3) }
+
+    // Defer MapView instantiation by a short delay so the first frame paints before osmdroid's
+    // synchronous MapView constructor runs on the main thread.
+    var mapMounted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(120)
+        mapMounted = true
+    }
+
+    Box(modifier = modifier) {
+        if (mapMounted) AndroidView(
+            factory = { mapCtx ->
+                MapView(mapCtx).apply {
+                    setTileSource(TileSourceFactory.MAPNIK)
+                    setMultiTouchControls(true)
+                    // Dim + desaturate the tiles so the accent route and the docked vitals bar
+                    // read as a deliberate hero rather than raw map data.
+                    overlayManager.tilesOverlay.setColorFilter(mapDimFilter(isDark))
+                    if (singleFingerScrollsPage) {
+                        // Inline hero: one finger scrolls the surrounding page; two fingers
+                        // pan/zoom the map (we hold the parent off only with a second finger).
+                        setOnTouchListener { v, event ->
+                            v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
+                            false
+                        }
+                    }
+                }
+            },
+            update = { mapView ->
+                val prep = preparedRoute ?: return@AndroidView
+
+                // Skip the expensive overlay rebuild when the inputs haven't changed.
+                if (lastApplied[0] == prep &&
+                    lastApplied[1] == markers &&
+                    lastApplied[2] == mapColors
+                ) return@AndroidView
+                lastApplied[0] = prep
+                lastApplied[1] = markers
+                lastApplied[2] = mapColors
+
+                // Defer overlay creation to the next main-thread message so the first frame paints.
+                mapView.post {
+                    mapView.overlays.clear()
+
+                    var previousEnd: GeoPoint? = null
+                    prep.geoPointSegments.forEachIndexed { index, geoPoints ->
+                        if (geoPoints.size < 2) return@forEachIndexed
+
+                        // If this leg's start is far from the previous leg's end (car transported,
+                        // or a merge of non-contiguous trips), draw a dashed connector.
+                        val firstPoint = geoPoints.first()
+                        val prev = previousEnd
+                        if (prev != null) {
+                            val distanceMeters = prev.distanceToAsDouble(firstPoint)
+                            if (distanceMeters > GEO_JUMP_THRESHOLD_METERS) {
+                                val dashed = Polyline().apply {
+                                    setPoints(listOf(prev, firstPoint))
+                                    outlinePaint.color = mapColors.oddLeg
+                                    outlinePaint.strokeWidth = 6f
+                                    outlinePaint.strokeCap = Paint.Cap.ROUND
+                                    outlinePaint.pathEffect =
+                                        android.graphics.DashPathEffect(floatArrayOf(20f, 15f), 0f)
                                 }
-                                false
+                                mapView.overlays.add(dashed)
                             }
                         }
-                    },
-                    update = { mapView ->
-                        val prep = preparedRoute ?: return@AndroidView
 
-                        // Skip the expensive overlay rebuild when the inputs haven't changed.
-                        // Lists and MapColors compare structurally so this short-circuits on
-                        // return-from-child when the VM emits structurally-equal data.
-                        if (lastApplied[0] == prep &&
-                            lastApplied[1] == markers &&
-                            lastApplied[2] == mapColors
-                        ) return@AndroidView
-                        lastApplied[0] = prep
-                        lastApplied[1] = markers
-                        lastApplied[2] = mapColors
-
-                        // Defer all overlay creation to the next main-thread message so the
-                        // surrounding composition's first frame can paint (and the scroll view
-                        // becomes responsive) before we build polylines + markers.
-                        mapView.post {
-                        mapView.overlays.clear()
-
-                        var previousEnd: GeoPoint? = null
-                        prep.geoPointSegments.forEachIndexed { index, geoPoints ->
-                            if (geoPoints.size < 2) return@forEachIndexed
-
-                            // If there's a previous leg, check if this leg's start is geographically
-                            // far from the previous leg's end (car was transported, or between
-                            // non-contiguous trips that were merged). Draw a dashed connector.
-                            val firstPoint = geoPoints.first()
-                            val prev = previousEnd
-                            if (prev != null) {
-                                val distanceMeters = prev.distanceToAsDouble(firstPoint)
-                                if (distanceMeters > GEO_JUMP_THRESHOLD_METERS) {
-                                    val dashed = Polyline().apply {
-                                        setPoints(listOf(prev, firstPoint))
-                                        outlinePaint.color = mapColors.oddLeg
-                                        outlinePaint.strokeWidth = 6f
-                                        outlinePaint.strokeCap = Paint.Cap.ROUND
-                                        outlinePaint.pathEffect =
-                                            android.graphics.DashPathEffect(floatArrayOf(20f, 15f), 0f)
-                                    }
-                                    mapView.overlays.add(dashed)
-                                }
-                            }
-
-                            val polyline = Polyline().apply {
-                                setPoints(geoPoints)
-                                outlinePaint.color =
-                                    if (index % 2 == 0) mapColors.oddLeg
-                                    else mapColors.evenLeg
-                                outlinePaint.strokeWidth = 8f
-                                outlinePaint.strokeCap = Paint.Cap.ROUND
-                                outlinePaint.strokeJoin = Paint.Join.ROUND
-                            }
-                            mapView.overlays.add(polyline)
-                            previousEnd = geoPoints.last()
+                        val polyline = Polyline().apply {
+                            setPoints(geoPoints)
+                            outlinePaint.color =
+                                if (index % 2 == 0) mapColors.oddLeg
+                                else mapColors.evenLeg
+                            outlinePaint.strokeWidth = 8f
+                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                            outlinePaint.strokeJoin = Paint.Join.ROUND
                         }
+                        mapView.overlays.add(polyline)
+                        previousEnd = geoPoints.last()
+                    }
 
-                        val mapCtx = mapView.context
-                        markers.forEach { point ->
-                            val color = when (point.type) {
-                                TripMapPointType.START -> mapColors.start
-                                TripMapPointType.CHARGE -> mapColors.charge
-                                TripMapPointType.END -> mapColors.end
-                            }
-                            val isCharge = point.type == TripMapPointType.CHARGE
-                            val markerIcon = markerDrawables.getOrPut(color to isCharge) {
-                                if (isCharge) createZapMarkerDrawable(mapCtx.resources, color)
-                                else createPinMarkerDrawable(mapCtx.resources, color)
-                            }
-                            val marker = Marker(mapView).apply {
-                                position = GeoPoint(point.latitude, point.longitude)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                title = point.label
-                                icon = markerIcon
-                                if (point.chargeId != null) {
-                                    val cid = point.chargeId
-                                    infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
-                                        org.osmdroid.library.R.layout.bonuspack_bubble, mapView
-                                    ) {
-                                        override fun onOpen(item: Any?) {
-                                            super.onOpen(item)
-                                            val clickListener = android.view.View.OnClickListener {
-                                                close()
-                                                pendingChargeNav = cid
-                                            }
-                                            view?.setOnClickListener(clickListener)
-                                            (view as? android.view.ViewGroup)?.let { vg ->
-                                                for (i in 0 until vg.childCount) {
-                                                    vg.getChildAt(i).setOnClickListener(clickListener)
-                                                }
+                    val mapCtx = mapView.context
+                    markers.forEach { point ->
+                        val color = when (point.type) {
+                            TripMapPointType.START -> mapColors.start
+                            TripMapPointType.CHARGE -> mapColors.charge
+                            TripMapPointType.END -> mapColors.end
+                        }
+                        val isCharge = point.type == TripMapPointType.CHARGE
+                        val markerIcon = markerDrawables.getOrPut(color to isCharge) {
+                            if (isCharge) createZapMarkerDrawable(mapCtx.resources, color)
+                            else createPinMarkerDrawable(mapCtx.resources, color)
+                        }
+                        val marker = Marker(mapView).apply {
+                            position = GeoPoint(point.latitude, point.longitude)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = point.label
+                            icon = markerIcon
+                            if (point.chargeId != null) {
+                                val cid = point.chargeId
+                                infoWindow = object : org.osmdroid.views.overlay.infowindow.MarkerInfoWindow(
+                                    org.osmdroid.library.R.layout.bonuspack_bubble, mapView
+                                ) {
+                                    override fun onOpen(item: Any?) {
+                                        super.onOpen(item)
+                                        val clickListener = android.view.View.OnClickListener {
+                                            close()
+                                            pendingChargeNav = cid
+                                        }
+                                        view?.setOnClickListener(clickListener)
+                                        (view as? android.view.ViewGroup)?.let { vg ->
+                                            for (i in 0 until vg.childCount) {
+                                                vg.getChildAt(i).setOnClickListener(clickListener)
                                             }
                                         }
                                     }
                                 }
                             }
-                            mapView.overlays.add(marker)
                         }
+                        mapView.overlays.add(marker)
+                    }
 
-                        val bb = prep.boundingBox
-                        if (bb != null) {
-                            mapView.zoomToBoundingBox(bb, false)
-                            mapView.invalidate()
-                            mapReady = true
-                        }
-                        } // end mapView.post
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-                // Opaque cover hides the world-view zoom until route is drawn
-                val overlayAlpha by animateFloatAsState(
-                    targetValue = if (mapReady) 0f else 1f,
-                    animationSpec = tween(durationMillis = 300),
-                    label = "mapOverlay"
-                )
-                if (overlayAlpha > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = overlayAlpha)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isMapLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        }
+                    val bb = prep.boundingBox
+                    if (bb != null) {
+                        mapView.zoomToBoundingBox(bb, false)
+                        mapView.invalidate()
+                        mapReady = true
                     }
                 }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
 
-                MapOverlayChip(
-                    text = dateRangeLabel,
-                    palette = palette,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
-                )
-                MapVitalsOverlay(
-                    trip = trip,
-                    units = units,
-                    currencySymbol = currencySymbol
-                )
+        // Opaque cover hides the world-view zoom until the route is drawn
+        val overlayAlpha by animateFloatAsState(
+            targetValue = if (mapReady) 0f else 1f,
+            animationSpec = tween(durationMillis = 300),
+            label = "mapOverlay"
+        )
+        if (overlayAlpha > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = overlayAlpha)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isMapLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                }
+            }
         }
+    }
+}
+
+// Fullscreen map overlay — fills the screen in the current orientation (no landscape lock). The
+// map draws full-bleed behind the system bars; the overlays are inset so they clear the status
+// bar / clock. Back or the corner button exits.
+@Composable
+private fun TripMapFullscreen(
+    preparedRoute: PreparedRoute?,
+    markers: List<TripMapMarker>,
+    mapColors: MapColors,
+    isDark: Boolean,
+    isMapLoading: Boolean,
+    trip: Trip,
+    units: Units?,
+    currencySymbol: String,
+    dateRangeLabel: String,
+    palette: CarColorPalette,
+    onChargeClick: (chargeId: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    BackHandler { onDismiss() }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        TripMapContent(
+            preparedRoute = preparedRoute,
+            markers = markers,
+            mapColors = mapColors,
+            isDark = isDark,
+            isMapLoading = isMapLoading,
+            trip = trip,
+            units = units,
+            currencySymbol = currencySymbol,
+            dateRangeLabel = dateRangeLabel,
+            palette = palette,
+            singleFingerScrollsPage = false,
+            onChargeClick = onChargeClick,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface),
+            overlayInsets = WindowInsets.systemBars
+        ) {
+            MapCornerButton(
+                icon = Icons.Default.FullscreenExit,
+                contentDescription = stringResource(R.string.exit_fullscreen),
+                onClick = onDismiss
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.MapCornerButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(12.dp)
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
