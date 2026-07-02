@@ -45,10 +45,6 @@ interface GeocodeQueueDao {
     @Query("DELETE FROM geocode_queue WHERE carId = :carId")
     suspend fun clearForCar(carId: Int)
 
-    // Clear all failed items (attempts >= 3)
-    @Query("DELETE FROM geocode_queue WHERE attempts >= 3")
-    suspend fun clearFailed()
-
     // Count total items in queue (including failed)
     @Query("SELECT COUNT(*) FROM geocode_queue")
     suspend fun countTotal(): Int

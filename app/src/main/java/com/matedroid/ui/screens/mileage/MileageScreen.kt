@@ -1298,13 +1298,6 @@ private fun DayTripRow(
                     Spacer(modifier = Modifier.height(4.dp))
                     // Energy cost
                     Row(verticalAlignment = Alignment.CenterVertically) {
-//                        Icon(
-//                            imageVector = Icons.Filled.AttachMoney,
-//                            contentDescription = null,
-//                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-//                            modifier = Modifier.size(14.dp)
-//                        )
-//                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "%,.2f %s".format(dayData.totalEnergyCost ?: 0.0, currencySymbol),
                             style = MaterialTheme.typography.bodySmall

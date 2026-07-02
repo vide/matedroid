@@ -54,14 +54,6 @@ object UnitFormatter {
     }
 
     /**
-     * Format distance value without unit label (just the number).
-     * Value is already in km (metric) or mi (imperial) as returned by the API.
-     */
-    fun formatDistanceValue(value: Double, units: Units?, decimals: Int = 1): Double {
-        return value
-    }
-
-    /**
      * Get the distance unit label
      */
     fun getDistanceUnit(units: Units?): String {
@@ -78,14 +70,6 @@ object UnitFormatter {
         } else {
             "%.${decimals}f°C".format(value)
         }
-    }
-
-    /**
-     * Format temperature value without unit label.
-     * Value is already in the user's preferred unit as returned by the API.
-     */
-    fun formatTemperatureValue(value: Double, units: Units?): Double {
-        return value
     }
 
     /**

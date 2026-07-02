@@ -192,7 +192,7 @@ private fun PreviewSummary(preview: Trip?, units: com.matedroid.data.api.models.
             Spacer(Modifier.height(4.dp))
             val meta = if (preview != null) {
                 val dist = "%,.0f %s".format(
-                    UnitFormatter.formatDistanceValue(preview.totalDistance, units, 0),
+                    preview.totalDistance,
                     UnitFormatter.getDistanceUnit(units)
                 )
                 val dur = formatDuration(LocalContext.current.resources, preview.totalDurationMin)
