@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
+
 ## [1.10.0] - 2026-07-01
 
 Compare drives and charges against your own history, a trip-detail screen that puts the map and its key numbers front and centre, and redesigned charge & drive detail screens.
