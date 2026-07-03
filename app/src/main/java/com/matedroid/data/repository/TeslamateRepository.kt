@@ -24,6 +24,7 @@ import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLException
+import retrofit2.Response
 
 sealed class ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>()
@@ -214,63 +215,38 @@ class TeslamateRepository @Inject constructor(
         }
     }
 
-    suspend fun getCars(): ApiResult<List<CarData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCars()
-                if (response.isSuccessful) {
-                    val cars = response.body()?.data?.cars ?: emptyList()
-                    ApiResult.Success(cars)
-                } else {
-                    ApiResult.Error("Failed to fetch cars: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e // Let executeWithFallback handle it
-            }
+    /**
+     * Map a Retrofit [Response] to an [ApiResult]: on a successful HTTP status,
+     * run [extract] on the (nullable) body and wrap a non-null result as Success,
+     * otherwise report the missing payload; on a non-2xx status, surface the code.
+     * [what] names the resource for the error messages.
+     *
+     * Any thrown exception propagates to [executeWithFallback], which owns the
+     * network-error / secondary-server handling.
+     */
+    private inline fun <B, T> Response<B>.toResult(
+        what: String,
+        extract: (B?) -> T?
+    ): ApiResult<T> =
+        if (isSuccessful) {
+            extract(body())?.let { ApiResult.Success(it) }
+                ?: ApiResult.Error("No $what returned")
+        } else {
+            ApiResult.Error("Failed to fetch $what: ${code()}", code())
         }
-    }
 
-    suspend fun getCar(carId: Int): ApiResult<CarData> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCar(carId)
-                if (response.isSuccessful) {
-                    val car = response.body()?.data?.cars?.firstOrNull()
-                    if (car != null) {
-                        ApiResult.Success(car)
-                    } else {
-                        ApiResult.Error("No car data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch car: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getCars(): ApiResult<List<CarData>> =
+        executeWithFallback { api -> api.getCars().toResult("cars") { it?.data?.cars ?: emptyList() } }
 
-    suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCarStatus(carId)
-                if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    val status = data?.status
-                    val units = data?.units ?: Units()
-                    if (status != null) {
-                        ApiResult.Success(CarStatusWithUnits(status, units))
-                    } else {
-                        ApiResult.Error("No status data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch status: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
+    suspend fun getCar(carId: Int): ApiResult<CarData> =
+        executeWithFallback { api -> api.getCar(carId).toResult("car") { it?.data?.cars?.firstOrNull() } }
+
+    suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> =
+        executeWithFallback { api ->
+            api.getCarStatus(carId).toResult("status") { body ->
+                body?.data?.let { data -> data.status?.let { CarStatusWithUnits(it, data.units ?: Units()) } }
             }
         }
-    }
 
     suspend fun getCharges(
         carId: Int,
@@ -278,66 +254,35 @@ class TeslamateRepository @Inject constructor(
         endDate: String? = null,
         page: Int = 1,
         show: Int = 50000
-    ): ApiResult<List<ChargeData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCharges(carId, startDate, endDate, page = page, show = show)
-                if (response.isSuccessful) {
-                    val charges = response.body()?.data?.charges ?: emptyList()
-                    ApiResult.Success(charges)
-                } else {
-                    ApiResult.Error("Failed to fetch charges: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+    ): ApiResult<List<ChargeData>> =
+        executeWithFallback { api ->
+            api.getCharges(carId, startDate, endDate, page = page, show = show)
+                .toResult("charges") { it?.data?.charges ?: emptyList() }
         }
-    }
 
     suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
         return executeWithFallback { api ->
-            try {
-                val response = api.getCurrentCharge(carId)
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val detail = body?.data?.charge
-                    when {
-                        detail != null -> ApiResult.Success(CurrentChargeOutcome.Active(detail))
-                        // TeslamateAPI answers 200 + {"error": "..."} (or 204) when there is
-                        // no active charge — an authoritative answer, not a failure. At charge
-                        // start this is returned for a short while before the charge appears.
-                        body?.error != null || response.code() == 204 ->
-                            ApiResult.Success(CurrentChargeOutcome.NoActiveCharge)
-                        else -> ApiResult.Error("No current charge data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch current charge: ${response.code()}", response.code())
+            val response = api.getCurrentCharge(carId)
+            if (response.isSuccessful) {
+                val body = response.body()
+                val detail = body?.data?.charge
+                when {
+                    detail != null -> ApiResult.Success(CurrentChargeOutcome.Active(detail))
+                    // TeslamateAPI answers 200 + {"error": "..."} (or 204) when there is
+                    // no active charge — an authoritative answer, not a failure. At charge
+                    // start this is returned for a short while before the charge appears.
+                    body?.error != null || response.code() == 204 ->
+                        ApiResult.Success(CurrentChargeOutcome.NoActiveCharge)
+                    else -> ApiResult.Error("No current charge data returned")
                 }
-            } catch (e: Exception) {
-                throw e
+            } else {
+                ApiResult.Error("Failed to fetch current charge: ${response.code()}", response.code())
             }
         }
     }
 
-    suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getChargeDetail(carId, chargeId)
-                if (response.isSuccessful) {
-                    val detail = response.body()?.data?.charge
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No charge detail returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch charge detail: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> =
+        executeWithFallback { api -> api.getChargeDetail(carId, chargeId).toResult("charge detail") { it?.data?.charge } }
 
     suspend fun getDrives(
         carId: Int,
@@ -345,95 +290,23 @@ class TeslamateRepository @Inject constructor(
         endDate: String? = null,
         page: Int = 1,
         show: Int = 50000
-    ): ApiResult<List<DriveData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getDrives(carId, startDate, endDate, page = page, show = show)
-                if (response.isSuccessful) {
-                    val drives = response.body()?.data?.drives ?: emptyList()
-                    ApiResult.Success(drives)
-                } else {
-                    ApiResult.Error("Failed to fetch drives: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+    ): ApiResult<List<DriveData>> =
+        executeWithFallback { api ->
+            api.getDrives(carId, startDate, endDate, page = page, show = show)
+                .toResult("drives") { it?.data?.drives ?: emptyList() }
         }
-    }
 
-    suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getDriveDetail(carId, driveId)
-                if (response.isSuccessful) {
-                    val detail = response.body()?.data?.drive
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No drive detail returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch drive detail: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> =
+        executeWithFallback { api -> api.getDriveDetail(carId, driveId).toResult("drive detail") { it?.data?.drive } }
 
-    suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getBatteryHealth(carId)
-                if (response.isSuccessful) {
-                    val health = response.body()?.data?.batteryHealth
-                    if (health != null) {
-                        ApiResult.Success(health)
-                    } else {
-                        ApiResult.Error("No battery health data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch battery health: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> =
+        executeWithFallback { api -> api.getBatteryHealth(carId).toResult("battery health") { it?.data?.batteryHealth } }
 
-    suspend fun getUpdates(carId: Int): ApiResult<List<UpdateData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getUpdates(carId, page = 1, show = 50000)
-                if (response.isSuccessful) {
-                    val updates = response.body()?.data?.updates ?: emptyList()
-                    ApiResult.Success(updates)
-                } else {
-                    ApiResult.Error("Failed to fetch updates: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+    suspend fun getUpdates(carId: Int): ApiResult<List<UpdateData>> =
+        executeWithFallback { api ->
+            api.getUpdates(carId, page = 1, show = 50000).toResult("updates") { it?.data?.updates ?: emptyList() }
         }
-    }
 
-    suspend fun getGlobalSettings(): ApiResult<GlobalSettingsData> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getGlobalSettings()
-                if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    if (data != null) {
-                        ApiResult.Success(data)
-                    } else {
-                        ApiResult.Error("No global settings data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch global settings: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getGlobalSettings(): ApiResult<GlobalSettingsData> =
+        executeWithFallback { api -> api.getGlobalSettings().toResult("global settings") { it?.data } }
 }
