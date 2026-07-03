@@ -46,7 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,7 +92,7 @@ fun TripsScreen(
     onNavigateToCreateTrip: () -> Unit = {},
     viewModel: TripsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
@@ -307,7 +307,8 @@ private fun TripsContent(
             trips,
             key = { index, trip ->
                 "${trip.startDate}|${trip.endDate}|${trip.drives.firstOrNull()?.driveId ?: 0}|$index"
-            }
+            },
+            contentType = { _, _ -> "trip" }
         ) { index, trip ->
             TripItem(
                 trip = trip,

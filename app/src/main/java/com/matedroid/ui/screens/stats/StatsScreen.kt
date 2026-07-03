@@ -58,7 +58,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,8 +105,8 @@ fun StatsScreen(
     onNavigateToCountriesVisited: (Int?) -> Unit = {}, // year (null for all time)
     viewModel: StatsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val syncLogs by viewModel.syncLogs.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val syncLogs by viewModel.syncLogs.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)

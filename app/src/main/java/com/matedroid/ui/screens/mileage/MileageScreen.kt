@@ -54,7 +54,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -97,7 +97,7 @@ fun MileageScreen(
     onNavigateToDriveDetail: (Int) -> Unit = {},
     viewModel: MileageViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -265,7 +265,7 @@ private fun YearOverviewContent(
         }
 
         // Year list
-        items(uiState.yearlyData) { yearData ->
+        items(uiState.yearlyData, contentType = { "year" }) { yearData ->
             YearRow(
                 yearData = yearData,
                 units = uiState.units,
@@ -496,7 +496,7 @@ private fun YearDetailScreen(
             }
 
             // Monthly list
-            items(uiState.monthlyData) { monthData ->
+            items(uiState.monthlyData, contentType = { "month" }) { monthData ->
                 MonthRow(
                     monthData = monthData,
                     units = uiState.units,
@@ -754,7 +754,7 @@ private fun MonthDetailScreen(
                 }
 
                 // Daily trip rows
-                items(dailyData) { dayData ->
+                items(dailyData, contentType = { "day" }) { dayData ->
                     DayTripRow(
                         dayData = dayData,
                         units = units,
@@ -1412,7 +1412,7 @@ private fun DayDetailScreen(
                 }
 
                 // Drive rows
-                items(dayData.drives) { drive ->
+                items(dayData.drives, contentType = { "drive" }) { drive ->
                     DriveRow(
                         drive = drive,
                         units = units,
