@@ -27,9 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -57,7 +54,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -128,53 +124,14 @@ fun RegionsVisitedScreen(
                                 contentDescription = stringResource(R.string.sort)
                             )
                         }
-                        DropdownMenu(
+                        GeoSortMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_first_visit)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.FIRST_VISIT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_alphabetically)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.ALPHABETICAL)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_drive_count)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.DRIVE_COUNT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_distance)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.DISTANCE)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_energy)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.ENERGY)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_charges)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.CHARGES)
-                                    showSortMenu = false
-                                }
-                            )
-                        }
+                            onDismiss = { showSortMenu = false },
+                            onSelect = {
+                                viewModel.setSortOrder(it)
+                                showSortMenu = false
+                            }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -1033,37 +990,6 @@ private fun RegionCard(
     }
 }
 
-@Composable
-private fun StatChip(
-    icon: ImageVector,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.onSurface.copy(alpha = 0.05f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = palette.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            color = palette.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 
 @Composable
 private fun EmptyState(palette: CarColorPalette) {
@@ -1094,12 +1020,4 @@ private fun formatDate(dateStr: String): String {
  * Get the localized country name for a given ISO country code.
  * Falls back to the country code if localization fails.
  */
-private fun getLocalizedCountryName(countryCode: String): String {
-    return try {
-        Locale.Builder().setRegion(countryCode).build().getDisplayCountry(Locale.getDefault())
-            .takeIf { it.isNotBlank() && it != countryCode } ?: countryCode
-    } catch (e: Exception) {
-        countryCode
-    }
-}
 

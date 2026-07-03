@@ -23,14 +23,6 @@ import javax.inject.Inject
 /**
  * Sorting options for the regions list.
  */
-enum class RegionSortOrder {
-    FIRST_VISIT,    // Chronological by first visit date (default)
-    ALPHABETICAL,   // A-Z by region name
-    DRIVE_COUNT,    // Most drives first
-    DISTANCE,       // Most distance first
-    ENERGY,         // Most energy charged first
-    CHARGES         // Most charges first
-}
 
 /**
  * Map view mode for switching between charges and drives.
@@ -61,7 +53,7 @@ data class RegionsVisitedUiState(
     val chargeTypeFilter: ChargeTypeFilter = ChargeTypeFilter.ALL,
     val availableYears: List<Int> = emptyList(),    // Years with data in this country
     val selectedMapYear: Int? = null,                // null = all years
-    val sortOrder: RegionSortOrder = RegionSortOrder.FIRST_VISIT,
+    val sortOrder: GeoSortOrder = GeoSortOrder.FIRST_VISIT,
     val error: String? = null
 ) {
     /** Charges filtered by type and year for map display */
@@ -167,7 +159,7 @@ class RegionsVisitedViewModel @Inject constructor(
         }
     }
 
-    fun setSortOrder(order: RegionSortOrder) {
+    fun setSortOrder(order: GeoSortOrder) {
         val sorted = sortRegions(originalRegions, order)
         _uiState.update {
             it.copy(
@@ -199,15 +191,15 @@ class RegionsVisitedViewModel @Inject constructor(
 
     private fun sortRegions(
         regions: List<RegionRecord>,
-        order: RegionSortOrder
+        order: GeoSortOrder
     ): List<RegionRecord> {
         return when (order) {
-            RegionSortOrder.FIRST_VISIT -> regions.sortedBy { it.firstVisitDate }
-            RegionSortOrder.ALPHABETICAL -> regions.sortedBy { it.regionName }
-            RegionSortOrder.DRIVE_COUNT -> regions.sortedByDescending { it.driveCount }
-            RegionSortOrder.DISTANCE -> regions.sortedByDescending { it.totalDistanceKm }
-            RegionSortOrder.ENERGY -> regions.sortedByDescending { it.totalChargeEnergyKwh }
-            RegionSortOrder.CHARGES -> regions.sortedByDescending { it.chargeCount }
+            GeoSortOrder.FIRST_VISIT -> regions.sortedBy { it.firstVisitDate }
+            GeoSortOrder.ALPHABETICAL -> regions.sortedBy { it.regionName }
+            GeoSortOrder.DRIVE_COUNT -> regions.sortedByDescending { it.driveCount }
+            GeoSortOrder.DISTANCE -> regions.sortedByDescending { it.totalDistanceKm }
+            GeoSortOrder.ENERGY -> regions.sortedByDescending { it.totalChargeEnergyKwh }
+            GeoSortOrder.CHARGES -> regions.sortedByDescending { it.chargeCount }
         }
     }
 }

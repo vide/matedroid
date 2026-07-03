@@ -419,7 +419,7 @@ private fun YearRow(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "%,.2f %s".format(yearData.totalEnergyCost ?: 0.0, currencySymbol),
+                            text = UnitFormatter.formatCost(yearData.totalEnergyCost ?: 0.0, currencySymbol),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -662,7 +662,7 @@ private fun MonthRow(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "%,.2f %s".format(monthData.totalEnergyCost ?: 0.0, currencySymbol),
+                            text = UnitFormatter.formatCost(monthData.totalEnergyCost ?: 0.0, currencySymbol),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -871,12 +871,12 @@ private fun MonthSummaryCard(
             ) {
                 StatChip(
                     icon = Icons.Filled.ElectricBolt,
-                    value = formatEnergy(totalEnergy),
+                    value = UnitFormatter.formatEnergy(totalEnergy),
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
                     icon = Icons.Filled.AttachMoney,
-                    value = "%,.2f %s".format(monthData?.totalEnergyCost ?: 0.0, currencySymbol),
+                    value = UnitFormatter.formatCost(monthData?.totalEnergyCost ?: 0.0, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -986,7 +986,7 @@ private fun SummaryRow(
             )
             SummaryItem(
                 icon = Icons.Filled.AttachMoney,
-                value = "%,.2f %s".format(totalEnergyCost ?: 0.0, currencySymbol),
+                value = UnitFormatter.formatCost(totalEnergyCost ?: 0.0, currencySymbol),
                 label = stringResource(R.string.mileage_total),
                 iconColor = iconColor,
                 valueColor = valueColor,
@@ -994,7 +994,7 @@ private fun SummaryRow(
             )
             SummaryItem(
                 icon = Icons.Outlined.BatteryChargingFull,
-                value = formatEnergy(totalEnergyUsed),
+                value = UnitFormatter.formatEnergy(totalEnergyUsed),
                 label = stringResource(R.string.mileage_total),
                 iconColor = iconColor,
                 valueColor = valueColor,
@@ -1299,7 +1299,7 @@ private fun DayTripRow(
                     // Energy cost
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "%,.2f %s".format(dayData.totalEnergyCost ?: 0.0, currencySymbol),
+                            text = UnitFormatter.formatCost(dayData.totalEnergyCost ?: 0.0, currencySymbol),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -1346,9 +1346,6 @@ private fun DayTripRow(
         }
     }
 }
-
-private fun formatEnergy(kwh: Double): String =
-    if (kwh >= 1000) "%,.1f MWh".format(kwh / 1000) else "%.0f kWh".format(kwh)
 
 // ============================================================================
 // Level 4: Day Detail
@@ -1523,12 +1520,12 @@ private fun DaySummaryCard(
             ) {
                 StatChip(
                     icon = Icons.Filled.ElectricBolt,
-                    value = formatEnergy(dayData.totalEnergy),
+                    value = UnitFormatter.formatEnergy(dayData.totalEnergy),
                     modifier = Modifier.weight(1f)
                 )
                 StatChip(
                     icon = Icons.Filled.AttachMoney,
-                    value = "%,.2f %s".format(dayData.totalEnergyCost ?: 0.0, currencySymbol),
+                    value = UnitFormatter.formatCost(dayData.totalEnergyCost ?: 0.0, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
             }

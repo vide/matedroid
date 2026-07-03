@@ -38,13 +38,6 @@ data class SelectedPoint(
     val position: Offset
 )
 
-data class DualChartData(
-    val displayPoints: List<Float>,
-    val minValue: Float,
-    val maxValue: Float,
-    val range: Float
-)
-
 data class DualSelectedPoint(
     val index: Int,
     val valueLeft: Float?,
@@ -80,18 +73,6 @@ fun prepareChartData(
     val maxValue = fixedMinMax?.second ?: displayPoints.maxOrNull() ?: 1f
     val range = (maxValue - minValue).coerceAtLeast(1f)
     return ChartData(displayPoints, minValue, maxValue, range)
-}
-
-fun prepareDualChartData(data: List<Float>): DualChartData {
-    val displayPoints = if (data.size > MAX_DISPLAY_POINTS) {
-        downsampleLTTB(data, MAX_DISPLAY_POINTS)
-    } else {
-        data
-    }
-    val minValue = displayPoints.minOrNull() ?: 0f
-    val maxValue = displayPoints.maxOrNull() ?: 1f
-    val range = (maxValue - minValue).coerceAtLeast(1f)
-    return DualChartData(displayPoints, minValue, maxValue, range)
 }
 
 // ── LTTB Downsampling ───────────────────────────────────────────────────────
@@ -406,6 +387,16 @@ fun DrawScope.drawGlowIndicator(center: Offset, color: Color) {
 }
 
 /**
+ * The [steps] + 1 Y-axis label values (top → bottom) plus a format string that
+ * switches to one decimal when adjacent integer labels would collide.
+ */
+private fun axisLabelValues(chartData: ChartData, steps: Int = 4): Pair<List<Float>, String> {
+    val rawValues = (0..steps).map { i -> chartData.maxValue - (chartData.range * i / steps) }
+    val needsDecimal = rawValues.zipWithNext().any { (a, b) -> "%.0f".format(a) == "%.0f".format(b) }
+    return rawValues to if (needsDecimal) "%.1f" else "%.0f"
+}
+
+/**
  * Draws Y-axis labels at 5 positions (including max), with automatic decimal
  * precision when the range is too small to differentiate integer values.
  */
@@ -422,18 +413,10 @@ fun DrawScope.drawYAxisLabels(
             isAntiAlias = true
         }
 
-        val gridLineCount = 4
+        val (rawValues, format) = axisLabelValues(chartData)
 
-        val rawValues = (0..gridLineCount).map { i ->
-            chartData.maxValue - (chartData.range * i / gridLineCount)
-        }
-        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
-            "%.0f".format(a) == "%.0f".format(b)
-        }
-        val format = if (needsDecimal) "%.1f" else "%.0f"
-
-        for (i in 0..gridLineCount) {
-            val y = height * i / gridLineCount
+        for (i in rawValues.indices) {
+            val y = height * i / (rawValues.size - 1)
             val label = format.format(rawValues[i]) + " $unit"
             // Position the label above line
             val textY = y - 4f
@@ -446,7 +429,7 @@ fun DrawScope.drawYAxisLabels(
  * Draws Y-axis labels for dual-axis chart (left or right side).
  */
 fun DrawScope.drawDualYAxisLabels(
-    chartData: DualChartData,
+    chartData: ChartData,
     unit: String,
     height: Float,
     isLeft: Boolean,
@@ -460,18 +443,11 @@ fun DrawScope.drawDualYAxisLabels(
             isAntiAlias = true
             textAlign = if (isLeft) Paint.Align.LEFT else Paint.Align.RIGHT
         }
-        val gridLineCount = 4
 
-        val rawValues = (0..gridLineCount).map { i ->
-            chartData.maxValue - (chartData.range * i / gridLineCount)
-        }
-        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
-            "%.0f".format(a) == "%.0f".format(b)
-        }
-        val format = if (needsDecimal) "%.1f" else "%.0f"
+        val (rawValues, format) = axisLabelValues(chartData)
 
-        for (i in 0..gridLineCount) {
-            val y = height * i / gridLineCount
+        for (i in rawValues.indices) {
+            val y = height * i / (rawValues.size - 1)
             val label = format.format(rawValues[i]) + " $unit"
             // Position the label above line
             val textY = y - 4f

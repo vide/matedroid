@@ -71,8 +71,8 @@ fun DualAxisLineChart(
     val tooltipBg = MaterialTheme.colorScheme.inverseSurface
     val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
 
-    val chartDataLeft = remember(dataLeft) { prepareDualChartData(dataLeft) }
-    val chartDataRight = remember(dataRight) { prepareDualChartData(dataRight) }
+    val chartDataLeft = remember(dataLeft) { prepareChartData(dataLeft, fixedMinMax = null) { it } }
+    val chartDataRight = remember(dataRight) { prepareChartData(dataRight, fixedMinMax = null) { it } }
 
     val density = LocalDensity.current
     val chartHeightPx = with(density) { chartHeight.toPx() }

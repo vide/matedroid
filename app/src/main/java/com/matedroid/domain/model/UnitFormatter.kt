@@ -133,4 +133,18 @@ object UnitFormatter {
     fun getSpeedUnit(units: Units?): String {
         return if (units?.isImperial == true) "mph" else "km/h"
     }
+
+    /**
+     * Format an energy amount given in kWh, rolling over to MWh at 1,000 kWh.
+     * Energy is not affected by the unit system, so no [Units] is needed.
+     */
+    fun formatEnergy(kwh: Double): String =
+        if (kwh >= 1000) "%,.1f MWh".format(kwh / 1000) else "%.0f kWh".format(kwh)
+
+    /**
+     * Format a monetary amount with its currency [symbol]. Uses 2 decimals for
+     * absolute amounts and 3 for per-kWh prices (which are typically well below 1).
+     */
+    fun formatCost(value: Double, symbol: String, perKwh: Boolean = false): String =
+        if (perKwh) "%,.3f %s".format(value, symbol) else "%,.2f %s".format(value, symbol)
 }

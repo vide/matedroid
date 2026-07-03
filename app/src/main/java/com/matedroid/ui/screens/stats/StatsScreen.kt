@@ -655,7 +655,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = stringResource(R.string.stats_energy_used),
-                value = formatEnergy(quickStats.totalEnergyConsumedKwh),
+                value = UnitFormatter.formatEnergy(quickStats.totalEnergyConsumedKwh),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -668,7 +668,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = stringResource(R.string.stats_cost_per_distance, UnitFormatter.getDistanceUnit(units)),
-                value = costPer100Km?.let { "%.2f %s".format(it, currencySymbol) } ?: "N/A",
+                value = costPer100Km?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: "N/A",
                 modifier = Modifier.weight(1f)
             )
         }
@@ -690,7 +690,7 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
             )
             StatItem(
                 label = stringResource(R.string.energy_added),
-                value = formatEnergy(quickStats.totalEnergyAddedKwh),
+                value = UnitFormatter.formatEnergy(quickStats.totalEnergyAddedKwh),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -699,12 +699,12 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
                     label = stringResource(R.string.total_cost),
-                    value = "%.2f %s".format(quickStats.totalCost, currencySymbol),
+                    value = UnitFormatter.formatCost(quickStats.totalCost, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
                     label = stringResource(R.string.stats_avg_cost_kwh),
-                    value = quickStats.avgCostPerKwh?.let { "%.3f %s".format(it, currencySymbol) } ?: "N/A",
+                    value = quickStats.avgCostPerKwh?.let { UnitFormatter.formatCost(it, currencySymbol, perKwh = true) } ?: "N/A",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -820,13 +820,13 @@ private fun RecordsCard(
     }
     quickStats.mostExpensiveCharge?.let { charge ->
         charge.cost?.let { cost ->
-            batteryRecords.add(RecordData("💸", labelMostExpensive, "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+            batteryRecords.add(RecordData("💸", labelMostExpensive, UnitFormatter.formatCost(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
         }
     }
     quickStats.mostExpensivePerKwhCharge?.let { charge ->
         charge.cost?.let { cost ->
             if (charge.energyAdded > 0) {
-                batteryRecords.add(RecordData("📈", labelPriciestKwh, "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+                batteryRecords.add(RecordData("📈", labelPriciestKwh, UnitFormatter.formatCost(cost / charge.energyAdded, currencySymbol, perKwh = true), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
             }
         }
     }
@@ -1135,14 +1135,6 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette,
     }
 }
 
-private fun formatEnergy(kwh: Double): String {
-    return if (kwh >= 1000) {
-        "%.1f MWh".format(kwh / 1000)
-    } else {
-        "%.0f kWh".format(kwh)
-    }
-}
-
 @Composable
 private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
     val totalEnergy = deepStats.acChargeEnergyKwh + deepStats.dcChargeEnergyKwh
@@ -1163,12 +1155,12 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_ac_energy),
-                value = formatEnergy(deepStats.acChargeEnergyKwh),
+                value = UnitFormatter.formatEnergy(deepStats.acChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
                 label = stringResource(R.string.stats_dc_energy),
-                value = formatEnergy(deepStats.dcChargeEnergyKwh),
+                value = UnitFormatter.formatEnergy(deepStats.dcChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
         }

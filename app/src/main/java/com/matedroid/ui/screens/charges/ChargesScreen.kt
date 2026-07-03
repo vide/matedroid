@@ -72,6 +72,8 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.BarSegment
 import com.matedroid.ui.components.DateRangePickerDialog

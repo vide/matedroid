@@ -597,7 +597,7 @@ private fun ChargeCostCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                     ) {
                         EfficiencyPill(
-                            value = "%.2f %s".format(perKwh, currencySymbol),
+                            value = UnitFormatter.formatCost(perKwh, currencySymbol),
                             unit = "/ kWh",
                             palette = palette
                         )
@@ -647,7 +647,7 @@ private fun ChargeCostCard(
                                     )
                                 }
                                 Text(
-                                    text = "%.2f %s".format(charge.cost, currencySymbol),
+                                    text = UnitFormatter.formatCost(charge.cost ?: 0.0, currencySymbol),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = shade
