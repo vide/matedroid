@@ -1,6 +1,5 @@
 package com.matedroid.ui.screens.drives
 
-import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -32,10 +31,8 @@ import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 import javax.inject.Inject
-
-enum class DriveChartGranularity {
-    DAILY, WEEKLY, MONTHLY
-}
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
 
 enum class DriveDistanceFilter(
     val maxDistanceKm: Double?,
@@ -66,15 +63,6 @@ data class DriveChartData(
     val sortKey: Long
 )
 
-enum class DriveDateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
-    TODAY(R.string.filter_today, 0),
-    LAST_7_DAYS(R.string.filter_last_7_days, 7),
-    LAST_30_DAYS(R.string.filter_last_30_days, 30),
-    LAST_90_DAYS(R.string.filter_last_90_days, 90),
-    LAST_YEAR(R.string.filter_last_year, 365),
-    ALL_TIME(R.string.filter_all_time, null),
-    CUSTOM(R.string.filter_custom, -1)
-}
 
 data class DrivesUiState(
     val isLoading: Boolean = true,
@@ -86,14 +74,14 @@ data class DrivesUiState(
     val isFilterLoading: Boolean = false,
     val drives: List<DriveData> = emptyList(),
     val chartData: List<DriveChartData> = emptyList(),
-    val chartGranularity: DriveChartGranularity = DriveChartGranularity.MONTHLY,
+    val chartGranularity: ChartGranularity = ChartGranularity.MONTHLY,
     val error: String? = null,
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val summary: DrivesSummary = DrivesSummary(),
     val units: Units? = null,
     val distanceFilter: DriveDistanceFilter = DriveDistanceFilter.ALL,
-    val dateFilter: DriveDateFilter = DriveDateFilter.LAST_7_DAYS,
+    val dateFilter: DateFilter = DateFilter.LAST_7_DAYS,
     val customStartDate: LocalDate? = null,
     val customEndDate: LocalDate? = null,
     val scrollPosition: Int = 0,
@@ -133,8 +121,8 @@ class DrivesViewModel @Inject constructor(
 
         private fun restoreInitialState(handle: SavedStateHandle): DrivesUiState {
             val dateFilter = handle.get<String>(KEY_DATE_FILTER)
-                ?.let { runCatching { DriveDateFilter.valueOf(it) }.getOrNull() }
-                ?: DriveDateFilter.LAST_7_DAYS
+                ?.let { runCatching { DateFilter.valueOf(it) }.getOrNull() }
+                ?: DateFilter.LAST_7_DAYS
             val distanceFilter = handle.get<String>(KEY_DISTANCE_FILTER)
                 ?.let { runCatching { DriveDistanceFilter.valueOf(it) }.getOrNull() }
                 ?: DriveDistanceFilter.ALL
@@ -166,7 +154,7 @@ class DrivesViewModel @Inject constructor(
             val state = _uiState.value
             val customStart = state.customStartDate
             val customEnd = state.customEndDate
-            if (state.dateFilter == DriveDateFilter.CUSTOM && customStart != null && customEnd != null) {
+            if (state.dateFilter == DateFilter.CUSTOM && customStart != null && customEnd != null) {
                 setCustomDateRange(customStart, customEnd)
             } else {
                 setDateFilter(state.dateFilter)
@@ -174,8 +162,8 @@ class DrivesViewModel @Inject constructor(
         }
     }
 
-    fun setDateFilter(filter: DriveDateFilter) {
-        if (filter == DriveDateFilter.CUSTOM) return
+    fun setDateFilter(filter: DateFilter) {
+        if (filter == DateFilter.CUSTOM) return
         val endDate = LocalDate.now()
         val startDate = filter.days?.let { days ->
             if (days > 0) endDate.minusDays(days - 1) else endDate
@@ -195,13 +183,13 @@ class DrivesViewModel @Inject constructor(
 
     fun setCustomDateRange(start: LocalDate, end: LocalDate) {
         _uiState.update { it.copy(
-            dateFilter = DriveDateFilter.CUSTOM,
+            dateFilter = DateFilter.CUSTOM,
             startDate = start,
             endDate = end,
             customStartDate = start,
             customEndDate = end
         )}
-        savedStateHandle[KEY_DATE_FILTER] = DriveDateFilter.CUSTOM.name
+        savedStateHandle[KEY_DATE_FILTER] = DateFilter.CUSTOM.name
         savedStateHandle[KEY_CUSTOM_START] = start.toString()
         savedStateHandle[KEY_CUSTOM_END] = end.toString()
         loadDrives(start, end)
@@ -340,17 +328,17 @@ class DrivesViewModel @Inject constructor(
         }
     }
 
-    private fun determineGranularity(startDate: LocalDate?, endDate: LocalDate?): DriveChartGranularity {
-        if (startDate == null || endDate == null) return DriveChartGranularity.MONTHLY
+    private fun determineGranularity(startDate: LocalDate?, endDate: LocalDate?): ChartGranularity {
+        if (startDate == null || endDate == null) return ChartGranularity.MONTHLY
         val days = ChronoUnit.DAYS.between(startDate, endDate)
         return when {
-            days <= 30 -> DriveChartGranularity.DAILY
-            days <= 90 -> DriveChartGranularity.WEEKLY
-            else -> DriveChartGranularity.MONTHLY
+            days <= 30 -> ChartGranularity.DAILY
+            days <= 90 -> ChartGranularity.WEEKLY
+            else -> ChartGranularity.MONTHLY
         }
     }
 
-    private fun calculateChartData(drives: List<DriveData>, granularity: DriveChartGranularity, startDate: LocalDate?): List<DriveChartData> {
+    private fun calculateChartData(drives: List<DriveData>, granularity: ChartGranularity, startDate: LocalDate?): List<DriveChartData> {
         if (drives.isEmpty()) return emptyList()
 
         val formatter = DateTimeFormatter.ISO_DATE_TIME
@@ -367,7 +355,7 @@ class DrivesViewModel @Inject constructor(
         }.groupBy({ it.first }, { it.second })
 
         return when (granularity) {
-            DriveChartGranularity.DAILY -> {
+            ChartGranularity.DAILY -> {
                 // DAILY ranges (today, last 7 and last 30 days)
                 // If not startDate (All Time), get the first trip, or today
                 val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
@@ -389,7 +377,7 @@ class DrivesViewModel @Inject constructor(
                 result
             }
 
-            DriveChartGranularity.WEEKLY -> {
+            ChartGranularity.WEEKLY -> {
                 // WEEKLY range (last 90 days = ~13 weeks)
                 val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
                 val end = LocalDate.now()
@@ -431,7 +419,7 @@ class DrivesViewModel @Inject constructor(
                 result
             }
 
-            DriveChartGranularity.MONTHLY -> {
+            ChartGranularity.MONTHLY -> {
                 // MONTHLY range (last year = 12 months)
                 val start = startDate ?: (drivesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
                 val end = LocalDate.now()

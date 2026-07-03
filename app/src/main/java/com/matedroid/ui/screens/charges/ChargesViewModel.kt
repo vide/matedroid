@@ -33,20 +33,8 @@ import java.util.Locale
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
 import javax.inject.Inject
-
-enum class ChartGranularity {
-    DAILY, WEEKLY, MONTHLY
-}
-
-enum class DateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
-    TODAY(R.string.filter_today, 0),
-    LAST_7_DAYS(R.string.filter_last_7_days, 7),
-    LAST_30_DAYS(R.string.filter_last_30_days, 30),
-    LAST_90_DAYS(R.string.filter_last_90_days, 90),
-    LAST_YEAR(R.string.filter_last_year, 365),
-    ALL_TIME(R.string.filter_all_time, null),
-    CUSTOM(R.string.filter_custom, -1)
-}
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
 
 enum class ChargeTypeFilter(val label: String) {
     ALL("All"),
