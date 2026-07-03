@@ -401,18 +401,12 @@ private fun axisLabelValues(chartData: ChartData, steps: Int = 4): Pair<List<Flo
  * precision when the range is too small to differentiate integer values.
  */
 fun DrawScope.drawYAxisLabels(
-    surfaceColor: Color,
+    textPaint: Paint,
     chartData: ChartData,
     unit: String,
     height: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
-            isAntiAlias = true
-        }
-
         val (rawValues, format) = axisLabelValues(chartData)
 
         for (i in rawValues.indices) {
@@ -429,21 +423,14 @@ fun DrawScope.drawYAxisLabels(
  * Draws Y-axis labels for dual-axis chart (left or right side).
  */
 fun DrawScope.drawDualYAxisLabels(
+    textPaint: Paint,
     chartData: ChartData,
     unit: String,
     height: Float,
     isLeft: Boolean,
-    color: Color,
     width: Float = 0f
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            this.color = color.copy(alpha = 0.8f).toArgb()
-            textSize = 24f
-            isAntiAlias = true
-            textAlign = if (isLeft) Paint.Align.LEFT else Paint.Align.RIGHT
-        }
-
         val (rawValues, format) = axisLabelValues(chartData)
 
         for (i in rawValues.indices) {
@@ -461,19 +448,13 @@ fun DrawScope.drawDualYAxisLabels(
  * Draws X-axis time labels at 5 positions: start (0%), 25%, 50%, 75%, end (100%).
  */
 fun DrawScope.drawTimeLabels(
-    surfaceColor: Color,
+    textPaint: Paint,
     timeLabels: List<String>,
     width: Float,
     chartHeight: Float,
     timeLabelHeight: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
-            isAntiAlias = true
-        }
-
         val timeY = chartHeight + timeLabelHeight - 4f
         val positions = listOf(0f, width * 0.25f, width * 0.5f, width * 0.75f, width)
 

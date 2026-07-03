@@ -155,7 +155,7 @@ fun MileageScreen(
                 } else {
                     YearOverviewContent(
                         uiState = uiState,
-                        chartData = viewModel.getYearlyChartData(),
+                        chartData = remember(uiState.yearlyData) { viewModel.getYearlyChartData() },
                         palette = palette,
                         onYearClick = { viewModel.selectYear(it) }
                     )
@@ -173,7 +173,7 @@ fun MileageScreen(
                 YearDetailScreen(
                     year = year,
                     uiState = uiState,
-                    chartData = viewModel.getMonthlyChartData(),
+                    chartData = remember(uiState.monthlyData) { viewModel.getMonthlyChartData() },
                     palette = palette,
                     onClose = { viewModel.clearSelectedYear() },
                     onMonthClick = { viewModel.selectMonth(it) }
@@ -193,7 +193,7 @@ fun MileageScreen(
                     yearMonth = month,
                     monthData = monthData,
                     dailyData = uiState.dailyData,
-                    dailyChartData = viewModel.getDailyChartData(),
+                    dailyChartData = remember(uiState.dailyData, uiState.selectedMonth) { viewModel.getDailyChartData() },
                     currencySymbol = uiState.currencySymbol,
                     units = uiState.units,
                     palette = palette,
@@ -321,12 +321,14 @@ private fun YearlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarColo
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (year, distance) ->
-                BarChartData(
-                    label = year.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (year, distance) ->
+                    BarChartData(
+                        label = year.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(
@@ -553,12 +555,14 @@ private fun MonthlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarCol
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (month, distance) ->
-                BarChartData(
-                    label = month.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (month, distance) ->
+                    BarChartData(
+                        label = month.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(
@@ -1180,12 +1184,14 @@ private fun DailyChartCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (day, distance) ->
-                BarChartData(
-                    label = day.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (day, distance) ->
+                    BarChartData(
+                        label = day.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(

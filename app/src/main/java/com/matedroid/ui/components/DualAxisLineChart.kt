@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -67,6 +68,30 @@ fun DualAxisLineChart(
     if (dataLeft.size < 2 && dataRight.size < 2) return
 
     val surfaceColor = MaterialTheme.colorScheme.onSurface
+    // Built once and reused across draws (the 800ms entrance redraws every frame).
+    val leftLabelPaint = remember(colorLeft) {
+        android.graphics.Paint().apply {
+            color = colorLeft.copy(alpha = 0.8f).toArgb()
+            textSize = 24f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.LEFT
+        }
+    }
+    val rightLabelPaint = remember(colorRight) {
+        android.graphics.Paint().apply {
+            color = colorRight.copy(alpha = 0.8f).toArgb()
+            textSize = 24f
+            isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.RIGHT
+        }
+    }
+    val timeLabelPaint = remember(surfaceColor) {
+        android.graphics.Paint().apply {
+            color = surfaceColor.copy(alpha = 0.7f).toArgb()
+            textSize = 26f
+            isAntiAlias = true
+        }
+    }
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
     val tooltipBg = MaterialTheme.colorScheme.inverseSurface
     val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
@@ -234,12 +259,12 @@ fun DualAxisLineChart(
             }
 
             // Y-axis labels
-            drawDualYAxisLabels(chartDataLeft, unitLeft, chartHeightPx, isLeft = true, color = colorLeft)
-            drawDualYAxisLabels(chartDataRight, unitRight, chartHeightPx, isLeft = false, color = colorRight, width = width)
+            drawDualYAxisLabels(leftLabelPaint, chartDataLeft, unitLeft, chartHeightPx, isLeft = true)
+            drawDualYAxisLabels(rightLabelPaint, chartDataRight, unitRight, chartHeightPx, isLeft = false, width = width)
 
             // Time labels
             if (timeLabels.size == 5) {
-                drawTimeLabels(surfaceColor, timeLabels, width - rLabelWidth, chartHeightPx, timeLabelHeightPx)
+                drawTimeLabels(timeLabelPaint, timeLabels, width - rLabelWidth, chartHeightPx, timeLabelHeightPx)
             }
 
             // Selection indicators
