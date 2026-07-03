@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
+
 ### Fixed
 - **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
 
