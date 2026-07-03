@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,7 +50,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -63,7 +61,6 @@ import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -333,37 +330,6 @@ private fun CountryCard(
     }
 }
 
-@Composable
-private fun StatChip(
-    icon: ImageVector,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.onSurface.copy(alpha = 0.05f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = palette.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            color = palette.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 
 @Composable
 private fun EmptyState(palette: CarColorPalette) {
@@ -389,11 +355,3 @@ private fun EmptyState(palette: CarColorPalette) {
  * Get the localized country name for a given ISO country code.
  * Falls back to the country code if localization fails.
  */
-private fun getLocalizedCountryName(countryCode: String): String {
-    return try {
-        Locale.Builder().setRegion(countryCode).build().getDisplayCountry(Locale.getDefault())
-            .takeIf { it.isNotBlank() && it != countryCode } ?: countryCode
-    } catch (e: Exception) {
-        countryCode
-    }
-}

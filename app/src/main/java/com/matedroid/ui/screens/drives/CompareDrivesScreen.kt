@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,8 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,12 +66,16 @@ import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.ComparisonVerdict
 import com.matedroid.ui.components.DeltaChip
 import com.matedroid.ui.components.DeltaTone
+import com.matedroid.ui.components.LegendItem
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.OverlayCurve
+import com.matedroid.ui.components.Pill
 import com.matedroid.ui.components.PowerSocOverlayChart
 import com.matedroid.ui.components.RowDelta
+import com.matedroid.ui.components.SortChip
 import com.matedroid.ui.components.isBetter
 import com.matedroid.ui.components.percentDelta
+import com.matedroid.ui.components.rankBadge
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDurationCompact
@@ -393,19 +394,6 @@ private fun averageValue(average: DriveAverage, sort: DriveCompareSort, units: U
         DriveCompareSort.SPEED -> UnitFormatter.formatSpeed(average.speedAvg.toDouble(), units)
     }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SortChip(label: String, selected: Boolean, accent: Color, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = accent.copy(alpha = 0.16f),
-            selectedLabelColor = accent
-        )
-    )
-}
 
 @Composable
 private fun OverlayChartCard(
@@ -624,23 +612,6 @@ private fun DurationBars(
     }
 }
 
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
 @Composable
 private fun CompareRow(
@@ -701,25 +672,6 @@ private fun CompareRow(
     }
 }
 
-@Composable
-private fun Pill(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 7.dp, vertical = 3.dp)
-    )
-}
-
-private fun rankBadge(rank: Int): String = when (rank) {
-    1 -> "🥇"
-    2 -> "🥈"
-    3 -> "🥉"
-    else -> "$rank"
-}
 
 private fun valueFor(drive: ComparableDrive, sort: DriveCompareSort, units: Units?): String =
     when (sort) {
