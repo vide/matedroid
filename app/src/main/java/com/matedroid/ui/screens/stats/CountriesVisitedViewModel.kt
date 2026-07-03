@@ -19,19 +19,11 @@ import javax.inject.Inject
 /**
  * Sorting options for the countries list.
  */
-enum class CountrySortOrder {
-    FIRST_VISIT,    // Chronological by first visit date (default)
-    ALPHABETICAL,   // A-Z by country name
-    DRIVE_COUNT,    // Most drives first
-    DISTANCE,       // Most distance first
-    ENERGY,         // Most energy charged first
-    CHARGES         // Most charges first
-}
 
 data class CountriesVisitedUiState(
     val isLoading: Boolean = true,
     val countries: List<CountryRecord> = emptyList(),
-    val sortOrder: CountrySortOrder = CountrySortOrder.FIRST_VISIT,
+    val sortOrder: GeoSortOrder = GeoSortOrder.FIRST_VISIT,
     val units: Units? = null,
     val error: String? = null
 )
@@ -80,7 +72,7 @@ class CountriesVisitedViewModel @Inject constructor(
         }
     }
 
-    fun setSortOrder(order: CountrySortOrder) {
+    fun setSortOrder(order: GeoSortOrder) {
         val sorted = sortCountries(originalCountries, order)
         _uiState.update {
             it.copy(
@@ -92,15 +84,15 @@ class CountriesVisitedViewModel @Inject constructor(
 
     private fun sortCountries(
         countries: List<CountryRecord>,
-        order: CountrySortOrder
+        order: GeoSortOrder
     ): List<CountryRecord> {
         return when (order) {
-            CountrySortOrder.FIRST_VISIT -> countries.sortedBy { it.firstVisitDate }
-            CountrySortOrder.ALPHABETICAL -> countries.sortedBy { it.countryName }
-            CountrySortOrder.DRIVE_COUNT -> countries.sortedByDescending { it.driveCount }
-            CountrySortOrder.DISTANCE -> countries.sortedByDescending { it.totalDistanceKm }
-            CountrySortOrder.ENERGY -> countries.sortedByDescending { it.totalChargeEnergyKwh }
-            CountrySortOrder.CHARGES -> countries.sortedByDescending { it.chargeCount }
+            GeoSortOrder.FIRST_VISIT -> countries.sortedBy { it.firstVisitDate }
+            GeoSortOrder.ALPHABETICAL -> countries.sortedBy { it.countryName }
+            GeoSortOrder.DRIVE_COUNT -> countries.sortedByDescending { it.driveCount }
+            GeoSortOrder.DISTANCE -> countries.sortedByDescending { it.totalDistanceKm }
+            GeoSortOrder.ENERGY -> countries.sortedByDescending { it.totalChargeEnergyKwh }
+            GeoSortOrder.CHARGES -> countries.sortedByDescending { it.chargeCount }
         }
     }
 }

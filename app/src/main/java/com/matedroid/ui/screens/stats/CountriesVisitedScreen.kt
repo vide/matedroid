@@ -25,8 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -103,53 +101,14 @@ fun CountriesVisitedScreen(
                                 contentDescription = stringResource(R.string.sort)
                             )
                         }
-                        DropdownMenu(
+                        GeoSortMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_first_visit)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.FIRST_VISIT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_alphabetically)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.ALPHABETICAL)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_drive_count)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.DRIVE_COUNT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_distance)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.DISTANCE)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_energy)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.ENERGY)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_charges)) },
-                                onClick = {
-                                    viewModel.setSortOrder(CountrySortOrder.CHARGES)
-                                    showSortMenu = false
-                                }
-                            )
-                        }
+                            onDismiss = { showSortMenu = false },
+                            onSelect = {
+                                viewModel.setSortOrder(it)
+                                showSortMenu = false
+                            }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
