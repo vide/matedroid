@@ -58,7 +58,8 @@ fun FullscreenChartFrame(
     fullscreen: @Composable (chartHeight: Dp) -> Unit,
 ) {
     var isFullscreen by rememberSaveable { mutableStateOf(false) }
-    val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
+    val activity = context as? Activity
 
     Box(modifier = modifier) {
         inline()
