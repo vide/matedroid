@@ -13,6 +13,8 @@ import com.matedroid.data.local.entity.SavedTripWithLegs
 import com.matedroid.domain.model.Trip
 import com.matedroid.util.parseIsoDateTime
 import java.security.MessageDigest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -41,17 +43,26 @@ class TripRepository @Inject constructor(
     private val tripDetector: TripDetector
 ) {
 
+    // Cars whose beta-era duplicate cleanup has already run this session (see cleanupDuplicateSavedTrips).
+    private val duplicatesCleanedForCar = mutableSetOf<Int>()
+
     /** Returns all trips for a car (saved + newly auto-detected this call), newest first. */
-    suspend fun getTrips(carId: Int): List<Trip> {
+    suspend fun getTrips(carId: Int): List<Trip> = withContext(Dispatchers.Default) {
+        // Detection, duplicate healing (SHA-256 per trip) and trip building are CPU work — keep
+        // them off the caller's (main) thread. Room still runs the queries on its own executor.
         val drives = driveSummaryDao.getAllChronological(carId)
         val dcCharges = aggregateDao.getDcChargeSummaries(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
 
         autoPersistNewTrips(carId, drives, dcCharges)
-        cleanupDuplicateSavedTrips(carId)
+        // Beta-era duplicate healing only needs to run once per car per session, not every open.
+        // It's idempotent, so a redundant run (e.g. from a concurrent call) is harmless.
+        if (duplicatesCleanedForCar.add(carId)) {
+            cleanupDuplicateSavedTrips(carId)
+        }
 
         val saved = savedTripDao.getAllWithLegs(carId)
-        return buildTripsFromSaved(saved, drives, allCharges)
+        buildTripsFromSaved(saved, drives, allCharges)
             .sortedByDescending { it.startDate }
     }
 
