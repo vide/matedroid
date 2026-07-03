@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Snappier throughout** — smoother list scrolling, lighter chart rendering, the Stats and Trips screens do their heavy work off the UI thread, and the dashboard stops polling for status while it's off screen (less background battery use). No change to how anything looks.
 - **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
 
 ### Fixed
