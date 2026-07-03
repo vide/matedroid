@@ -523,7 +523,7 @@ private fun DriveItem(
         accent = palette.accent,
         dateline = formatEditorialDate(drive.startDate, is24Hour),
         title = "$startCity → $endCity",
-        heroValue = "%.0f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
+        heroValue = "%.0f".format(drive.distance ?: 0.0),
         heroUnit = UnitFormatter.getDistanceUnit(units).uppercase(java.util.Locale.getDefault()),
         onClick = onClick,
     ) {

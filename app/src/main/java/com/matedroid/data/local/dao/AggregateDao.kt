@@ -14,13 +14,7 @@ interface AggregateDao {
     // === Drive Detail Aggregates ===
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertDriveAggregate(aggregate: DriveDetailAggregate)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDriveAggregates(aggregates: List<DriveDetailAggregate>)
-
-    @Query("SELECT * FROM drive_detail_aggregates WHERE driveId = :driveId")
-    suspend fun getDriveAggregate(driveId: Int): DriveDetailAggregate?
 
     @Query("SELECT * FROM drive_detail_aggregates WHERE carId = :carId")
     suspend fun getDriveAggregatesForCar(carId: Int): List<DriveDetailAggregate>
@@ -378,13 +372,6 @@ interface AggregateDao {
     @Query("SELECT COUNT(*) FROM charge_detail_aggregates WHERE carId = :carId AND schemaVersion >= :minVersion")
     suspend fun countChargeAggregatesWithSchema(carId: Int, minVersion: Int): Int
 
-    // Flow-based counts for real-time progress updates (Room emits on table changes)
-    @Query("SELECT COUNT(*) FROM drive_detail_aggregates WHERE carId = :carId")
-    fun observeDriveAggregateCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
-
-    @Query("SELECT COUNT(*) FROM charge_detail_aggregates WHERE carId = :carId")
-    fun observeChargeAggregateCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
-
     // Schema-version-aware Flow counts (for accurate progress during schema migrations)
     @Query("SELECT COUNT(*) FROM drive_detail_aggregates WHERE carId = :carId AND schemaVersion >= :minVersion")
     fun observeDriveAggregateCountWithSchema(carId: Int, minVersion: Int): kotlinx.coroutines.flow.Flow<Int>
@@ -560,37 +547,6 @@ interface AggregateDao {
     """)
     suspend fun countUniqueDriveCitiesInRange(carId: Int, startDate: String, endDate: String): Int
 
-    @Query("""
-        SELECT a.startCity as city, a.startCountryCode as countryCode, COUNT(*) as driveCount
-        FROM drive_detail_aggregates a
-        WHERE a.carId = :carId AND a.startCity IS NOT NULL
-        GROUP BY a.startCity, a.startCountryCode
-        ORDER BY driveCount DESC
-        LIMIT :limit
-    """)
-    suspend fun getTopDriveCities(carId: Int, limit: Int = 5): List<CityDriveCount>
-
-    @Query("""
-        SELECT a.startCity as city, a.startCountryCode as countryCode, COUNT(*) as driveCount
-        FROM drive_detail_aggregates a
-        JOIN drives_summary d ON a.driveId = d.driveId
-        WHERE a.carId = :carId AND a.startCity IS NOT NULL
-        AND d.startDate >= :startDate AND d.startDate < :endDate
-        GROUP BY a.startCity, a.startCountryCode
-        ORDER BY driveCount DESC
-        LIMIT :limit
-    """)
-    suspend fun getTopDriveCitiesInRange(carId: Int, startDate: String, endDate: String, limit: Int = 5): List<CityDriveCount>
-
-    @Query("""
-        SELECT a.startRegionName as region, a.startCountryCode as countryCode, COUNT(*) as driveCount
-        FROM drive_detail_aggregates a
-        WHERE a.carId = :carId AND a.startRegionName IS NOT NULL
-        GROUP BY a.startRegionName, a.startCountryCode
-        ORDER BY driveCount DESC
-    """)
-    suspend fun getDrivesByRegion(carId: Int): List<RegionDriveCount>
-
     // === Deep Stats: Cities/Countries for Charges ===
 
     @Query("""
@@ -598,12 +554,6 @@ interface AggregateDao {
         WHERE carId = :carId AND countryCode IS NOT NULL
     """)
     suspend fun countUniqueChargeCountries(carId: Int): Int
-
-    @Query("""
-        SELECT COUNT(DISTINCT city) FROM charge_detail_aggregates
-        WHERE carId = :carId AND city IS NOT NULL
-    """)
-    suspend fun countUniqueChargeCities(carId: Int): Int
 
     @Query("""
         SELECT a.city, a.countryCode, COUNT(*) as chargeCount, SUM(c.energyAdded) as totalEnergy
@@ -801,14 +751,6 @@ interface AggregateDao {
     suspend fun getDcChargeSummaries(carId: Int): List<ChargeSummary>
 
     /** Drive start coordinates for trip map markers. */
-    @Query("""
-        SELECT driveId, startLatitude, startLongitude
-        FROM drive_detail_aggregates
-        WHERE driveId IN (:driveIds)
-        AND startLatitude IS NOT NULL AND startLongitude IS NOT NULL
-    """)
-    suspend fun getDriveCoordinates(driveIds: List<Int>): List<DriveCoordinateResult>
-
     /** Drive start + end coordinates for trip country resolution. */
     @Query("""
         SELECT driveId, startLatitude, startLongitude, endLatitude, endLongitude
@@ -853,24 +795,6 @@ data class CountryVisitResult(
     val totalDistanceKm: Double,
     val totalChargeEnergyKwh: Double,
     val chargeCount: Int
-)
-
-/**
- * Result of top drive cities query.
- */
-data class CityDriveCount(
-    val city: String,
-    val countryCode: String?,
-    val driveCount: Int
-)
-
-/**
- * Result of drives by region query.
- */
-data class RegionDriveCount(
-    val region: String,
-    val countryCode: String?,
-    val driveCount: Int
 )
 
 /**
@@ -922,12 +846,6 @@ data class ChargeLocationResult(
 )
 
 // === Trip Detection Queries ===
-
-data class DriveCoordinateResult(
-    val driveId: Int,
-    val startLatitude: Double,
-    val startLongitude: Double
-)
 
 data class DriveEdgeCoordinateResult(
     val driveId: Int,

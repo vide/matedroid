@@ -1732,7 +1732,7 @@ private fun DriveLegCard(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "%.1f %s".format(
-                        UnitFormatter.formatDistanceValue(leg.drive.distance, units),
+                        leg.drive.distance,
                         UnitFormatter.getDistanceUnit(units)
                     ),
                     style = MaterialTheme.typography.bodySmall,

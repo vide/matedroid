@@ -2308,7 +2308,7 @@ private fun VehicleInfoCard(
                     NavButton(
                         title = stringResource(R.string.nav_mileage),
                         value = status.odometer?.let {
-                            val value = UnitFormatter.formatDistanceValue(it, units, 0)
+                            val value = it
                             "%,.0f %s".format(value, UnitFormatter.getDistanceUnit(units))
                         } ?: "--",
                         icon = CustomIcons.Road,
@@ -2450,7 +2450,7 @@ private fun TripsHeroTile(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = run {
-                                    val v = UnitFormatter.formatDistanceValue(latestTrip.totalDistance, units, 0)
+                                    val v = latestTrip.totalDistance
                                     "%,.0f %s".format(v, UnitFormatter.getDistanceUnit(units))
                                 },
                                 style = MaterialTheme.typography.labelMedium,

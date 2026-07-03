@@ -900,11 +900,8 @@ private fun SpeedChartCard(
     val speeds = remember(positions) { positions.mapNotNull { it.speed?.toFloat() } }
     if (speeds.size < 2) return
 
-    val isImperial = units?.isImperial == true
-    val stableConvertValue: (Float) -> Float = remember(isImperial) {
-        { value: Float -> if (isImperial) (value * 0.621371f) else value }
-    }
-
+    // Speed is already in the user's unit (the API pre-converts before we store
+    // it), so the chart plots the raw value — no km/h→mph math here.
     ChartCard(
         title = stringResource(R.string.speed_profile),
         icon = Icons.Default.Speed,
@@ -914,8 +911,7 @@ private fun SpeedChartCard(
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel,
-        convertValue = stableConvertValue
+        fractionToTimeLabel = fractionToTimeLabel
     )
 }
 

@@ -14,20 +14,11 @@ interface DriveSummaryDao {
     @Upsert
     suspend fun upsertAll(drives: List<DriveSummary>)
 
-    @Upsert
-    suspend fun upsert(drive: DriveSummary)
-
     @Query("SELECT * FROM drives_summary WHERE driveId = :driveId")
     suspend fun get(driveId: Int): DriveSummary?
 
-    @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate DESC")
-    fun observeAll(carId: Int): Flow<List<DriveSummary>>
-
     @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate ASC")
     suspend fun getAllForCar(carId: Int): List<DriveSummary>
-
-    @Query("SELECT MAX(driveId) FROM drives_summary WHERE carId = :carId")
-    suspend fun getMaxDriveId(carId: Int): Int?
 
     @Query("DELETE FROM drives_summary WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)

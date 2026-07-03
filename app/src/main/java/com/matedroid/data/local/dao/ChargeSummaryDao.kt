@@ -14,20 +14,11 @@ interface ChargeSummaryDao {
     @Upsert
     suspend fun upsertAll(charges: List<ChargeSummary>)
 
-    @Upsert
-    suspend fun upsert(charge: ChargeSummary)
-
     @Query("SELECT * FROM charges_summary WHERE chargeId = :chargeId")
     suspend fun get(chargeId: Int): ChargeSummary?
 
-    @Query("SELECT * FROM charges_summary WHERE carId = :carId ORDER BY startDate DESC")
-    fun observeAll(carId: Int): Flow<List<ChargeSummary>>
-
     @Query("SELECT * FROM charges_summary WHERE carId = :carId ORDER BY startDate ASC")
     suspend fun getAllForCar(carId: Int): List<ChargeSummary>
-
-    @Query("SELECT MAX(chargeId) FROM charges_summary WHERE carId = :carId")
-    suspend fun getMaxChargeId(carId: Int): Int?
 
     @Query("DELETE FROM charges_summary WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)
