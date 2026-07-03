@@ -1,11 +1,6 @@
 package com.matedroid.data.sync
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.ServiceInfo
-import android.os.Build
-import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -61,6 +56,15 @@ class DataSyncWorker @AssistedInject constructor(
 
     // Track if foreground service is available (may fail on Android 14+ from background)
     private var foregroundAvailable = true
+
+    private val foregroundNotifier = WorkerForegroundNotifier(
+        context = applicationContext,
+        channelId = CHANNEL_ID,
+        channelName = "Data Sync",
+        channelDescription = "Background sync for stats data",
+        notificationId = NOTIFICATION_ID,
+        contentTitle = "MateDroid Sync",
+    )
 
     override suspend fun doWork(): Result {
         log("Starting data sync worker (attempt ${runAttemptCount})")
@@ -199,45 +203,6 @@ class DataSyncWorker @AssistedInject constructor(
         }
     }
 
-    /**
-     * Create foreground info for the notification.
-     */
-    private fun createForegroundInfo(progress: String): ForegroundInfo {
-        val context = applicationContext
-
-        // Create notification channel (required for Android 8.0+)
-        createNotificationChannel()
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("MateDroid Sync")
-            .setContentText(progress)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            ForegroundInfo(NOTIFICATION_ID, notification)
-        }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Data Sync",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Background sync for stats data"
-            }
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
+    private fun createForegroundInfo(progress: String): ForegroundInfo =
+        foregroundNotifier.createForegroundInfo(progress)
 }
