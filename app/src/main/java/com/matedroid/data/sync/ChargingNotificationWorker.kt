@@ -14,6 +14,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.api.models.CarData
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.SentryEvent
 import com.matedroid.data.repository.SentryStateRepository
@@ -156,7 +157,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
             // Check each car
             for (car in cars) {
                 try {
-                    checkCarStatus(car.carId)
+                    checkCarStatus(car)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error checking car ${car.carId}", e)
                 }
@@ -173,21 +174,9 @@ class ChargingNotificationWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun checkCarStatus(carId: Int) {
-        // Get car info and status
-        val carsResult = teslamateRepository.getCars()
-        val car = when (carsResult) {
-            is ApiResult.Success -> carsResult.data.find { it.carId == carId }
-            is ApiResult.Error -> {
-                Log.e(TAG, "Failed to fetch car info: ${carsResult.message}")
-                return
-            }
-        }
-
-        if (car == null) {
-            Log.e(TAG, "Car $carId not found")
-            return
-        }
+    private suspend fun checkCarStatus(car: CarData) {
+        // The car object is already in hand from doWork()'s getCars() — no refetch.
+        val carId = car.carId
 
         val statusResult = teslamateRepository.getCarStatus(carId)
         val statusData = when (statusResult) {

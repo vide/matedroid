@@ -251,6 +251,10 @@ class SyncRepository @Inject constructor(
         val total = unprocessedIds.size
         log("Processing $total charge details for car $carId (batch size: $BATCH_SIZE)")
 
+        // Preload summaries once (they were just written by summary sync) instead of a
+        // per-charge DB read inside the batch loop, which was ~one query per charge.
+        val summariesById = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
+
         // Process in batches
         unprocessedIds.chunked(BATCH_SIZE).forEachIndexed { batchIndex, batch ->
             val processed = batchIndex * BATCH_SIZE
@@ -276,8 +280,8 @@ class SyncRepository @Inject constructor(
                         val aggregate = computeChargeAggregate(carId, result.data)
                         aggregates.add(aggregate)
 
-                        // Get location from charge summary for geocoding
-                        val summary = chargeSummaryDao.get(chargeId)
+                        // Get location from charge summary for geocoding (preloaded above)
+                        val summary = summariesById[chargeId]
                         if (summary != null && summary.latitude != 0.0 && summary.longitude != 0.0) {
                             batchLocations.add(summary.latitude to summary.longitude)
                         }

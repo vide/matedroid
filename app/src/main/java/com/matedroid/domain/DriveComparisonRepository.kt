@@ -7,6 +7,8 @@ import com.matedroid.util.haversineMeters
 import com.matedroid.util.parseIsoDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,16 +102,18 @@ class DriveComparisonRepository @Inject constructor(
         carId: Int,
         baseDriveId: Int,
         endpointRadiusMeters: Double = DEFAULT_ENDPOINT_RADIUS_METERS
-    ): DriveComparison? {
+    ): DriveComparison? = withContext(Dispatchers.Default) {
+        // Loading the full history and running Haversine per row is CPU work — keep it off the
+        // caller's (main) thread. Room still runs the queries themselves on its own executor.
         val summaries = driveSummaryDao.getAllForCar(carId)
-        val baseSummary = summaries.firstOrNull { it.driveId == baseDriveId } ?: return null
+        val baseSummary = summaries.firstOrNull { it.driveId == baseDriveId } ?: return@withContext null
 
         val aggregates = aggregateDao.getDriveAggregatesForCar(carId).associateBy { it.driveId }
-        val baseAgg = aggregates[baseDriveId] ?: return null
-        val baseStartLat = baseAgg.startLatitude ?: return null
-        val baseStartLon = baseAgg.startLongitude ?: return null
-        val baseEndLat = baseAgg.endLatitude ?: return null
-        val baseEndLon = baseAgg.endLongitude ?: return null
+        val baseAgg = aggregates[baseDriveId] ?: return@withContext null
+        val baseStartLat = baseAgg.startLatitude ?: return@withContext null
+        val baseStartLon = baseAgg.startLongitude ?: return@withContext null
+        val baseEndLat = baseAgg.endLatitude ?: return@withContext null
+        val baseEndLon = baseAgg.endLongitude ?: return@withContext null
         val baseDistance = baseSummary.distance
 
         fun toComparable(s: DriveSummary): ComparableDrive {
@@ -148,8 +152,8 @@ class DriveComparisonRepository @Inject constructor(
             .map { toComparable(it) }
             .sortedBy { it.efficiency ?: Double.MAX_VALUE }
 
-        if (others.isEmpty()) return null
-        return DriveComparison(
+        if (others.isEmpty()) return@withContext null
+        DriveComparison(
             base = toComparable(baseSummary),
             others = others,
             endpointRadiusMeters = endpointRadiusMeters

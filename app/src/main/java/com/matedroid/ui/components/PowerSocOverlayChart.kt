@@ -72,6 +72,12 @@ fun PowerSocOverlayChart(
 ) {
     val valid = curves.filter { it.points.size >= 2 }
     if (valid.isEmpty()) return
+    // Sort each curve's points by SoC once (reused by drawing and interpolation instead of
+    // re-sorting on every draw/crosshair frame) and pre-order so the base curve draws last (on top).
+    val renderCurves = remember(curves) {
+        valid.map { it.copy(points = it.points.sortedBy { p -> p.x }) }
+            .sortedBy { it.isBase }
+    }
 
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -151,9 +157,9 @@ fun PowerSocOverlayChart(
                 )
             }
 
-            // Curves — others first so the base draws on top
-            valid.sortedBy { it.isBase }.forEach { c ->
-                val pts = c.points.sortedBy { it.x }
+            // Curves — others first so the base draws on top (points pre-sorted above)
+            renderCurves.forEach { c ->
+                val pts = c.points
                 val path = Path()
                 pts.forEachIndexed { idx, p ->
                     val px = xFor(p.x)
@@ -193,7 +199,7 @@ fun PowerSocOverlayChart(
                     Offset(cx, chartHeightPx),
                     strokeWidth = 1.5f
                 )
-                valid.forEach { c ->
+                renderCurves.forEach { c ->
                     val power = interpolatePower(c.points, soc) ?: return@forEach
                     drawCircle(c.color, radius = if (c.isBase) 7f else 5f, center = Offset(cx, yFor(power)))
                 }
@@ -202,7 +208,7 @@ fun PowerSocOverlayChart(
 
         // Tooltip — SoC and each session's power at the crosshair
         selectedSoc?.let { soc ->
-            val rows = valid.mapNotNull { c -> interpolatePower(c.points, soc)?.let { c to it } }
+            val rows = renderCurves.mapNotNull { c -> interpolatePower(c.points, soc)?.let { c to it } }
             if (rows.isNotEmpty()) {
                 Column(
                     modifier = Modifier
@@ -241,9 +247,8 @@ fun PowerSocOverlayChart(
     }
 }
 
-/** Linear interpolation of power at [soc] along a curve sorted by SoC; null when out of range. */
-private fun interpolatePower(points: List<Offset>, soc: Float): Float? {
-    val sorted = points.sortedBy { it.x }
+/** Linear interpolation of power at [soc]; [sorted] must already be ordered by SoC. Null when out of range. */
+private fun interpolatePower(sorted: List<Offset>, soc: Float): Float? {
     if (sorted.isEmpty() || soc < sorted.first().x || soc > sorted.last().x) return null
     for (i in 1 until sorted.size) {
         val a = sorted[i - 1]

@@ -116,7 +116,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -197,10 +198,16 @@ fun DashboardScreen(
     onNavigateToTrips: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var menuExpanded by remember { mutableStateOf(false) }
     var showWhereWasIPicker by remember { mutableStateOf(false) }
+
+    // Only poll for live car status while the dashboard is actually on screen.
+    LifecycleStartEffect(Unit) {
+        viewModel.resumeAutoRefresh()
+        onStopOrDispose { viewModel.pauseAutoRefresh() }
+    }
 
     // When opened from a widget tap, select the car that belongs to that widget.
     // Wait until the cars list is populated before switching, in case the app is

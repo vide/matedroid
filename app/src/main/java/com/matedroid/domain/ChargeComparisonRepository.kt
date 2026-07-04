@@ -5,6 +5,8 @@ import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.util.haversineMeters
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -97,12 +99,14 @@ class ChargeComparisonRepository @Inject constructor(
         carId: Int,
         baseChargeId: Int,
         radiusMeters: Double = DEFAULT_RADIUS_METERS
-    ): ChargeComparison? {
+    ): ChargeComparison? = withContext(Dispatchers.Default) {
+        // Loading the full history and running Haversine per row is CPU work — keep it off the
+        // caller's (main) thread. Room still runs the queries themselves on its own executor.
         val summaries = chargeSummaryDao.getAllForCar(carId)
-        val baseSummary = summaries.firstOrNull { it.chargeId == baseChargeId } ?: return null
+        val baseSummary = summaries.firstOrNull { it.chargeId == baseChargeId } ?: return@withContext null
 
         val dcIds = aggregateDao.getDcChargeIds(carId).toSet()
-        if (baseChargeId !in dcIds) return null
+        if (baseChargeId !in dcIds) return@withContext null
 
         val aggregates = aggregateDao.getChargeAggregatesForCar(carId).associateBy { it.chargeId }
 
@@ -135,8 +139,8 @@ class ChargeComparisonRepository @Inject constructor(
             .sortedByDescending { it.peakKw ?: -1 }
             .toList()
 
-        if (others.isEmpty()) return null
-        return ChargeComparison(
+        if (others.isEmpty()) return@withContext null
+        ChargeComparison(
             base = toComparable(baseSummary, 0.0),
             others = others,
             radiusMeters = radiusMeters

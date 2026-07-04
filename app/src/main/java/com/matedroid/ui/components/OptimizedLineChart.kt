@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -69,6 +70,14 @@ fun OptimizedLineChart(
     if (data.size < 2) return
 
     val surfaceColor = MaterialTheme.colorScheme.onSurface
+    // Built once and reused across draws (the 800ms entrance redraws every frame).
+    val labelPaint = remember(surfaceColor) {
+        android.graphics.Paint().apply {
+            this.color = surfaceColor.copy(alpha = 0.7f).toArgb()
+            textSize = 26f
+            isAntiAlias = true
+        }
+    }
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
     val tooltipBg = MaterialTheme.colorScheme.inverseSurface
     val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
@@ -203,11 +212,11 @@ fun OptimizedLineChart(
             }
 
             // Y-axis labels
-            drawYAxisLabels(surfaceColor, chartData, unit, chartHeightPx)
+            drawYAxisLabels(labelPaint, chartData, unit, chartHeightPx)
 
             // Time labels (5 positions)
             if (timeLabels.size == 5) {
-                drawTimeLabels(surfaceColor, timeLabels, width, chartHeightPx, timeLabelHeightPx)
+                drawTimeLabels(labelPaint, timeLabels, width, chartHeightPx, timeLabelHeightPx)
             }
 
             // Selection indicators

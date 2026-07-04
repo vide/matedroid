@@ -54,7 +54,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -100,7 +100,7 @@ fun ChargesScreen(
     onNavigateToChargeDetail: (Int) -> Unit = {},
     viewModel: ChargesViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -329,7 +329,7 @@ private fun ChargesContent(
                 }
             }
         } else {
-            items(charges, key = { it.chargeId }) { charge ->
+            items(charges, key = { it.chargeId }, contentType = { "charge" }) { charge ->
                 ChargeItem(
                     charge = charge,
                     // Exact for processed charges; for not-yet-synced ones, fall back to an

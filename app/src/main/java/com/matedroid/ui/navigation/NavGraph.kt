@@ -10,7 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
@@ -130,8 +130,8 @@ fun NavGraph(
     startViewModel: StartDestinationViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
-    val startDestination by startViewModel.startDestination.collectAsState()
-    val notificationPermissionAsked by startViewModel.notificationPermissionAsked.collectAsState()
+    val startDestination by startViewModel.startDestination.collectAsStateWithLifecycle()
+    val notificationPermissionAsked by startViewModel.notificationPermissionAsked.collectAsStateWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
 
     if (startDestination == null) {

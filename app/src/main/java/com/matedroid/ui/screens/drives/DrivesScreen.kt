@@ -44,7 +44,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,7 +93,7 @@ fun DrivesScreen(
     onNavigateToDriveDetail: (driveId: Int) -> Unit,
     viewModel: DrivesViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -275,7 +275,7 @@ private fun DrivesContent(
                 }
             }
         } else {
-            items(drives, key = { it.id }) { drive ->
+            items(drives, key = { it.id }, contentType = { "drive" }) { drive ->
                 DriveItem(
                     drive = drive,
                     units = units,

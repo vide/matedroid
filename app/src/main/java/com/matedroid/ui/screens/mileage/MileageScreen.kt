@@ -54,7 +54,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -97,7 +97,7 @@ fun MileageScreen(
     onNavigateToDriveDetail: (Int) -> Unit = {},
     viewModel: MileageViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -155,7 +155,7 @@ fun MileageScreen(
                 } else {
                     YearOverviewContent(
                         uiState = uiState,
-                        chartData = viewModel.getYearlyChartData(),
+                        chartData = remember(uiState.yearlyData) { viewModel.getYearlyChartData() },
                         palette = palette,
                         onYearClick = { viewModel.selectYear(it) }
                     )
@@ -173,7 +173,7 @@ fun MileageScreen(
                 YearDetailScreen(
                     year = year,
                     uiState = uiState,
-                    chartData = viewModel.getMonthlyChartData(),
+                    chartData = remember(uiState.monthlyData) { viewModel.getMonthlyChartData() },
                     palette = palette,
                     onClose = { viewModel.clearSelectedYear() },
                     onMonthClick = { viewModel.selectMonth(it) }
@@ -193,7 +193,7 @@ fun MileageScreen(
                     yearMonth = month,
                     monthData = monthData,
                     dailyData = uiState.dailyData,
-                    dailyChartData = viewModel.getDailyChartData(),
+                    dailyChartData = remember(uiState.dailyData, uiState.selectedMonth) { viewModel.getDailyChartData() },
                     currencySymbol = uiState.currencySymbol,
                     units = uiState.units,
                     palette = palette,
@@ -265,7 +265,7 @@ private fun YearOverviewContent(
         }
 
         // Year list
-        items(uiState.yearlyData) { yearData ->
+        items(uiState.yearlyData, contentType = { "year" }) { yearData ->
             YearRow(
                 yearData = yearData,
                 units = uiState.units,
@@ -321,12 +321,14 @@ private fun YearlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarColo
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (year, distance) ->
-                BarChartData(
-                    label = year.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (year, distance) ->
+                    BarChartData(
+                        label = year.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(
@@ -496,7 +498,7 @@ private fun YearDetailScreen(
             }
 
             // Monthly list
-            items(uiState.monthlyData) { monthData ->
+            items(uiState.monthlyData, contentType = { "month" }) { monthData ->
                 MonthRow(
                     monthData = monthData,
                     units = uiState.units,
@@ -553,12 +555,14 @@ private fun MonthlyChartCard(chartData: List<Pair<Int, Double>>, palette: CarCol
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (month, distance) ->
-                BarChartData(
-                    label = month.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (month, distance) ->
+                    BarChartData(
+                        label = month.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(
@@ -754,7 +758,7 @@ private fun MonthDetailScreen(
                 }
 
                 // Daily trip rows
-                items(dailyData) { dayData ->
+                items(dailyData, contentType = { "day" }) { dayData ->
                     DayTripRow(
                         dayData = dayData,
                         units = units,
@@ -1180,12 +1184,14 @@ private fun DailyChartCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val barChartData = chartData.map { (day, distance) ->
-                BarChartData(
-                    label = day.toString(),
-                    value = distance,
-                    displayValue = UnitFormatter.formatDistance(distance, units)
-                )
+            val barChartData = remember(chartData, units) {
+                chartData.map { (day, distance) ->
+                    BarChartData(
+                        label = day.toString(),
+                        value = distance,
+                        displayValue = UnitFormatter.formatDistance(distance, units)
+                    )
+                }
             }
 
             InteractiveBarChart(
@@ -1412,7 +1418,7 @@ private fun DayDetailScreen(
                 }
 
                 // Drive rows
-                items(dayData.drives) { drive ->
+                items(dayData.drives, contentType = { "drive" }) { drive ->
                     DriveRow(
                         drive = drive,
                         units = units,

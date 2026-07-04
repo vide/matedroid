@@ -21,8 +21,11 @@ import com.matedroid.domain.model.GapRecord
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
 import com.matedroid.domain.model.StreakRecord
 import com.matedroid.domain.model.YearFilter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,17 +44,18 @@ class StatsRepository @Inject constructor(
     /**
      * Get complete stats for a car with the given year filter.
      */
-    suspend fun getStats(carId: Int, yearFilter: YearFilter): CarStats {
-        val quickStats = getQuickStats(carId, yearFilter)
-        val deepStats = getDeepStats(carId, yearFilter)
-        val syncProgress = syncManager.getProgressForCar(carId)
+    suspend fun getStats(carId: Int, yearFilter: YearFilter): CarStats = withContext(Dispatchers.IO) {
+        // Off the main thread, and the three groups are independent — run them in parallel.
+        val quickStats = async { getQuickStats(carId, yearFilter) }
+        val deepStats = async { getDeepStats(carId, yearFilter) }
+        val syncProgress = async { syncManager.getProgressForCar(carId) }
 
-        return CarStats(
+        CarStats(
             carId = carId,
             yearFilter = yearFilter,
-            quickStats = quickStats,
-            deepStats = deepStats,
-            syncProgress = syncProgress
+            quickStats = quickStats.await(),
+            deepStats = deepStats.await(),
+            syncProgress = syncProgress.await()
         )
     }
 

@@ -86,6 +86,7 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
+    private var autoRefreshCarId: Int? = null
     private var lastGeocodedLocation: Pair<Double, Double>? = null
 
     companion object {
@@ -314,7 +315,19 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    /** Resume polling after the dashboard becomes visible again (see [pauseAutoRefresh]). */
+    fun resumeAutoRefresh() {
+        autoRefreshCarId?.let { startAutoRefresh(it) }
+    }
+
+    /** Stop polling while the dashboard is not visible, to avoid off-screen network/CPU/battery cost. */
+    fun pauseAutoRefresh() {
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
     private fun startAutoRefresh(carId: Int) {
+        autoRefreshCarId = carId
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
             while (isActive) {
