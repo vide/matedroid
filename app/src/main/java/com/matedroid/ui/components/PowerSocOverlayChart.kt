@@ -2,9 +2,8 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -121,20 +120,20 @@ fun PowerSocOverlayChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(chartHeight + 18.dp)
+                // Tap sets the crosshair at that SoC.
                 .pointerInput(valid, socMin, socMax) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        down.consume()
-                        fun update(x: Float) {
-                            val frac = (x / size.width).coerceIn(0f, 1f)
-                            selectedSoc = socMin + frac * socRange
-                        }
-                        update(down.position.x)
-                        drag(down.id) { change ->
-                            change.consume()
-                            update(change.position.x)
-                        }
+                    detectTapGestures { offset ->
+                        selectedSoc = socMin + (offset.x / size.width).coerceIn(0f, 1f) * socRange
                     }
+                }
+                // Only claim HORIZONTAL drags (scrubbing); vertical swipes fall through to the
+                // enclosing scroll container so the page still scrolls.
+                .pointerInput(valid, socMin, socMax) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, _ ->
+                            selectedSoc = socMin + (change.position.x / size.width).coerceIn(0f, 1f) * socRange
+                        }
+                    )
                 }
         ) {
             val w = size.width
