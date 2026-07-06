@@ -5,9 +5,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -176,6 +175,32 @@ fun DualAxisLineChart(
                 .fillMaxWidth()
                 .height(totalHeightDp)
                 .onSizeChanged { canvasWidthPx = it.width.toFloat() }
+                // Tap toggles the tooltip at the nearest point (ignoring the time-label strip below the chart).
+                .pointerInput(chartDataLeft, chartDataRight) {
+                    if (dataSize < 2) return@pointerInput
+                    detectTapGestures { offset ->
+                        if (offset.y > chartHeightPx) return@detectTapGestures
+                        val cWidth = size.width.toFloat() - rightLabelWidth
+                        val stepX = cWidth / (dataSize - 1).coerceAtLeast(1)
+                        val index = (offset.x / stepX).roundToInt().coerceIn(0, dataSize - 1)
+                        if (selectedPoint?.index == index) {
+                            selectedPoint = null
+                            onXSelected?.invoke(null)
+                        } else {
+                            val fraction = if (dataSize > 1) index.toFloat() / (dataSize - 1) else 0f
+                            val pointX = index * stepX
+                            val leftVal = valueAtFraction(chartDataLeft.displayPoints, fraction)
+                            val rightVal = valueAtFraction(chartDataRight.displayPoints, fraction)
+                            val leftY = if (leftVal != null) {
+                                chartHeightPx * (1 - (leftVal - chartDataLeft.minValue) / chartDataLeft.range)
+                            } else offset.y
+                            selectedPoint = DualSelectedPoint(index, leftVal, rightVal, Offset(pointX, leftY))
+                            onXSelected?.invoke(fraction)
+                        }
+                    }
+                }
+                // Only claim HORIZONTAL drags (scrubbing the crosshair); vertical swipes fall
+                // through to the enclosing scroll container so the page still scrolls.
                 .pointerInput(chartDataLeft, chartDataRight) {
                     if (dataSize < 2) return@pointerInput
 
@@ -200,38 +225,17 @@ fun DualAxisLineChart(
                         onXSelected?.invoke(fraction)
                     }
 
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        down.consume()
-                        isUserInteracting = true
-
-                        if (down.position.y > chartHeightPx) {
-                            isUserInteracting = false
-                            return@awaitEachGesture
-                        }
-
-                        val width = size.width.toFloat()
-                        val cWidth = width - rightLabelWidth
-                        val stepX = cWidth / (dataSize - 1).coerceAtLeast(1)
-                        val initialIndex = ((down.position.x / stepX).roundToInt()).coerceIn(0, dataSize - 1)
-                        val wasSelectedAtSameIndex = selectedPoint?.index == initialIndex
-
-                        updateSelection(down.position.x, down.position.y)
-
-                        var hasDragged = false
-                        drag(down.id) { change ->
-                            change.consume()
-                            hasDragged = true
-                            updateSelection(change.position.x, change.position.y)
-                        }
-
-                        if (!hasDragged && wasSelectedAtSameIndex) {
-                            selectedPoint = null
-                            onXSelected?.invoke(null)
-                        }
-
-                        isUserInteracting = false
-                    }
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            if (offset.y <= chartHeightPx) {
+                                isUserInteracting = true
+                                updateSelection(offset.x, offset.y)
+                            }
+                        },
+                        onDragEnd = { isUserInteracting = false },
+                        onDragCancel = { isUserInteracting = false },
+                        onHorizontalDrag = { change, _ -> updateSelection(change.position.x, change.position.y) }
+                    )
                 }
         ) {
             val width = size.width

@@ -2,9 +2,8 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,6 +97,9 @@ fun PowerSocOverlayChart(
     val topPad = with(density) { 6.dp.toPx() }
 
     var selectedSoc by remember { mutableStateOf<Float?>(null) }
+    // Track the container + tooltip widths so the tooltip can follow the crosshair X (clamped on screen).
+    var containerWidthPx by remember { mutableStateOf(0) }
+    var tooltipWidthPx by remember { mutableStateOf(0) }
 
     // Parent bumps dismissKey (on an outside tap or a scroll) to clear the tooltip.
     LaunchedEffect(dismissKey) { selectedSoc = null }
@@ -107,25 +112,28 @@ fun PowerSocOverlayChart(
         }
     }
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    Box(modifier = modifier
+        .fillMaxWidth()
+        .onSizeChanged { containerWidthPx = it.width }
+    ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(chartHeight + 18.dp)
+                // Tap sets the crosshair at that SoC.
                 .pointerInput(valid, socMin, socMax) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        down.consume()
-                        fun update(x: Float) {
-                            val frac = (x / size.width).coerceIn(0f, 1f)
-                            selectedSoc = socMin + frac * socRange
-                        }
-                        update(down.position.x)
-                        drag(down.id) { change ->
-                            change.consume()
-                            update(change.position.x)
-                        }
+                    detectTapGestures { offset ->
+                        selectedSoc = socMin + (offset.x / size.width).coerceIn(0f, 1f) * socRange
                     }
+                }
+                // Only claim HORIZONTAL drags (scrubbing); vertical swipes fall through to the
+                // enclosing scroll container so the page still scrolls.
+                .pointerInput(valid, socMin, socMax) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, _ ->
+                            selectedSoc = socMin + (change.position.x / size.width).coerceIn(0f, 1f) * socRange
+                        }
+                    )
                 }
         ) {
             val w = size.width
@@ -206,16 +214,27 @@ fun PowerSocOverlayChart(
             }
         }
 
-        // Tooltip — SoC and each session's power at the crosshair
+        // Tooltip — SoC and each session's power at the crosshair. Tracks the crosshair X
+        // (clamped on screen) and uses the same inverse-surface style as the other chart tooltips.
         selectedSoc?.let { soc ->
             val rows = renderCurves.mapNotNull { c -> interpolatePower(c.points, soc)?.let { c to it } }
             if (rows.isNotEmpty()) {
+                val tooltipBg = MaterialTheme.colorScheme.inverseSurface
+                val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
                 Column(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 4.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .align(Alignment.TopStart)
+                        .offset {
+                            val crosshairX = if (containerWidthPx > 0) {
+                                ((soc - socMin) / socRange) * containerWidthPx
+                            } else 0f
+                            val maxX = (containerWidthPx - tooltipWidthPx).coerceAtLeast(0)
+                            val x = (crosshairX - tooltipWidthPx / 2f).coerceIn(0f, maxX.toFloat())
+                            IntOffset(x.roundToInt(), 4.dp.roundToPx())
+                        }
+                        .onSizeChanged { tooltipWidthPx = it.width }
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(tooltipBg)
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
@@ -223,7 +242,7 @@ fun PowerSocOverlayChart(
                         text = "${soc.roundToInt()}$xUnit$xCaption",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = tooltipFg
                     )
                     rows.forEach { (curve, power) ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -237,7 +256,7 @@ fun PowerSocOverlayChart(
                             Text(
                                 text = "${power.roundToInt()} $valueUnit",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = tooltipFg
                             )
                         }
                     }

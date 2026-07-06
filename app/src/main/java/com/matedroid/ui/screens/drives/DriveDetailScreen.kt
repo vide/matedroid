@@ -3,7 +3,6 @@ package com.matedroid.ui.screens.drives
 import android.content.Intent
 import android.graphics.Paint
 import android.net.Uri
-import android.view.MotionEvent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -738,16 +737,9 @@ private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
                         MapView(ctx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
                             setOnTouchListener { v, event ->
-                                when (event.actionMasked) {
-                                    MotionEvent.ACTION_DOWN,
-                                    MotionEvent.ACTION_MOVE,
-                                    MotionEvent.ACTION_POINTER_DOWN ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                                    MotionEvent.ACTION_UP,
-                                    MotionEvent.ACTION_CANCEL ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                                }
+                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
                                 false
                             }
 

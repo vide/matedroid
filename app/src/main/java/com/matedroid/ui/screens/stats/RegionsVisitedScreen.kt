@@ -512,6 +512,11 @@ private fun CountryMapCard(
                         MapView(ctx).apply {
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
+                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
+                            setOnTouchListener { v, event ->
+                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
+                                false
+                            }
                         }
                     },
                     update = { mapView ->

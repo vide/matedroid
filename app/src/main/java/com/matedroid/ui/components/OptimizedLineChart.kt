@@ -5,9 +5,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -142,6 +141,28 @@ fun OptimizedLineChart(
                 .fillMaxWidth()
                 .height(totalHeightDp)
                 .onSizeChanged { canvasWidthPx = it.width.toFloat() }
+                // Tap toggles the tooltip at the nearest point.
+                .pointerInput(chartData) {
+                    val points = chartData.displayPoints
+                    if (points.isEmpty()) return@pointerInput
+                    detectTapGestures { offset ->
+                        val width = size.width.toFloat()
+                        val stepX = width / (points.size - 1).coerceAtLeast(1)
+                        val index = (offset.x / stepX).roundToInt().coerceIn(0, points.lastIndex)
+                        if (selectedPoint?.index == index) {
+                            selectedPoint = null
+                            onXSelected?.invoke(null)
+                        } else {
+                            val fraction = if (points.size > 1) index.toFloat() / (points.size - 1) else 0f
+                            val pointX = index * stepX
+                            val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
+                            selectedPoint = SelectedPoint(index, points[index], Offset(pointX, pointY))
+                            onXSelected?.invoke(fraction)
+                        }
+                    }
+                }
+                // Only claim HORIZONTAL drags (scrubbing the crosshair); vertical swipes fall
+                // through to the enclosing scroll container so the page still scrolls.
                 .pointerInput(chartData) {
                     val points = chartData.displayPoints
                     if (points.isEmpty()) return@pointerInput
@@ -157,32 +178,12 @@ fun OptimizedLineChart(
                         onXSelected?.invoke(fraction)
                     }
 
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        down.consume()
-                        isUserInteracting = true
-
-                        val width = size.width.toFloat()
-                        val stepX = width / (points.size - 1).coerceAtLeast(1)
-                        val initialIndex = ((down.position.x / stepX).roundToInt()).coerceIn(0, points.lastIndex)
-                        val wasSelectedAtSameIndex = selectedPoint?.index == initialIndex
-
-                        updateSelection(down.position.x)
-
-                        var hasDragged = false
-                        drag(down.id) { change ->
-                            change.consume()
-                            hasDragged = true
-                            updateSelection(change.position.x)
-                        }
-
-                        if (!hasDragged && wasSelectedAtSameIndex) {
-                            selectedPoint = null
-                            onXSelected?.invoke(null)
-                        }
-
-                        isUserInteracting = false
-                    }
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset -> isUserInteracting = true; updateSelection(offset.x) },
+                        onDragEnd = { isUserInteracting = false },
+                        onDragCancel = { isUserInteracting = false },
+                        onHorizontalDrag = { change, _ -> updateSelection(change.position.x) }
+                    )
                 }
         ) {
             val width = size.width
