@@ -1294,6 +1294,8 @@
     <string name="trip_widget_energy">Energie</string>
     <string name="trip_widget_efficiency">Effizienz</string>
     <string name="trip_widget_cost_per_distance">Kosten/100 %1$s</string>
+    <string name="trip_widget_compact_cost">Kosten %1$s</string>
+    <string name="trip_widget_compact_efficiency">Eff. %1$s</string>
     <string name="trip_widget_no_value">k. A.</string>
     <string name="trip_widget_updated">Aktualisiert %1$s</string>
 

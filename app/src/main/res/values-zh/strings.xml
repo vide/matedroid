@@ -1209,6 +1209,8 @@
     <string name="trip_widget_energy">能耗</string>
     <string name="trip_widget_efficiency">效率</string>
     <string name="trip_widget_cost_per_distance">费用/100 %1$s</string>
+    <string name="trip_widget_compact_cost">费用 %1$s</string>
+    <string name="trip_widget_compact_efficiency">效率 %1$s</string>
     <string name="trip_widget_no_value">暂无</string>
     <string name="trip_widget_updated">已更新 %1$s</string>
 

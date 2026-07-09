@@ -1206,6 +1206,8 @@
     <string name="trip_widget_energy">Energia</string>
     <string name="trip_widget_efficiency">Eficiència</string>
     <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
+    <string name="trip_widget_compact_cost">Cost %1$s</string>
+    <string name="trip_widget_compact_efficiency">Ef. %1$s</string>
     <string name="trip_widget_no_value">N/D</string>
     <string name="trip_widget_updated">Actualitzat %1$s</string>
     <string name="widget_select_car_title">Selecciona un vehicle per a l\'estri</string>

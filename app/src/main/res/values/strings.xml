@@ -1316,6 +1316,12 @@
     <!-- Compact metric label for charging cost per 100 distance units. %1$s is the distance unit (km or mi). -->
     <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
 
+    <!-- Compact footer value for total charging cost. %1$s is the formatted cost or unavailable value. -->
+    <string name="trip_widget_compact_cost">Cost %1$s</string>
+
+    <!-- Compact footer value for average driving efficiency. %1$s is the formatted efficiency or unavailable value. -->
+    <string name="trip_widget_compact_efficiency">Eff %1$s</string>
+
     <!-- Placeholder for unavailable metric values on the trip summary widget -->
     <string name="trip_widget_no_value">N/A</string>
 

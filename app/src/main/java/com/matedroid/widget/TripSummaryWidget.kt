@@ -330,12 +330,13 @@ class TripSummaryWidget : GlanceAppWidget() {
 
     @Composable
     private fun CompactFooter(cost: String, efficiency: String) {
+        val context = LocalContext.current
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = cost,
+                text = context.getString(R.string.trip_widget_compact_cost, cost),
                 style = TextStyle(
                     color = ColorProvider(TRIP_WIDGET_TEXT),
                     fontSize = 12.sp,
@@ -345,7 +346,7 @@ class TripSummaryWidget : GlanceAppWidget() {
             )
             Spacer(modifier = GlanceModifier.defaultWeight())
             Text(
-                text = efficiency,
+                text = context.getString(R.string.trip_widget_compact_efficiency, efficiency),
                 style = TextStyle(
                     color = ColorProvider(TRIP_WIDGET_MUTED),
                     fontSize = 12.sp

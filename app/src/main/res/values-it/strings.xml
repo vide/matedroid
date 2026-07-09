@@ -1206,6 +1206,8 @@
     <string name="trip_widget_energy">Energia</string>
     <string name="trip_widget_efficiency">Efficienza</string>
     <string name="trip_widget_cost_per_distance">Costo/100 %1$s</string>
+    <string name="trip_widget_compact_cost">Costo %1$s</string>
+    <string name="trip_widget_compact_efficiency">Eff. %1$s</string>
     <string name="trip_widget_no_value">N/D</string>
     <string name="trip_widget_updated">Aggiornato %1$s</string>
     <string name="widget_select_car_title">Seleziona un veicolo per il widget</string>
