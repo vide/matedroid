@@ -25,7 +25,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         currentIntent = intent
-        if (intent.hasExtra("EXTRA_CAR_ID")) {
+        if (intent.hasExtra("EXTRA_CAR_ID") &&
+            !intent.getBooleanExtra("EXTRA_SKIP_CAR_WIDGET_UPDATE", false)
+        ) {
             CarWidgetUpdateWorker.scheduleImmediateUpdate(this)
         }
         enableEdgeToEdge()

@@ -1198,6 +1198,16 @@
 
     <!-- ==================== Estri a la pantalla d'inici ==================== -->
     <string name="widget_description">Estat de bateria del teu Tesla</string>
+    <string name="trip_widget_title">Resum de viatges</string>
+    <string name="trip_widget_description">Els darrers 30 dies de trajectes, energia i costos de càrrega</string>
+    <string name="trip_widget_period_last_30_days">Darrers 30 dies</string>
+    <string name="trip_widget_empty">Cap trajecte en els darrers 30 dies</string>
+    <string name="trip_widget_driving_days">Dies</string>
+    <string name="trip_widget_energy">Energia</string>
+    <string name="trip_widget_efficiency">Eficiència</string>
+    <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
+    <string name="trip_widget_no_value">N/D</string>
+    <string name="trip_widget_updated">Actualitzat %1$s</string>
     <string name="widget_select_car_title">Selecciona un vehicle per a l\'estri</string>
     <string name="widget_loading">Carregant…</string>
     <string name="widget_error_configure">Toca per configurar</string>

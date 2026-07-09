@@ -62,6 +62,14 @@ interface ChargeSummaryDao {
     """)
     suspend fun sumCostInRange(carId: Int, startDate: String, endDate: String): Double
 
+    @Query("""
+        SELECT COUNT(*) FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        AND cost IS NOT NULL
+    """)
+    suspend fun countWithCostInRange(carId: Int, startDate: String, endDate: String): Int
+
     // Average cost per kWh
     @Query("""
         SELECT COALESCE(SUM(cost) / NULLIF(SUM(energyAdded), 0), 0)

@@ -1198,6 +1198,16 @@
 
     <!-- ==================== Widget en la pantalla de inicio ==================== -->
     <string name="widget_description">Estado de batería de tu Tesla</string>
+    <string name="trip_widget_title">Resumen de viajes</string>
+    <string name="trip_widget_description">Últimos 30 días de recorridos, energía y costes de carga</string>
+    <string name="trip_widget_period_last_30_days">Últimos 30 días</string>
+    <string name="trip_widget_empty">No hay recorridos en los últimos 30 días</string>
+    <string name="trip_widget_driving_days">Días</string>
+    <string name="trip_widget_energy">Energía</string>
+    <string name="trip_widget_efficiency">Eficiencia</string>
+    <string name="trip_widget_cost_per_distance">Coste/100 %1$s</string>
+    <string name="trip_widget_no_value">N/D</string>
+    <string name="trip_widget_updated">Actualizado %1$s</string>
     <string name="widget_select_car_title">Selecciona un vehículo para el widget</string>
     <string name="widget_loading">Cargando…</string>
     <string name="widget_error_configure">Toca para configurar</string>

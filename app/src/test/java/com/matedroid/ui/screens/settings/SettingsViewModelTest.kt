@@ -5,6 +5,7 @@ import androidx.work.WorkManager
 import com.matedroid.data.api.models.GlobalSettings
 import com.matedroid.data.api.models.GlobalSettingsData
 import com.matedroid.data.api.models.TeslamateUrls
+import com.matedroid.data.api.models.TeslamateUnits
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
@@ -177,6 +178,30 @@ class SettingsViewModelTest {
         assertNotNull(result)
         assertTrue(result!!.primaryResult is ServerTestResult.Success)
         assertNull(result.secondaryResult) // No secondary URL configured
+    }
+
+    @Test
+    fun `testConnection caches unit of length from global settings`() = runTest {
+        coEvery { repository.testConnection(any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.getGlobalSettings() } returns ApiResult.Success(
+            GlobalSettingsData(
+                settings = GlobalSettings(
+                    teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"),
+                    teslamateUnits = TeslamateUnits(unitOfLength = "mi")
+                )
+            )
+        )
+        coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
+        coEvery { settingsDataStore.saveUnitOfLength(any()) } returns Unit
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateServerUrl("https://valid.com")
+        viewModel.testConnection()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsDataStore.saveUnitOfLength("mi") }
     }
 
     @Test

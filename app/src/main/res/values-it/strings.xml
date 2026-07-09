@@ -1198,6 +1198,16 @@
 
     <!-- ==================== Widget nella schermata principale ==================== -->
     <string name="widget_description">Stato batteria per la tua Tesla</string>
+    <string name="trip_widget_title">Riepilogo viaggi</string>
+    <string name="trip_widget_description">Ultimi 30 giorni di percorsi, energia e costi di ricarica</string>
+    <string name="trip_widget_period_last_30_days">Ultimi 30 giorni</string>
+    <string name="trip_widget_empty">Nessun percorso negli ultimi 30 giorni</string>
+    <string name="trip_widget_driving_days">Giorni</string>
+    <string name="trip_widget_energy">Energia</string>
+    <string name="trip_widget_efficiency">Efficienza</string>
+    <string name="trip_widget_cost_per_distance">Costo/100 %1$s</string>
+    <string name="trip_widget_no_value">N/D</string>
+    <string name="trip_widget_updated">Aggiornato %1$s</string>
     <string name="widget_select_car_title">Seleziona un veicolo per il widget</string>
     <string name="widget_loading">Caricamento…</string>
     <string name="widget_error_configure">Tocca per configurare</string>

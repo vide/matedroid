@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import com.matedroid.R
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.widget.TripSummaryWidgetUpdateWorker
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -134,6 +135,7 @@ class DataSyncWorker @AssistedInject constructor(
                 log("Sync complete for all cars")
                 // Schedule background geocoding for location data
                 scheduleGeocoding()
+                TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(applicationContext)
                 Result.success()
             }
         } catch (e: Exception) {

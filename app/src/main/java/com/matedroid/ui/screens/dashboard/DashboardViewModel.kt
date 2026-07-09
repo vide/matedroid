@@ -396,16 +396,20 @@ class DashboardViewModel @Inject constructor(
     }
 
     /**
-     * Fetches global settings from the API and caches the base_url.
+     * Fetches global settings from the API and caches settings used offline.
      * This runs silently - failures don't affect the user experience.
      */
     private fun fetchAndCacheGlobalSettings() {
         viewModelScope.launch {
             when (val result = repository.getGlobalSettings()) {
                 is ApiResult.Success -> {
-                    result.data.settings?.teslamateUrls?.baseUrl?.let { url ->
+                    val globalSettings = result.data.settings
+                    globalSettings?.teslamateUrls?.baseUrl?.let { url ->
                         settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
                     }
+                    globalSettings?.teslamateUnits?.unitOfLength
+                        ?.takeIf { it == "km" || it == "mi" }
+                        ?.let { settingsDataStore.saveUnitOfLength(it) }
                 }
                 is ApiResult.Error -> {
                     // Silent fail - this is optional functionality

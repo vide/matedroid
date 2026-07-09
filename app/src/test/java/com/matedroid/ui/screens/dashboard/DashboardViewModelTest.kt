@@ -9,6 +9,7 @@ import com.matedroid.data.api.models.ChargingDetails
 import com.matedroid.data.api.models.GlobalSettings
 import com.matedroid.data.api.models.GlobalSettingsData
 import com.matedroid.data.api.models.TeslamateUrls
+import com.matedroid.data.api.models.TeslamateUnits
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
@@ -131,6 +132,27 @@ class DashboardViewModelTest {
         assertEquals(1, viewModel!!.uiState.value.cars.size)
         assertEquals(1, viewModel!!.uiState.value.selectedCarId)
         assertEquals(testStatus, viewModel!!.uiState.value.carStatus)
+    }
+
+    @Test
+    fun `loadCars caches unit of length from global settings`() = runTest {
+        coEvery { repository.getCars() } returns ApiResult.Success(listOf(testCar))
+        coEvery { repository.getCarStatus(1) } returns ApiResult.Success(testStatusWithUnits)
+        coEvery { repository.getGlobalSettings() } returns ApiResult.Success(
+            GlobalSettingsData(
+                settings = GlobalSettings(
+                    teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"),
+                    teslamateUnits = TeslamateUnits(unitOfLength = "mi")
+                )
+            )
+        )
+        coEvery { settingsDataStore.saveUnitOfLength(any()) } returns Unit
+
+        viewModel = createViewModel()
+        runCurrent()
+        cancelViewModelCoroutines()
+
+        coVerify { settingsDataStore.saveUnitOfLength("mi") }
     }
 
     @Test

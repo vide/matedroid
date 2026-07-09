@@ -1286,6 +1286,16 @@
     <!-- ==================== Home Screen Widget ==================== -->
     <!-- Widget description shown in the system widget picker -->
     <string name="widget_description">Batteriestatus für deinen Tesla</string>
+    <string name="trip_widget_title">Trip-Zusammenfassung</string>
+    <string name="trip_widget_description">Die letzten 30 Tage mit Fahrten, Energie und Ladekosten</string>
+    <string name="trip_widget_period_last_30_days">Letzte 30 Tage</string>
+    <string name="trip_widget_empty">Keine Fahrten in den letzten 30 Tagen</string>
+    <string name="trip_widget_driving_days">Tage</string>
+    <string name="trip_widget_energy">Energie</string>
+    <string name="trip_widget_efficiency">Effizienz</string>
+    <string name="trip_widget_cost_per_distance">Kosten/100 %1$s</string>
+    <string name="trip_widget_no_value">k. A.</string>
+    <string name="trip_widget_updated">Aktualisiert %1$s</string>
 
     <!-- Title of the car selection screen shown when configuring the widget -->
     <string name="widget_select_car_title">Fahrzeug für das Widget auswählen</string>

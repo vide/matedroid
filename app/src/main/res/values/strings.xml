@@ -1292,6 +1292,36 @@
     <!-- Widget description shown in the system widget picker -->
     <string name="widget_description">Battery status for your Tesla</string>
 
+    <!-- Widget title shown in the system widget picker for trip summaries -->
+    <string name="trip_widget_title">Trip summary</string>
+
+    <!-- Widget description shown in the system widget picker for trip summaries -->
+    <string name="trip_widget_description">Last 30 days of drives, energy, and charging costs</string>
+
+    <!-- Period label shown on the trip summary widget -->
+    <string name="trip_widget_period_last_30_days">Last 30 days</string>
+
+    <!-- Empty state shown on the trip summary widget when no drives are available in the selected range -->
+    <string name="trip_widget_empty">No drives in the last 30 days</string>
+
+    <!-- Metric label for unique days with at least one drive in the selected range -->
+    <string name="trip_widget_driving_days">Days</string>
+
+    <!-- Compact metric label for total energy used in the selected range -->
+    <string name="trip_widget_energy">Energy</string>
+
+    <!-- Compact metric label for average driving efficiency in the selected range -->
+    <string name="trip_widget_efficiency">Efficiency</string>
+
+    <!-- Compact metric label for charging cost per 100 distance units. %1$s is the distance unit (km or mi). -->
+    <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
+
+    <!-- Placeholder for unavailable metric values on the trip summary widget -->
+    <string name="trip_widget_no_value">N/A</string>
+
+    <!-- Last update timestamp on the trip summary widget. %1$s is a localized short time. -->
+    <string name="trip_widget_updated">Updated %1$s</string>
+
     <!-- Title of the car selection screen shown when configuring the widget -->
     <string name="widget_select_car_title">Select a vehicle for the widget</string>
 

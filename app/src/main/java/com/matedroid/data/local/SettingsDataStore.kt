@@ -54,6 +54,7 @@ data class AppSettings(
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val teslamateBaseUrl: String = "",
+    val unitOfLength: String = "km",
     val lastSelectedCarId: Int? = null
 ) {
     val isConfigured: Boolean
@@ -76,6 +77,7 @@ class SettingsDataStore @Inject constructor(
     private val currencyCodeKey = stringPreferencesKey("currency_code")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
+    private val unitOfLengthKey = stringPreferencesKey("unit_of_length")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
@@ -95,6 +97,7 @@ class SettingsDataStore @Inject constructor(
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
+            unitOfLength = preferences[unitOfLengthKey] ?: "km",
             lastSelectedCarId = preferences[lastSelectedCarIdKey]
         )
     }
@@ -191,6 +194,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveTeslamateBaseUrl(url: String) {
         context.dataStore.edit { preferences ->
             preferences[teslamateBaseUrlKey] = url
+        }
+    }
+
+    suspend fun saveUnitOfLength(unitOfLength: String) {
+        context.dataStore.edit { preferences ->
+            preferences[unitOfLengthKey] = unitOfLength
         }
     }
 
