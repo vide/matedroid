@@ -38,6 +38,8 @@ class TripSummaryWidgetFormatterTest {
                 avgEfficiency = 160.0,
                 totalCost = 0.0,
                 chargesWithCost = 0,
+                chargeCount = 2,
+                previousDistance = 250.0,
             ),
             currencySymbol = "\$",
             noValue = "N/A",
@@ -53,6 +55,9 @@ class TripSummaryWidgetFormatterTest {
         assertEquals("160 Wh/km", data.efficiencyValue)
         assertEquals("N/A", data.costValue)
         assertEquals("N/A", data.costPerDistanceValue)
+        assertEquals(TripSummaryWidgetTrend.Up, data.distanceTrend)
+        assertEquals(20, data.distanceTrendPercent)
+        assertEquals(TripSummaryWidgetCostCoverage.Missing, data.costCoverage)
         assertEquals("km", data.distanceUnit)
         assertEquals("Updated 9:00", data.updatedValue)
     }
@@ -71,6 +76,8 @@ class TripSummaryWidgetFormatterTest {
                 avgEfficiency = 160.0,
                 totalCost = 0.0,
                 chargesWithCost = 1,
+                chargeCount = 1,
+                previousDistance = 250.0,
             ),
             currencySymbol = "\$",
             noValue = "N/A",
@@ -79,6 +86,8 @@ class TripSummaryWidgetFormatterTest {
 
         assertEquals("0.00 \$", data.costValue)
         assertEquals("0.00 \$", data.costPerDistanceValue)
+        assertEquals(TripSummaryWidgetTrend.Same, data.distanceTrend)
+        assertEquals(TripSummaryWidgetCostCoverage.Complete, data.costCoverage)
     }
 
     @Test
@@ -95,6 +104,8 @@ class TripSummaryWidgetFormatterTest {
                 avgEfficiency = 250.0,
                 totalCost = 12.0,
                 chargesWithCost = 1,
+                chargeCount = 2,
+                previousDistance = 150.0,
             ),
             currencySymbol = "\$",
             noValue = "N/A",
@@ -106,6 +117,9 @@ class TripSummaryWidgetFormatterTest {
         assertEquals("250 Wh/mi", data.efficiencyValue)
         assertEquals("10.00 \$", data.costPerDistanceValue)
         assertEquals("mi", data.distanceUnit)
+        assertEquals(TripSummaryWidgetTrend.Down, data.distanceTrend)
+        assertEquals(20, data.distanceTrendPercent)
+        assertEquals(TripSummaryWidgetCostCoverage.Partial, data.costCoverage)
     }
 
     @Test
@@ -122,6 +136,8 @@ class TripSummaryWidgetFormatterTest {
                 avgEfficiency = 0.0,
                 totalCost = 0.0,
                 chargesWithCost = 0,
+                chargeCount = 0,
+                previousDistance = 200.0,
             ),
             currencySymbol = "\$",
             noValue = "N/A",
@@ -133,5 +149,33 @@ class TripSummaryWidgetFormatterTest {
         assertEquals("0", data.drivingDaysValue)
         assertEquals("N/A", data.efficiencyValue)
         assertEquals("N/A", data.costValue)
+        assertEquals(TripSummaryWidgetTrend.None, data.distanceTrend)
+        assertEquals(TripSummaryWidgetCostCoverage.None, data.costCoverage)
+    }
+
+    @Test
+    fun formatMarksDistanceAsNewWhenPreviousRangeWasEmpty() {
+        val data = TripSummaryWidgetFormatter.format(
+            carId = 7,
+            carName = "Model 3",
+            periodLabel = "Last 7 days",
+            metrics = TripSummaryWidgetMetrics(
+                driveCount = 1,
+                drivingDays = 1,
+                totalDistance = 42.0,
+                totalEnergy = 7.0,
+                avgEfficiency = 167.0,
+                totalCost = 0.0,
+                chargesWithCost = 0,
+                chargeCount = 0,
+                previousDistance = 0.0,
+            ),
+            currencySymbol = "\$",
+            noValue = "N/A",
+            updatedValue = "Updated 9:00",
+        )
+
+        assertEquals(TripSummaryWidgetTrend.New, data.distanceTrend)
+        assertEquals(0, data.distanceTrendPercent)
     }
 }

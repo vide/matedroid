@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -35,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
@@ -78,8 +82,22 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
             MateDroidTheme {
                 var screenState by remember { mutableStateOf<ScreenState>(ScreenState.Loading) }
                 var selectedRange by remember { mutableStateOf(TripSummaryWidgetRange.DEFAULT) }
+                var selectedCarId by remember { mutableStateOf<Int?>(null) }
 
                 LaunchedEffect(Unit) {
+                    val glanceId = GlanceAppWidgetManager(this@TripSummaryWidgetConfigActivity)
+                        .getGlanceIdBy(appWidgetId)
+                    val prefs = getAppWidgetState(
+                        this@TripSummaryWidgetConfigActivity,
+                        PreferencesGlanceStateDefinition,
+                        glanceId,
+                    )
+                    selectedRange = TripSummaryWidgetRange.fromDays(
+                        prefs[TripSummaryWidget.RANGE_DAYS_KEY]
+                            ?: TripSummaryWidgetRange.DEFAULT.days
+                    )
+                    selectedCarId = prefs[TripSummaryWidget.CAR_ID_KEY]
+
                     when (val result = teslamateRepository.getCars()) {
                         is ApiResult.Success -> {
                             val cars = result.data
@@ -87,7 +105,12 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                                 cars.isEmpty() -> screenState = ScreenState.Error(
                                     getString(R.string.no_vehicles_found)
                                 )
-                                else -> screenState = ScreenState.Picker(cars)
+                                else -> {
+                                    if (selectedCarId == null && cars.size == 1) {
+                                        selectedCarId = cars.single().carId
+                                    }
+                                    screenState = ScreenState.Picker(cars)
+                                }
                             }
                         }
                         is ApiResult.Error -> screenState = ScreenState.Error(result.message)
@@ -99,8 +122,14 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                     is ScreenState.Picker -> PickerScreen(
                         cars = s.cars,
                         selectedRange = selectedRange,
+                        selectedCarId = selectedCarId,
                         onRangeSelected = { selectedRange = it },
-                        onCarSelected = { car -> confirmSelection(appWidgetId, car, selectedRange) }
+                        onCarSelected = { selectedCarId = it.carId },
+                        onConfirm = {
+                            s.cars.firstOrNull { it.carId == selectedCarId }?.let { car ->
+                                confirmSelection(appWidgetId, car, selectedRange)
+                            }
+                        },
                     )
                     is ScreenState.Error -> ErrorScreen(s.message)
                 }
@@ -146,12 +175,25 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
     private fun PickerScreen(
         cars: List<CarData>,
         selectedRange: TripSummaryWidgetRange,
+        selectedCarId: Int?,
         onRangeSelected: (TripSummaryWidgetRange) -> Unit,
         onCarSelected: (CarData) -> Unit,
+        onConfirm: () -> Unit,
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(title = { Text(stringResource(R.string.widget_select_car_title)) })
+            },
+            bottomBar = {
+                Button(
+                    onClick = onConfirm,
+                    enabled = selectedCarId != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    Text(stringResource(R.string.widget_save))
+                }
             }
         ) { padding ->
             LazyColumn(
@@ -192,7 +234,14 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onCarSelected(car) }
+                            .clickable { onCarSelected(car) },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedCarId == car.carId) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ),
                     ) {
                         Row(
                             modifier = Modifier
@@ -202,7 +251,12 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                         ) {
                             Text(
                                 text = car.displayName,
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            RadioButton(
+                                selected = selectedCarId == car.carId,
+                                onClick = null,
                             )
                         }
                     }

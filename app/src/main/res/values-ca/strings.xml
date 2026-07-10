@@ -1208,12 +1208,20 @@
     <string name="trip_widget_driving_days">Dies</string>
     <string name="trip_widget_energy">Energia</string>
     <string name="trip_widget_efficiency">Eficiència</string>
+    <string name="trip_widget_distance_trend_new">Distància · nova</string>
+    <string name="trip_widget_distance_trend_same">Distància · sense canvis</string>
+    <string name="trip_widget_distance_trend_more">Distància · %1$d%% més</string>
+    <string name="trip_widget_distance_trend_less">Distància · %1$d%% menys</string>
+    <string name="trip_widget_cost_none_priced">Cost · cap preu</string>
+    <string name="trip_widget_cost_partially_priced">Cost · %1$d/%2$d amb preu</string>
+    <string name="trip_widget_cost_all_priced">Cost · complet</string>
     <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
     <string name="trip_widget_compact_cost">Cost %1$s</string>
     <string name="trip_widget_compact_efficiency">Ef. %1$s</string>
     <string name="trip_widget_no_value">N/D</string>
     <string name="trip_widget_updated">Actualitzat %1$s</string>
     <string name="widget_select_car_title">Selecciona un vehicle per a l\'estri</string>
+    <string name="widget_save">Desa l\'estri</string>
     <string name="widget_loading">Carregant…</string>
     <string name="widget_error_configure">Toca per configurar</string>
 

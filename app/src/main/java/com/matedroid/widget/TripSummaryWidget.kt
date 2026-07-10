@@ -69,11 +69,16 @@ class TripSummaryWidget : GlanceAppWidget() {
         val RANGE_DAYS_KEY = intPreferencesKey("trip_summary_range_days")
         val PERIOD_LABEL_KEY = stringPreferencesKey("trip_summary_period_label")
         val DISTANCE_VALUE_KEY = stringPreferencesKey("trip_summary_distance_value")
+        val DISTANCE_TREND_KEY = stringPreferencesKey("trip_summary_distance_trend")
+        val DISTANCE_TREND_PERCENT_KEY = intPreferencesKey("trip_summary_distance_trend_percent")
         val DRIVE_COUNT_VALUE_KEY = stringPreferencesKey("trip_summary_drive_count_value")
         val DRIVING_DAYS_VALUE_KEY = stringPreferencesKey("trip_summary_driving_days_value")
         val ENERGY_VALUE_KEY = stringPreferencesKey("trip_summary_energy_value")
         val EFFICIENCY_VALUE_KEY = stringPreferencesKey("trip_summary_efficiency_value")
         val COST_VALUE_KEY = stringPreferencesKey("trip_summary_cost_value")
+        val COST_COVERAGE_KEY = stringPreferencesKey("trip_summary_cost_coverage")
+        val CHARGES_WITH_COST_KEY = intPreferencesKey("trip_summary_charges_with_cost")
+        val CHARGE_COUNT_KEY = intPreferencesKey("trip_summary_charge_count")
         val COST_PER_DISTANCE_VALUE_KEY = stringPreferencesKey("trip_summary_cost_per_distance_value")
         val DISTANCE_UNIT_KEY = stringPreferencesKey("trip_summary_distance_unit")
         val UPDATED_VALUE_KEY = stringPreferencesKey("trip_summary_updated_value")
@@ -157,11 +162,20 @@ class TripSummaryWidget : GlanceAppWidget() {
             ?: context.getString(R.string.trip_widget_period_last_30_days)
         val hasDrives = prefs[HAS_DRIVES_KEY] ?: false
         val distance = prefs[DISTANCE_VALUE_KEY].orEmpty()
+        val distanceTrend = TripSummaryWidgetTrend.values().firstOrNull {
+            it.name == prefs[DISTANCE_TREND_KEY]
+        } ?: TripSummaryWidgetTrend.None
+        val distanceTrendPercent = prefs[DISTANCE_TREND_PERCENT_KEY] ?: 0
         val drives = prefs[DRIVE_COUNT_VALUE_KEY].orEmpty()
         val drivingDays = prefs[DRIVING_DAYS_VALUE_KEY].orEmpty()
         val energy = prefs[ENERGY_VALUE_KEY].orEmpty()
         val efficiency = prefs[EFFICIENCY_VALUE_KEY].orEmpty()
         val cost = prefs[COST_VALUE_KEY].orEmpty()
+        val costCoverage = TripSummaryWidgetCostCoverage.values().firstOrNull {
+            it.name == prefs[COST_COVERAGE_KEY]
+        } ?: TripSummaryWidgetCostCoverage.None
+        val chargesWithCost = prefs[CHARGES_WITH_COST_KEY] ?: 0
+        val chargeCount = prefs[CHARGE_COUNT_KEY] ?: 0
         val costPerDistance = prefs[COST_PER_DISTANCE_VALUE_KEY].orEmpty()
         val distanceUnit = prefs[DISTANCE_UNIT_KEY].orEmpty()
         val updated = prefs[UPDATED_VALUE_KEY].orEmpty()
@@ -249,7 +263,15 @@ class TripSummaryWidget : GlanceAppWidget() {
                             maxLines = 1
                         )
                         Text(
-                            text = context.getString(R.string.distance),
+                            text = if (compact) {
+                                context.getString(R.string.distance)
+                            } else {
+                                distanceTrendLabel(
+                                    context = context,
+                                    trend = distanceTrend,
+                                    percent = distanceTrendPercent,
+                                )
+                            },
                             style = TextStyle(
                                 color = ColorProvider(TRIP_WIDGET_MUTED),
                                 fontSize = 10.sp
@@ -296,7 +318,12 @@ class TripSummaryWidget : GlanceAppWidget() {
                         )
                         Spacer(modifier = GlanceModifier.width(8.dp))
                         MetricTile(
-                            label = context.getString(R.string.cost),
+                            label = costCoverageLabel(
+                                context = context,
+                                coverage = costCoverage,
+                                chargesWithCost = chargesWithCost,
+                                chargeCount = chargeCount,
+                            ),
                             value = cost,
                             accent = TRIP_WIDGET_ACCENT,
                             modifier = GlanceModifier.defaultWeight()
@@ -330,6 +357,34 @@ class TripSummaryWidget : GlanceAppWidget() {
                 }
             }
         }
+    }
+
+    private fun distanceTrendLabel(
+        context: Context,
+        trend: TripSummaryWidgetTrend,
+        percent: Int,
+    ): String = when (trend) {
+        TripSummaryWidgetTrend.None -> context.getString(R.string.distance)
+        TripSummaryWidgetTrend.New -> context.getString(R.string.trip_widget_distance_trend_new)
+        TripSummaryWidgetTrend.Same -> context.getString(R.string.trip_widget_distance_trend_same)
+        TripSummaryWidgetTrend.Up -> context.getString(R.string.trip_widget_distance_trend_more, percent)
+        TripSummaryWidgetTrend.Down -> context.getString(R.string.trip_widget_distance_trend_less, percent)
+    }
+
+    private fun costCoverageLabel(
+        context: Context,
+        coverage: TripSummaryWidgetCostCoverage,
+        chargesWithCost: Int,
+        chargeCount: Int,
+    ): String = when (coverage) {
+        TripSummaryWidgetCostCoverage.None -> context.getString(R.string.cost)
+        TripSummaryWidgetCostCoverage.Missing -> context.getString(R.string.trip_widget_cost_none_priced)
+        TripSummaryWidgetCostCoverage.Partial -> context.getString(
+            R.string.trip_widget_cost_partially_priced,
+            chargesWithCost,
+            chargeCount,
+        )
+        TripSummaryWidgetCostCoverage.Complete -> context.getString(R.string.trip_widget_cost_all_priced)
     }
 
     @Composable
@@ -406,11 +461,16 @@ class TripSummaryWidget : GlanceAppWidget() {
                 this[CAR_NAME_KEY] = data.carName
                 this[PERIOD_LABEL_KEY] = data.periodLabel
                 this[DISTANCE_VALUE_KEY] = data.distanceValue
+                this[DISTANCE_TREND_KEY] = data.distanceTrend.name
+                this[DISTANCE_TREND_PERCENT_KEY] = data.distanceTrendPercent
                 this[DRIVE_COUNT_VALUE_KEY] = data.driveCountValue
                 this[DRIVING_DAYS_VALUE_KEY] = data.drivingDaysValue
                 this[ENERGY_VALUE_KEY] = data.energyValue
                 this[EFFICIENCY_VALUE_KEY] = data.efficiencyValue
                 this[COST_VALUE_KEY] = data.costValue
+                this[COST_COVERAGE_KEY] = data.costCoverage.name
+                this[CHARGES_WITH_COST_KEY] = data.chargesWithCost
+                this[CHARGE_COUNT_KEY] = data.chargeCount
                 this[COST_PER_DISTANCE_VALUE_KEY] = data.costPerDistanceValue
                 this[DISTANCE_UNIT_KEY] = data.distanceUnit
                 this[UPDATED_VALUE_KEY] = data.updatedValue

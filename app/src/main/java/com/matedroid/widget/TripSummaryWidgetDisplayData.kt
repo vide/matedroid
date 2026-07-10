@@ -12,12 +12,32 @@ data class TripSummaryWidgetDisplayData(
     val periodLabel: String,
     val hasDrives: Boolean,
     val distanceValue: String,
+    val distanceTrend: TripSummaryWidgetTrend,
+    val distanceTrendPercent: Int,
     val driveCountValue: String,
     val drivingDaysValue: String,
     val energyValue: String,
     val efficiencyValue: String,
     val costValue: String,
+    val costCoverage: TripSummaryWidgetCostCoverage,
+    val chargesWithCost: Int,
+    val chargeCount: Int,
     val costPerDistanceValue: String,
     val distanceUnit: String,
     val updatedValue: String,
 )
+
+enum class TripSummaryWidgetTrend {
+    None,
+    New,
+    Same,
+    Up,
+    Down,
+}
+
+enum class TripSummaryWidgetCostCoverage {
+    None,
+    Missing,
+    Partial,
+    Complete,
+}

@@ -38,6 +38,19 @@ class TripSummaryWidgetDateRangeTest {
     }
 
     @Test
+    fun comparisonRangeImmediatelyPrecedesCurrentRange() {
+        val ranges = TripSummaryWidgetDateRange.currentAndPreviousDays(
+            today = LocalDate.of(2026, 7, 8),
+            days = 30,
+        )
+
+        assertEquals("2026-06-09T00:00:00", ranges.currentStart)
+        assertEquals("2026-07-09T00:00:00", ranges.currentEnd)
+        assertEquals("2026-05-10T00:00:00", ranges.previousStart)
+        assertEquals("2026-06-09T00:00:00", ranges.previousEnd)
+    }
+
+    @Test
     fun rangeFallsBackToDefaultWhenStoredPreferenceIsUnsupported() {
         assertEquals(TripSummaryWidgetRange.SevenDays, TripSummaryWidgetRange.fromDays(7))
         assertEquals(TripSummaryWidgetRange.ThirtyDays, TripSummaryWidgetRange.fromDays(30))

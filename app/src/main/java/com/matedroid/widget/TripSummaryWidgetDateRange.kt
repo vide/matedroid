@@ -15,5 +15,29 @@ object TripSummaryWidgetDateRange {
         return start.toApiDateString() to end.toApiDateString()
     }
 
+    fun currentAndPreviousDays(
+        today: LocalDate = LocalDate.now(),
+        days: Long = 30,
+    ): TripSummaryWidgetDateRanges {
+        require(days > 0) { "days must be positive" }
+
+        val currentStart = today.minusDays(days - 1).atStartOfDay()
+        val currentEnd = today.plusDays(1).atStartOfDay()
+        val previousStart = currentStart.minusDays(days)
+        return TripSummaryWidgetDateRanges(
+            currentStart = currentStart.toApiDateString(),
+            currentEnd = currentEnd.toApiDateString(),
+            previousStart = previousStart.toApiDateString(),
+            previousEnd = currentStart.toApiDateString(),
+        )
+    }
+
     private fun LocalDateTime.toApiDateString(): String = format(API_DATE_FORMATTER)
 }
+
+data class TripSummaryWidgetDateRanges(
+    val currentStart: String,
+    val currentEnd: String,
+    val previousStart: String,
+    val previousEnd: String,
+)

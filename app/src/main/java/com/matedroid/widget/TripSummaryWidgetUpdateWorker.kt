@@ -101,7 +101,9 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
                 val range = TripSummaryWidgetRange.fromDays(
                     prefs[TripSummaryWidget.RANGE_DAYS_KEY] ?: TripSummaryWidgetRange.DEFAULT.days
                 )
-                val (startDate, endDate) = TripSummaryWidgetDateRange.lastDays(days = range.days.toLong())
+                val ranges = TripSummaryWidgetDateRange.currentAndPreviousDays(
+                    days = range.days.toLong()
+                )
 
                 val displayData = buildDisplayData(
                     carId = carId,
@@ -109,8 +111,7 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
                     periodLabel = appContext.getString(range.labelRes),
                     currencySymbol = currency.symbol,
                     units = units,
-                    startDate = startDate,
-                    endDate = endDate
+                    ranges = ranges,
                 )
                 TripSummaryWidget().updateWidget(appContext, glanceId, displayData)
                 Log.d(TAG, "Updated trip summary widget for car $carId")
@@ -128,17 +129,22 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
         periodLabel: String,
         currencySymbol: String,
         units: Units,
-        startDate: String,
-        endDate: String,
+        ranges: TripSummaryWidgetDateRanges,
     ): TripSummaryWidgetDisplayData {
         val metrics = TripSummaryWidgetMetrics(
-            driveCount = driveSummaryDao.countInRange(carId, startDate, endDate),
-            drivingDays = driveSummaryDao.countDrivingDaysInRange(carId, startDate, endDate),
-            totalDistance = driveSummaryDao.sumDistanceInRange(carId, startDate, endDate),
-            totalEnergy = driveSummaryDao.sumEnergyConsumedInRange(carId, startDate, endDate),
-            avgEfficiency = driveSummaryDao.avgEfficiencyInRange(carId, startDate, endDate),
-            totalCost = chargeSummaryDao.sumCostInRange(carId, startDate, endDate),
-            chargesWithCost = chargeSummaryDao.countWithCostInRange(carId, startDate, endDate),
+            driveCount = driveSummaryDao.countInRange(carId, ranges.currentStart, ranges.currentEnd),
+            drivingDays = driveSummaryDao.countDrivingDaysInRange(carId, ranges.currentStart, ranges.currentEnd),
+            totalDistance = driveSummaryDao.sumDistanceInRange(carId, ranges.currentStart, ranges.currentEnd),
+            totalEnergy = driveSummaryDao.sumEnergyConsumedInRange(carId, ranges.currentStart, ranges.currentEnd),
+            avgEfficiency = driveSummaryDao.avgEfficiencyInRange(carId, ranges.currentStart, ranges.currentEnd),
+            totalCost = chargeSummaryDao.sumCostInRange(carId, ranges.currentStart, ranges.currentEnd),
+            chargesWithCost = chargeSummaryDao.countWithCostInRange(carId, ranges.currentStart, ranges.currentEnd),
+            chargeCount = chargeSummaryDao.countInRange(carId, ranges.currentStart, ranges.currentEnd),
+            previousDistance = driveSummaryDao.sumDistanceInRange(
+                carId,
+                ranges.previousStart,
+                ranges.previousEnd,
+            ),
         )
         val noValue = appContext.getString(R.string.trip_widget_no_value)
         return TripSummaryWidgetFormatter.format(

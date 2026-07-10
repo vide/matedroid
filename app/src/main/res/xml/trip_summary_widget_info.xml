@@ -9,6 +9,7 @@
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:configure="com.matedroid.widget.TripSummaryWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
     android:description="@string/trip_widget_description"
     android:previewLayout="@layout/trip_summary_widget_preview"
     android:initialLayout="@layout/trip_summary_widget_preview" />

@@ -1318,6 +1318,17 @@
     <!-- Compact metric label for average driving efficiency in the selected range -->
     <string name="trip_widget_efficiency">Efficiency</string>
 
+    <!-- Distance comparison with the immediately preceding range of the same length -->
+    <string name="trip_widget_distance_trend_new">Distance · new this period</string>
+    <string name="trip_widget_distance_trend_same">Distance · unchanged</string>
+    <string name="trip_widget_distance_trend_more">Distance · %1$d%% more</string>
+    <string name="trip_widget_distance_trend_less">Distance · %1$d%% less</string>
+
+    <!-- Charging-cost coverage labels keep partial cost totals honest -->
+    <string name="trip_widget_cost_none_priced">Cost · none priced</string>
+    <string name="trip_widget_cost_partially_priced">Cost · %1$d/%2$d priced</string>
+    <string name="trip_widget_cost_all_priced">Cost · all priced</string>
+
     <!-- Compact metric label for charging cost per 100 distance units. %1$s is the distance unit (km or mi). -->
     <string name="trip_widget_cost_per_distance">Cost/100 %1$s</string>
 
@@ -1335,6 +1346,7 @@
 
     <!-- Title of the car selection screen shown when configuring the widget -->
     <string name="widget_select_car_title">Select a vehicle for the widget</string>
+    <string name="widget_save">Save widget</string>
 
     <!-- Shown on the widget while data is being loaded for the first time -->
     <string name="widget_loading">Loading…</string>
