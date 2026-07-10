@@ -40,7 +40,6 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
         const val WORK_NAME = "trip_summary_widget_update"
         const val PERIODIC_WORK_NAME = "trip_summary_widget_update_periodic"
         private const val PERIODIC_INTERVAL_HOURS = 6L
-        private const val RANGE_DAYS = 30L
 
         fun scheduleImmediateUpdate(context: Context) {
             val request = OneTimeWorkRequestBuilder<TripSummaryWidgetUpdateWorker>()
@@ -92,7 +91,6 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
         val settings = settingsDataStore.settings.firstOrNull()
         val currency = Currency.findByCode(settings?.currencyCode ?: Currency.DEFAULT.code)
         val units = Units(unitOfLength = settings?.unitOfLength ?: "km")
-        val (startDate, endDate) = TripSummaryWidgetDateRange.lastDays(days = RANGE_DAYS)
 
         for (glanceId in glanceIds) {
             try {
@@ -100,10 +98,15 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
                 val carId = prefs[TripSummaryWidget.CAR_ID_KEY] ?: continue
                 val carName = prefs[TripSummaryWidget.CAR_NAME_KEY]
                     ?: appContext.getString(R.string.app_name)
+                val range = TripSummaryWidgetRange.fromDays(
+                    prefs[TripSummaryWidget.RANGE_DAYS_KEY] ?: TripSummaryWidgetRange.DEFAULT.days
+                )
+                val (startDate, endDate) = TripSummaryWidgetDateRange.lastDays(days = range.days.toLong())
 
                 val displayData = buildDisplayData(
                     carId = carId,
                     carName = carName,
+                    periodLabel = appContext.getString(range.labelRes),
                     currencySymbol = currency.symbol,
                     units = units,
                     startDate = startDate,
@@ -122,6 +125,7 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
     private suspend fun buildDisplayData(
         carId: Int,
         carName: String,
+        periodLabel: String,
         currencySymbol: String,
         units: Units,
         startDate: String,
@@ -140,6 +144,7 @@ class TripSummaryWidgetUpdateWorker @AssistedInject constructor(
         return TripSummaryWidgetFormatter.format(
             carId = carId,
             carName = carName,
+            periodLabel = periodLabel,
             metrics = metrics,
             currencySymbol = currencySymbol,
             noValue = noValue,

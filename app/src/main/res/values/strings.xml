@@ -1296,13 +1296,18 @@
     <string name="trip_widget_title">Trip summary</string>
 
     <!-- Widget description shown in the system widget picker for trip summaries -->
-    <string name="trip_widget_description">Last 30 days of drives, energy, and charging costs</string>
+    <string name="trip_widget_description">Drives, energy, and charging costs by range</string>
 
     <!-- Period label shown on the trip summary widget -->
+    <string name="trip_widget_period_last_7_days">Last 7 days</string>
     <string name="trip_widget_period_last_30_days">Last 30 days</string>
+    <string name="trip_widget_period_last_90_days">Last 90 days</string>
+
+    <!-- Range selector title shown while configuring the trip summary widget -->
+    <string name="trip_widget_range_title">Summary range</string>
 
     <!-- Empty state shown on the trip summary widget when no drives are available in the selected range -->
-    <string name="trip_widget_empty">No drives in the last 30 days</string>
+    <string name="trip_widget_empty">No drives in this range</string>
 
     <!-- Metric label for unique days with at least one drive in the selected range -->
     <string name="trip_widget_driving_days">Days</string>

@@ -9,6 +9,7 @@ package com.matedroid.widget
 data class TripSummaryWidgetDisplayData(
     val carId: Int,
     val carName: String,
+    val periodLabel: String,
     val hasDrives: Boolean,
     val distanceValue: String,
     val driveCountValue: String,

@@ -18,6 +18,7 @@ object TripSummaryWidgetFormatter {
     fun format(
         carId: Int,
         carName: String,
+        periodLabel: String,
         metrics: TripSummaryWidgetMetrics,
         currencySymbol: String,
         noValue: String,
@@ -44,6 +45,7 @@ object TripSummaryWidgetFormatter {
         return TripSummaryWidgetDisplayData(
             carId = carId,
             carName = carName,
+            periodLabel = periodLabel,
             hasDrives = metrics.driveCount > 0,
             distanceValue = UnitFormatter.formatDistance(metrics.totalDistance, units = units, decimals = 0),
             driveCountValue = "%,d".format(metrics.driveCount),

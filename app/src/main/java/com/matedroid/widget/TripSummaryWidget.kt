@@ -66,6 +66,8 @@ class TripSummaryWidget : GlanceAppWidget() {
         val HAS_DATA_KEY = booleanPreferencesKey("trip_summary_has_data")
         val HAS_DRIVES_KEY = booleanPreferencesKey("trip_summary_has_drives")
         val CAR_NAME_KEY = stringPreferencesKey("trip_summary_car_name")
+        val RANGE_DAYS_KEY = intPreferencesKey("trip_summary_range_days")
+        val PERIOD_LABEL_KEY = stringPreferencesKey("trip_summary_period_label")
         val DISTANCE_VALUE_KEY = stringPreferencesKey("trip_summary_distance_value")
         val DRIVE_COUNT_VALUE_KEY = stringPreferencesKey("trip_summary_drive_count_value")
         val DRIVING_DAYS_VALUE_KEY = stringPreferencesKey("trip_summary_driving_days_value")
@@ -151,6 +153,8 @@ class TripSummaryWidget : GlanceAppWidget() {
         val compact = size.height.value < 115f || size.width.value < 190f
 
         val carName = prefs[CAR_NAME_KEY].orEmpty()
+        val periodLabel = prefs[PERIOD_LABEL_KEY]
+            ?: context.getString(R.string.trip_widget_period_last_30_days)
         val hasDrives = prefs[HAS_DRIVES_KEY] ?: false
         val distance = prefs[DISTANCE_VALUE_KEY].orEmpty()
         val drives = prefs[DRIVE_COUNT_VALUE_KEY].orEmpty()
@@ -187,7 +191,7 @@ class TripSummaryWidget : GlanceAppWidget() {
                         )
                     }
                     Text(
-                        text = context.getString(R.string.trip_widget_period_last_30_days),
+                        text = periodLabel,
                         style = TextStyle(
                             color = ColorProvider(TRIP_WIDGET_MUTED),
                             fontSize = if (compact) 10.sp else 11.sp
@@ -400,6 +404,7 @@ class TripSummaryWidget : GlanceAppWidget() {
                 this[HAS_DATA_KEY] = true
                 this[HAS_DRIVES_KEY] = data.hasDrives
                 this[CAR_NAME_KEY] = data.carName
+                this[PERIOD_LABEL_KEY] = data.periodLabel
                 this[DISTANCE_VALUE_KEY] = data.distanceValue
                 this[DRIVE_COUNT_VALUE_KEY] = data.driveCountValue
                 this[DRIVING_DAYS_VALUE_KEY] = data.drivingDaysValue

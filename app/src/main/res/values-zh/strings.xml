@@ -1202,9 +1202,12 @@
     <!-- Widget description shown in the system widget picker -->
     <string name="widget_description">Tesla 电池状态小组件</string>
     <string name="trip_widget_title">行程摘要</string>
-    <string name="trip_widget_description">最近 30 天的行驶、能耗和充电成本</string>
+    <string name="trip_widget_description">按范围显示行驶、能耗和充电成本</string>
+    <string name="trip_widget_period_last_7_days">最近 7 天</string>
     <string name="trip_widget_period_last_30_days">最近 30 天</string>
-    <string name="trip_widget_empty">最近 30 天没有行驶记录</string>
+    <string name="trip_widget_period_last_90_days">最近 90 天</string>
+    <string name="trip_widget_range_title">摘要范围</string>
+    <string name="trip_widget_empty">此范围内没有行驶记录</string>
     <string name="trip_widget_driving_days">天数</string>
     <string name="trip_widget_energy">能耗</string>
     <string name="trip_widget_efficiency">效率</string>

@@ -1287,9 +1287,12 @@
     <!-- Widget description shown in the system widget picker -->
     <string name="widget_description">Batteriestatus für deinen Tesla</string>
     <string name="trip_widget_title">Trip-Zusammenfassung</string>
-    <string name="trip_widget_description">Die letzten 30 Tage mit Fahrten, Energie und Ladekosten</string>
+    <string name="trip_widget_description">Fahrten, Energie und Ladekosten nach Zeitraum</string>
+    <string name="trip_widget_period_last_7_days">Letzte 7 Tage</string>
     <string name="trip_widget_period_last_30_days">Letzte 30 Tage</string>
-    <string name="trip_widget_empty">Keine Fahrten in den letzten 30 Tagen</string>
+    <string name="trip_widget_period_last_90_days">Letzte 90 Tage</string>
+    <string name="trip_widget_range_title">Zusammenfassungszeitraum</string>
+    <string name="trip_widget_empty">Keine Fahrten in diesem Zeitraum</string>
     <string name="trip_widget_driving_days">Tage</string>
     <string name="trip_widget_energy">Energie</string>
     <string name="trip_widget_efficiency">Effizienz</string>

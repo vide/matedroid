@@ -1199,9 +1199,12 @@
     <!-- ==================== Widget nella schermata principale ==================== -->
     <string name="widget_description">Stato batteria per la tua Tesla</string>
     <string name="trip_widget_title">Riepilogo viaggi</string>
-    <string name="trip_widget_description">Ultimi 30 giorni di percorsi, energia e costi di ricarica</string>
+    <string name="trip_widget_description">Percorsi, energia e costi di ricarica per intervallo</string>
+    <string name="trip_widget_period_last_7_days">Ultimi 7 giorni</string>
     <string name="trip_widget_period_last_30_days">Ultimi 30 giorni</string>
-    <string name="trip_widget_empty">Nessun percorso negli ultimi 30 giorni</string>
+    <string name="trip_widget_period_last_90_days">Ultimi 90 giorni</string>
+    <string name="trip_widget_range_title">Intervallo riepilogo</string>
+    <string name="trip_widget_empty">Nessun percorso in questo intervallo</string>
     <string name="trip_widget_driving_days">Giorni</string>
     <string name="trip_widget_energy">Energia</string>
     <string name="trip_widget_efficiency">Efficienza</string>

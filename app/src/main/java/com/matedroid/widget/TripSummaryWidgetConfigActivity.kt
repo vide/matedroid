@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -76,6 +77,7 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
         setContent {
             MateDroidTheme {
                 var screenState by remember { mutableStateOf<ScreenState>(ScreenState.Loading) }
+                var selectedRange by remember { mutableStateOf(TripSummaryWidgetRange.DEFAULT) }
 
                 LaunchedEffect(Unit) {
                     when (val result = teslamateRepository.getCars()) {
@@ -85,7 +87,6 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                                 cars.isEmpty() -> screenState = ScreenState.Error(
                                     getString(R.string.no_vehicles_found)
                                 )
-                                cars.size == 1 -> confirmSelection(appWidgetId, cars.first())
                                 else -> screenState = ScreenState.Picker(cars)
                             }
                         }
@@ -95,9 +96,12 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
 
                 when (val s = screenState) {
                     is ScreenState.Loading -> LoadingScreen()
-                    is ScreenState.Picker -> PickerScreen(s.cars) { car ->
-                        confirmSelection(appWidgetId, car)
-                    }
+                    is ScreenState.Picker -> PickerScreen(
+                        cars = s.cars,
+                        selectedRange = selectedRange,
+                        onRangeSelected = { selectedRange = it },
+                        onCarSelected = { car -> confirmSelection(appWidgetId, car, selectedRange) }
+                    )
                     is ScreenState.Error -> ErrorScreen(s.message)
                 }
             }
@@ -139,7 +143,12 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
 
     @Composable
     @OptIn(ExperimentalMaterial3Api::class)
-    private fun PickerScreen(cars: List<CarData>, onCarSelected: (CarData) -> Unit) {
+    private fun PickerScreen(
+        cars: List<CarData>,
+        selectedRange: TripSummaryWidgetRange,
+        onRangeSelected: (TripSummaryWidgetRange) -> Unit,
+        onCarSelected: (CarData) -> Unit,
+    ) {
         Scaffold(
             topBar = {
                 TopAppBar(title = { Text(stringResource(R.string.widget_select_car_title)) })
@@ -152,6 +161,33 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.trip_widget_range_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TripSummaryWidgetRange.values().forEach { range ->
+                                FilterChip(
+                                    selected = selectedRange == range,
+                                    onClick = { onRangeSelected(range) },
+                                    label = { Text(stringResource(range.labelRes)) }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(cars) { car ->
                     Card(
                         modifier = Modifier
@@ -175,7 +211,11 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun confirmSelection(appWidgetId: Int, car: CarData) {
+    private fun confirmSelection(
+        appWidgetId: Int,
+        car: CarData,
+        range: TripSummaryWidgetRange,
+    ) {
         lifecycleScope.launch {
             val glanceId = GlanceAppWidgetManager(this@TripSummaryWidgetConfigActivity)
                 .getGlanceIdBy(appWidgetId)
@@ -188,6 +228,8 @@ class TripSummaryWidgetConfigActivity : ComponentActivity() {
                 prefs.toMutablePreferences().apply {
                     this[TripSummaryWidget.CAR_ID_KEY] = car.carId
                     this[TripSummaryWidget.CAR_NAME_KEY] = car.displayName
+                    this[TripSummaryWidget.RANGE_DAYS_KEY] = range.days
+                    this[TripSummaryWidget.PERIOD_LABEL_KEY] = getString(range.labelRes)
                     this[TripSummaryWidget.HAS_DATA_KEY] = false
                 }
             }

@@ -29,6 +29,7 @@ class TripSummaryWidgetFormatterTest {
         val data = TripSummaryWidgetFormatter.format(
             carId = 7,
             carName = "Model Y",
+            periodLabel = "Last 30 days",
             metrics = TripSummaryWidgetMetrics(
                 driveCount = 4,
                 drivingDays = 3,
@@ -44,6 +45,7 @@ class TripSummaryWidgetFormatterTest {
         )
 
         assertTrue(data.hasDrives)
+        assertEquals("Last 30 days", data.periodLabel)
         assertEquals("300 km", data.distanceValue)
         assertEquals("4", data.driveCountValue)
         assertEquals("3", data.drivingDaysValue)
@@ -60,6 +62,7 @@ class TripSummaryWidgetFormatterTest {
         val data = TripSummaryWidgetFormatter.format(
             carId = 7,
             carName = "Model Y",
+            periodLabel = "Last 7 days",
             metrics = TripSummaryWidgetMetrics(
                 driveCount = 3,
                 drivingDays = 2,
@@ -83,6 +86,7 @@ class TripSummaryWidgetFormatterTest {
         val data = TripSummaryWidgetFormatter.format(
             carId = 7,
             carName = "Model 3",
+            periodLabel = "Last 90 days",
             metrics = TripSummaryWidgetMetrics(
                 driveCount = 2,
                 drivingDays = 2,
@@ -109,6 +113,7 @@ class TripSummaryWidgetFormatterTest {
         val data = TripSummaryWidgetFormatter.format(
             carId = 7,
             carName = "Model S",
+            periodLabel = "Last 30 days",
             metrics = TripSummaryWidgetMetrics(
                 driveCount = 0,
                 drivingDays = 0,

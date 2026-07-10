@@ -1199,9 +1199,12 @@
     <!-- ==================== Estri a la pantalla d'inici ==================== -->
     <string name="widget_description">Estat de bateria del teu Tesla</string>
     <string name="trip_widget_title">Resum de viatges</string>
-    <string name="trip_widget_description">Els darrers 30 dies de trajectes, energia i costos de càrrega</string>
+    <string name="trip_widget_description">Trajectes, energia i costos de càrrega per interval</string>
+    <string name="trip_widget_period_last_7_days">Darrers 7 dies</string>
     <string name="trip_widget_period_last_30_days">Darrers 30 dies</string>
-    <string name="trip_widget_empty">Cap trajecte en els darrers 30 dies</string>
+    <string name="trip_widget_period_last_90_days">Darrers 90 dies</string>
+    <string name="trip_widget_range_title">Interval del resum</string>
+    <string name="trip_widget_empty">Cap trajecte en aquest interval</string>
     <string name="trip_widget_driving_days">Dies</string>
     <string name="trip_widget_energy">Energia</string>
     <string name="trip_widget_efficiency">Eficiència</string>
