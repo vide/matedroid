@@ -1131,6 +1131,8 @@
     <string name="trip_energy_charged">Energy charged</string>
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Charge cost</string>
+    <!-- Shown when only some charging sessions in the selected trips have recorded costs -->
+    <string name="trip_cost_coverage_partial">Costs include %1$d of %2$d charging sessions</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Consumption</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->

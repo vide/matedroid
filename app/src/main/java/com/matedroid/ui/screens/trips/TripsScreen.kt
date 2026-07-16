@@ -25,17 +25,22 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +61,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -66,6 +72,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.isSignificant
+import com.matedroid.domain.TripCostCoverage
+import com.matedroid.domain.TripsSummaryMetrics
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
@@ -204,9 +212,7 @@ fun TripsScreen(
                 Box(modifier = Modifier.padding(padding)) {
                     TripsContent(
                         trips = uiState.trips,
-                        totalDistance = uiState.totalDistance,
-                        totalDrivingMin = uiState.totalDrivingMin,
-                        totalEnergyCharged = uiState.totalEnergyCharged,
+                        summary = uiState.summary,
                         availableYears = uiState.availableYears,
                         selectedYear = uiState.selectedYear,
                         isCustomDateFilter = uiState.isCustomDateFilter,
@@ -215,6 +221,7 @@ fun TripsScreen(
                         onYearSelected = { viewModel.setYear(it) },
                         onCustomRangeSelected = { start, end -> viewModel.setCustomDateRange(start, end) },
                         units = uiState.units,
+                        currencySymbol = uiState.currencySymbol,
                         palette = palette,
                         dcChargeIds = uiState.dcChargeIds,
                         showShortDrivesCharges = uiState.showShortDrivesCharges,
@@ -232,9 +239,7 @@ fun TripsScreen(
 @Composable
 private fun TripsContent(
     trips: List<Trip>,
-    totalDistance: Double,
-    totalDrivingMin: Int,
-    totalEnergyCharged: Double,
+    summary: TripsSummaryMetrics,
     availableYears: List<Int>,
     selectedYear: Int?,
     isCustomDateFilter: Boolean,
@@ -243,6 +248,7 @@ private fun TripsContent(
     onYearSelected: (Int?) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     units: Units?,
+    currencySymbol: String,
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
     showShortDrivesCharges: Boolean,
@@ -278,11 +284,9 @@ private fun TripsContent(
         // Summary card
         item {
             SummaryCard(
-                tripCount = trips.size,
-                totalDistance = totalDistance,
-                totalDrivingMin = totalDrivingMin,
-                totalEnergyCharged = totalEnergyCharged,
+                summary = summary,
                 units = units,
+                currencySymbol = currencySymbol,
                 palette = palette
             )
         }
@@ -337,13 +341,22 @@ private fun TripsContent(
 
 @Composable
 private fun SummaryCard(
-    tripCount: Int,
-    totalDistance: Double,
-    totalDrivingMin: Int,
-    totalEnergyCharged: Double,
+    summary: TripsSummaryMetrics,
     units: Units?,
+    currencySymbol: String,
     palette: CarColorPalette
 ) {
+    val unavailable = "—"
+    val efficiency = summary.averageEfficiency?.let {
+        UnitFormatter.formatEfficiency(it, units, decimals = 0)
+    } ?: unavailable
+    val chargeCost = summary.totalChargeCost?.let {
+        UnitFormatter.formatCost(it, currencySymbol)
+    } ?: unavailable
+    val costPerDistance = summary.costPer100Distance?.let {
+        UnitFormatter.formatCost(it, currencySymbol)
+    } ?: unavailable
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = palette.surface)
@@ -360,14 +373,14 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Route,
                     label = stringResource(R.string.trips_title),
-                    value = "%,d".format(tripCount),
+                    value = "%,d".format(summary.tripCount),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
-                    icon = Icons.Filled.Speed,
+                    icon = Icons.Filled.Straighten,
                     label = stringResource(R.string.total_distance),
-                    value = UnitFormatter.formatDistance(totalDistance, units, decimals = 0),
+                    value = UnitFormatter.formatDistance(summary.totalDistance, units, decimals = 0),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
                 )
@@ -377,17 +390,81 @@ private fun SummaryCard(
                 SummaryItem(
                     icon = Icons.Filled.Schedule,
                     label = stringResource(R.string.trip_driving_time),
-                    value = formatDuration(LocalContext.current.resources, totalDrivingMin),
+                    value = formatDuration(
+                        LocalContext.current.resources,
+                        summary.totalDrivingMinutes,
+                    ),
                     palette = palette,
                     modifier = Modifier.weight(1.2f)
                 )
                 SummaryItem(
                     icon = Icons.Filled.ElectricBolt,
-                    label = stringResource(R.string.trip_energy_charged),
-                    value = "%,.0f kWh".format(totalEnergyCharged),
+                    label = stringResource(R.string.stats_energy_used),
+                    value = UnitFormatter.formatEnergy(summary.totalEnergyConsumed),
                     palette = palette,
                     modifier = Modifier.weight(0.8f)
                 )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.EnergySavingsLeaf,
+                    label = stringResource(R.string.stats_avg_efficiency),
+                    value = efficiency,
+                    palette = palette,
+                    modifier = Modifier.weight(1.2f)
+                )
+                SummaryItem(
+                    icon = Icons.Filled.BatteryChargingFull,
+                    label = stringResource(R.string.trip_energy_charged),
+                    value = UnitFormatter.formatEnergy(summary.totalEnergyCharged),
+                    palette = palette,
+                    modifier = Modifier.weight(0.8f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.Paid,
+                    label = stringResource(R.string.trip_charge_cost),
+                    value = chargeCost,
+                    palette = palette,
+                    modifier = Modifier.weight(1.2f)
+                )
+                SummaryItem(
+                    icon = Icons.Filled.AttachMoney,
+                    label = stringResource(
+                        R.string.trip_cost_per_100,
+                        UnitFormatter.getDistanceUnit(units),
+                    ),
+                    value = costPerDistance,
+                    palette = palette,
+                    modifier = Modifier.weight(0.8f)
+                )
+            }
+            if (summary.costCoverage == TripCostCoverage.Partial) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = palette.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.trip_cost_coverage_partial,
+                            summary.pricedChargeCount,
+                            summary.chargeCount,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -663,4 +740,3 @@ internal fun Trip.displayName(): String {
  *  1w–~1mo → "Xw Yd"
  *  ≥30d → "Xmo Yw"
  */
-
