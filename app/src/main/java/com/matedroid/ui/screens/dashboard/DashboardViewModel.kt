@@ -403,9 +403,17 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = repository.getGlobalSettings()) {
                 is ApiResult.Success -> {
-                    result.data.settings?.teslamateUrls?.baseUrl?.let { url ->
+                    val globalSettings = result.data.settings
+                    globalSettings?.teslamateUrls?.baseUrl?.let { url ->
                         settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
                     }
+                    // Cache unit-of-length so home-screen widgets can format
+                    // distances without talking to the API. Values other than
+                    // "km"/"mi" (which TeslaMate might return in future versions)
+                    // are ignored so we don't cache garbage.
+                    globalSettings?.teslamateUnits?.unitOfLength
+                        ?.takeIf { it == "km" || it == "mi" }
+                        ?.let { settingsDataStore.saveUnitOfLength(it) }
                 }
                 is ApiResult.Error -> {
                     // Silent fail - this is optional functionality

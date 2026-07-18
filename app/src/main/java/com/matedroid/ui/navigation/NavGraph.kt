@@ -25,6 +25,7 @@ import com.matedroid.ui.screens.charges.ChargeDetailScreen
 import com.matedroid.ui.screens.charges.ChargesScreen
 import com.matedroid.ui.screens.charges.CompareChargesScreen
 import com.matedroid.ui.screens.charges.CurrentChargeScreen
+import com.matedroid.ui.screens.costs.CostAnalyticsScreen
 import com.matedroid.ui.screens.dashboard.DashboardScreen
 import com.matedroid.ui.screens.demo.PalettePreviewScreen
 import com.matedroid.ui.screens.drives.CompareDrivesScreen
@@ -122,6 +123,9 @@ sealed interface Screen {
 
     @Serializable
     data class SentryHistory(val carId: Int, val exteriorColor: String? = null) : Screen
+
+    @Serializable
+    data class CostAnalytics(val carId: Int, val exteriorColor: String? = null) : Screen
 }
 
 @Composable
@@ -179,6 +183,8 @@ fun NavGraph(
                     "mileage" -> Screen.Mileage(carId, exteriorColor)
                     "battery" -> Screen.Battery(carId, exteriorColor = exteriorColor)
                     "stats" -> Screen.Stats(carId, exteriorColor)
+                    "costs" -> Screen.CostAnalytics(carId, exteriorColor)
+                    "trips" -> Screen.Trips(carId, exteriorColor)
                     "countries_visited" -> Screen.CountriesVisited(carId, exteriorColor)
                     "updates" -> Screen.Updates(carId, exteriorColor)
                     "sentry_history" -> Screen.SentryHistory(carId, exteriorColor)
@@ -245,6 +251,9 @@ fun NavGraph(
                 },
                 onNavigateToTrips = { carId, exteriorColor ->
                     navController.navigate(Screen.Trips(carId, exteriorColor))
+                },
+                onNavigateToCosts = { carId, exteriorColor ->
+                    navController.navigate(Screen.CostAnalytics(carId, exteriorColor))
                 }
             )
         }
@@ -506,6 +515,15 @@ fun NavGraph(
         composable<Screen.SentryHistory> { backStackEntry ->
             val route = backStackEntry.toRoute<Screen.SentryHistory>()
             SentryHistoryScreen(
+                carId = route.carId,
+                exteriorColor = route.exteriorColor,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<Screen.CostAnalytics> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.CostAnalytics>()
+            CostAnalyticsScreen(
                 carId = route.carId,
                 exteriorColor = route.exteriorColor,
                 onNavigateBack = { navController.popBackStack() }

@@ -5,10 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
+import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.TripIntelligence
+import com.matedroid.domain.TripIntelligenceCalculator
 import com.matedroid.domain.TripRepository
+import com.matedroid.domain.TripsSummaryCalculator
+import com.matedroid.domain.TripsSummaryMetrics
+import com.matedroid.domain.UtilityRates
 import com.matedroid.domain.model.Trip
+import com.matedroid.util.parseIsoDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,24 +23,24 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.matedroid.util.parseIsoDate
 import java.time.LocalDate
 import javax.inject.Inject
 
 data class TripsUiState(
     val isLoading: Boolean = true,
     val trips: List<Trip> = emptyList(),
-    val totalDistance: Double = 0.0,
-    val totalDrivingMin: Int = 0,
-    val totalEnergyCharged: Double = 0.0,
+    val summary: TripsSummaryMetrics = TripsSummaryMetrics(),
+    val intelligence: TripIntelligence = TripIntelligence(),
     val availableYears: List<Int> = emptyList(),
     val selectedYear: Int? = null,
     val isCustomDateFilter: Boolean = false,
     val customStartDate: LocalDate? = null,
     val customEndDate: LocalDate? = null,
     val units: Units? = null,
+    val currencySymbol: String = Currency.DEFAULT.symbol,
     val dcChargeIds: Set<Int> = emptySet(),
-    val showShortDrivesCharges: Boolean = false
+    val showShortDrivesCharges: Boolean = false,
+    val utilityRates: UtilityRates = UtilityRates(),
 )
 
 @HiltViewModel
@@ -66,6 +73,9 @@ class TripsViewModel @Inject constructor(
                 aggregateDao.getDcChargeIds(id).toSet()
             } catch (e: Exception) { emptySet() }
             _uiState.update { it.copy(dcChargeIds = ids) }
+            // DC ids feed rate selection for utility-based cost estimation;
+            // re-run the current filter so the summary reflects the DC set.
+            applyFilter()
         }
     }
 
@@ -119,8 +129,19 @@ class TripsViewModel @Inject constructor(
     private fun loadTrips(carId: Int) {
         viewModelScope.launch {
             // Read on each load so toggling the setting is reflected when the screen reloads.
-            val showShort = settingsDataStore.showShortDrivesCharges.first()
-            _uiState.update { it.copy(showShortDrivesCharges = showShort) }
+            val settings = settingsDataStore.settings.first()
+            val currencySymbol = Currency.findByCode(settings.currencyCode).symbol
+            val rates = UtilityRates(
+                homePerKwh = settings.homeUtilityRatePerKwh,
+                dcPerKwh = settings.dcUtilityRatePerKWh,
+            )
+            _uiState.update {
+                it.copy(
+                    showShortDrivesCharges = settings.showShortDrivesCharges,
+                    currencySymbol = currencySymbol,
+                    utilityRates = rates,
+                )
+            }
 
             allTrips = tripRepository.getTrips(carId)
 
@@ -149,9 +170,12 @@ class TripsViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 trips = filtered,
-                totalDistance = filtered.sumOf { t -> t.totalDistance },
-                totalDrivingMin = filtered.sumOf { t -> t.totalDrivingDurationMin },
-                totalEnergyCharged = filtered.sumOf { t -> t.totalEnergyCharged }
+                summary = TripsSummaryCalculator.calculate(
+                    trips = filtered,
+                    rates = state.utilityRates,
+                    dcChargeIds = state.dcChargeIds,
+                ),
+                intelligence = TripIntelligenceCalculator.calculate(filtered),
             )
         }
     }

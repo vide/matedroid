@@ -1,0 +1,1210 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 13,
+    "identityHash": "13ab2fa25e2d951e1113267e80e03ca7",
+    "entities": [
+      {
+        "tableName": "sync_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`carId` INTEGER NOT NULL, `lastDriveSyncAt` INTEGER NOT NULL, `lastChargeSyncAt` INTEGER NOT NULL, `lastDriveDetailId` INTEGER NOT NULL, `lastChargeDetailId` INTEGER NOT NULL, `detailSchemaVersion` INTEGER NOT NULL, `totalDrivesToProcess` INTEGER NOT NULL, `totalChargesToProcess` INTEGER NOT NULL, `drivesProcessed` INTEGER NOT NULL, `chargesProcessed` INTEGER NOT NULL, `summariesSynced` INTEGER NOT NULL, `detailsSynced` INTEGER NOT NULL, PRIMARY KEY(`carId`))",
+        "fields": [
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastDriveSyncAt",
+            "columnName": "lastDriveSyncAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastChargeSyncAt",
+            "columnName": "lastChargeSyncAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastDriveDetailId",
+            "columnName": "lastDriveDetailId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastChargeDetailId",
+            "columnName": "lastChargeDetailId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detailSchemaVersion",
+            "columnName": "detailSchemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalDrivesToProcess",
+            "columnName": "totalDrivesToProcess",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalChargesToProcess",
+            "columnName": "totalChargesToProcess",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drivesProcessed",
+            "columnName": "drivesProcessed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargesProcessed",
+            "columnName": "chargesProcessed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "summariesSynced",
+            "columnName": "summariesSynced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detailsSynced",
+            "columnName": "detailsSynced",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "carId"
+          ]
+        }
+      },
+      {
+        "tableName": "drives_summary",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`driveId` INTEGER NOT NULL, `carId` INTEGER NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `durationMin` INTEGER NOT NULL, `startAddress` TEXT NOT NULL, `endAddress` TEXT NOT NULL, `distance` REAL NOT NULL, `speedMax` INTEGER NOT NULL, `speedAvg` INTEGER NOT NULL, `powerMax` INTEGER NOT NULL, `powerMin` INTEGER NOT NULL, `startBatteryLevel` INTEGER NOT NULL, `endBatteryLevel` INTEGER NOT NULL, `outsideTempAvg` REAL, `insideTempAvg` REAL, `energyConsumed` REAL, `efficiency` REAL, PRIMARY KEY(`driveId`))",
+        "fields": [
+          {
+            "fieldPath": "driveId",
+            "columnName": "driveId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMin",
+            "columnName": "durationMin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startAddress",
+            "columnName": "startAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endAddress",
+            "columnName": "endAddress",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distance",
+            "columnName": "distance",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedMax",
+            "columnName": "speedMax",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedAvg",
+            "columnName": "speedAvg",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "powerMax",
+            "columnName": "powerMax",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "powerMin",
+            "columnName": "powerMin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startBatteryLevel",
+            "columnName": "startBatteryLevel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endBatteryLevel",
+            "columnName": "endBatteryLevel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outsideTempAvg",
+            "columnName": "outsideTempAvg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "insideTempAvg",
+            "columnName": "insideTempAvg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "energyConsumed",
+            "columnName": "energyConsumed",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "efficiency",
+            "columnName": "efficiency",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "driveId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_drives_summary_carId",
+            "unique": false,
+            "columnNames": [
+              "carId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drives_summary_carId` ON `${TABLE_NAME}` (`carId`)"
+          },
+          {
+            "name": "index_drives_summary_carId_startDate",
+            "unique": false,
+            "columnNames": [
+              "carId",
+              "startDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drives_summary_carId_startDate` ON `${TABLE_NAME}` (`carId`, `startDate`)"
+          }
+        ]
+      },
+      {
+        "tableName": "charges_summary",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chargeId` INTEGER NOT NULL, `carId` INTEGER NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `durationMin` INTEGER NOT NULL, `address` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `energyAdded` REAL NOT NULL, `energyUsed` REAL, `cost` REAL, `startBatteryLevel` INTEGER NOT NULL, `endBatteryLevel` INTEGER NOT NULL, `outsideTempAvg` REAL, `odometer` REAL NOT NULL, PRIMARY KEY(`chargeId`))",
+        "fields": [
+          {
+            "fieldPath": "chargeId",
+            "columnName": "chargeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMin",
+            "columnName": "durationMin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "energyAdded",
+            "columnName": "energyAdded",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "energyUsed",
+            "columnName": "energyUsed",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "cost",
+            "columnName": "cost",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "startBatteryLevel",
+            "columnName": "startBatteryLevel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endBatteryLevel",
+            "columnName": "endBatteryLevel",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outsideTempAvg",
+            "columnName": "outsideTempAvg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "odometer",
+            "columnName": "odometer",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "chargeId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_charges_summary_carId",
+            "unique": false,
+            "columnNames": [
+              "carId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_charges_summary_carId` ON `${TABLE_NAME}` (`carId`)"
+          },
+          {
+            "name": "index_charges_summary_carId_startDate",
+            "unique": false,
+            "columnNames": [
+              "carId",
+              "startDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_charges_summary_carId_startDate` ON `${TABLE_NAME}` (`carId`, `startDate`)"
+          }
+        ]
+      },
+      {
+        "tableName": "drive_detail_aggregates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`driveId` INTEGER NOT NULL, `carId` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `computedAt` INTEGER NOT NULL, `maxElevation` INTEGER, `minElevation` INTEGER, `startElevation` INTEGER, `endElevation` INTEGER, `elevationGain` INTEGER, `elevationLoss` INTEGER, `hasElevationData` INTEGER NOT NULL, `maxInsideTemp` REAL, `minInsideTemp` REAL, `maxOutsideTemp` REAL, `minOutsideTemp` REAL, `maxPower` INTEGER, `minPower` INTEGER, `climateOnPositions` INTEGER NOT NULL, `positionCount` INTEGER NOT NULL, `startLatitude` REAL, `startLongitude` REAL, `startCountryCode` TEXT, `startCountryName` TEXT, `startRegionName` TEXT, `startCity` TEXT, `endLatitude` REAL, `endLongitude` REAL, `extraJson` TEXT, PRIMARY KEY(`driveId`), FOREIGN KEY(`driveId`) REFERENCES `drives_summary`(`driveId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "driveId",
+            "columnName": "driveId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "computedAt",
+            "columnName": "computedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxElevation",
+            "columnName": "maxElevation",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "minElevation",
+            "columnName": "minElevation",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startElevation",
+            "columnName": "startElevation",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endElevation",
+            "columnName": "endElevation",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "elevationGain",
+            "columnName": "elevationGain",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "elevationLoss",
+            "columnName": "elevationLoss",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hasElevationData",
+            "columnName": "hasElevationData",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxInsideTemp",
+            "columnName": "maxInsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "minInsideTemp",
+            "columnName": "minInsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "maxOutsideTemp",
+            "columnName": "maxOutsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "minOutsideTemp",
+            "columnName": "minOutsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "maxPower",
+            "columnName": "maxPower",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "minPower",
+            "columnName": "minPower",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "climateOnPositions",
+            "columnName": "climateOnPositions",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "positionCount",
+            "columnName": "positionCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startLatitude",
+            "columnName": "startLatitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "startLongitude",
+            "columnName": "startLongitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "startCountryCode",
+            "columnName": "startCountryCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startCountryName",
+            "columnName": "startCountryName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startRegionName",
+            "columnName": "startRegionName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startCity",
+            "columnName": "startCity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "endLatitude",
+            "columnName": "endLatitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "endLongitude",
+            "columnName": "endLongitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "extraJson",
+            "columnName": "extraJson",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "driveId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_drive_detail_aggregates_carId",
+            "unique": false,
+            "columnNames": [
+              "carId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drive_detail_aggregates_carId` ON `${TABLE_NAME}` (`carId`)"
+          },
+          {
+            "name": "index_drive_detail_aggregates_driveId",
+            "unique": false,
+            "columnNames": [
+              "driveId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drive_detail_aggregates_driveId` ON `${TABLE_NAME}` (`driveId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "drives_summary",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "driveId"
+            ],
+            "referencedColumns": [
+              "driveId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "charge_detail_aggregates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chargeId` INTEGER NOT NULL, `carId` INTEGER NOT NULL, `schemaVersion` INTEGER NOT NULL, `computedAt` INTEGER NOT NULL, `isFastCharger` INTEGER NOT NULL, `fastChargerBrand` TEXT, `connectorType` TEXT, `maxChargerPower` INTEGER, `maxChargerVoltage` INTEGER, `maxChargerCurrent` INTEGER, `chargerPhases` INTEGER, `maxOutsideTemp` REAL, `minOutsideTemp` REAL, `chargePointCount` INTEGER NOT NULL, `countryCode` TEXT, `countryName` TEXT, `regionName` TEXT, `city` TEXT, `extraJson` TEXT, PRIMARY KEY(`chargeId`), FOREIGN KEY(`chargeId`) REFERENCES `charges_summary`(`chargeId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "chargeId",
+            "columnName": "chargeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "schemaVersion",
+            "columnName": "schemaVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "computedAt",
+            "columnName": "computedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFastCharger",
+            "columnName": "isFastCharger",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fastChargerBrand",
+            "columnName": "fastChargerBrand",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "connectorType",
+            "columnName": "connectorType",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "maxChargerPower",
+            "columnName": "maxChargerPower",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maxChargerVoltage",
+            "columnName": "maxChargerVoltage",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maxChargerCurrent",
+            "columnName": "maxChargerCurrent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "chargerPhases",
+            "columnName": "chargerPhases",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maxOutsideTemp",
+            "columnName": "maxOutsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "minOutsideTemp",
+            "columnName": "minOutsideTemp",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "chargePointCount",
+            "columnName": "chargePointCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countryCode",
+            "columnName": "countryCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "countryName",
+            "columnName": "countryName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "regionName",
+            "columnName": "regionName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "city",
+            "columnName": "city",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "extraJson",
+            "columnName": "extraJson",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "chargeId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_charge_detail_aggregates_carId",
+            "unique": false,
+            "columnNames": [
+              "carId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_charge_detail_aggregates_carId` ON `${TABLE_NAME}` (`carId`)"
+          },
+          {
+            "name": "index_charge_detail_aggregates_chargeId",
+            "unique": false,
+            "columnNames": [
+              "chargeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_charge_detail_aggregates_chargeId` ON `${TABLE_NAME}` (`chargeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "charges_summary",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "chargeId"
+            ],
+            "referencedColumns": [
+              "chargeId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "geocode_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`gridLat` INTEGER NOT NULL, `gridLon` INTEGER NOT NULL, `countryCode` TEXT, `countryName` TEXT, `regionName` TEXT, `city` TEXT, `cachedAt` INTEGER NOT NULL, PRIMARY KEY(`gridLat`, `gridLon`))",
+        "fields": [
+          {
+            "fieldPath": "gridLat",
+            "columnName": "gridLat",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gridLon",
+            "columnName": "gridLon",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countryCode",
+            "columnName": "countryCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "countryName",
+            "columnName": "countryName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "regionName",
+            "columnName": "regionName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "city",
+            "columnName": "city",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cachedAt",
+            "columnName": "cachedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "gridLat",
+            "gridLon"
+          ]
+        }
+      },
+      {
+        "tableName": "geocode_queue",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`gridLat` INTEGER NOT NULL, `gridLon` INTEGER NOT NULL, `carId` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `addedAt` INTEGER NOT NULL, `attempts` INTEGER NOT NULL, `lastAttemptAt` INTEGER, PRIMARY KEY(`gridLat`, `gridLon`))",
+        "fields": [
+          {
+            "fieldPath": "gridLat",
+            "columnName": "gridLat",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gridLon",
+            "columnName": "gridLon",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addedAt",
+            "columnName": "addedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAttemptAt",
+            "columnName": "lastAttemptAt",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "gridLat",
+            "gridLon"
+          ]
+        }
+      },
+      {
+        "tableName": "geocode_progress",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`carId` INTEGER NOT NULL, `totalLocations` INTEGER NOT NULL, `processedLocations` INTEGER NOT NULL, `lastUpdatedAt` INTEGER NOT NULL, PRIMARY KEY(`carId`))",
+        "fields": [
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalLocations",
+            "columnName": "totalLocations",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "processedLocations",
+            "columnName": "processedLocations",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdatedAt",
+            "columnName": "lastUpdatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "carId"
+          ]
+        }
+      },
+      {
+        "tableName": "sentry_alert_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `carId` INTEGER NOT NULL, `detectedAt` INTEGER NOT NULL, `sessionStartedAt` INTEGER NOT NULL, `latitude` REAL, `longitude` REAL, `address` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detectedAt",
+            "columnName": "detectedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionStartedAt",
+            "columnName": "sessionStartedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sentry_alert_log_carId_detectedAt",
+            "unique": false,
+            "columnNames": [
+              "carId",
+              "detectedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sentry_alert_log_carId_detectedAt` ON `${TABLE_NAME}` (`carId`, `detectedAt`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_route_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tripKey` TEXT NOT NULL, `segmentIndex` INTEGER NOT NULL, `segmentData` BLOB NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`tripKey`, `segmentIndex`))",
+        "fields": [
+          {
+            "fieldPath": "tripKey",
+            "columnName": "tripKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "segmentIndex",
+            "columnName": "segmentIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "segmentData",
+            "columnName": "segmentData",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tripKey",
+            "segmentIndex"
+          ]
+        }
+      },
+      {
+        "tableName": "trip_country_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tripKey` TEXT NOT NULL, `countries` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`tripKey`))",
+        "fields": [
+          {
+            "fieldPath": "tripKey",
+            "columnName": "tripKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countries",
+            "columnName": "countries",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tripKey"
+          ]
+        }
+      },
+      {
+        "tableName": "saved_trips",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `carId` INTEGER NOT NULL, `name` TEXT, `source` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_trips_carId",
+            "unique": false,
+            "columnNames": [
+              "carId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_trips_carId` ON `${TABLE_NAME}` (`carId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "saved_trip_legs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tripId` INTEGER NOT NULL, `position` INTEGER NOT NULL, `legType` TEXT NOT NULL, `legId` INTEGER NOT NULL, PRIMARY KEY(`tripId`, `position`), FOREIGN KEY(`tripId`) REFERENCES `saved_trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "tripId",
+            "columnName": "tripId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legType",
+            "columnName": "legType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "legId",
+            "columnName": "legId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tripId",
+            "position"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_trip_legs_legType_legId",
+            "unique": false,
+            "columnNames": [
+              "legType",
+              "legId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_trip_legs_legType_legId` ON `${TABLE_NAME}` (`legType`, `legId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "saved_trips",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tripId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "saved_trip_consumed_fingerprints",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`savedTripId` INTEGER NOT NULL, `fingerprint` TEXT NOT NULL, PRIMARY KEY(`savedTripId`, `fingerprint`), FOREIGN KEY(`savedTripId`) REFERENCES `saved_trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "savedTripId",
+            "columnName": "savedTripId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fingerprint",
+            "columnName": "fingerprint",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "savedTripId",
+            "fingerprint"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saved_trip_consumed_fingerprints_fingerprint",
+            "unique": false,
+            "columnNames": [
+              "fingerprint"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saved_trip_consumed_fingerprints_fingerprint` ON `${TABLE_NAME}` (`fingerprint`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "saved_trips",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "savedTripId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "battery_health_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `carId` INTEGER NOT NULL, `recordedAt` INTEGER NOT NULL, `maxRange` REAL, `currentRange` REAL, `maxCapacity` REAL, `currentCapacity` REAL, `ratedEfficiency` REAL, `batteryHealthPercentage` REAL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carId",
+            "columnName": "carId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordedAt",
+            "columnName": "recordedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxRange",
+            "columnName": "maxRange",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currentRange",
+            "columnName": "currentRange",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "maxCapacity",
+            "columnName": "maxCapacity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "currentCapacity",
+            "columnName": "currentCapacity",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "ratedEfficiency",
+            "columnName": "ratedEfficiency",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "batteryHealthPercentage",
+            "columnName": "batteryHealthPercentage",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_battery_health_snapshots_carId_recordedAt",
+            "unique": false,
+            "columnNames": [
+              "carId",
+              "recordedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_battery_health_snapshots_carId_recordedAt` ON `${TABLE_NAME}` (`carId`, `recordedAt`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '13ab2fa25e2d951e1113267e80e03ca7')"
+    ]
+  }
+}

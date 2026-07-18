@@ -181,6 +181,8 @@
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">Software</string>
+    <string name="nav_costs">Costi</string>
+    <string name="nav_costs_subtitle">Analisi dei costi di ricarica</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
     <string name="tire_fl">AS</string>
@@ -244,6 +246,15 @@
     <!-- Currency selector -->
     <string name="settings_currency_label">Valuta per i costi</string>
     <string name="settings_currency_select">Seleziona valuta</string>
+
+    <!-- Utility rates section -->
+    <string name="settings_utility_rates_title">Tariffe elettriche</string>
+    <string name="settings_utility_rates_hint">Usate per stimare il costo di ricarica quando TeslaMate non ha un prezzo. Inserisci la tua tariffa locale per kWh nella valuta selezionata sopra.</string>
+    <string name="settings_home_utility_rate_label">Tariffa domestica (per kWh)</string>
+    <string name="settings_home_utility_rate_hint">Applicata alle ricariche AC/domestiche e alle stime dei costi di guida.</string>
+    <string name="settings_dc_utility_rate_label">Tariffa DC / pubblica (per kWh, opzionale)</string>
+    <string name="settings_dc_utility_rate_hint">Applicata alle ricariche rapide. Se lasciata vuota, le sessioni DC usano la tariffa domestica.</string>
+    <string name="settings_utility_rate_placeholder">es. 0,15</string>
 
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Impostazioni extra</string>
@@ -511,6 +522,13 @@
     <string name="estimated_degradation_message">Il degrado della batteria è stimato in base ai dati di Teslamate.\n\n• Capacità (%): Salute residua della batteria rispetto al nuovo\n• Perdita (kWh): Capacità energetica persa per degrado\n• Perdita (%): Percentuale della capacità originale persa\n\nNota: Questa è una stima. Tesla non fornisce dati ufficiali sul degrado.</string>
 
     <!-- Range section -->
+    <!-- Battery health history -->
+    <string name="battery_history_title">Autonomia massima nel tempo</string>
+    <string name="battery_history_info_title">Storico autonomia massima</string>
+    <string name="battery_history_info_message">MateDroid registra un\'istantanea dell\'autonomia massima ogni volta che apri questa schermata (al massimo una al giorno). Il grafico mostra come è cambiata da quando usi l\'app.\n\nL\'autonomia varia con temperatura e stile di guida — considera i cali di breve termine come rumore, non degrado.</string>
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <string name="battery_history_not_enough_data">Torna tra un giorno — servono almeno due istantanee per tracciare un andamento.</string>
+
     <string name="range">Autonomia</string>
     <string name="max_range_new">Autonomia max (nuova)</string>
     <string name="max_range_now">Autonomia max (ora)</string>
@@ -1100,10 +1118,27 @@
     <string name="trip_driving_time">Tempo di guida</string>
     <string name="trip_energy_charged">Energia ricaricata</string>
     <string name="trip_charge_cost">Costo ricarica</string>
+    <string name="trip_cost_coverage_partial">I costi includono %1$d di %2$d sessioni di ricarica</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">Nessun costo di ricarica registrato per questi viaggi</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Consumo</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">Costo / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <string name="trip_intelligence_title">Momenti chiave dei viaggi</string>
+    <string name="trip_intelligence_most_efficient">Più efficiente</string>
+    <string name="trip_intelligence_least_efficient">Meno efficiente</string>
+    <string name="trip_intelligence_cheapest_per_100">Più economico / 100 %1$s</string>
+    <string name="trip_intelligence_pricey_per_100">Più caro / 100 %1$s</string>
+    <string name="trip_intelligence_longest">Viaggio più lungo</string>
+    <string name="trip_intelligence_charge_overhead">Più tempo in ricarica</string>
+    <string name="trip_intelligence_energy_gap">Bilancio energetico</string>
+    <string name="trip_intelligence_avg_charge_time">Ricarica media / viaggio</string>
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <string name="trip_intelligence_open_trip">Apri il viaggio</string>
+
     <string name="trip_leg_drive">Tratta %1$d</string>
     <string name="trip_leg_charge">Ricarica %1$d</string>
 
@@ -1279,4 +1314,56 @@
         <item quantity="one">%d ricarica confrontabile nelle vicinanze</item>
         <item quantity="other">%d ricariche confrontabili nelle vicinanze</item>
     </plurals>
+
+    <!-- ==================== Schermata Analisi costi ==================== -->
+    <string name="cost_analytics_title">Analisi costi</string>
+    <string name="cost_analytics_unavailable">—</string>
+    <string name="cost_analytics_headline_title">Panoramica costi</string>
+    <string name="cost_analytics_known_cost">Costo noto</string>
+    <string name="cost_analytics_effective_cost">Costo stimato</string>
+    <string name="cost_analytics_estimated_note">Include %1$d sessione/i stimata/e dalla tua tariffa elettrica.</string>
+    <string name="cost_analytics_recorded_vs_estimated">Registrato %1$s (%2$d) · Stimato %3$s (%4$d)</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">Tutti prezzati (stime incluse)</string>
+    <string name="cost_analytics_cost_per_100">Costo / 100 %1$s</string>
+    <string name="cost_analytics_energy_added">Energia aggiunta</string>
+    <string name="cost_analytics_avg_cost_per_kwh">Costo medio / kWh</string>
+    <string name="cost_analytics_distance">Distanza</string>
+    <string name="cost_analytics_charges">Ricariche</string>
+    <string name="cost_analytics_coverage_title">Copertura costi</string>
+    <string name="cost_analytics_coverage_label">Copertura</string>
+    <string name="cost_analytics_coverage_none">Nessun prezzo</string>
+    <string name="cost_analytics_coverage_partial">%1$d di %2$d con prezzo</string>
+    <string name="cost_analytics_coverage_complete">Tutte con prezzo</string>
+    <string name="cost_analytics_coverage_none_note">Aggiungi il costo alle ricariche in TeslaMate per vedere il costo / distanza e il costo medio / kWh.</string>
+    <string name="cost_analytics_coverage_partial_note">Il costo / distanza resta nascosto finché tutte le ricariche dell\'intervallo hanno un prezzo. I totali riflettono solo le sessioni con prezzo.</string>
+    <string name="cost_analytics_missing">Prezzo mancante</string>
+    <string name="cost_analytics_free_sessions">Sessioni gratis</string>
+    <string name="cost_analytics_empty">Nessuna ricarica in questo intervallo.</string>
+    <string name="cost_analytics_range_7_days">7g</string>
+    <string name="cost_analytics_range_30_days">30g</string>
+    <string name="cost_analytics_range_90_days">90g</string>
+    <string name="cost_analytics_range_all_time">Sempre</string>
+
+    <!-- ==================== Widget riepilogo costi ==================== -->
+    <string name="cost_widget_title">Riepilogo costi</string>
+    <string name="cost_widget_description">Costi di ricarica, copertura ed energia per intervallo</string>
+    <string name="cost_widget_period_last_7_days">Ultimi 7 giorni</string>
+    <string name="cost_widget_period_last_30_days">Ultimi 30 giorni</string>
+    <string name="cost_widget_period_last_90_days">Ultimi 90 giorni</string>
+    <string name="cost_widget_range_title">Intervallo riepilogo</string>
+    <string name="cost_widget_empty">Nessuna ricarica in questo intervallo</string>
+    <string name="cost_widget_energy">Energia</string>
+    <string name="cost_widget_charges">Ricariche</string>
+    <string name="cost_widget_cost_per_distance">Costo/100 %1$s</string>
+    <string name="cost_widget_avg_cost_per_kwh">Media/kWh</string>
+    <string name="cost_widget_no_value">N/D</string>
+    <string name="cost_widget_no_charges">Nessuna ricarica</string>
+    <string name="cost_widget_cost_none_priced">Costo · nessun prezzo</string>
+    <string name="cost_widget_cost_partially_priced">Costo · %1$d/%2$d con prezzo</string>
+    <string name="cost_widget_cost_all_priced">Costo · completo</string>
+    <string name="cost_widget_compact_cost_per_distance">%1$s /100</string>
+    <string name="cost_widget_compact_cost_per_distance_unavailable">Tasso N/D</string>
+    <string name="cost_widget_compact_avg_cost_per_kwh">%1$s /kWh</string>
+    <string name="cost_widget_updated">Aggiornato %1$s</string>
+    <string name="widget_save">Salva widget</string>
 </resources>

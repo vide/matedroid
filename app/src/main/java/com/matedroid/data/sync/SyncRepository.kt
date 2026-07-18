@@ -10,6 +10,7 @@ import com.matedroid.data.api.models.ChargeData
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.DriveDetail
+import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
@@ -41,7 +42,8 @@ class SyncRepository @Inject constructor(
     private val aggregateDao: AggregateDao,
     private val syncManager: SyncManager,
     private val logCollector: SyncLogCollector,
-    private val geocodingRepository: GeocodingRepository
+    private val geocodingRepository: GeocodingRepository,
+    private val settingsDataStore: SettingsDataStore,
 ) {
     companion object {
         private const val TAG = "SyncRepository"
@@ -159,7 +161,22 @@ class SyncRepository @Inject constructor(
             }
         }
 
+        // Cache the unit system that these summaries were converted into, so
+        // offline widgets/screens label Room values honestly.
+        cacheUnitOfLengthFromGlobalSettings()
+
         return true
+    }
+
+    private suspend fun cacheUnitOfLengthFromGlobalSettings() {
+        when (val result = teslamateRepository.getGlobalSettings()) {
+            is ApiResult.Success -> {
+                result.data.settings?.teslamateUnits?.unitOfLength
+                    ?.takeIf { it == "km" || it == "mi" }
+                    ?.let { settingsDataStore.saveUnitOfLength(it) }
+            }
+            is ApiResult.Error -> Unit
+        }
     }
 
     /**

@@ -127,6 +127,8 @@ fun SettingsScreen(
                 onAcceptInvalidCertsChange = viewModel::updateAcceptInvalidCerts,
                 onCurrencyChange = viewModel::updateCurrency,
                 onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
+                onHomeUtilityRateChange = viewModel::updateHomeUtilityRate,
+                onDcUtilityRateChange = viewModel::updateDcUtilityRate,
                 onTestConnection = viewModel::testConnection,
                 onSave = { viewModel.saveSettings(onNavigateToDashboard) },
                 onPalettePreview = onNavigateToPalettePreview,
@@ -198,6 +200,8 @@ private fun SettingsContent(
     onAcceptInvalidCertsChange: (Boolean) -> Unit,
     onCurrencyChange: (String) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
+    onHomeUtilityRateChange: (String) -> Unit = {},
+    onDcUtilityRateChange: (String) -> Unit = {},
     onTestConnection: () -> Unit,
     onSave: () -> Unit,
     onPalettePreview: () -> Unit = {},
@@ -482,6 +486,58 @@ private fun SettingsContent(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // === Utility Rates (for cost estimation when TeslaMate has no price) ===
+        Text(
+            text = stringResource(R.string.settings_utility_rates_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = stringResource(R.string.settings_utility_rates_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = uiState.homeUtilityRateInput,
+            onValueChange = onHomeUtilityRateChange,
+            label = { Text(stringResource(R.string.settings_home_utility_rate_label)) },
+            placeholder = { Text(stringResource(R.string.settings_utility_rate_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Text(
+            text = stringResource(R.string.settings_home_utility_rate_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = uiState.dcUtilityRateInput,
+            onValueChange = onDcUtilityRateChange,
+            label = { Text(stringResource(R.string.settings_dc_utility_rate_label)) },
+            placeholder = { Text(stringResource(R.string.settings_utility_rate_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Text(
+            text = stringResource(R.string.settings_dc_utility_rate_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

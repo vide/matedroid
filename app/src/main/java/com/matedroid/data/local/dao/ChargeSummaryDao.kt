@@ -62,6 +62,44 @@ interface ChargeSummaryDao {
     """)
     suspend fun sumCostInRange(carId: Int, startDate: String, endDate: String): Double
 
+    // === Cost coverage counters (for CostAnalytics + trip/cost widgets) ===
+
+    // Number of charges in range with a non-null cost (includes free 0.0 sessions).
+    @Query("""
+        SELECT COUNT(*) FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        AND cost IS NOT NULL
+    """)
+    suspend fun countWithCostInRange(carId: Int, startDate: String, endDate: String): Int
+
+    // Number of charges in range whose cost was never recorded by TeslaMate.
+    @Query("""
+        SELECT COUNT(*) FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        AND cost IS NULL
+    """)
+    suspend fun countMissingCostInRange(carId: Int, startDate: String, endDate: String): Int
+
+    // Priced-as-free charges (cost = 0). Handy for the cost analytics screen note.
+    @Query("""
+        SELECT COUNT(*) FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        AND cost = 0
+    """)
+    suspend fun countZeroCostInRange(carId: Int, startDate: String, endDate: String): Int
+
+    // Every charge in a range for domain-side aggregation.
+    @Query("""
+        SELECT * FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate AND startDate < :endDate
+        ORDER BY startDate ASC
+    """)
+    suspend fun getInRange(carId: Int, startDate: String, endDate: String): List<ChargeSummary>
+
     // Average cost per kWh
     @Query("""
         SELECT COALESCE(SUM(cost) / NULLIF(SUM(energyAdded), 0), 0)
