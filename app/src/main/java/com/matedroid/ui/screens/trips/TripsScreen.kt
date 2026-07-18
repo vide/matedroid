@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BatteryChargingFull
@@ -73,6 +74,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.isSignificant
 import com.matedroid.domain.TripCostCoverage
+import com.matedroid.domain.TripIntelligence
 import com.matedroid.domain.TripsSummaryMetrics
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
@@ -89,6 +91,7 @@ import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,6 +216,7 @@ fun TripsScreen(
                     TripsContent(
                         trips = uiState.trips,
                         summary = uiState.summary,
+                        intelligence = uiState.intelligence,
                         availableYears = uiState.availableYears,
                         selectedYear = uiState.selectedYear,
                         isCustomDateFilter = uiState.isCustomDateFilter,
@@ -240,6 +244,7 @@ fun TripsScreen(
 private fun TripsContent(
     trips: List<Trip>,
     summary: TripsSummaryMetrics,
+    intelligence: TripIntelligence,
     availableYears: List<Int>,
     selectedYear: Int?,
     isCustomDateFilter: Boolean,
@@ -255,8 +260,12 @@ private fun TripsContent(
     onTripClick: (Trip) -> Unit
 ) {
     val listState = rememberLazyListState()
-    // Header items in render order: year chips (conditional), summary, section header.
-    val headerCount = 2 + (if (availableYears.size > 1) 1 else 0)
+    // Whether the highlights card renders at all — one row must exist beyond the summary/trip-count.
+    val showIntelligence = intelligence.hasAnyHighlight()
+    // Header items in render order: year chips (conditional), summary, intelligence (conditional), section header.
+    val headerCount = 2 +
+        (if (availableYears.size > 1) 1 else 0) +
+        (if (showIntelligence) 1 else 0)
 
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
@@ -289,6 +298,19 @@ private fun TripsContent(
                 currencySymbol = currencySymbol,
                 palette = palette
             )
+        }
+
+        // Trip intelligence card — only when we've got at least one highlight for the current filter.
+        if (showIntelligence) {
+            item {
+                IntelligenceCard(
+                    intelligence = intelligence,
+                    units = units,
+                    currencySymbol = currencySymbol,
+                    palette = palette,
+                    onTripClick = onTripClick,
+                )
+            }
         }
 
         // Section header
@@ -466,6 +488,199 @@ private fun SummaryCard(
                 TripCostCoverage.Complete -> Unit
             }
         }
+    }
+}
+
+/** True when the card has at least one Trip-backed row worth surfacing. */
+private fun TripIntelligence.hasAnyHighlight(): Boolean =
+    mostEfficient != null ||
+        leastEfficient != null ||
+        cheapestPer100 != null ||
+        mostExpensivePer100 != null ||
+        longestDistance != null ||
+        highestChargingOverhead != null
+
+@Composable
+private fun IntelligenceCard(
+    intelligence: TripIntelligence,
+    units: Units?,
+    currencySymbol: String,
+    palette: CarColorPalette,
+    onTripClick: (Trip) -> Unit,
+) {
+    val distanceUnit = UnitFormatter.getDistanceUnit(units)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = palette.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.trip_intelligence_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = palette.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            intelligence.mostEfficient?.let { trip ->
+                IntelligenceRow(
+                    icon = Icons.Filled.EnergySavingsLeaf,
+                    label = stringResource(R.string.trip_intelligence_most_efficient),
+                    value = trip.avgEfficiency?.let {
+                        UnitFormatter.formatEfficiency(it, units, decimals = 0)
+                    } ?: "—",
+                    tripLabel = trip.displayName(),
+                    palette = palette,
+                    onClick = { onTripClick(trip) },
+                )
+            }
+            intelligence.leastEfficient?.let { trip ->
+                if (trip !== intelligence.mostEfficient) {
+                    IntelligenceRow(
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        label = stringResource(R.string.trip_intelligence_least_efficient),
+                        value = trip.avgEfficiency?.let {
+                            UnitFormatter.formatEfficiency(it, units, decimals = 0)
+                        } ?: "—",
+                        tripLabel = trip.displayName(),
+                        palette = palette,
+                        onClick = { onTripClick(trip) },
+                    )
+                }
+            }
+            intelligence.cheapestPer100?.let { trip ->
+                val per100 = trip.totalChargeCost?.let {
+                    it * 100.0 / trip.totalDistance
+                }
+                IntelligenceRow(
+                    icon = Icons.Filled.Paid,
+                    label = stringResource(R.string.trip_intelligence_cheapest_per_100, distanceUnit),
+                    value = per100?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: "—",
+                    tripLabel = trip.displayName(),
+                    palette = palette,
+                    onClick = { onTripClick(trip) },
+                )
+            }
+            intelligence.mostExpensivePer100?.let { trip ->
+                if (trip !== intelligence.cheapestPer100) {
+                    val per100 = trip.totalChargeCost?.let {
+                        it * 100.0 / trip.totalDistance
+                    }
+                    IntelligenceRow(
+                        icon = Icons.Filled.AttachMoney,
+                        label = stringResource(R.string.trip_intelligence_pricey_per_100, distanceUnit),
+                        value = per100?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: "—",
+                        tripLabel = trip.displayName(),
+                        palette = palette,
+                        onClick = { onTripClick(trip) },
+                    )
+                }
+            }
+            intelligence.longestDistance?.let { trip ->
+                IntelligenceRow(
+                    icon = Icons.Filled.Straighten,
+                    label = stringResource(R.string.trip_intelligence_longest),
+                    value = UnitFormatter.formatDistance(trip.totalDistance, units, decimals = 0),
+                    tripLabel = trip.displayName(),
+                    palette = palette,
+                    onClick = { onTripClick(trip) },
+                )
+            }
+            intelligence.highestChargingOverhead?.let { trip ->
+                val ratio = intelligence.highestChargingOverheadRatio ?: 0.0
+                IntelligenceRow(
+                    icon = Icons.Filled.Schedule,
+                    label = stringResource(R.string.trip_intelligence_charge_overhead),
+                    value = stringResource(
+                        R.string.trip_intelligence_percent,
+                        (ratio * 100.0).roundToInt(),
+                    ),
+                    tripLabel = trip.displayName(),
+                    palette = palette,
+                    onClick = { onTripClick(trip) },
+                )
+            }
+            intelligence.energyGapKwh?.let { gap ->
+                IntelligenceRow(
+                    icon = Icons.Filled.ElectricBolt,
+                    label = stringResource(R.string.trip_intelligence_energy_gap),
+                    value = "%+.1f kWh".format(gap),
+                    tripLabel = null,
+                    palette = palette,
+                    onClick = null,
+                )
+            }
+            intelligence.avgChargingMinutesPerTrip?.let { avg ->
+                if (avg > 0.0) {
+                    IntelligenceRow(
+                        icon = Icons.Filled.BatteryChargingFull,
+                        label = stringResource(R.string.trip_intelligence_avg_charge_time),
+                        value = formatDuration(
+                            LocalContext.current.resources,
+                            avg.roundToInt(),
+                        ),
+                        tripLabel = null,
+                        palette = palette,
+                        onClick = null,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntelligenceRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    tripLabel: String?,
+    palette: CarColorPalette,
+    onClick: (() -> Unit)?,
+) {
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 6.dp)
+        .let { base ->
+            if (onClick != null) base.clickable(onClick = onClick) else base
+        }
+
+    Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = palette.accent,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.onSurfaceVariant,
+            )
+            if (!tripLabel.isNullOrBlank()) {
+                Text(
+                    text = tripLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = palette.onSurface,
+        )
     }
 }
 

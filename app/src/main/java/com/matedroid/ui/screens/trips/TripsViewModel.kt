@@ -8,6 +8,8 @@ import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.TripIntelligence
+import com.matedroid.domain.TripIntelligenceCalculator
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.TripsSummaryCalculator
 import com.matedroid.domain.TripsSummaryMetrics
@@ -27,6 +29,7 @@ data class TripsUiState(
     val isLoading: Boolean = true,
     val trips: List<Trip> = emptyList(),
     val summary: TripsSummaryMetrics = TripsSummaryMetrics(),
+    val intelligence: TripIntelligence = TripIntelligence(),
     val availableYears: List<Int> = emptyList(),
     val selectedYear: Int? = null,
     val isCustomDateFilter: Boolean = false,
@@ -158,6 +161,7 @@ class TripsViewModel @Inject constructor(
             it.copy(
                 trips = filtered,
                 summary = TripsSummaryCalculator.calculate(filtered),
+                intelligence = TripIntelligenceCalculator.calculate(filtered),
             )
         }
     }

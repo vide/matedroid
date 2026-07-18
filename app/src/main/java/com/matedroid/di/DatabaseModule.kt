@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.matedroid.data.local.StatsDatabase
 import com.matedroid.data.local.dao.AggregateDao
+import com.matedroid.data.local.dao.BatteryHealthSnapshotDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
@@ -104,5 +105,11 @@ object DatabaseModule {
     @Singleton
     fun provideSavedTripDao(database: StatsDatabase): SavedTripDao {
         return database.savedTripDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBatteryHealthSnapshotDao(database: StatsDatabase): BatteryHealthSnapshotDao {
+        return database.batteryHealthSnapshotDao()
     }
 }

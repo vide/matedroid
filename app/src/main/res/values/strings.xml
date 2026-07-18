@@ -514,6 +514,18 @@
     <string name="estimated_degradation_title">Estimated Degradation</string>
     <string name="estimated_degradation_message">Battery degradation is estimated based on Teslamate data.\n\n• Capacity (%): Remaining battery health compared to new\n• Loss (kWh): Energy capacity lost due to degradation\n• Loss (%): Percentage of original capacity lost\n\nNote: This is an estimate. Tesla does not provide official degradation data.</string>
 
+    <!-- Battery health history (max-range trend recorded on each open of the Battery screen) -->
+    <!-- Card title above the max-range trend chart -->
+    <string name="battery_history_title">Max range over time</string>
+    <!-- Info dialog title explaining the trend chart -->
+    <string name="battery_history_info_title">Max range history</string>
+    <!-- Info dialog body: what the trend chart shows and how snapshots are captured -->
+    <string name="battery_history_info_message">MateDroid records a snapshot of your battery\'s max range each time you open this screen (at most once per day). The chart shows how that figure has changed since you started using the app.\n\nRange fluctuates with temperature and driving style — treat short-term dips as noise, not degradation.</string>
+    <!-- Subtitle shown under the chart with first and last snapshot dates. %1$s = first date, %2$s = last date -->
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <!-- Placeholder shown when there aren\'t enough snapshots yet to draw a trend -->
+    <string name="battery_history_not_enough_data">Come back after another day — you need at least two snapshots to plot a trend.</string>
+
     <!-- Range section -->
     <string name="range">Range</string>
     <string name="max_range_new">Max Range (new)</string>
@@ -1139,6 +1151,31 @@
     <string name="consumption">Consumption</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">Cost / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <!-- Header of the highlights card sitting under the summary on the Trips list -->
+    <string name="trip_intelligence_title">Trip highlights</string>
+    <!-- Row label: trip with lowest Wh/km (or Wh/mi) consumption -->
+    <string name="trip_intelligence_most_efficient">Most efficient</string>
+    <!-- Row label: trip with the highest Wh/km (or Wh/mi) consumption -->
+    <string name="trip_intelligence_least_efficient">Least efficient</string>
+    <!-- Row label: cheapest cost per 100 km (or 100 mi) among fully-priced trips. %1$s is the distance unit (km or mi). -->
+    <string name="trip_intelligence_cheapest_per_100">Cheapest / 100 %1$s</string>
+    <!-- Row label: most expensive cost per 100 km (or 100 mi) among fully-priced trips. %1$s is the distance unit (km or mi). -->
+    <string name="trip_intelligence_pricey_per_100">Priciest / 100 %1$s</string>
+    <!-- Row label: trip covering the greatest distance -->
+    <string name="trip_intelligence_longest">Longest trip</string>
+    <!-- Row label: trip whose charging stops took the biggest share of wall-clock time -->
+    <string name="trip_intelligence_charge_overhead">Most charging overhead</string>
+    <!-- Row label: sum(energyCharged) - sum(energyConsumed) across the filtered set -->
+    <string name="trip_intelligence_energy_gap">Energy gap</string>
+    <!-- Row label: mean minutes spent charging per trip across the filtered set -->
+    <string name="trip_intelligence_avg_charge_time">Avg charging / trip</string>
+    <!-- Value format for a percentage highlight, e.g. "18%" -->
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <!-- Content description hint that a highlight row is tappable and opens the trip -->
+    <string name="trip_intelligence_open_trip">Open trip</string>
+
     <!-- Drive leg label with number -->
     <string name="trip_leg_drive">Drive %1$d</string>
     <!-- Charge leg label with number -->

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.BatteryHealth
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.dao.BatteryHealthSnapshotDao
+import com.matedroid.data.local.entity.BatteryHealthSnapshot
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,8 +14,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
+import java.time.LocalDate
 import javax.inject.Inject
+import kotlin.math.abs
 
 data class BatteryUiState(
     val isLoading: Boolean = true,
@@ -24,7 +32,12 @@ data class BatteryUiState(
     val units: Units? = null,
     val originalCapacity: Double = 82.0, // Default for Model 3 LR, could be fetched from car details
     val ratedEfficiency: Double = 0.0,
-    val showDetail: Boolean = false
+    val showDetail: Boolean = false,
+    /**
+     * Historical battery health snapshots for this car, oldest first, sourced from the
+     * local DB. Populated once [setCarId] runs; unaffected by refreshes.
+     */
+    val snapshots: List<BatteryHealthSnapshot> = emptyList(),
 )
 
 // Computed battery statistics
@@ -49,13 +62,15 @@ data class BatteryStats(
 
 @HiltViewModel
 class BatteryViewModel @Inject constructor(
-    private val repository: TeslamateRepository
+    private val repository: TeslamateRepository,
+    private val snapshotDao: BatteryHealthSnapshotDao,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BatteryUiState())
     val uiState: StateFlow<BatteryUiState> = _uiState.asStateFlow()
 
     private var carId: Int? = null
+    private var snapshotObserverJob: Job? = null
 
     fun setCarId(id: Int, efficiency: Double? = null) {
         if (carId != id) {
@@ -63,7 +78,17 @@ class BatteryViewModel @Inject constructor(
             efficiency?.let { eff ->
                 _uiState.update { it.copy(ratedEfficiency = eff) }
             }
+            observeSnapshots(id)
             loadBatteryData()
+        }
+    }
+
+    private fun observeSnapshots(id: Int) {
+        snapshotObserverJob?.cancel()
+        snapshotObserverJob = viewModelScope.launch {
+            snapshotDao.observeAllForCar(id).collectLatest { rows ->
+                _uiState.update { it.copy(snapshots = rows) }
+            }
         }
     }
 
@@ -111,6 +136,7 @@ class BatteryViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    persistSnapshotIfWorthKeeping(id, healthResult.data)
                 }
                 healthResult is ApiResult.Error -> {
                     _uiState.update {
@@ -185,5 +211,44 @@ class BatteryViewModel @Inject constructor(
             idealRange = idealRange,
             rangeAt100 = rangeAt100
         )
+    }
+
+    /**
+     * Append a snapshot of [health] for [carId] iff the last stored sample is either from a
+     * previous local calendar day, or from today but with a noticeably different max range.
+     * The debounce keeps refreshes / multiple screen opens on the same day from swelling the
+     * table with near-duplicates.
+     */
+    private fun persistSnapshotIfWorthKeeping(carId: Int, health: BatteryHealth) {
+        viewModelScope.launch {
+            val last = snapshotDao.getLatestForCar(carId)
+            val now = System.currentTimeMillis()
+            val today = LocalDate.now(ZoneId.systemDefault())
+            val lastDay = last?.let {
+                Instant.ofEpochMilli(it.recordedAt).atZone(ZoneId.systemDefault()).toLocalDate()
+            }
+            val sameDay = lastDay == today
+            val nearlyIdenticalRange = last?.maxRange != null && health.maxRange != null &&
+                abs((last.maxRange ?: 0.0) - (health.maxRange ?: 0.0)) < MAX_RANGE_EPSILON
+            if (sameDay && nearlyIdenticalRange) return@launch
+
+            snapshotDao.insertAndPrune(
+                BatteryHealthSnapshot(
+                    carId = carId,
+                    recordedAt = now,
+                    maxRange = health.maxRange,
+                    currentRange = health.currentRange,
+                    maxCapacity = health.maxCapacity,
+                    currentCapacity = health.currentCapacity,
+                    ratedEfficiency = health.ratedEfficiency,
+                    batteryHealthPercentage = health.batteryHealthPercentage,
+                )
+            )
+        }
+    }
+
+    private companion object {
+        /** Two max-range readings closer than this (in km/mi — units are stored raw) count as the same value for debouncing. */
+        const val MAX_RANGE_EPSILON = 0.5
     }
 }
