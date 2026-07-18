@@ -1,6 +1,9 @@
 package com.matedroid.ui.screens.dashboard
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.matedroid.data.api.models.BatteryDetails
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
@@ -24,6 +27,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelChildren
@@ -48,6 +54,8 @@ class DashboardViewModelTest {
     private lateinit var geocodingRepository: GeocodingRepository
     private lateinit var settingsDataStore: SettingsDataStore
     private lateinit var sentryStateRepository: SentryStateRepository
+    private lateinit var context: Context
+    private lateinit var workManager: WorkManager
     private var viewModel: DashboardViewModel? = null
 
     private val testCar = CarData(
@@ -81,6 +89,8 @@ class DashboardViewModelTest {
         geocodingRepository = mockk()
         settingsDataStore = mockk()
         sentryStateRepository = mockk()
+        context = mockk(relaxed = true)
+        workManager = mockk(relaxed = true)
         coEvery { sentryStateRepository.getEventCount(any()) } returns 0
         // Default: no previously selected car
         every { settingsDataStore.settings } returns flowOf(AppSettings())
@@ -91,6 +101,12 @@ class DashboardViewModelTest {
             GlobalSettingsData(settings = GlobalSettings(teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com")))
         )
         coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
+        mockkObject(WorkManager.Companion)
+        every { WorkManager.getInstance(any()) } returns workManager
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } returns 0
+        every { Log.e(any(), any<String>()) } returns 0
+        every { Log.e(any(), any<String>(), any()) } returns 0
     }
 
     @After
@@ -98,12 +114,12 @@ class DashboardViewModelTest {
         cancelViewModelCoroutines()
         viewModel = null
         Dispatchers.resetMain()
-        clearAllMocks()
+        unmockkAll()
     }
 
     private fun createViewModel(): DashboardViewModel {
         return DashboardViewModel(
-            repository, geocodingRepository, settingsDataStore, sentryStateRepository,
+            context, repository, geocodingRepository, settingsDataStore, sentryStateRepository,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)
         )
     }

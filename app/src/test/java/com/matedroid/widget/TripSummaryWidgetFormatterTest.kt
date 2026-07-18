@@ -115,11 +115,39 @@ class TripSummaryWidgetFormatterTest {
 
         assertEquals("120 mi", data.distanceValue)
         assertEquals("250 Wh/mi", data.efficiencyValue)
-        assertEquals("10.00 \$", data.costPerDistanceValue)
+        assertEquals("N/A", data.costPerDistanceValue)
+        assertEquals("12.00 \$", data.costValue)
         assertEquals("mi", data.distanceUnit)
         assertEquals(TripSummaryWidgetTrend.Down, data.distanceTrend)
         assertEquals(20, data.distanceTrendPercent)
         assertEquals(TripSummaryWidgetCostCoverage.Partial, data.costCoverage)
+    }
+
+    @Test
+    fun formatShowsCostPerDistanceOnlyWhenEveryChargeIsPriced() {
+        val data = TripSummaryWidgetFormatter.format(
+            carId = 7,
+            carName = "Model Y",
+            periodLabel = "Last 30 days",
+            metrics = TripSummaryWidgetMetrics(
+                driveCount = 4,
+                drivingDays = 3,
+                totalDistance = 200.0,
+                totalEnergy = 32.0,
+                avgEfficiency = 160.0,
+                totalCost = 20.0,
+                chargesWithCost = 2,
+                chargeCount = 2,
+                previousDistance = 180.0,
+            ),
+            currencySymbol = "\$",
+            noValue = "N/A",
+            updatedValue = "Updated 9:00",
+        )
+
+        assertEquals("20.00 \$", data.costValue)
+        assertEquals("10.00 \$", data.costPerDistanceValue)
+        assertEquals(TripSummaryWidgetCostCoverage.Complete, data.costCoverage)
     }
 
     @Test

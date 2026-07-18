@@ -24,6 +24,7 @@ import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.widget.TripSummaryWidgetUpdateWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -170,6 +171,7 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currencyCode = currencyCode)
         viewModelScope.launch {
             settingsDataStore.saveCurrency(currencyCode)
+            TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(context)
         }
     }
 
@@ -265,7 +267,10 @@ class SettingsViewModel @Inject constructor(
                 }
                 globalSettings?.teslamateUnits?.unitOfLength
                     ?.takeIf { it == "km" || it == "mi" }
-                    ?.let { settingsDataStore.saveUnitOfLength(it) }
+                    ?.let {
+                        settingsDataStore.saveUnitOfLength(it)
+                        TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(context)
+                    }
             }
             is ApiResult.Error -> {
                 // Silent fail - this is optional functionality

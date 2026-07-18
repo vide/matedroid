@@ -29,13 +29,16 @@ object TripSummaryWidgetFormatter {
         updatedValue: String,
         units: Units? = null,
     ): TripSummaryWidgetDisplayData {
-        val hasCostData = metrics.chargesWithCost > 0
-        val costValue = if (hasCostData) {
+        val hasCompleteCostData = metrics.chargeCount > 0 &&
+            metrics.chargesWithCost == metrics.chargeCount
+        val hasAnyCostData = metrics.chargesWithCost > 0
+        val costValue = if (hasAnyCostData) {
             UnitFormatter.formatCost(metrics.totalCost, currencySymbol)
         } else {
             noValue
         }
-        val costPerDistance = if (hasCostData && metrics.totalDistance > 0) {
+        // Cost/100 is only honest when every charge in the range is priced.
+        val costPerDistance = if (hasCompleteCostData && metrics.totalDistance > 0) {
             UnitFormatter.formatCost((metrics.totalCost / metrics.totalDistance) * 100, currencySymbol)
         } else {
             noValue

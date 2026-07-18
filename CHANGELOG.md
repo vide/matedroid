@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Trip summary home-screen widget** — a read-only widget over cached TeslaMate data showing distance, drives, driving days, energy, efficiency, charging cost, and cost/100 for 7/30/90-day ranges, with previous-period distance comparison and honest partial-cost labels. Never sends vehicle commands or polls the car.
+
 ### Changed
 - **Snappier throughout** — smoother list scrolling, lighter chart rendering, the Stats and Trips screens do their heavy work off the UI thread, and the dashboard stops polling for status while it's off screen (less background battery use). No change to how anything looks.
 - **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.

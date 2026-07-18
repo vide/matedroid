@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.settings
 
 import android.content.Context
+import android.util.Log
 import androidx.work.WorkManager
 import com.matedroid.data.api.models.GlobalSettings
 import com.matedroid.data.api.models.GlobalSettingsData
@@ -19,6 +20,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -68,6 +70,10 @@ class SettingsViewModelTest {
         // removed @JvmStatic, so mockkStatic(WorkManager::class) no longer intercepts).
         mockkObject(WorkManager.Companion)
         every { WorkManager.getInstance(any()) } returns workManager
+        mockkStatic(Log::class)
+        every { Log.d(any(), any()) } returns 0
+        every { Log.e(any(), any<String>()) } returns 0
+        every { Log.e(any(), any<String>(), any()) } returns 0
     }
 
     @After

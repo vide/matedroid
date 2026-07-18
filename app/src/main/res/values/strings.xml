@@ -1334,6 +1334,8 @@
 
     <!-- Compact footer value for total charging cost. %1$s is the formatted cost or unavailable value. -->
     <string name="trip_widget_compact_cost">Cost %1$s</string>
+    <!-- Compact footer when only some charges in the range are priced. %1$s cost, %2$d priced, %3$d total. -->
+    <string name="trip_widget_compact_cost_partial">Cost %1$s · %2$d/%3$d priced</string>
 
     <!-- Compact footer value for average driving efficiency. %1$s is the formatted efficiency or unavailable value. -->
     <string name="trip_widget_compact_efficiency">Eff %1$s</string>

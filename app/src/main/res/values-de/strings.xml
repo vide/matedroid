@@ -1305,6 +1305,7 @@
     <string name="trip_widget_cost_all_priced">Kosten · vollständig</string>
     <string name="trip_widget_cost_per_distance">Kosten/100 %1$s</string>
     <string name="trip_widget_compact_cost">Kosten %1$s</string>
+    <string name="trip_widget_compact_cost_partial">Kosten %1$s · %2$d/%3$d bepreist</string>
     <string name="trip_widget_compact_efficiency">Eff. %1$s</string>
     <string name="trip_widget_no_value">k. A.</string>
     <string name="trip_widget_updated">Aktualisiert %1$s</string>

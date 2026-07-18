@@ -305,7 +305,13 @@ class TripSummaryWidget : GlanceAppWidget() {
 
                 if (compact) {
                     Spacer(modifier = GlanceModifier.defaultWeight())
-                    CompactFooter(cost = cost, efficiency = efficiency)
+                    CompactFooter(
+                        cost = cost,
+                        efficiency = efficiency,
+                        costCoverage = costCoverage,
+                        chargesWithCost = chargesWithCost,
+                        chargeCount = chargeCount,
+                    )
                 } else {
                     Spacer(modifier = GlanceModifier.defaultWeight())
 
@@ -388,14 +394,36 @@ class TripSummaryWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun CompactFooter(cost: String, efficiency: String) {
+    private fun CompactFooter(
+        cost: String,
+        efficiency: String,
+        costCoverage: TripSummaryWidgetCostCoverage,
+        chargesWithCost: Int,
+        chargeCount: Int,
+    ) {
         val context = LocalContext.current
+        val costLabel = when (costCoverage) {
+            TripSummaryWidgetCostCoverage.Partial -> context.getString(
+                R.string.trip_widget_compact_cost_partial,
+                cost,
+                chargesWithCost,
+                chargeCount,
+            )
+            TripSummaryWidgetCostCoverage.Missing -> context.getString(
+                R.string.trip_widget_cost_none_priced
+            )
+            TripSummaryWidgetCostCoverage.None,
+            TripSummaryWidgetCostCoverage.Complete -> context.getString(
+                R.string.trip_widget_compact_cost,
+                cost,
+            )
+        }
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = context.getString(R.string.trip_widget_compact_cost, cost),
+                text = costLabel,
                 style = TextStyle(
                     color = ColorProvider(TRIP_WIDGET_TEXT),
                     fontSize = 12.sp,
