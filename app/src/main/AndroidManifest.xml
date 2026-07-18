@@ -87,9 +87,31 @@
                 android:resource="@xml/car_widget_info" />
         </receiver>
 
+        <!-- Home screen widget: recent charging cost summary -->
+        <receiver
+            android:name=".widget.CostSummaryWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cost_summary_widget_info" />
+        </receiver>
+
         <!-- Widget configuration activity: car selection -->
         <activity
             android:name=".widget.CarWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MateDroid">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Widget configuration activity: car selection for cost summaries -->
+        <activity
+            android:name=".widget.CostSummaryWidgetConfigActivity"
             android:exported="true"
             android:theme="@style/Theme.MateDroid">
             <intent-filter>
