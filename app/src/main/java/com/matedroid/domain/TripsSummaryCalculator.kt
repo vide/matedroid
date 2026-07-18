@@ -48,8 +48,10 @@ object TripsSummaryCalculator {
                 .takeIf { it > 0.0 }
                 ?.let { totalEnergyConsumed * 1000.0 / it },
             totalChargeCost = totalChargeCost,
+            // Cost / 100 distance is only honest when every charge in range is priced.
+            // Known totals still surface under Partial; the rate stays unavailable.
             costPer100Distance = totalChargeCost
-                ?.takeIf { totalDistance > 0.0 }
+                ?.takeIf { costCoverage == TripCostCoverage.Complete && totalDistance > 0.0 }
                 ?.let { it * 100.0 / totalDistance },
             pricedChargeCount = chargeCosts.size,
             chargeCount = charges.size,

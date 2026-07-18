@@ -1101,6 +1101,8 @@
     <string name="trip_energy_charged">Energía cargada</string>
     <string name="trip_charge_cost">Coste de carga</string>
     <string name="trip_cost_coverage_partial">Los costes incluyen %1$d de %2$d sesiones de carga</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">No hay costes de carga registrados para estos viajes</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Consumo</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->

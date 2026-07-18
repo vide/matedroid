@@ -442,31 +442,54 @@ private fun SummaryCard(
                     modifier = Modifier.weight(0.8f)
                 )
             }
-            if (summary.costCoverage == TripCostCoverage.Partial) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = palette.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
+            when (summary.costCoverage) {
+                TripCostCoverage.Partial -> {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    CostCoverageNote(
                         text = stringResource(
                             R.string.trip_cost_coverage_partial,
                             summary.pricedChargeCount,
                             summary.chargeCount,
                         ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = palette.onSurfaceVariant,
+                        palette = palette,
                     )
                 }
+                TripCostCoverage.None -> {
+                    if (summary.chargeCount > 0) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        CostCoverageNote(
+                            text = stringResource(R.string.trip_cost_coverage_none),
+                            palette = palette,
+                        )
+                    }
+                }
+                TripCostCoverage.Complete -> Unit
             }
         }
+    }
+}
+
+@Composable
+private fun CostCoverageNote(
+    text: String,
+    palette: CarColorPalette,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Info,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = palette.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.onSurfaceVariant,
+        )
     }
 }
 

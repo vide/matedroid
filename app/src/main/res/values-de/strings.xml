@@ -1129,6 +1129,8 @@
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Ladekosten</string>
     <string name="trip_cost_coverage_partial">Kosten enthalten %1$d von %2$d Ladevorgängen</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">Für diese Fahrten sind keine Ladekosten erfasst</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Verbrauch</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
