@@ -130,6 +130,8 @@ class DataSyncWorker @AssistedInject constructor(
 
             return if (hasNetworkError) {
                 log("Sync incomplete due to network errors, scheduling retry")
+                // Summaries may still have landed — refresh trip widget before retrying details.
+                TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(applicationContext)
                 Result.retry()
             } else {
                 log("Sync complete for all cars")

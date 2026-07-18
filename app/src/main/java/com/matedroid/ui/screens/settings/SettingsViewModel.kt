@@ -267,10 +267,9 @@ class SettingsViewModel @Inject constructor(
                 }
                 globalSettings?.teslamateUnits?.unitOfLength
                     ?.takeIf { it == "km" || it == "mi" }
-                    ?.let {
-                        settingsDataStore.saveUnitOfLength(it)
-                        TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(context)
-                    }
+                    ?.let { settingsDataStore.saveUnitOfLength(it) }
+                // Do not refresh the trip widget here: Room summaries are still in the
+                // previous unit until the next sync. Currency changes refresh separately.
             }
             is ApiResult.Error -> {
                 // Silent fail - this is optional functionality

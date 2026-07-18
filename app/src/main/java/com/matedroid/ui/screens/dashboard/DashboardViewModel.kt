@@ -2,7 +2,6 @@ package com.matedroid.ui.screens.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.content.Context
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
 import com.matedroid.data.api.models.CarStatus
@@ -17,10 +16,8 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
-import com.matedroid.widget.TripSummaryWidgetUpdateWorker
 import kotlinx.coroutines.flow.first
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +73,6 @@ data class DashboardUiState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
     private val repository: TeslamateRepository,
     private val geocodingRepository: GeocodingRepository,
     private val settingsDataStore: SettingsDataStore,
@@ -413,10 +409,8 @@ class DashboardViewModel @Inject constructor(
                     }
                     globalSettings?.teslamateUnits?.unitOfLength
                         ?.takeIf { it == "km" || it == "mi" }
-                        ?.let {
-                            settingsDataStore.saveUnitOfLength(it)
-                            TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(appContext)
-                        }
+                        ?.let { settingsDataStore.saveUnitOfLength(it) }
+                    // Widget refresh waits for summary sync so labels match Room values.
                 }
                 is ApiResult.Error -> {
                     // Silent fail - this is optional functionality
