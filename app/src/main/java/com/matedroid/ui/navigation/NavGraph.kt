@@ -179,6 +179,7 @@ fun NavGraph(
                     "mileage" -> Screen.Mileage(carId, exteriorColor)
                     "battery" -> Screen.Battery(carId, exteriorColor = exteriorColor)
                     "stats" -> Screen.Stats(carId, exteriorColor)
+                    "trips" -> Screen.Trips(carId, exteriorColor)
                     "countries_visited" -> Screen.CountriesVisited(carId, exteriorColor)
                     "updates" -> Screen.Updates(carId, exteriorColor)
                     "sentry_history" -> Screen.SentryHistory(carId, exteriorColor)

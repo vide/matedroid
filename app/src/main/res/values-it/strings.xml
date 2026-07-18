@@ -1198,7 +1198,31 @@
 
     <!-- ==================== Widget nella schermata principale ==================== -->
     <string name="widget_description">Stato batteria per la tua Tesla</string>
+    <string name="trip_widget_title">Riepilogo viaggi</string>
+    <string name="trip_widget_description">Percorsi, energia e costi di ricarica per intervallo</string>
+    <string name="trip_widget_period_last_7_days">Ultimi 7 giorni</string>
+    <string name="trip_widget_period_last_30_days">Ultimi 30 giorni</string>
+    <string name="trip_widget_period_last_90_days">Ultimi 90 giorni</string>
+    <string name="trip_widget_range_title">Intervallo riepilogo</string>
+    <string name="trip_widget_empty">Nessun percorso in questo intervallo</string>
+    <string name="trip_widget_driving_days">Giorni</string>
+    <string name="trip_widget_energy">Energia</string>
+    <string name="trip_widget_efficiency">Efficienza</string>
+    <string name="trip_widget_distance_trend_new">Distanza · nuova</string>
+    <string name="trip_widget_distance_trend_same">Distanza · invariata</string>
+    <string name="trip_widget_distance_trend_more">Distanza · %1$d%% in più</string>
+    <string name="trip_widget_distance_trend_less">Distanza · %1$d%% in meno</string>
+    <string name="trip_widget_cost_none_priced">Costo · nessun prezzo</string>
+    <string name="trip_widget_cost_partially_priced">Costo · %1$d/%2$d con prezzo</string>
+    <string name="trip_widget_cost_all_priced">Costo · completo</string>
+    <string name="trip_widget_cost_per_distance">Costo/100 %1$s</string>
+    <string name="trip_widget_compact_cost">Costo %1$s</string>
+    <string name="trip_widget_compact_cost_partial">Costo %1$s · %2$d/%3$d con prezzo</string>
+    <string name="trip_widget_compact_efficiency">Eff. %1$s</string>
+    <string name="trip_widget_no_value">N/D</string>
+    <string name="trip_widget_updated">Aggiornato %1$s</string>
     <string name="widget_select_car_title">Seleziona un veicolo per il widget</string>
+    <string name="widget_save">Salva widget</string>
     <string name="widget_loading">Caricamento…</string>
     <string name="widget_error_configure">Tocca per configurare</string>
 

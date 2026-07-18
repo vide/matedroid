@@ -1286,9 +1286,33 @@
     <!-- ==================== Home Screen Widget ==================== -->
     <!-- Widget description shown in the system widget picker -->
     <string name="widget_description">Batteriestatus für deinen Tesla</string>
+    <string name="trip_widget_title">Trip-Zusammenfassung</string>
+    <string name="trip_widget_description">Fahrten, Energie und Ladekosten nach Zeitraum</string>
+    <string name="trip_widget_period_last_7_days">Letzte 7 Tage</string>
+    <string name="trip_widget_period_last_30_days">Letzte 30 Tage</string>
+    <string name="trip_widget_period_last_90_days">Letzte 90 Tage</string>
+    <string name="trip_widget_range_title">Zusammenfassungszeitraum</string>
+    <string name="trip_widget_empty">Keine Fahrten in diesem Zeitraum</string>
+    <string name="trip_widget_driving_days">Tage</string>
+    <string name="trip_widget_energy">Energie</string>
+    <string name="trip_widget_efficiency">Effizienz</string>
+    <string name="trip_widget_distance_trend_new">Strecke · neu</string>
+    <string name="trip_widget_distance_trend_same">Strecke · unverändert</string>
+    <string name="trip_widget_distance_trend_more">Strecke · %1$d%% mehr</string>
+    <string name="trip_widget_distance_trend_less">Strecke · %1$d%% weniger</string>
+    <string name="trip_widget_cost_none_priced">Kosten · keine Preise</string>
+    <string name="trip_widget_cost_partially_priced">Kosten · %1$d/%2$d bepreist</string>
+    <string name="trip_widget_cost_all_priced">Kosten · vollständig</string>
+    <string name="trip_widget_cost_per_distance">Kosten/100 %1$s</string>
+    <string name="trip_widget_compact_cost">Kosten %1$s</string>
+    <string name="trip_widget_compact_cost_partial">Kosten %1$s · %2$d/%3$d bepreist</string>
+    <string name="trip_widget_compact_efficiency">Eff. %1$s</string>
+    <string name="trip_widget_no_value">k. A.</string>
+    <string name="trip_widget_updated">Aktualisiert %1$s</string>
 
     <!-- Title of the car selection screen shown when configuring the widget -->
     <string name="widget_select_car_title">Fahrzeug für das Widget auswählen</string>
+    <string name="widget_save">Widget speichern</string>
 
     <!-- Shown on the widget while data is being loaded for the first time -->
     <string name="widget_loading">Wird geladen…</string>

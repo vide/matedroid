@@ -24,6 +24,7 @@ import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.widget.TripSummaryWidgetUpdateWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -170,6 +171,7 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currencyCode = currencyCode)
         viewModelScope.launch {
             settingsDataStore.saveCurrency(currencyCode)
+            TripSummaryWidgetUpdateWorker.scheduleImmediateUpdate(context)
         }
     }
 
@@ -253,15 +255,21 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Fetches global settings from the API and caches the base_url.
+     * Fetches global settings from the API and caches settings used offline.
      * This runs silently - failures don't affect the user experience.
      */
     private suspend fun fetchAndCacheGlobalSettings() {
         when (val result = repository.getGlobalSettings()) {
             is ApiResult.Success -> {
-                result.data.settings?.teslamateUrls?.baseUrl?.let { url ->
+                val globalSettings = result.data.settings
+                globalSettings?.teslamateUrls?.baseUrl?.let { url ->
                     settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
                 }
+                globalSettings?.teslamateUnits?.unitOfLength
+                    ?.takeIf { it == "km" || it == "mi" }
+                    ?.let { settingsDataStore.saveUnitOfLength(it) }
+                // Do not refresh the trip widget here: Room summaries are still in the
+                // previous unit until the next sync. Currency changes refresh separately.
             }
             is ApiResult.Error -> {
                 // Silent fail - this is optional functionality
