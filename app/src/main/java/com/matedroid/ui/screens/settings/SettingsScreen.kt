@@ -36,6 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -127,6 +128,12 @@ fun SettingsScreen(
                 onAcceptInvalidCertsChange = viewModel::updateAcceptInvalidCerts,
                 onCurrencyChange = viewModel::updateCurrency,
                 onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
+                onHomeUtilityRateChange = viewModel::updateHomeUtilityRate,
+                onDcUtilityRateChange = viewModel::updateDcUtilityRate,
+                onIceFuelEconomyChange = viewModel::updateIceFuelEconomy,
+                onIceFuelEconomyUnitChange = viewModel::updateIceFuelEconomyIsMpg,
+                onIceFuelPriceChange = viewModel::updateIceFuelPrice,
+                onIceFuelPriceUnitChange = viewModel::updateIceFuelPriceIsPerGallon,
                 onTestConnection = viewModel::testConnection,
                 onSave = { viewModel.saveSettings(onNavigateToDashboard) },
                 onPalettePreview = onNavigateToPalettePreview,
@@ -198,6 +205,12 @@ private fun SettingsContent(
     onAcceptInvalidCertsChange: (Boolean) -> Unit,
     onCurrencyChange: (String) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
+    onHomeUtilityRateChange: (String) -> Unit = {},
+    onDcUtilityRateChange: (String) -> Unit = {},
+    onIceFuelEconomyChange: (String) -> Unit = {},
+    onIceFuelEconomyUnitChange: (Boolean) -> Unit = {},
+    onIceFuelPriceChange: (String) -> Unit = {},
+    onIceFuelPriceUnitChange: (Boolean) -> Unit = {},
     onTestConnection: () -> Unit,
     onSave: () -> Unit,
     onPalettePreview: () -> Unit = {},
@@ -481,6 +494,132 @@ private fun SettingsContent(
                     )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // === Utility Rates (for cost estimation when TeslaMate has no price) ===
+        Text(
+            text = stringResource(R.string.settings_utility_rates_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = stringResource(R.string.settings_utility_rates_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = uiState.homeUtilityRateInput,
+            onValueChange = onHomeUtilityRateChange,
+            label = { Text(stringResource(R.string.settings_home_utility_rate_label)) },
+            placeholder = { Text(stringResource(R.string.settings_utility_rate_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Text(
+            text = stringResource(R.string.settings_home_utility_rate_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = uiState.dcUtilityRateInput,
+            onValueChange = onDcUtilityRateChange,
+            label = { Text(stringResource(R.string.settings_dc_utility_rate_label)) },
+            placeholder = { Text(stringResource(R.string.settings_utility_rate_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Text(
+            text = stringResource(R.string.settings_dc_utility_rate_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // === Gasoline comparison (optional; neutral "vs gasoline") ===
+        Text(
+            text = stringResource(R.string.settings_ice_section_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = stringResource(R.string.settings_ice_section_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = uiState.iceFuelEconomyInput,
+            onValueChange = onIceFuelEconomyChange,
+            label = { Text(stringResource(R.string.settings_ice_fuel_economy_label)) },
+            placeholder = {
+                Text(
+                    if (uiState.iceFuelEconomyIsMpg) {
+                        stringResource(R.string.settings_ice_fuel_economy_placeholder_mpg)
+                    } else {
+                        stringResource(R.string.settings_ice_fuel_economy_placeholder_l_per_100km)
+                    }
+                )
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = !uiState.iceFuelEconomyIsMpg,
+                onClick = { onIceFuelEconomyUnitChange(false) },
+                label = { Text(stringResource(R.string.settings_ice_unit_l_per_100km)) },
+            )
+            FilterChip(
+                selected = uiState.iceFuelEconomyIsMpg,
+                onClick = { onIceFuelEconomyUnitChange(true) },
+                label = { Text(stringResource(R.string.settings_ice_unit_mpg)) },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = uiState.iceFuelPriceInput,
+            onValueChange = onIceFuelPriceChange,
+            label = { Text(stringResource(R.string.settings_ice_fuel_price_label)) },
+            placeholder = { Text(stringResource(R.string.settings_ice_fuel_price_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            enabled = !uiState.isTesting && !uiState.isSaving,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = !uiState.iceFuelPriceIsPerGallon,
+                onClick = { onIceFuelPriceUnitChange(false) },
+                label = { Text(stringResource(R.string.settings_ice_unit_per_liter)) },
+            )
+            FilterChip(
+                selected = uiState.iceFuelPriceIsPerGallon,
+                onClick = { onIceFuelPriceUnitChange(true) },
+                label = { Text(stringResource(R.string.settings_ice_unit_per_gallon)) },
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))

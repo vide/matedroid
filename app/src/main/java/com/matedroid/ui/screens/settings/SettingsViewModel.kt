@@ -42,6 +42,18 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
+    /** Raw text entered by the user for the home/AC utility rate (per kWh). */
+    val homeUtilityRateInput: String = "",
+    /** Raw text entered by the user for the optional DC utility rate. */
+    val dcUtilityRateInput: String = "",
+    /** Raw text entered for the ICE (gasoline) fuel-economy assumption. */
+    val iceFuelEconomyInput: String = "",
+    /** True when the user is entering the fuel economy in mpg (else L/100 km). */
+    val iceFuelEconomyIsMpg: Boolean = false,
+    /** Raw text entered for the ICE (gasoline) fuel-price assumption. */
+    val iceFuelPriceInput: String = "",
+    /** True when the user is entering the fuel price per gallon (else per liter). */
+    val iceFuelPriceIsPerGallon: Boolean = false,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -105,6 +117,12 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
+                homeUtilityRateInput = settings.homeUtilityRatePerKwh?.let(::formatRate) ?: "",
+                dcUtilityRateInput = settings.dcUtilityRatePerKWh?.let(::formatRate) ?: "",
+                iceFuelEconomyInput = settings.iceFuelEconomyValue?.let(::formatRate) ?: "",
+                iceFuelEconomyIsMpg = settings.iceFuelEconomyIsMpg,
+                iceFuelPriceInput = settings.iceFuelPrice?.let(::formatRate) ?: "",
+                iceFuelPriceIsPerGallon = settings.iceFuelPriceIsPerGallon,
                 isLoading = false
             )
         }
@@ -178,6 +196,88 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
         }
+    }
+
+    /**
+     * Update the home / AC utility rate input. Only the raw text is stored in
+     * UI state; parsing to a Double happens on save. Blank / invalid values
+     * clear the persisted rate.
+     */
+    fun updateHomeUtilityRate(input: String) {
+        _uiState.value = _uiState.value.copy(homeUtilityRateInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveHomeUtilityRate(parseRate(input))
+        }
+    }
+
+    /**
+     * Update the optional DC utility rate input. Same rules as the home rate.
+     */
+    fun updateDcUtilityRate(input: String) {
+        _uiState.value = _uiState.value.copy(dcUtilityRateInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveDcUtilityRate(parseRate(input))
+        }
+    }
+
+    /**
+     * Update the ICE (gasoline) fuel-economy assumption text. Same parsing
+     * rules as the utility rates — blank or non-positive clears the value.
+     */
+    fun updateIceFuelEconomy(input: String) {
+        _uiState.value = _uiState.value.copy(iceFuelEconomyInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelEconomy(
+                value = parseRate(input),
+                isMpg = _uiState.value.iceFuelEconomyIsMpg,
+            )
+        }
+    }
+
+    /** Toggle the ICE fuel-economy unit (mpg vs L/100 km) without altering the value. */
+    fun updateIceFuelEconomyIsMpg(isMpg: Boolean) {
+        _uiState.value = _uiState.value.copy(iceFuelEconomyIsMpg = isMpg)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelEconomyUnit(isMpg)
+        }
+    }
+
+    /** Update the ICE fuel-price assumption text. */
+    fun updateIceFuelPrice(input: String) {
+        _uiState.value = _uiState.value.copy(iceFuelPriceInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelPrice(
+                value = parseRate(input),
+                isPerGallon = _uiState.value.iceFuelPriceIsPerGallon,
+            )
+        }
+    }
+
+    /** Toggle the ICE fuel-price unit (per gallon vs per liter). */
+    fun updateIceFuelPriceIsPerGallon(isPerGallon: Boolean) {
+        _uiState.value = _uiState.value.copy(iceFuelPriceIsPerGallon = isPerGallon)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelPriceUnit(isPerGallon)
+        }
+    }
+
+    /**
+     * Parse a locale-agnostic decimal rate ("0.15" or "0,15"). Returns null
+     * (clear rate) when blank, unparseable, or not strictly positive.
+     */
+    private fun parseRate(raw: String): Double? {
+        val cleaned = raw.trim().replace(',', '.')
+        if (cleaned.isEmpty()) return null
+        val value = cleaned.toDoubleOrNull() ?: return null
+        return value.takeIf { it.isFinite() && it > 0.0 }
+    }
+
+    /** Format a stored rate back to the text field without trailing zeros. */
+    private fun formatRate(value: Double): String {
+        if (value % 1.0 == 0.0) return value.toLong().toString()
+        // Force '.' as the decimal separator so the text round-trips through
+        // [parseRate] regardless of the device locale.
+        return "%.4f".format(java.util.Locale.ROOT, value).trimEnd('0').trimEnd('.')
     }
 
     fun testConnection() {
@@ -259,9 +359,13 @@ class SettingsViewModel @Inject constructor(
     private suspend fun fetchAndCacheGlobalSettings() {
         when (val result = repository.getGlobalSettings()) {
             is ApiResult.Success -> {
-                result.data.settings?.teslamateUrls?.baseUrl?.let { url ->
+                val globalSettings = result.data.settings
+                globalSettings?.teslamateUrls?.baseUrl?.let { url ->
                     settingsDataStore.saveTeslamateBaseUrl(url.trimEnd('/'))
                 }
+                globalSettings?.teslamateUnits?.unitOfLength
+                    ?.takeIf { it == "km" || it == "mi" }
+                    ?.let { settingsDataStore.saveUnitOfLength(it) }
             }
             is ApiResult.Error -> {
                 // Silent fail - this is optional functionality

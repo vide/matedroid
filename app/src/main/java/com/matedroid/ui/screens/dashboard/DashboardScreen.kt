@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Settings
@@ -196,6 +197,7 @@ fun DashboardScreen(
     onNavigateToWhereWasI: (carId: Int, timestamp: String, exteriorColor: String?) -> Unit = { _, _, _ -> },
     onNavigateToSentryHistory: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
     onNavigateToTrips: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
+    onNavigateToCosts: (carId: Int, exteriorColor: String?) -> Unit = { _, _ -> },
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -405,6 +407,11 @@ fun DashboardScreen(
                         onNavigateToTrips = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToTrips(carId, uiState.selectedCarExterior?.exteriorColor)
+                            }
+                        },
+                        onNavigateToCosts = {
+                            uiState.selectedCarId?.let { carId ->
+                                onNavigateToCosts(carId, uiState.selectedCarExterior?.exteriorColor)
                             }
                         }
                     )
@@ -841,7 +848,8 @@ private fun DashboardContent(
     onNavigateToCurrentCharge: () -> Unit = {},
     onSaveCarImageOverride: (CarImageOverride?) -> Unit = {},
     onNavigateToSentryHistory: () -> Unit = {},
-    onNavigateToTrips: () -> Unit = {}
+    onNavigateToTrips: () -> Unit = {},
+    onNavigateToCosts: () -> Unit = {}
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(carExterior?.exteriorColor, isDarkTheme)
@@ -924,7 +932,8 @@ private fun DashboardContent(
             onNavigateToDrives = onNavigateToDrives,
             onNavigateToMileage = onNavigateToMileage,
             onNavigateToUpdates = onNavigateToUpdates,
-            onNavigateToTrips = onNavigateToTrips
+            onNavigateToTrips = onNavigateToTrips,
+            onNavigateToCosts = onNavigateToCosts
         )
 
         // Tyre pressure — its own card, shown when TPMS data is available
@@ -2257,7 +2266,8 @@ private fun VehicleInfoCard(
     onNavigateToDrives: () -> Unit,
     onNavigateToMileage: () -> Unit,
     onNavigateToUpdates: () -> Unit,
-    onNavigateToTrips: () -> Unit = {}
+    onNavigateToTrips: () -> Unit = {},
+    onNavigateToCosts: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -2363,6 +2373,20 @@ private fun VehicleInfoCard(
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Cost analytics entry point. Sits under the Drives/Software strip so
+            // Costs stays visually adjacent to the other read-only insight surfaces
+            // (Stats + Mileage) rather than the live-status battery card.
+            NavButton(
+                title = stringResource(R.string.nav_costs),
+                value = stringResource(R.string.nav_costs_subtitle),
+                icon = Icons.Filled.Paid,
+                palette = palette,
+                onClick = onNavigateToCosts,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

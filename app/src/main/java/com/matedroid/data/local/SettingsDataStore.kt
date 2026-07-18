@@ -54,7 +54,33 @@ data class AppSettings(
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val teslamateBaseUrl: String = "",
-    val lastSelectedCarId: Int? = null
+    val unitOfLength: String = "km",
+    val lastSelectedCarId: Int? = null,
+    /**
+     * Home / AC utility rate (per kWh) in the user's chosen [currencyCode].
+     * Null when the user has not configured a rate; MateDroid then falls back
+     * to TeslaMate's recorded cost only.
+     */
+    val homeUtilityRatePerKwh: Double? = null,
+    /**
+     * Optional DC / public utility rate (per kWh). When null, DC estimates
+     * fall back to [homeUtilityRatePerKwh].
+     */
+    val dcUtilityRatePerKWh: Double? = null,
+    /**
+     * User assumption for an equivalent gasoline car's fuel economy.
+     * Interpreted in L/100 km when [iceFuelEconomyIsMpg] is false, US mpg otherwise.
+     * Null when unset — the gasoline comparison stays hidden in that case.
+     */
+    val iceFuelEconomyValue: Double? = null,
+    val iceFuelEconomyIsMpg: Boolean = false,
+    /**
+     * User assumption for the price of a unit of gasoline. Interpreted per
+     * liter when [iceFuelPriceIsPerGallon] is false, per US gallon otherwise.
+     * Stored in the same currency as [currencyCode].
+     */
+    val iceFuelPrice: Double? = null,
+    val iceFuelPriceIsPerGallon: Boolean = false,
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
@@ -76,9 +102,16 @@ class SettingsDataStore @Inject constructor(
     private val currencyCodeKey = stringPreferencesKey("currency_code")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
+    private val unitOfLengthKey = stringPreferencesKey("unit_of_length")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
+    private val homeUtilityRateKey = stringPreferencesKey("home_utility_rate_per_kwh")
+    private val dcUtilityRateKey = stringPreferencesKey("dc_utility_rate_per_kwh")
+    private val iceFuelEconomyValueKey = stringPreferencesKey("ice_fuel_economy_value")
+    private val iceFuelEconomyIsMpgKey = booleanPreferencesKey("ice_fuel_economy_is_mpg")
+    private val iceFuelPriceKey = stringPreferencesKey("ice_fuel_price")
+    private val iceFuelPriceIsPerGallonKey = booleanPreferencesKey("ice_fuel_price_is_per_gallon")
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
@@ -95,7 +128,14 @@ class SettingsDataStore @Inject constructor(
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
-            lastSelectedCarId = preferences[lastSelectedCarIdKey]
+            unitOfLength = preferences[unitOfLengthKey] ?: "km",
+            lastSelectedCarId = preferences[lastSelectedCarIdKey],
+            homeUtilityRatePerKwh = preferences[homeUtilityRateKey]?.toDoubleOrNull(),
+            dcUtilityRatePerKWh = preferences[dcUtilityRateKey]?.toDoubleOrNull(),
+            iceFuelEconomyValue = preferences[iceFuelEconomyValueKey]?.toDoubleOrNull(),
+            iceFuelEconomyIsMpg = preferences[iceFuelEconomyIsMpgKey] ?: false,
+            iceFuelPrice = preferences[iceFuelPriceKey]?.toDoubleOrNull(),
+            iceFuelPriceIsPerGallon = preferences[iceFuelPriceIsPerGallonKey] ?: false,
         )
     }
 
@@ -194,6 +234,17 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    /**
+     * Cache the user's unit-of-length preference (km/mi) fetched from TeslaMate
+     * global settings. Consumed by widgets so they can format distances offline
+     * without hitting the API.
+     */
+    suspend fun saveUnitOfLength(unitOfLength: String) {
+        context.dataStore.edit { preferences ->
+            preferences[unitOfLengthKey] = unitOfLength
+        }
+    }
+
     suspend fun saveLastSelectedCarId(carId: Int) {
         context.dataStore.edit { preferences ->
             preferences[lastSelectedCarIdKey] = carId
@@ -218,6 +269,83 @@ class SettingsDataStore @Inject constructor(
             }
 
             preferences[carImageOverridesKey] = overridesToJson(currentMap)
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the home utility rate. Rates are
+     * stored as strings so an empty preference cleanly means "not set". Any
+     * non-finite or non-positive value is treated as "clear the rate".
+     */
+    suspend fun saveHomeUtilityRate(ratePerKwh: Double?) {
+        context.dataStore.edit { preferences ->
+            val valid = ratePerKwh?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(homeUtilityRateKey)
+            } else {
+                preferences[homeUtilityRateKey] = valid.toString()
+            }
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the optional DC utility rate.
+     */
+    suspend fun saveDcUtilityRate(ratePerKwh: Double?) {
+        context.dataStore.edit { preferences ->
+            val valid = ratePerKwh?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(dcUtilityRateKey)
+            } else {
+                preferences[dcUtilityRateKey] = valid.toString()
+            }
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the ICE fuel-economy assumption.
+     * [isMpg] records the unit the user typed the value in so we don't lose it
+     * on reload.
+     */
+    suspend fun saveIceFuelEconomy(value: Double?, isMpg: Boolean) {
+        context.dataStore.edit { preferences ->
+            val valid = value?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(iceFuelEconomyValueKey)
+            } else {
+                preferences[iceFuelEconomyValueKey] = valid.toString()
+            }
+            preferences[iceFuelEconomyIsMpgKey] = isMpg
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the ICE fuel-price assumption
+     * in the user's chosen currency. [isPerGallon] records the entered unit.
+     */
+    suspend fun saveIceFuelPrice(value: Double?, isPerGallon: Boolean) {
+        context.dataStore.edit { preferences ->
+            val valid = value?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(iceFuelPriceKey)
+            } else {
+                preferences[iceFuelPriceKey] = valid.toString()
+            }
+            preferences[iceFuelPriceIsPerGallonKey] = isPerGallon
+        }
+    }
+
+    /** Update just the ICE fuel-economy unit (leaves the value untouched). */
+    suspend fun saveIceFuelEconomyUnit(isMpg: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[iceFuelEconomyIsMpgKey] = isMpg
+        }
+    }
+
+    /** Update just the ICE fuel-price unit (leaves the value untouched). */
+    suspend fun saveIceFuelPriceUnit(isPerGallon: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[iceFuelPriceIsPerGallonKey] = isPerGallon
         }
     }
 

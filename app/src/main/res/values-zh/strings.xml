@@ -181,6 +181,8 @@
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">软件</string>
+    <string name="nav_costs">费用</string>
+    <string name="nav_costs_subtitle">充电费用明细</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
     <string name="tire_fl">左前</string>
@@ -243,6 +245,38 @@
 
     <!-- Currency selector -->
     <string name="settings_currency_label">费用货币</string>
+    <string name="settings_utility_rates_title">电价</string>
+    <string name="settings_utility_rates_hint">在 TeslaMate 未设置价格时，用于估算充电费用。请按上方所选货币输入本地每 kWh 电价。</string>
+    <string name="settings_home_utility_rate_label">家用电价（每 kWh）</string>
+    <string name="settings_home_utility_rate_hint">适用于交流/家用充电，以及行驶费用估算。</string>
+    <string name="settings_dc_utility_rate_label">直流 / 公共电价（每 kWh，可选）</string>
+    <string name="settings_dc_utility_rate_hint">适用于快充。若留空，直流充电将使用家用电价。</string>
+    <string name="settings_utility_rate_placeholder">例如 0.15</string>
+
+    <!-- Gasoline comparison section -->
+    <string name="settings_ice_section_title">与汽油车对比</string>
+    <string name="settings_ice_section_hint">将充电成本与同等汽油车对比。请填写其油耗与加油站油价。</string>
+    <string name="settings_ice_fuel_economy_label">油耗</string>
+    <string name="settings_ice_fuel_economy_placeholder_l_per_100km">例如 7.0</string>
+    <string name="settings_ice_fuel_economy_placeholder_mpg">例如 32</string>
+    <string name="settings_ice_fuel_price_label">油价</string>
+    <string name="settings_ice_fuel_price_placeholder">例如 1.75</string>
+    <string name="settings_ice_unit_l_per_100km">L/100 km</string>
+    <string name="settings_ice_unit_mpg">mpg</string>
+    <string name="settings_ice_unit_per_liter">每升</string>
+    <string name="settings_ice_unit_per_gallon">每加仑</string>
+    <string name="settings_ice_unit_liter_short">L</string>
+    <string name="settings_ice_unit_gallon_short">gal</string>
+
+    <!-- Cost Analytics: gasoline comparison card -->
+    <string name="ice_comparison_title">与汽油对比</string>
+    <string name="ice_comparison_tesla_label">Tesla（此区间）</string>
+    <string name="ice_comparison_gasoline_label">汽油等效成本</string>
+    <string name="ice_comparison_difference_label">差额</string>
+    <string name="ice_comparison_distance_label">距离（%1$s）</string>
+    <string name="ice_comparison_gasoline_volume">按此油耗消耗的汽油：%1$s</string>
+    <string name="ice_comparison_assumptions_note">基于您设定的油耗与油价假设。</string>
+
     <string name="settings_currency_select">选择货币</string>
 
     <!-- Extra settings section (collapsible) -->
@@ -509,6 +543,13 @@
     <!-- Degradation info dialog -->
     <string name="estimated_degradation_title">预估衰减</string>
     <string name="estimated_degradation_message">电池衰减根据 TeslaMate 数据估算。\n\n• 容量 (%)：与新电池相比的剩余电池健康度\n• 损失 (kWh)：因衰减而损失的能量容量\n• 损失 (%)：原始容量的损失百分比\n\n注意：这是一个估算值。Tesla 不提供官方衰减数据。</string>
+
+    <!-- Battery health history -->
+    <string name="battery_history_title">最大续航变化</string>
+    <string name="battery_history_info_title">最大续航历史</string>
+    <string name="battery_history_info_message">每次你打开此界面，MateDroid 会记录一次电池最大续航快照（每天最多一次）。图表显示自开始使用应用以来的变化。\n\n续航会随温度和驾驶风格波动 — 短期下降通常是噪声，而非衰减。</string>
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <string name="battery_history_not_enough_data">再过一天回来 — 至少需要两次快照才能绘制趋势。</string>
 
     <!-- Range section -->
     <string name="range">续航</string>
@@ -1101,10 +1142,27 @@
     <string name="trip_driving_time">驾驶时间</string>
     <string name="trip_energy_charged">充入能量</string>
     <string name="trip_charge_cost">充电费用</string>
+    <string name="trip_cost_coverage_partial">费用包含 %1$d/%2$d 次充电记录</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">这些行程没有记录充电费用</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">能耗</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">费用 / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <string name="trip_intelligence_title">行程亮点</string>
+    <string name="trip_intelligence_most_efficient">最省电</string>
+    <string name="trip_intelligence_least_efficient">最耗电</string>
+    <string name="trip_intelligence_cheapest_per_100">最便宜 / 100 %1$s</string>
+    <string name="trip_intelligence_pricey_per_100">最贵 / 100 %1$s</string>
+    <string name="trip_intelligence_longest">最长行程</string>
+    <string name="trip_intelligence_charge_overhead">充电占比最高</string>
+    <string name="trip_intelligence_energy_gap">能量差</string>
+    <string name="trip_intelligence_avg_charge_time">平均充电时长 / 行程</string>
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <string name="trip_intelligence_open_trip">打开行程</string>
+
     <string name="trip_leg_drive">行驶 %1$d</string>
     <string name="trip_leg_charge">充电 %1$d</string>
 
@@ -1301,4 +1359,56 @@
     <plurals name="compare_sessions_nearby">
         <item quantity="other">附近 %d 次可比充电</item>
     </plurals>
+
+    <!-- ==================== 费用分析屏幕 ==================== -->
+    <string name="cost_analytics_title">费用分析</string>
+    <string name="cost_analytics_unavailable">—</string>
+    <string name="cost_analytics_headline_title">费用概览</string>
+    <string name="cost_analytics_known_cost">已知费用</string>
+    <string name="cost_analytics_effective_cost">估算费用</string>
+    <string name="cost_analytics_estimated_note">包含根据你的电价估算的 %1$d 次充电。</string>
+    <string name="cost_analytics_recorded_vs_estimated">已记录 %1$s（%2$d）· 已估算 %3$s（%4$d）</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">全部有价（含估算）</string>
+    <string name="cost_analytics_cost_per_100">每 100 %1$s 费用</string>
+    <string name="cost_analytics_energy_added">已充能量</string>
+    <string name="cost_analytics_avg_cost_per_kwh">每 kWh 均价</string>
+    <string name="cost_analytics_distance">里程</string>
+    <string name="cost_analytics_charges">充电次数</string>
+    <string name="cost_analytics_coverage_title">费用覆盖</string>
+    <string name="cost_analytics_coverage_label">覆盖</string>
+    <string name="cost_analytics_coverage_none">均未计价</string>
+    <string name="cost_analytics_coverage_partial">%1$d / %2$d 已计价</string>
+    <string name="cost_analytics_coverage_complete">全部已计价</string>
+    <string name="cost_analytics_coverage_none_note">在 TeslaMate 中为充电添加费用后，即可查看每单位里程费用及每 kWh 均价。</string>
+    <string name="cost_analytics_coverage_partial_note">仅当范围内所有充电都已计价时才显示每单位里程费用。合计仅反映已计价的会话。</string>
+    <string name="cost_analytics_missing">缺少费用</string>
+    <string name="cost_analytics_free_sessions">免费会话</string>
+    <string name="cost_analytics_empty">此范围内暂无充电。</string>
+    <string name="cost_analytics_range_7_days">7 天</string>
+    <string name="cost_analytics_range_30_days">30 天</string>
+    <string name="cost_analytics_range_90_days">90 天</string>
+    <string name="cost_analytics_range_all_time">全部</string>
+
+    <!-- ==================== 费用摘要小组件 ==================== -->
+    <string name="cost_widget_title">费用摘要</string>
+    <string name="cost_widget_description">按范围显示充电费用、覆盖和能耗</string>
+    <string name="cost_widget_period_last_7_days">最近 7 天</string>
+    <string name="cost_widget_period_last_30_days">最近 30 天</string>
+    <string name="cost_widget_period_last_90_days">最近 90 天</string>
+    <string name="cost_widget_range_title">摘要范围</string>
+    <string name="cost_widget_empty">此范围内没有充电</string>
+    <string name="cost_widget_energy">能耗</string>
+    <string name="cost_widget_charges">充电次数</string>
+    <string name="cost_widget_cost_per_distance">每 100 %1$s 费用</string>
+    <string name="cost_widget_avg_cost_per_kwh">均价/kWh</string>
+    <string name="cost_widget_no_value">暂无</string>
+    <string name="cost_widget_no_charges">无充电</string>
+    <string name="cost_widget_cost_none_priced">费用 · 均未计价</string>
+    <string name="cost_widget_cost_partially_priced">费用 · %1$d/%2$d 已计价</string>
+    <string name="cost_widget_cost_all_priced">费用 · 全部已计价</string>
+    <string name="cost_widget_compact_cost_per_distance">%1$s /100</string>
+    <string name="cost_widget_compact_cost_per_distance_unavailable">费率暂无</string>
+    <string name="cost_widget_compact_avg_cost_per_kwh">%1$s /kWh</string>
+    <string name="cost_widget_updated">已更新 %1$s</string>
+    <string name="widget_save">保存小组件</string>
 </resources>

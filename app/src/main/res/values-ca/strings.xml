@@ -181,6 +181,8 @@
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">Programari</string>
+    <string name="nav_costs">Costos</string>
+    <string name="nav_costs_subtitle">Desglossament del cost de càrrega</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
     <string name="tire_fl">DE</string>
@@ -243,6 +245,38 @@
 
     <!-- Currency selector -->
     <string name="settings_currency_label">Moneda per als costos</string>
+    <string name="settings_utility_rates_title">Tarifes elèctriques</string>
+    <string name="settings_utility_rates_hint">S\'utilitzen per estimar el cost de càrrega quan TeslaMate no té preu. Introdueix la teva tarifa local per kWh en la moneda seleccionada a dalt.</string>
+    <string name="settings_home_utility_rate_label">Tarifa domèstica (per kWh)</string>
+    <string name="settings_home_utility_rate_hint">S\'aplica a sessions AC/domèstiques i a les estimacions de cost de conducció.</string>
+    <string name="settings_dc_utility_rate_label">Tarifa DC / pública (per kWh, opcional)</string>
+    <string name="settings_dc_utility_rate_hint">S\'aplica a sessions de càrrega ràpida. Si es deixa en blanc, les sessions DC utilitzen la tarifa domèstica.</string>
+    <string name="settings_utility_rate_placeholder">p. ex. 0,15</string>
+
+    <!-- Gasoline comparison section -->
+    <string name="settings_ice_section_title">Comparació amb la gasolina</string>
+    <string name="settings_ice_section_hint">Compara el cost de càrrega amb el d\'un cotxe de gasolina equivalent. Introdueix el consum i el preu del combustible al sortidor.</string>
+    <string name="settings_ice_fuel_economy_label">Consum de combustible</string>
+    <string name="settings_ice_fuel_economy_placeholder_l_per_100km">p. ex. 7,0</string>
+    <string name="settings_ice_fuel_economy_placeholder_mpg">p. ex. 32</string>
+    <string name="settings_ice_fuel_price_label">Preu del combustible</string>
+    <string name="settings_ice_fuel_price_placeholder">p. ex. 1,75</string>
+    <string name="settings_ice_unit_l_per_100km">L/100 km</string>
+    <string name="settings_ice_unit_mpg">mpg</string>
+    <string name="settings_ice_unit_per_liter">per litre</string>
+    <string name="settings_ice_unit_per_gallon">per galó</string>
+    <string name="settings_ice_unit_liter_short">L</string>
+    <string name="settings_ice_unit_gallon_short">gal</string>
+
+    <!-- Cost Analytics: gasoline comparison card -->
+    <string name="ice_comparison_title">Comparació amb la gasolina</string>
+    <string name="ice_comparison_tesla_label">Tesla (aquest rang)</string>
+    <string name="ice_comparison_gasoline_label">Equivalent en gasolina</string>
+    <string name="ice_comparison_difference_label">Diferència</string>
+    <string name="ice_comparison_distance_label">Distància (%1$s)</string>
+    <string name="ice_comparison_gasoline_volume">Gasolina consumida amb aquest consum: %1$s</string>
+    <string name="ice_comparison_assumptions_note">Basat en els teus supòsits de consum i preu del combustible.</string>
+
     <string name="settings_currency_select">Selecciona moneda</string>
 
     <!-- Extra settings section (collapsible) -->
@@ -511,6 +545,13 @@
     <string name="estimated_degradation_message">La degradació de la bateria s\'estima basant-se en dades de Teslamate.\n\n• Capacitat (%): Salut restant de la bateria comparada amb nova\n• Pèrdua (kWh): Capacitat energètica perduda per degradació\n• Pèrdua (%): Percentatge de la capacitat original perduda\n\nNota: Això és una estimació. Tesla no proporciona dades oficials de degradació.</string>
 
     <!-- Range section -->
+    <!-- Battery health history -->
+    <string name="battery_history_title">Autonomia màxima al llarg del temps</string>
+    <string name="battery_history_info_title">Historial d\'autonomia màxima</string>
+    <string name="battery_history_info_message">MateDroid enregistra una captura de l\'autonomia màxima cada cop que obres aquesta pantalla (com a màxim una al dia). El gràfic mostra com ha canviat des que utilitzes l\'app.\n\nL\'autonomia varia amb la temperatura i l\'estil de conducció — pren les baixades curtes com a soroll, no com a degradació.</string>
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <string name="battery_history_not_enough_data">Torna passat un altre dia — calen almenys dues captures per traçar la tendència.</string>
+
     <string name="range">Autonomia</string>
     <string name="max_range_new">Autonomia màx (nova)</string>
     <string name="max_range_now">Autonomia màx (ara)</string>
@@ -1100,10 +1141,27 @@
     <string name="trip_driving_time">Temps de conducció</string>
     <string name="trip_energy_charged">Energia carregada</string>
     <string name="trip_charge_cost">Cost de càrrega</string>
+    <string name="trip_cost_coverage_partial">Els costos inclouen %1$d de %2$d sessions de càrrega</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">No hi ha costos de càrrega registrats per a aquests viatges</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Consum</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">Cost / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <string name="trip_intelligence_title">Destacats dels viatges</string>
+    <string name="trip_intelligence_most_efficient">Més eficient</string>
+    <string name="trip_intelligence_least_efficient">Menys eficient</string>
+    <string name="trip_intelligence_cheapest_per_100">Més barat / 100 %1$s</string>
+    <string name="trip_intelligence_pricey_per_100">Més car / 100 %1$s</string>
+    <string name="trip_intelligence_longest">Viatge més llarg</string>
+    <string name="trip_intelligence_charge_overhead">Més temps carregant</string>
+    <string name="trip_intelligence_energy_gap">Balanç d\'energia</string>
+    <string name="trip_intelligence_avg_charge_time">Càrrega mitjana / viatge</string>
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <string name="trip_intelligence_open_trip">Obre el viatge</string>
+
     <string name="trip_leg_drive">Trajecte %1$d</string>
     <string name="trip_leg_charge">Càrrega %1$d</string>
 
@@ -1279,4 +1337,56 @@
         <item quantity="one">%d càrrega comparable a prop</item>
         <item quantity="other">%d càrregues comparables a prop</item>
     </plurals>
+
+    <!-- ==================== Pantalla Anàlisi de costos ==================== -->
+    <string name="cost_analytics_title">Anàlisi de costos</string>
+    <string name="cost_analytics_unavailable">—</string>
+    <string name="cost_analytics_headline_title">Resum de costos</string>
+    <string name="cost_analytics_known_cost">Cost conegut</string>
+    <string name="cost_analytics_effective_cost">Cost estimat</string>
+    <string name="cost_analytics_estimated_note">Inclou %1$d sessió/ons estimada/es a partir de la teva tarifa elèctrica.</string>
+    <string name="cost_analytics_recorded_vs_estimated">Registrat %1$s (%2$d) · Estimat %3$s (%4$d)</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">Tot amb preu (amb estimacions)</string>
+    <string name="cost_analytics_cost_per_100">Cost / 100 %1$s</string>
+    <string name="cost_analytics_energy_added">Energia afegida</string>
+    <string name="cost_analytics_avg_cost_per_kwh">Cost mitjà / kWh</string>
+    <string name="cost_analytics_distance">Distància</string>
+    <string name="cost_analytics_charges">Càrregues</string>
+    <string name="cost_analytics_coverage_title">Cobertura de costos</string>
+    <string name="cost_analytics_coverage_label">Cobertura</string>
+    <string name="cost_analytics_coverage_none">Sense preu</string>
+    <string name="cost_analytics_coverage_partial">%1$d de %2$d amb preu</string>
+    <string name="cost_analytics_coverage_complete">Totes amb preu</string>
+    <string name="cost_analytics_coverage_none_note">Afegeix el cost a les càrregues a TeslaMate per veure el cost / distància i el cost mitjà / kWh.</string>
+    <string name="cost_analytics_coverage_partial_note">El cost / distància es manté ocult fins que totes les càrregues de l\'interval tinguin preu. Els totals reflecteixen només les sessions amb preu.</string>
+    <string name="cost_analytics_missing">Cost mancant</string>
+    <string name="cost_analytics_free_sessions">Sessions gratis</string>
+    <string name="cost_analytics_empty">Cap càrrega en aquest interval.</string>
+    <string name="cost_analytics_range_7_days">7d</string>
+    <string name="cost_analytics_range_30_days">30d</string>
+    <string name="cost_analytics_range_90_days">90d</string>
+    <string name="cost_analytics_range_all_time">Sempre</string>
+
+    <!-- ==================== Estri resum de costos ==================== -->
+    <string name="cost_widget_title">Resum de costos</string>
+    <string name="cost_widget_description">Cost de càrrega, cobertura i energia per interval</string>
+    <string name="cost_widget_period_last_7_days">Darrers 7 dies</string>
+    <string name="cost_widget_period_last_30_days">Darrers 30 dies</string>
+    <string name="cost_widget_period_last_90_days">Darrers 90 dies</string>
+    <string name="cost_widget_range_title">Interval del resum</string>
+    <string name="cost_widget_empty">Cap càrrega en aquest interval</string>
+    <string name="cost_widget_energy">Energia</string>
+    <string name="cost_widget_charges">Càrregues</string>
+    <string name="cost_widget_cost_per_distance">Cost/100 %1$s</string>
+    <string name="cost_widget_avg_cost_per_kwh">Mitjà/kWh</string>
+    <string name="cost_widget_no_value">N/D</string>
+    <string name="cost_widget_no_charges">Cap càrrega</string>
+    <string name="cost_widget_cost_none_priced">Cost · cap preu</string>
+    <string name="cost_widget_cost_partially_priced">Cost · %1$d/%2$d amb preu</string>
+    <string name="cost_widget_cost_all_priced">Cost · complet</string>
+    <string name="cost_widget_compact_cost_per_distance">%1$s /100</string>
+    <string name="cost_widget_compact_cost_per_distance_unavailable">Taxa N/D</string>
+    <string name="cost_widget_compact_avg_cost_per_kwh">%1$s /kWh</string>
+    <string name="cost_widget_updated">Actualitzat %1$s</string>
+    <string name="widget_save">Desa l\'estri</string>
 </resources>
