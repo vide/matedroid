@@ -32,7 +32,7 @@ class TripsSummaryCalculatorTest {
     }
 
     @Test
-    fun `calculate exposes partial cost coverage without discarding known costs`() {
+    fun `calculate exposes partial cost coverage without inventing a complete rate`() {
         val summary = TripsSummaryCalculator.calculate(
             listOf(
                 trip(
@@ -45,7 +45,7 @@ class TripsSummaryCalculatorTest {
         )
 
         assertEquals(10.0, summary.totalChargeCost ?: 0.0, 0.001)
-        assertEquals(2.5, summary.costPer100Distance ?: 0.0, 0.001)
+        assertNull(summary.costPer100Distance)
         assertEquals(1, summary.pricedChargeCount)
         assertEquals(2, summary.chargeCount)
         assertEquals(TripCostCoverage.Partial, summary.costCoverage)
@@ -62,6 +62,21 @@ class TripsSummaryCalculatorTest {
         assertNull(summary.totalChargeCost)
         assertNull(summary.costPer100Distance)
         assertEquals(TripCostCoverage.None, summary.costCoverage)
+    }
+
+    @Test
+    fun `calculate treats zero-cost charges as priced and complete`() {
+        val summary = TripsSummaryCalculator.calculate(
+            listOf(
+                trip(id = 1, distance = 200.0, energyConsumed = 30.0, chargeCosts = listOf(0.0))
+            )
+        )
+
+        assertEquals(0.0, summary.totalChargeCost ?: -1.0, 0.001)
+        assertEquals(0.0, summary.costPer100Distance ?: -1.0, 0.001)
+        assertEquals(1, summary.pricedChargeCount)
+        assertEquals(1, summary.chargeCount)
+        assertEquals(TripCostCoverage.Complete, summary.costCoverage)
     }
 
     @Test
