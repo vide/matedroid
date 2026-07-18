@@ -252,6 +252,31 @@
     <string name="settings_dc_utility_rate_label">直流 / 公共电价（每 kWh，可选）</string>
     <string name="settings_dc_utility_rate_hint">适用于快充。若留空，直流充电将使用家用电价。</string>
     <string name="settings_utility_rate_placeholder">例如 0.15</string>
+
+    <!-- Gasoline comparison section -->
+    <string name="settings_ice_section_title">与汽油车对比</string>
+    <string name="settings_ice_section_hint">将充电成本与同等汽油车对比。请填写其油耗与加油站油价。</string>
+    <string name="settings_ice_fuel_economy_label">油耗</string>
+    <string name="settings_ice_fuel_economy_placeholder_l_per_100km">例如 7.0</string>
+    <string name="settings_ice_fuel_economy_placeholder_mpg">例如 32</string>
+    <string name="settings_ice_fuel_price_label">油价</string>
+    <string name="settings_ice_fuel_price_placeholder">例如 1.75</string>
+    <string name="settings_ice_unit_l_per_100km">L/100 km</string>
+    <string name="settings_ice_unit_mpg">mpg</string>
+    <string name="settings_ice_unit_per_liter">每升</string>
+    <string name="settings_ice_unit_per_gallon">每加仑</string>
+    <string name="settings_ice_unit_liter_short">L</string>
+    <string name="settings_ice_unit_gallon_short">gal</string>
+
+    <!-- Cost Analytics: gasoline comparison card -->
+    <string name="ice_comparison_title">与汽油对比</string>
+    <string name="ice_comparison_tesla_label">Tesla（此区间）</string>
+    <string name="ice_comparison_gasoline_label">汽油等效成本</string>
+    <string name="ice_comparison_difference_label">差额</string>
+    <string name="ice_comparison_distance_label">距离（%1$s）</string>
+    <string name="ice_comparison_gasoline_volume">按此油耗消耗的汽油：%1$s</string>
+    <string name="ice_comparison_assumptions_note">基于您设定的油耗与油价假设。</string>
+
     <string name="settings_currency_select">选择货币</string>
 
     <!-- Extra settings section (collapsible) -->

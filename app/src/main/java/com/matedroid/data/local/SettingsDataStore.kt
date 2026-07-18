@@ -67,6 +67,20 @@ data class AppSettings(
      * fall back to [homeUtilityRatePerKwh].
      */
     val dcUtilityRatePerKWh: Double? = null,
+    /**
+     * User assumption for an equivalent gasoline car's fuel economy.
+     * Interpreted in L/100 km when [iceFuelEconomyIsMpg] is false, US mpg otherwise.
+     * Null when unset — the gasoline comparison stays hidden in that case.
+     */
+    val iceFuelEconomyValue: Double? = null,
+    val iceFuelEconomyIsMpg: Boolean = false,
+    /**
+     * User assumption for the price of a unit of gasoline. Interpreted per
+     * liter when [iceFuelPriceIsPerGallon] is false, per US gallon otherwise.
+     * Stored in the same currency as [currencyCode].
+     */
+    val iceFuelPrice: Double? = null,
+    val iceFuelPriceIsPerGallon: Boolean = false,
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
@@ -94,6 +108,10 @@ class SettingsDataStore @Inject constructor(
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
     private val homeUtilityRateKey = stringPreferencesKey("home_utility_rate_per_kwh")
     private val dcUtilityRateKey = stringPreferencesKey("dc_utility_rate_per_kwh")
+    private val iceFuelEconomyValueKey = stringPreferencesKey("ice_fuel_economy_value")
+    private val iceFuelEconomyIsMpgKey = booleanPreferencesKey("ice_fuel_economy_is_mpg")
+    private val iceFuelPriceKey = stringPreferencesKey("ice_fuel_price")
+    private val iceFuelPriceIsPerGallonKey = booleanPreferencesKey("ice_fuel_price_is_per_gallon")
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
@@ -114,6 +132,10 @@ class SettingsDataStore @Inject constructor(
             lastSelectedCarId = preferences[lastSelectedCarIdKey],
             homeUtilityRatePerKwh = preferences[homeUtilityRateKey]?.toDoubleOrNull(),
             dcUtilityRatePerKWh = preferences[dcUtilityRateKey]?.toDoubleOrNull(),
+            iceFuelEconomyValue = preferences[iceFuelEconomyValueKey]?.toDoubleOrNull(),
+            iceFuelEconomyIsMpg = preferences[iceFuelEconomyIsMpgKey] ?: false,
+            iceFuelPrice = preferences[iceFuelPriceKey]?.toDoubleOrNull(),
+            iceFuelPriceIsPerGallon = preferences[iceFuelPriceIsPerGallonKey] ?: false,
         )
     }
 
@@ -277,6 +299,53 @@ class SettingsDataStore @Inject constructor(
             } else {
                 preferences[dcUtilityRateKey] = valid.toString()
             }
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the ICE fuel-economy assumption.
+     * [isMpg] records the unit the user typed the value in so we don't lose it
+     * on reload.
+     */
+    suspend fun saveIceFuelEconomy(value: Double?, isMpg: Boolean) {
+        context.dataStore.edit { preferences ->
+            val valid = value?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(iceFuelEconomyValueKey)
+            } else {
+                preferences[iceFuelEconomyValueKey] = valid.toString()
+            }
+            preferences[iceFuelEconomyIsMpgKey] = isMpg
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the ICE fuel-price assumption
+     * in the user's chosen currency. [isPerGallon] records the entered unit.
+     */
+    suspend fun saveIceFuelPrice(value: Double?, isPerGallon: Boolean) {
+        context.dataStore.edit { preferences ->
+            val valid = value?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(iceFuelPriceKey)
+            } else {
+                preferences[iceFuelPriceKey] = valid.toString()
+            }
+            preferences[iceFuelPriceIsPerGallonKey] = isPerGallon
+        }
+    }
+
+    /** Update just the ICE fuel-economy unit (leaves the value untouched). */
+    suspend fun saveIceFuelEconomyUnit(isMpg: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[iceFuelEconomyIsMpgKey] = isMpg
+        }
+    }
+
+    /** Update just the ICE fuel-price unit (leaves the value untouched). */
+    suspend fun saveIceFuelPriceUnit(isPerGallon: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[iceFuelPriceIsPerGallonKey] = isPerGallon
         }
     }
 

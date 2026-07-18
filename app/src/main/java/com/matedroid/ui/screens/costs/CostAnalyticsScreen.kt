@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.MoneyOff
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Straighten
@@ -51,6 +52,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.CostAnalyticsMetrics
+import com.matedroid.domain.IceAssumptions
+import com.matedroid.domain.IceComparisonResult
 import com.matedroid.domain.TripCostCoverage
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -104,6 +107,8 @@ fun CostAnalyticsScreen(
                 range = uiState.range,
                 units = uiState.units,
                 currencySymbol = uiState.currencySymbol,
+                iceAssumptions = uiState.iceAssumptions,
+                iceComparison = uiState.iceComparison,
                 palette = palette,
                 onRangeSelected = viewModel::setRange,
                 modifier = Modifier.padding(padding),
@@ -118,6 +123,8 @@ private fun CostAnalyticsContent(
     range: CostAnalyticsRange,
     units: Units?,
     currencySymbol: String,
+    iceAssumptions: IceAssumptions,
+    iceComparison: IceComparisonResult?,
     palette: CarColorPalette,
     onRangeSelected: (CostAnalyticsRange) -> Unit,
     modifier: Modifier = Modifier,
@@ -149,9 +156,147 @@ private fun CostAnalyticsContent(
                 palette = palette,
             )
         }
+        if (iceAssumptions.isConfigured &&
+            iceComparison != null &&
+            iceComparison.iceCost != null
+        ) {
+            item {
+                IceComparisonCard(
+                    comparison = iceComparison,
+                    units = units,
+                    currencySymbol = currencySymbol,
+                    palette = palette,
+                )
+            }
+        }
         if (metrics.chargeCount == 0) {
             item {
                 EmptyStateCard(palette = palette)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IceComparisonCard(
+    comparison: IceComparisonResult,
+    units: Units?,
+    currencySymbol: String,
+    palette: CarColorPalette,
+) {
+    val unavailable = stringResource(R.string.cost_analytics_unavailable)
+    val distanceUnit = UnitFormatter.getDistanceUnit(units)
+    val teslaCost = comparison.teslaCost
+        ?.let { UnitFormatter.formatCost(it, currencySymbol) }
+        ?: unavailable
+    val iceCost = comparison.iceCost
+        ?.let { UnitFormatter.formatCost(it, currencySymbol) }
+        ?: unavailable
+    val savingsValue = comparison.savings
+    val savingsFormatted = savingsValue
+        ?.let { UnitFormatter.formatCost(it, currencySymbol) }
+        ?: unavailable
+    val savingsPercentFormatted = comparison.savingsPercent
+        ?.let { "%+,.1f%%".format(it) }
+    val volumeFormatted = comparison.iceVolumeUsed?.let { volume ->
+        val unitLabel = if (comparison.usedImperialVolume) {
+            stringResource(R.string.settings_ice_unit_gallon_short)
+        } else {
+            stringResource(R.string.settings_ice_unit_liter_short)
+        }
+        "%,.1f %s".format(volume, unitLabel)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = palette.surface),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.LocalGasStation,
+                    contentDescription = null,
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.ice_comparison_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface,
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.ElectricBolt,
+                    label = stringResource(R.string.ice_comparison_tesla_label),
+                    value = teslaCost,
+                    palette = palette,
+                    modifier = Modifier.weight(1f),
+                )
+                SummaryItem(
+                    icon = Icons.Filled.LocalGasStation,
+                    label = stringResource(R.string.ice_comparison_gasoline_label),
+                    value = iceCost,
+                    palette = palette,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                SummaryItem(
+                    icon = Icons.Filled.Paid,
+                    label = stringResource(R.string.ice_comparison_difference_label),
+                    value = if (savingsPercentFormatted != null && savingsValue != null) {
+                        "$savingsFormatted ($savingsPercentFormatted)"
+                    } else {
+                        savingsFormatted
+                    },
+                    palette = palette,
+                    modifier = Modifier.weight(1f),
+                )
+                SummaryItem(
+                    icon = Icons.Filled.Straighten,
+                    label = stringResource(R.string.ice_comparison_distance_label, distanceUnit),
+                    value = UnitFormatter.formatDistance(
+                        comparison.distance,
+                        units,
+                        decimals = 0,
+                    ),
+                    palette = palette,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (volumeFormatted != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(
+                        R.string.ice_comparison_gasoline_volume,
+                        volumeFormatted,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = palette.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = stringResource(R.string.ice_comparison_assumptions_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.onSurfaceVariant,
+                )
             }
         }
     }

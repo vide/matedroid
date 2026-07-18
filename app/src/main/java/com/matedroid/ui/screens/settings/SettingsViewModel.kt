@@ -46,6 +46,14 @@ data class SettingsUiState(
     val homeUtilityRateInput: String = "",
     /** Raw text entered by the user for the optional DC utility rate. */
     val dcUtilityRateInput: String = "",
+    /** Raw text entered for the ICE (gasoline) fuel-economy assumption. */
+    val iceFuelEconomyInput: String = "",
+    /** True when the user is entering the fuel economy in mpg (else L/100 km). */
+    val iceFuelEconomyIsMpg: Boolean = false,
+    /** Raw text entered for the ICE (gasoline) fuel-price assumption. */
+    val iceFuelPriceInput: String = "",
+    /** True when the user is entering the fuel price per gallon (else per liter). */
+    val iceFuelPriceIsPerGallon: Boolean = false,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -111,6 +119,10 @@ class SettingsViewModel @Inject constructor(
                 showShortDrivesCharges = settings.showShortDrivesCharges,
                 homeUtilityRateInput = settings.homeUtilityRatePerKwh?.let(::formatRate) ?: "",
                 dcUtilityRateInput = settings.dcUtilityRatePerKWh?.let(::formatRate) ?: "",
+                iceFuelEconomyInput = settings.iceFuelEconomyValue?.let(::formatRate) ?: "",
+                iceFuelEconomyIsMpg = settings.iceFuelEconomyIsMpg,
+                iceFuelPriceInput = settings.iceFuelPrice?.let(::formatRate) ?: "",
+                iceFuelPriceIsPerGallon = settings.iceFuelPriceIsPerGallon,
                 isLoading = false
             )
         }
@@ -205,6 +217,47 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(dcUtilityRateInput = input)
         viewModelScope.launch {
             settingsDataStore.saveDcUtilityRate(parseRate(input))
+        }
+    }
+
+    /**
+     * Update the ICE (gasoline) fuel-economy assumption text. Same parsing
+     * rules as the utility rates — blank or non-positive clears the value.
+     */
+    fun updateIceFuelEconomy(input: String) {
+        _uiState.value = _uiState.value.copy(iceFuelEconomyInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelEconomy(
+                value = parseRate(input),
+                isMpg = _uiState.value.iceFuelEconomyIsMpg,
+            )
+        }
+    }
+
+    /** Toggle the ICE fuel-economy unit (mpg vs L/100 km) without altering the value. */
+    fun updateIceFuelEconomyIsMpg(isMpg: Boolean) {
+        _uiState.value = _uiState.value.copy(iceFuelEconomyIsMpg = isMpg)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelEconomyUnit(isMpg)
+        }
+    }
+
+    /** Update the ICE fuel-price assumption text. */
+    fun updateIceFuelPrice(input: String) {
+        _uiState.value = _uiState.value.copy(iceFuelPriceInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelPrice(
+                value = parseRate(input),
+                isPerGallon = _uiState.value.iceFuelPriceIsPerGallon,
+            )
+        }
+    }
+
+    /** Toggle the ICE fuel-price unit (per gallon vs per liter). */
+    fun updateIceFuelPriceIsPerGallon(isPerGallon: Boolean) {
+        _uiState.value = _uiState.value.copy(iceFuelPriceIsPerGallon = isPerGallon)
+        viewModelScope.launch {
+            settingsDataStore.saveIceFuelPriceUnit(isPerGallon)
         }
     }
 

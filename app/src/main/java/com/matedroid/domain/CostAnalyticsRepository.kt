@@ -48,6 +48,12 @@ class CostAnalyticsRepository @Inject constructor(
             homePerKwh = settings.homeUtilityRatePerKwh,
             dcPerKwh = settings.dcUtilityRatePerKWh,
         )
+        val iceAssumptions = IceAssumptions(
+            economyValue = settings.iceFuelEconomyValue,
+            economyIsMpg = settings.iceFuelEconomyIsMpg,
+            fuelPrice = settings.iceFuelPrice,
+            fuelPriceIsPerGallon = settings.iceFuelPriceIsPerGallon,
+        )
         val dcIds = try {
             aggregateDao.getDcChargeIds(carId).toSet()
         } catch (e: Exception) {
@@ -70,12 +76,22 @@ class CostAnalyticsRepository @Inject constructor(
             rates = rates,
             dcChargeIds = dcIds,
         )
+        val distanceIsMiles = settings.unitOfLength == "mi"
+        val iceComparison = IceComparisonCalculator.compare(
+            distance = distance,
+            distanceIsMiles = distanceIsMiles,
+            teslaCost = metrics.totalEffectiveCost ?: metrics.totalKnownCost,
+            assumptions = iceAssumptions,
+        )
+
         CostAnalyticsSnapshot(
             metrics = metrics,
             charges = charges,
             currencySymbol = currency.symbol,
             currencyCode = currency.code,
             unitOfLength = settings.unitOfLength,
+            iceAssumptions = iceAssumptions,
+            iceComparison = iceComparison,
         )
     }
 
@@ -114,4 +130,6 @@ data class CostAnalyticsSnapshot(
     val currencySymbol: String,
     val currencyCode: String,
     val unitOfLength: String,
+    val iceAssumptions: IceAssumptions = IceAssumptions(),
+    val iceComparison: IceComparisonResult? = null,
 )

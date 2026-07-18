@@ -252,6 +252,31 @@
     <string name="settings_dc_utility_rate_label">Tarifa DC / pública (por kWh, opcional)</string>
     <string name="settings_dc_utility_rate_hint">Se aplica a sesiones de carga rápida. Si se deja en blanco, las sesiones DC usan la tarifa doméstica.</string>
     <string name="settings_utility_rate_placeholder">p. ej. 0,15</string>
+
+    <!-- Gasoline comparison section -->
+    <string name="settings_ice_section_title">Comparación con gasolina</string>
+    <string name="settings_ice_section_hint">Compara el coste de carga con el de un coche de gasolina equivalente. Introduce el consumo y el precio del combustible en el surtidor.</string>
+    <string name="settings_ice_fuel_economy_label">Consumo de combustible</string>
+    <string name="settings_ice_fuel_economy_placeholder_l_per_100km">p. ej. 7,0</string>
+    <string name="settings_ice_fuel_economy_placeholder_mpg">p. ej. 32</string>
+    <string name="settings_ice_fuel_price_label">Precio del combustible</string>
+    <string name="settings_ice_fuel_price_placeholder">p. ej. 1,75</string>
+    <string name="settings_ice_unit_l_per_100km">L/100 km</string>
+    <string name="settings_ice_unit_mpg">mpg</string>
+    <string name="settings_ice_unit_per_liter">por litro</string>
+    <string name="settings_ice_unit_per_gallon">por galón</string>
+    <string name="settings_ice_unit_liter_short">L</string>
+    <string name="settings_ice_unit_gallon_short">gal</string>
+
+    <!-- Cost Analytics: gasoline comparison card -->
+    <string name="ice_comparison_title">Comparación con gasolina</string>
+    <string name="ice_comparison_tesla_label">Tesla (este rango)</string>
+    <string name="ice_comparison_gasoline_label">Equivalente en gasolina</string>
+    <string name="ice_comparison_difference_label">Diferencia</string>
+    <string name="ice_comparison_distance_label">Distancia (%1$s)</string>
+    <string name="ice_comparison_gasoline_volume">Gasolina consumida con este consumo: %1$s</string>
+    <string name="ice_comparison_assumptions_note">Basado en tus supuestos de consumo y precio del combustible.</string>
+
     <string name="settings_currency_select">Seleccionar moneda</string>
 
     <!-- Extra settings section (collapsible) -->

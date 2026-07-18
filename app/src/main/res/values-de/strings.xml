@@ -252,6 +252,31 @@
     <string name="settings_dc_utility_rate_label">DC-/öffentlicher Tarif (pro kWh, optional)</string>
     <string name="settings_dc_utility_rate_hint">Wird auf Schnellladevorgänge angewendet. Bleibt das Feld leer, wird für DC-Sitzungen der Haustarif genutzt.</string>
     <string name="settings_utility_rate_placeholder">z. B. 0,15</string>
+
+    <!-- Gasoline comparison section -->
+    <string name="settings_ice_section_title">Benzin-Vergleich</string>
+    <string name="settings_ice_section_hint">Vergleiche die Ladekosten mit einem gleichwertigen Benziner. Gib den Verbrauch und den Kraftstoffpreis an der Zapfsäule ein.</string>
+    <string name="settings_ice_fuel_economy_label">Kraftstoffverbrauch</string>
+    <string name="settings_ice_fuel_economy_placeholder_l_per_100km">z. B. 7,0</string>
+    <string name="settings_ice_fuel_economy_placeholder_mpg">z. B. 32</string>
+    <string name="settings_ice_fuel_price_label">Kraftstoffpreis</string>
+    <string name="settings_ice_fuel_price_placeholder">z. B. 1,75</string>
+    <string name="settings_ice_unit_l_per_100km">L/100 km</string>
+    <string name="settings_ice_unit_mpg">mpg</string>
+    <string name="settings_ice_unit_per_liter">pro Liter</string>
+    <string name="settings_ice_unit_per_gallon">pro Gallone</string>
+    <string name="settings_ice_unit_liter_short">L</string>
+    <string name="settings_ice_unit_gallon_short">gal</string>
+
+    <!-- Cost Analytics: gasoline comparison card -->
+    <string name="ice_comparison_title">Vergleich mit Benzin</string>
+    <string name="ice_comparison_tesla_label">Tesla (dieser Zeitraum)</string>
+    <string name="ice_comparison_gasoline_label">Benzin-Äquivalent</string>
+    <string name="ice_comparison_difference_label">Differenz</string>
+    <string name="ice_comparison_distance_label">Strecke (%1$s)</string>
+    <string name="ice_comparison_gasoline_volume">Benzinverbrauch bei diesem Wert: %1$s</string>
+    <string name="ice_comparison_assumptions_note">Basierend auf deinen Annahmen zu Verbrauch und Kraftstoffpreis.</string>
+
     <string name="settings_currency_select">Währung auswählen</string>
 
     <!-- Extra settings section (collapsible) -->

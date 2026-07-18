@@ -8,6 +8,8 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.CostAnalyticsMetrics
 import com.matedroid.domain.CostAnalyticsRepository
+import com.matedroid.domain.IceAssumptions
+import com.matedroid.domain.IceComparisonResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +39,8 @@ data class CostAnalyticsUiState(
     val metrics: CostAnalyticsMetrics = CostAnalyticsMetrics(),
     val currencySymbol: String = Currency.DEFAULT.symbol,
     val units: Units? = null,
+    val iceAssumptions: IceAssumptions = IceAssumptions(),
+    val iceComparison: IceComparisonResult? = null,
     val error: String? = null,
 )
 
@@ -93,6 +97,8 @@ class CostAnalyticsViewModel @Inject constructor(
                         currencySymbol = snapshot.currencySymbol,
                         // Always label with the unit cached alongside Room summaries.
                         units = Units(unitOfLength = snapshot.unitOfLength),
+                        iceAssumptions = snapshot.iceAssumptions,
+                        iceComparison = snapshot.iceComparison,
                     )
                 }
             } catch (e: Exception) {
