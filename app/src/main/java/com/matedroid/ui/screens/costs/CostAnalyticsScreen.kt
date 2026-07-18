@@ -192,7 +192,9 @@ private fun HeadlineCard(
     val unavailable = stringResource(R.string.cost_analytics_unavailable)
     val distanceUnit = UnitFormatter.getDistanceUnit(units)
 
-    val knownCost = metrics.totalKnownCost
+    // Prefer the effective (recorded + estimated) total for headline display.
+    // Fall back to just the recorded value when no rate/estimation is active.
+    val headlineCost = (metrics.totalEffectiveCost ?: metrics.totalKnownCost)
         ?.let { UnitFormatter.formatCost(it, currencySymbol) }
         ?: unavailable
     val costPer100 = metrics.costPer100Distance
@@ -217,8 +219,14 @@ private fun HeadlineCard(
             Row(modifier = Modifier.fillMaxWidth()) {
                 SummaryItem(
                     icon = Icons.Filled.Paid,
-                    label = stringResource(R.string.cost_analytics_known_cost),
-                    value = knownCost,
+                    label = stringResource(
+                        if (metrics.usesEstimates) {
+                            R.string.cost_analytics_effective_cost
+                        } else {
+                            R.string.cost_analytics_known_cost
+                        }
+                    ),
+                    value = headlineCost,
                     palette = palette,
                     modifier = Modifier.weight(1.2f),
                 )
@@ -232,6 +240,43 @@ private fun HeadlineCard(
                     palette = palette,
                     modifier = Modifier.weight(0.8f),
                 )
+            }
+            if (metrics.usesEstimates) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = palette.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.cost_analytics_estimated_note,
+                            metrics.estimatedChargeCount,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant,
+                    )
+                }
+                if (metrics.recordedChargeCount > 0 && metrics.totalKnownCost != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.cost_analytics_recorded_vs_estimated,
+                            UnitFormatter.formatCost(metrics.totalKnownCost, currencySymbol),
+                            metrics.recordedChargeCount,
+                            UnitFormatter.formatCost(metrics.totalEstimatedCost ?: 0.0, currencySymbol),
+                            metrics.estimatedChargeCount,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -287,10 +332,14 @@ private fun CoverageCard(
         TripCostCoverage.None -> stringResource(R.string.cost_analytics_coverage_none)
         TripCostCoverage.Partial -> stringResource(
             R.string.cost_analytics_coverage_partial,
-            metrics.pricedCount,
+            metrics.recordedChargeCount + metrics.estimatedChargeCount,
             metrics.chargeCount,
         )
-        TripCostCoverage.Complete -> stringResource(R.string.cost_analytics_coverage_complete)
+        TripCostCoverage.Complete -> if (metrics.usesEstimates) {
+            stringResource(R.string.cost_analytics_coverage_complete_with_estimates)
+        } else {
+            stringResource(R.string.cost_analytics_coverage_complete)
+        }
     }
 
     Card(

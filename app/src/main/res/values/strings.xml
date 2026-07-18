@@ -252,6 +252,15 @@
     <string name="settings_currency_label">Currency for costs</string>
     <string name="settings_currency_select">Select currency</string>
 
+    <!-- Utility rates section -->
+    <string name="settings_utility_rates_title">Utility rates</string>
+    <string name="settings_utility_rates_hint">Used to estimate charging cost when TeslaMate has no price set. Enter your local rate per kWh in the currency selected above.</string>
+    <string name="settings_home_utility_rate_label">Home rate (per kWh)</string>
+    <string name="settings_home_utility_rate_hint">Applied to AC / home charging sessions and to drive-cost estimates.</string>
+    <string name="settings_dc_utility_rate_label">DC / public rate (per kWh, optional)</string>
+    <string name="settings_dc_utility_rate_hint">Applied to fast-charging sessions. If left blank, DC sessions use the home rate.</string>
+    <string name="settings_utility_rate_placeholder">e.g. 0.15</string>
+
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Extra settings</string>
 
@@ -1468,6 +1477,14 @@
     <string name="cost_analytics_headline_title">Cost overview</string>
     <!-- Total known cost of all priced charges in the selected range -->
     <string name="cost_analytics_known_cost">Known cost</string>
+    <!-- Headline label when at least one charge cost was estimated from utility rates -->
+    <string name="cost_analytics_effective_cost">Estimated cost</string>
+    <!-- Note under the headline. %1$d = number of estimated sessions -->
+    <string name="cost_analytics_estimated_note">Includes %1$d estimated session(s) from your utility rate.</string>
+    <!-- Breakdown line when both recorded and estimated costs contributed. %1$s recorded amount, %2$d recorded count, %3$s estimated amount, %4$d estimated count -->
+    <string name="cost_analytics_recorded_vs_estimated">Recorded %1$s (%2$d) · Estimated %3$s (%4$d)</string>
+    <!-- Coverage label when every charge has a numeric cost, but some came from estimates -->
+    <string name="cost_analytics_coverage_complete_with_estimates">All priced (estimates used)</string>
     <!-- Cost per 100 units of distance. %1$s = distance unit (km/mi) -->
     <string name="cost_analytics_cost_per_100">Cost / 100 %1$s</string>
     <!-- Total energy added to the battery in the range -->

@@ -55,7 +55,18 @@ data class AppSettings(
     val showShortDrivesCharges: Boolean = false,
     val teslamateBaseUrl: String = "",
     val unitOfLength: String = "km",
-    val lastSelectedCarId: Int? = null
+    val lastSelectedCarId: Int? = null,
+    /**
+     * Home / AC utility rate (per kWh) in the user's chosen [currencyCode].
+     * Null when the user has not configured a rate; MateDroid then falls back
+     * to TeslaMate's recorded cost only.
+     */
+    val homeUtilityRatePerKwh: Double? = null,
+    /**
+     * Optional DC / public utility rate (per kWh). When null, DC estimates
+     * fall back to [homeUtilityRatePerKwh].
+     */
+    val dcUtilityRatePerKWh: Double? = null,
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
@@ -81,6 +92,8 @@ class SettingsDataStore @Inject constructor(
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
+    private val homeUtilityRateKey = stringPreferencesKey("home_utility_rate_per_kwh")
+    private val dcUtilityRateKey = stringPreferencesKey("dc_utility_rate_per_kwh")
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
@@ -98,7 +111,9 @@ class SettingsDataStore @Inject constructor(
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
             unitOfLength = preferences[unitOfLengthKey] ?: "km",
-            lastSelectedCarId = preferences[lastSelectedCarIdKey]
+            lastSelectedCarId = preferences[lastSelectedCarIdKey],
+            homeUtilityRatePerKwh = preferences[homeUtilityRateKey]?.toDoubleOrNull(),
+            dcUtilityRatePerKWh = preferences[dcUtilityRateKey]?.toDoubleOrNull(),
         )
     }
 
@@ -232,6 +247,36 @@ class SettingsDataStore @Inject constructor(
             }
 
             preferences[carImageOverridesKey] = overridesToJson(currentMap)
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the home utility rate. Rates are
+     * stored as strings so an empty preference cleanly means "not set". Any
+     * non-finite or non-positive value is treated as "clear the rate".
+     */
+    suspend fun saveHomeUtilityRate(ratePerKwh: Double?) {
+        context.dataStore.edit { preferences ->
+            val valid = ratePerKwh?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(homeUtilityRateKey)
+            } else {
+                preferences[homeUtilityRateKey] = valid.toString()
+            }
+        }
+    }
+
+    /**
+     * Save (or clear when null / non-positive) the optional DC utility rate.
+     */
+    suspend fun saveDcUtilityRate(ratePerKwh: Double?) {
+        context.dataStore.edit { preferences ->
+            val valid = ratePerKwh?.takeIf { it.isFinite() && it > 0.0 }
+            if (valid == null) {
+                preferences.remove(dcUtilityRateKey)
+            } else {
+                preferences[dcUtilityRateKey] = valid.toString()
+            }
         }
     }
 

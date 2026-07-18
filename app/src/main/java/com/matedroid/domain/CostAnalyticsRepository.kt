@@ -1,6 +1,7 @@
 package com.matedroid.domain
 
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.entity.ChargeSummary
@@ -25,6 +26,7 @@ import javax.inject.Singleton
 class CostAnalyticsRepository @Inject constructor(
     private val chargeSummaryDao: ChargeSummaryDao,
     private val driveSummaryDao: DriveSummaryDao,
+    private val aggregateDao: AggregateDao,
     private val settingsDataStore: SettingsDataStore,
 ) {
 
@@ -42,6 +44,15 @@ class CostAnalyticsRepository @Inject constructor(
     ): CostAnalyticsSnapshot = withContext(Dispatchers.IO) {
         val settings = settingsDataStore.settings.first()
         val currency = Currency.findByCode(settings.currencyCode)
+        val rates = UtilityRates(
+            homePerKwh = settings.homeUtilityRatePerKwh,
+            dcPerKwh = settings.dcUtilityRatePerKWh,
+        )
+        val dcIds = try {
+            aggregateDao.getDcChargeIds(carId).toSet()
+        } catch (e: Exception) {
+            emptySet()
+        }
 
         val (charges, distance) = if (range == null) {
             val all = chargeSummaryDao.getAllForCar(carId)
@@ -53,7 +64,12 @@ class CostAnalyticsRepository @Inject constructor(
             ch to dist
         }
 
-        val metrics = CostAnalyticsCalculator.calculate(charges, distance)
+        val metrics = CostAnalyticsCalculator.calculate(
+            charges = charges,
+            totalDistance = distance,
+            rates = rates,
+            dcChargeIds = dcIds,
+        )
         CostAnalyticsSnapshot(
             metrics = metrics,
             charges = charges,

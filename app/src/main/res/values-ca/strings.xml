@@ -245,6 +245,13 @@
 
     <!-- Currency selector -->
     <string name="settings_currency_label">Moneda per als costos</string>
+    <string name="settings_utility_rates_title">Tarifes elèctriques</string>
+    <string name="settings_utility_rates_hint">S\'utilitzen per estimar el cost de càrrega quan TeslaMate no té preu. Introdueix la teva tarifa local per kWh en la moneda seleccionada a dalt.</string>
+    <string name="settings_home_utility_rate_label">Tarifa domèstica (per kWh)</string>
+    <string name="settings_home_utility_rate_hint">S\'aplica a sessions AC/domèstiques i a les estimacions de cost de conducció.</string>
+    <string name="settings_dc_utility_rate_label">Tarifa DC / pública (per kWh, opcional)</string>
+    <string name="settings_dc_utility_rate_hint">S\'aplica a sessions de càrrega ràpida. Si es deixa en blanc, les sessions DC utilitzen la tarifa domèstica.</string>
+    <string name="settings_utility_rate_placeholder">p. ex. 0,15</string>
     <string name="settings_currency_select">Selecciona moneda</string>
 
     <!-- Extra settings section (collapsible) -->
@@ -1311,6 +1318,10 @@
     <string name="cost_analytics_unavailable">—</string>
     <string name="cost_analytics_headline_title">Resum de costos</string>
     <string name="cost_analytics_known_cost">Cost conegut</string>
+    <string name="cost_analytics_effective_cost">Cost estimat</string>
+    <string name="cost_analytics_estimated_note">Inclou %1$d sessió/ons estimada/es a partir de la teva tarifa elèctrica.</string>
+    <string name="cost_analytics_recorded_vs_estimated">Registrat %1$s (%2$d) · Estimat %3$s (%4$d)</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">Tot amb preu (amb estimacions)</string>
     <string name="cost_analytics_cost_per_100">Cost / 100 %1$s</string>
     <string name="cost_analytics_energy_added">Energia afegida</string>
     <string name="cost_analytics_avg_cost_per_kwh">Cost mitjà / kWh</string>

@@ -245,6 +245,13 @@
 
     <!-- Currency selector -->
     <string name="settings_currency_label">Währung für Kosten</string>
+    <string name="settings_utility_rates_title">Stromtarife</string>
+    <string name="settings_utility_rates_hint">Werden verwendet, um Ladekosten zu schätzen, wenn TeslaMate keinen Preis hinterlegt hat. Gib deinen lokalen Tarif pro kWh in der oben gewählten Währung ein.</string>
+    <string name="settings_home_utility_rate_label">Haustarif (pro kWh)</string>
+    <string name="settings_home_utility_rate_hint">Wird auf AC/Zuhause-Ladevorgänge und auf Kosten­schätzungen für Fahrten angewendet.</string>
+    <string name="settings_dc_utility_rate_label">DC-/öffentlicher Tarif (pro kWh, optional)</string>
+    <string name="settings_dc_utility_rate_hint">Wird auf Schnellladevorgänge angewendet. Bleibt das Feld leer, wird für DC-Sitzungen der Haustarif genutzt.</string>
+    <string name="settings_utility_rate_placeholder">z. B. 0,15</string>
     <string name="settings_currency_select">Währung auswählen</string>
 
     <!-- Extra settings section (collapsible) -->
@@ -1426,6 +1433,10 @@
     <string name="cost_analytics_unavailable">—</string>
     <string name="cost_analytics_headline_title">Kostenübersicht</string>
     <string name="cost_analytics_known_cost">Bekannte Kosten</string>
+    <string name="cost_analytics_effective_cost">Geschätzte Kosten</string>
+    <string name="cost_analytics_estimated_note">Enthält %1$d geschätzte Sitzung(en) aus deinem Stromtarif.</string>
+    <string name="cost_analytics_recorded_vs_estimated">Erfasst %1$s (%2$d) · Geschätzt %3$s (%4$d)</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">Alle mit Preis (mit Schätzungen)</string>
     <string name="cost_analytics_cost_per_100">Kosten / 100 %1$s</string>
     <string name="cost_analytics_energy_added">Geladene Energie</string>
     <string name="cost_analytics_avg_cost_per_kwh">Ø Kosten / kWh</string>

@@ -84,6 +84,55 @@ class TripsSummaryCalculatorTest {
         assertEquals(TripsSummaryMetrics(), TripsSummaryCalculator.calculate(emptyList()))
     }
 
+    @Test
+    fun `estimated costs fill in null-cost charges when rates are configured`() {
+        val summary = TripsSummaryCalculator.calculate(
+            trips = listOf(
+                trip(
+                    id = 1,
+                    distance = 400.0,
+                    energyConsumed = 60.0,
+                    chargeCosts = listOf(10.0, null),
+                )
+            ),
+            rates = UtilityRates(homePerKwh = 0.20),
+            dcChargeIds = emptySet(),
+        )
+
+        assertEquals(TripCostCoverage.Complete, summary.costCoverage)
+        assertEquals(true, summary.usesEstimates)
+        assertEquals(10.0, summary.totalChargeCost ?: 0.0, 0.001)
+        // 30 kWh * 0.20 = 6.0 estimated
+        assertEquals(6.0, summary.totalEstimatedCost ?: 0.0, 0.001)
+        assertEquals(16.0, summary.totalEffectiveCost ?: 0.0, 0.001)
+        // Cost/100 uses effective total: 16 * 100 / 400 = 4.0
+        assertEquals(4.0, summary.costPer100Distance ?: 0.0, 0.001)
+        assertEquals(1, summary.estimatedChargeCount)
+        assertEquals(1, summary.recordedChargeCount)
+        assertEquals(0, summary.missingChargeCount)
+    }
+
+    @Test
+    fun `dc charge ids drive dc rate selection`() {
+        val summary = TripsSummaryCalculator.calculate(
+            trips = listOf(
+                trip(
+                    id = 1,
+                    distance = 300.0,
+                    energyConsumed = 45.0,
+                    chargeCosts = listOf(null),
+                )
+            ),
+            rates = UtilityRates(homePerKwh = 0.10, dcPerKwh = 0.50),
+            // trip helper builds chargeId = id*10 + index → 10 here.
+            dcChargeIds = setOf(10),
+        )
+
+        // 30 kWh added * 0.50 DC rate = 15.0
+        assertEquals(15.0, summary.totalEffectiveCost ?: 0.0, 0.001)
+        assertEquals(1, summary.estimatedChargeCount)
+    }
+
     private fun trip(
         id: Int,
         distance: Double,

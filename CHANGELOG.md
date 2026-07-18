@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Utility-rate cost estimates** — set your home (AC) rate and, optionally, a DC/public rate per kWh in Settings. When TeslaMate has no price for a charging session, MateDroid now fills in the gap with your local rate so cost analytics and trip summaries stay useful. Recorded TeslaMate prices are always preferred (including free sessions); estimates are labelled honestly and never overwrite what was recorded. DC sessions use the DC rate when set, and fall back to the home rate otherwise so a single rate still works.
 - **Cost analytics screen** — a new "Costs" entry on the dashboard opens a focused view of your charging spend. Pick 7/30/90-day or all-time windows to see known cost, cost per 100 km/mi (only when every charge in range is priced), average cost per kWh, energy added, and a coverage summary that surfaces missing prices and free sessions honestly.
 - **Cost summary home-screen widget** — a read-only Glance widget that mirrors the Cost Analytics numbers on your home screen. Configurable per car with 7/30/90-day ranges, refreshes on each background sync, and never contacts the car or the API (all values come from the Room cache).
 - **Richer Trips summary** — the Trips list summary now includes energy used, average efficiency, energy charged, charging cost, and cost per 100 km/mi. Known costs stay visible when only some sessions are priced, with an honest coverage note; cost/100 only appears when every charge in range is priced.

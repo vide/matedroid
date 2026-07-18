@@ -42,6 +42,10 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
+    /** Raw text entered by the user for the home/AC utility rate (per kWh). */
+    val homeUtilityRateInput: String = "",
+    /** Raw text entered by the user for the optional DC utility rate. */
+    val dcUtilityRateInput: String = "",
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -105,6 +109,8 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
+                homeUtilityRateInput = settings.homeUtilityRatePerKwh?.let(::formatRate) ?: "",
+                dcUtilityRateInput = settings.dcUtilityRatePerKWh?.let(::formatRate) ?: "",
                 isLoading = false
             )
         }
@@ -178,6 +184,47 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
         }
+    }
+
+    /**
+     * Update the home / AC utility rate input. Only the raw text is stored in
+     * UI state; parsing to a Double happens on save. Blank / invalid values
+     * clear the persisted rate.
+     */
+    fun updateHomeUtilityRate(input: String) {
+        _uiState.value = _uiState.value.copy(homeUtilityRateInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveHomeUtilityRate(parseRate(input))
+        }
+    }
+
+    /**
+     * Update the optional DC utility rate input. Same rules as the home rate.
+     */
+    fun updateDcUtilityRate(input: String) {
+        _uiState.value = _uiState.value.copy(dcUtilityRateInput = input)
+        viewModelScope.launch {
+            settingsDataStore.saveDcUtilityRate(parseRate(input))
+        }
+    }
+
+    /**
+     * Parse a locale-agnostic decimal rate ("0.15" or "0,15"). Returns null
+     * (clear rate) when blank, unparseable, or not strictly positive.
+     */
+    private fun parseRate(raw: String): Double? {
+        val cleaned = raw.trim().replace(',', '.')
+        if (cleaned.isEmpty()) return null
+        val value = cleaned.toDoubleOrNull() ?: return null
+        return value.takeIf { it.isFinite() && it > 0.0 }
+    }
+
+    /** Format a stored rate back to the text field without trailing zeros. */
+    private fun formatRate(value: Double): String {
+        if (value % 1.0 == 0.0) return value.toLong().toString()
+        // Force '.' as the decimal separator so the text round-trips through
+        // [parseRate] regardless of the device locale.
+        return "%.4f".format(java.util.Locale.ROOT, value).trimEnd('0').trimEnd('.')
     }
 
     fun testConnection() {

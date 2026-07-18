@@ -16,10 +16,12 @@ import androidx.work.WorkerParameters
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.model.Currency
 import com.matedroid.domain.CostAnalyticsCalculator
+import com.matedroid.domain.UtilityRates
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.firstOrNull
@@ -39,6 +41,7 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val driveSummaryDao: DriveSummaryDao,
     private val chargeSummaryDao: ChargeSummaryDao,
+    private val aggregateDao: AggregateDao,
     private val settingsDataStore: SettingsDataStore,
 ) : CoroutineWorker(appContext, workerParams) {
 
@@ -97,6 +100,10 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
 
         val settings = settingsDataStore.settings.firstOrNull()
         val currency = Currency.findByCode(settings?.currencyCode ?: Currency.DEFAULT.code)
+        val rates = UtilityRates(
+            homePerKwh = settings?.homeUtilityRatePerKwh,
+            dcPerKwh = settings?.dcUtilityRatePerKWh,
+        )
         // Use only the cached unit that was stored with the last summary sync so Room
         // values and labels stay aligned (never live-fetch settings here).
         val units = Units(
@@ -124,7 +131,17 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
                     rangeValues.startDate,
                     rangeValues.endDate,
                 )
-                val metrics = CostAnalyticsCalculator.calculate(charges, distance)
+                val dcIds = try {
+                    aggregateDao.getDcChargeIds(carId).toSet()
+                } catch (e: Exception) {
+                    emptySet()
+                }
+                val metrics = CostAnalyticsCalculator.calculate(
+                    charges = charges,
+                    totalDistance = distance,
+                    rates = rates,
+                    dcChargeIds = dcIds,
+                )
 
                 val displayData = CostSummaryWidgetFormatter.format(
                     carId = carId,

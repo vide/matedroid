@@ -245,6 +245,13 @@
 
     <!-- Currency selector -->
     <string name="settings_currency_label">费用货币</string>
+    <string name="settings_utility_rates_title">电价</string>
+    <string name="settings_utility_rates_hint">在 TeslaMate 未设置价格时，用于估算充电费用。请按上方所选货币输入本地每 kWh 电价。</string>
+    <string name="settings_home_utility_rate_label">家用电价（每 kWh）</string>
+    <string name="settings_home_utility_rate_hint">适用于交流/家用充电，以及行驶费用估算。</string>
+    <string name="settings_dc_utility_rate_label">直流 / 公共电价（每 kWh，可选）</string>
+    <string name="settings_dc_utility_rate_hint">适用于快充。若留空，直流充电将使用家用电价。</string>
+    <string name="settings_utility_rate_placeholder">例如 0.15</string>
     <string name="settings_currency_select">选择货币</string>
 
     <!-- Extra settings section (collapsible) -->
@@ -1333,6 +1340,10 @@
     <string name="cost_analytics_unavailable">—</string>
     <string name="cost_analytics_headline_title">费用概览</string>
     <string name="cost_analytics_known_cost">已知费用</string>
+    <string name="cost_analytics_effective_cost">估算费用</string>
+    <string name="cost_analytics_estimated_note">包含根据你的电价估算的 %1$d 次充电。</string>
+    <string name="cost_analytics_recorded_vs_estimated">已记录 %1$s（%2$d）· 已估算 %3$s（%4$d）</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">全部有价（含估算）</string>
     <string name="cost_analytics_cost_per_100">每 100 %1$s 费用</string>
     <string name="cost_analytics_energy_added">已充能量</string>
     <string name="cost_analytics_avg_cost_per_kwh">每 kWh 均价</string>

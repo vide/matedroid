@@ -247,6 +247,15 @@
     <string name="settings_currency_label">Valuta per i costi</string>
     <string name="settings_currency_select">Seleziona valuta</string>
 
+    <!-- Utility rates section -->
+    <string name="settings_utility_rates_title">Tariffe elettriche</string>
+    <string name="settings_utility_rates_hint">Usate per stimare il costo di ricarica quando TeslaMate non ha un prezzo. Inserisci la tua tariffa locale per kWh nella valuta selezionata sopra.</string>
+    <string name="settings_home_utility_rate_label">Tariffa domestica (per kWh)</string>
+    <string name="settings_home_utility_rate_hint">Applicata alle ricariche AC/domestiche e alle stime dei costi di guida.</string>
+    <string name="settings_dc_utility_rate_label">Tariffa DC / pubblica (per kWh, opzionale)</string>
+    <string name="settings_dc_utility_rate_hint">Applicata alle ricariche rapide. Se lasciata vuota, le sessioni DC usano la tariffa domestica.</string>
+    <string name="settings_utility_rate_placeholder">es. 0,15</string>
+
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Impostazioni extra</string>
 
@@ -1311,6 +1320,10 @@
     <string name="cost_analytics_unavailable">—</string>
     <string name="cost_analytics_headline_title">Panoramica costi</string>
     <string name="cost_analytics_known_cost">Costo noto</string>
+    <string name="cost_analytics_effective_cost">Costo stimato</string>
+    <string name="cost_analytics_estimated_note">Include %1$d sessione/i stimata/e dalla tua tariffa elettrica.</string>
+    <string name="cost_analytics_recorded_vs_estimated">Registrato %1$s (%2$d) · Stimato %3$s (%4$d)</string>
+    <string name="cost_analytics_coverage_complete_with_estimates">Tutti prezzati (stime incluse)</string>
     <string name="cost_analytics_cost_per_100">Costo / 100 %1$s</string>
     <string name="cost_analytics_energy_added">Energia aggiunta</string>
     <string name="cost_analytics_avg_cost_per_kwh">Costo medio / kWh</string>

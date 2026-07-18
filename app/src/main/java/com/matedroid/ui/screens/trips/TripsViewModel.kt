@@ -13,6 +13,7 @@ import com.matedroid.domain.TripIntelligenceCalculator
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.TripsSummaryCalculator
 import com.matedroid.domain.TripsSummaryMetrics
+import com.matedroid.domain.UtilityRates
 import com.matedroid.domain.model.Trip
 import com.matedroid.util.parseIsoDate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +39,8 @@ data class TripsUiState(
     val units: Units? = null,
     val currencySymbol: String = Currency.DEFAULT.symbol,
     val dcChargeIds: Set<Int> = emptySet(),
-    val showShortDrivesCharges: Boolean = false
+    val showShortDrivesCharges: Boolean = false,
+    val utilityRates: UtilityRates = UtilityRates(),
 )
 
 @HiltViewModel
@@ -71,6 +73,9 @@ class TripsViewModel @Inject constructor(
                 aggregateDao.getDcChargeIds(id).toSet()
             } catch (e: Exception) { emptySet() }
             _uiState.update { it.copy(dcChargeIds = ids) }
+            // DC ids feed rate selection for utility-based cost estimation;
+            // re-run the current filter so the summary reflects the DC set.
+            applyFilter()
         }
     }
 
@@ -126,10 +131,15 @@ class TripsViewModel @Inject constructor(
             // Read on each load so toggling the setting is reflected when the screen reloads.
             val settings = settingsDataStore.settings.first()
             val currencySymbol = Currency.findByCode(settings.currencyCode).symbol
+            val rates = UtilityRates(
+                homePerKwh = settings.homeUtilityRatePerKwh,
+                dcPerKwh = settings.dcUtilityRatePerKWh,
+            )
             _uiState.update {
                 it.copy(
                     showShortDrivesCharges = settings.showShortDrivesCharges,
                     currencySymbol = currencySymbol,
+                    utilityRates = rates,
                 )
             }
 
@@ -160,7 +170,11 @@ class TripsViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 trips = filtered,
-                summary = TripsSummaryCalculator.calculate(filtered),
+                summary = TripsSummaryCalculator.calculate(
+                    trips = filtered,
+                    rates = state.utilityRates,
+                    dcChargeIds = state.dcChargeIds,
+                ),
                 intelligence = TripIntelligenceCalculator.calculate(filtered),
             )
         }
