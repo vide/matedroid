@@ -63,6 +63,13 @@ class CostAnalyticsRepository @Inject constructor(
         )
     }
 
+    /** Persist TeslaMate's unit-of-length for offline widget/screen labeling. */
+    suspend fun cacheUnitOfLength(unitOfLength: String) {
+        if (unitOfLength == "km" || unitOfLength == "mi") {
+            settingsDataStore.saveUnitOfLength(unitOfLength)
+        }
+    }
+
     data class DateRange(
         val startDate: String,
         val endDate: String,

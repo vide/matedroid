@@ -67,7 +67,13 @@ class CostAnalyticsViewModel @Inject constructor(
     private fun loadUnits(carId: Int) {
         viewModelScope.launch {
             when (val result = teslamateRepository.getCarStatus(carId)) {
-                is ApiResult.Success -> _uiState.update { it.copy(units = result.data.units) }
+                is ApiResult.Success -> {
+                    val units = result.data.units
+                    _uiState.update { it.copy(units = units) }
+                    units.unitOfLength
+                        ?.takeIf { it == "km" || it == "mi" }
+                        ?.let { costRepository.cacheUnitOfLength(it) }
+                }
                 is ApiResult.Error -> Unit
             }
         }
@@ -86,6 +92,9 @@ class CostAnalyticsViewModel @Inject constructor(
                         isLoading = false,
                         metrics = snapshot.metrics,
                         currencySymbol = snapshot.currencySymbol,
+                        // Prefer live car-status units when already loaded; otherwise use the
+                        // cached TeslaMate unit so Room distances are never mislabeled as km.
+                        units = it.units ?: Units(unitOfLength = snapshot.unitOfLength),
                     )
                 }
             } catch (e: Exception) {
