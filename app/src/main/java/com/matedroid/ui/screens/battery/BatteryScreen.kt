@@ -62,10 +62,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
+import com.matedroid.data.local.entity.BatteryHealthSnapshot
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.OptimizedLineChart
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.StatusSuccess
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.roundToInt
 
 // Colors matching the reference screenshots
 private val CapacityGreen = Color(0xFF4CAF50)
@@ -136,6 +143,7 @@ fun BatteryScreen(
                     if (stats != null) {
                         BatteryHealthContent(
                             stats = stats,
+                            snapshots = uiState.snapshots,
                             units = uiState.units,
                             palette = palette,
                             onCardClick = { viewModel.showDetail() }
@@ -177,6 +185,7 @@ fun BatteryScreen(
 @Composable
 private fun BatteryHealthContent(
     stats: BatteryStats,
+    snapshots: List<BatteryHealthSnapshot>,
     units: com.matedroid.data.api.models.Units?,
     palette: CarColorPalette,
     onCardClick: () -> Unit
@@ -196,8 +205,111 @@ private fun BatteryHealthContent(
 
         // Range Section
         RangeCard(stats = stats, units = units, palette = palette, onClick = onCardClick)
+
+        // Historical max-range trend — needs at least two data points to draw a line.
+        val rangeSnapshots = snapshots.filter { it.maxRange != null }
+        if (rangeSnapshots.size >= 2) {
+            BatteryHistoryCard(
+                snapshots = rangeSnapshots,
+                units = units,
+                palette = palette,
+            )
+        }
     }
 }
+
+@Composable
+private fun BatteryHistoryCard(
+    snapshots: List<BatteryHealthSnapshot>,
+    units: com.matedroid.data.api.models.Units?,
+    palette: CarColorPalette,
+) {
+    val data = remember(snapshots) { snapshots.map { (it.maxRange ?: 0.0).toFloat() } }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM", Locale.getDefault()) }
+    val timeLabels = remember(snapshots) { buildFiveDateLabels(snapshots, dateFormatter) }
+    val fractionToTimeLabel: (Float) -> String = { fraction ->
+        val idx = (fraction * (snapshots.size - 1)).roundToInt().coerceIn(0, snapshots.lastIndex)
+        snapshots.getOrNull(idx)?.recordedAt?.let { formatSnapshotDate(it, dateFormatter) } ?: ""
+    }
+    val unitLabel = UnitFormatter.getDistanceUnit(units)
+    val subtitle = stringResource(
+        R.string.battery_history_range,
+        formatSnapshotDate(snapshots.first().recordedAt, dateFormatter),
+        formatSnapshotDate(snapshots.last().recordedAt, dateFormatter),
+    )
+
+    var showInfo by remember { mutableStateOf(false) }
+    if (showInfo) {
+        InfoDialog(
+            title = stringResource(R.string.battery_history_info_title),
+            message = stringResource(R.string.battery_history_info_message),
+            confirmText = stringResource(R.string.got_it),
+            onDismiss = { showInfo = false },
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = palette.surface),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.battery_history_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = stringResource(R.string.info),
+                    tint = palette.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clickable { showInfo = true },
+                )
+            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OptimizedLineChart(
+                data = data,
+                color = palette.accent,
+                unit = unitLabel,
+                timeLabels = timeLabels,
+                fractionToTimeLabel = fractionToTimeLabel,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * Pick five snapshots evenly spaced across the range and format their dates for the X axis:
+ * start, 1st quarter, half, 3rd quarter, end.
+ */
+private fun buildFiveDateLabels(
+    snapshots: List<BatteryHealthSnapshot>,
+    formatter: DateTimeFormatter,
+): List<String> {
+    if (snapshots.isEmpty()) return List(5) { "" }
+    val last = snapshots.lastIndex
+    val indices = listOf(0, last / 4, last / 2, last * 3 / 4, last)
+    return indices.map { i ->
+        val snap = snapshots.getOrNull(i.coerceIn(0, last)) ?: return@map ""
+        formatSnapshotDate(snap.recordedAt, formatter)
+    }
+}
+
+private fun formatSnapshotDate(epochMillis: Long, formatter: DateTimeFormatter): String =
+    Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+        .format(formatter)
 
 @Composable
 private fun CapacityCard(stats: BatteryStats, units: com.matedroid.data.api.models.Units?, palette: CarColorPalette, onClick: () -> Unit) {

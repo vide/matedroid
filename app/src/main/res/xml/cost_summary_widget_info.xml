@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="140dp"
+    android:minHeight="90dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="70dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:configure="com.matedroid.widget.CostSummaryWidgetConfigActivity"
+    android:widgetFeatures="reconfigurable"
+    android:description="@string/cost_widget_description"
+    android:previewLayout="@layout/cost_summary_widget_preview"
+    android:initialLayout="@layout/cost_summary_widget_preview" />

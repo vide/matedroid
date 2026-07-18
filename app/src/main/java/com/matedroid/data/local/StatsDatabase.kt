@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.matedroid.data.local.dao.AggregateDao
+import com.matedroid.data.local.dao.BatteryHealthSnapshotDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.dao.GeocodeCacheDao
@@ -15,6 +16,7 @@ import com.matedroid.data.local.dao.SentryAlertLogDao
 import com.matedroid.data.local.dao.SyncStateDao
 import com.matedroid.data.local.dao.TripCountryCacheDao
 import com.matedroid.data.local.dao.TripRouteCacheDao
+import com.matedroid.data.local.entity.BatteryHealthSnapshot
 import com.matedroid.data.local.entity.ChargeDetailAggregate
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveDetailAggregate
@@ -57,9 +59,10 @@ import com.matedroid.data.local.entity.TripRouteCache
         TripCountryCache::class,
         SavedTrip::class,
         SavedTripLeg::class,
-        SavedTripConsumedFingerprint::class
+        SavedTripConsumedFingerprint::class,
+        BatteryHealthSnapshot::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 abstract class StatsDatabase : RoomDatabase() {
@@ -75,6 +78,7 @@ abstract class StatsDatabase : RoomDatabase() {
     abstract fun tripRouteCacheDao(): TripRouteCacheDao
     abstract fun tripCountryCacheDao(): TripCountryCacheDao
     abstract fun savedTripDao(): SavedTripDao
+    abstract fun batteryHealthSnapshotDao(): BatteryHealthSnapshotDao
 
     companion object {
         const val DATABASE_NAME = "matedroid_stats.db"
@@ -317,6 +321,33 @@ abstract class StatsDatabase : RoomDatabase() {
             }
         }
 
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+        /**
+         * Migration from V12 to V13: Add battery health snapshot table for the trend chart on the
+         * Battery screen. Rows are appended once per day per car and pruned to the most recent
+         * [BatteryHealthSnapshotDao.MAX_ROWS_PER_CAR] entries.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS battery_health_snapshots (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        carId INTEGER NOT NULL,
+                        recordedAt INTEGER NOT NULL,
+                        maxRange REAL,
+                        currentRange REAL,
+                        maxCapacity REAL,
+                        currentCapacity REAL,
+                        ratedEfficiency REAL,
+                        batteryHealthPercentage REAL
+                    )
+                """)
+                db.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_battery_health_snapshots_carId_recordedAt
+                    ON battery_health_snapshots (carId, recordedAt)
+                """)
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
     }
 }

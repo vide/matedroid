@@ -181,6 +181,8 @@
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">Software</string>
+    <string name="nav_costs">Kosten</string>
+    <string name="nav_costs_subtitle">Ladekostenübersicht</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
     <string name="tire_fl">FL</string>
@@ -510,6 +512,13 @@
     <!-- Degradation info dialog -->
     <string name="estimated_degradation_title">Geschätzte Degradation</string>
     <string name="estimated_degradation_message">Die Batteriedegradation wird auf Basis von Teslamate-Daten geschätzt.\n\n• Kapazität (%): Verbleibende Batteriegesundheit im Vergleich zu neu\n• Verlust (kWh): Durch Degradation verlorene Energiekapazität\n• Verlust (%): Prozentsatz der ursprünglichen Kapazität, der verloren ging\n\nHinweis: Dies ist eine Schätzung. Tesla stellt keine offiziellen Degradationsdaten bereit.</string>
+
+    <!-- Battery health history -->
+    <string name="battery_history_title">Max. Reichweite im Zeitverlauf</string>
+    <string name="battery_history_info_title">Verlauf der maximalen Reichweite</string>
+    <string name="battery_history_info_message">MateDroid speichert jedes Mal einen Schnappschuss der maximalen Reichweite, wenn du diesen Bildschirm öffnest (höchstens einmal am Tag). Das Diagramm zeigt, wie sich der Wert seit der ersten Nutzung entwickelt hat.\n\nDie Reichweite schwankt mit Temperatur und Fahrweise — kurzzeitige Rückgänge sind Rauschen, keine Degradation.</string>
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <string name="battery_history_not_enough_data">Komm nach einem weiteren Tag zurück — für eine Kurve braucht es mindestens zwei Schnappschüsse.</string>
 
     <!-- Range section -->
     <string name="range">Reichweite</string>
@@ -1128,10 +1137,27 @@
     <string name="trip_energy_charged">Geladene Energie</string>
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Ladekosten</string>
+    <string name="trip_cost_coverage_partial">Kosten enthalten %1$d von %2$d Ladevorgängen</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">Für diese Fahrten sind keine Ladekosten erfasst</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Verbrauch</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">Kosten / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <string name="trip_intelligence_title">Fahrt-Highlights</string>
+    <string name="trip_intelligence_most_efficient">Effizienteste</string>
+    <string name="trip_intelligence_least_efficient">Am wenigsten effizient</string>
+    <string name="trip_intelligence_cheapest_per_100">Günstigste / 100 %1$s</string>
+    <string name="trip_intelligence_pricey_per_100">Teuerste / 100 %1$s</string>
+    <string name="trip_intelligence_longest">Längste Fahrt</string>
+    <string name="trip_intelligence_charge_overhead">Größter Ladeanteil</string>
+    <string name="trip_intelligence_energy_gap">Energiebilanz</string>
+    <string name="trip_intelligence_avg_charge_time">Ladezeit / Fahrt</string>
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <string name="trip_intelligence_open_trip">Fahrt öffnen</string>
+
     <!-- Drive leg label with number -->
     <string name="trip_leg_drive">Fahrt %1$d</string>
     <!-- Charge leg label with number -->
@@ -1394,4 +1420,52 @@
         <item quantity="one">%d vergleichbare Ladung in der Nähe</item>
         <item quantity="other">%d vergleichbare Ladungen in der Nähe</item>
     </plurals>
+
+    <!-- ==================== Kostenanalyse-Bildschirm ==================== -->
+    <string name="cost_analytics_title">Kostenanalyse</string>
+    <string name="cost_analytics_unavailable">—</string>
+    <string name="cost_analytics_headline_title">Kostenübersicht</string>
+    <string name="cost_analytics_known_cost">Bekannte Kosten</string>
+    <string name="cost_analytics_cost_per_100">Kosten / 100 %1$s</string>
+    <string name="cost_analytics_energy_added">Geladene Energie</string>
+    <string name="cost_analytics_avg_cost_per_kwh">Ø Kosten / kWh</string>
+    <string name="cost_analytics_distance">Strecke</string>
+    <string name="cost_analytics_charges">Ladungen</string>
+    <string name="cost_analytics_coverage_title">Kostenerfassung</string>
+    <string name="cost_analytics_coverage_label">Erfassung</string>
+    <string name="cost_analytics_coverage_none">Keine Preise</string>
+    <string name="cost_analytics_coverage_partial">%1$d von %2$d bepreist</string>
+    <string name="cost_analytics_coverage_complete">Alle bepreist</string>
+    <string name="cost_analytics_coverage_none_note">Trage in TeslaMate Kosten für die Ladungen ein, um Kosten / Strecke und Ø Kosten / kWh anzuzeigen.</string>
+    <string name="cost_analytics_coverage_partial_note">Kosten / Strecke bleiben ausgeblendet, solange nicht alle Ladungen im Zeitraum bepreist sind. Summen zeigen nur bepreiste Sitzungen.</string>
+    <string name="cost_analytics_missing">Fehlende Preise</string>
+    <string name="cost_analytics_free_sessions">Gratis-Sitzungen</string>
+    <string name="cost_analytics_empty">Keine Ladungen in diesem Zeitraum.</string>
+    <string name="cost_analytics_range_7_days">7T</string>
+    <string name="cost_analytics_range_30_days">30T</string>
+    <string name="cost_analytics_range_90_days">90T</string>
+    <string name="cost_analytics_range_all_time">Gesamt</string>
+
+    <!-- ==================== Kosten-Zusammenfassung-Widget ==================== -->
+    <string name="cost_widget_title">Kostenübersicht</string>
+    <string name="cost_widget_description">Ladekosten, Erfassung und Energie nach Zeitraum</string>
+    <string name="cost_widget_period_last_7_days">Letzte 7 Tage</string>
+    <string name="cost_widget_period_last_30_days">Letzte 30 Tage</string>
+    <string name="cost_widget_period_last_90_days">Letzte 90 Tage</string>
+    <string name="cost_widget_range_title">Zeitraum</string>
+    <string name="cost_widget_empty">Keine Ladungen in diesem Zeitraum</string>
+    <string name="cost_widget_energy">Energie</string>
+    <string name="cost_widget_charges">Ladungen</string>
+    <string name="cost_widget_cost_per_distance">Kosten/100 %1$s</string>
+    <string name="cost_widget_avg_cost_per_kwh">Ø/kWh</string>
+    <string name="cost_widget_no_value">k. A.</string>
+    <string name="cost_widget_no_charges">Keine Ladungen</string>
+    <string name="cost_widget_cost_none_priced">Kosten · keine Preise</string>
+    <string name="cost_widget_cost_partially_priced">Kosten · %1$d/%2$d bepreist</string>
+    <string name="cost_widget_cost_all_priced">Kosten · vollständig</string>
+    <string name="cost_widget_compact_cost_per_distance">%1$s /100</string>
+    <string name="cost_widget_compact_cost_per_distance_unavailable">Rate k. A.</string>
+    <string name="cost_widget_compact_avg_cost_per_kwh">%1$s /kWh</string>
+    <string name="cost_widget_updated">Aktualisiert %1$s</string>
+    <string name="widget_save">Widget speichern</string>
 </resources>

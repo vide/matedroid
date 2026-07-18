@@ -400,6 +400,23 @@ Or use Android Studio:
 2. Wait for Gradle sync
 3. Click Run (green play button)
 
+### Home-screen widgets
+
+MateDroid ships read-only Glance widgets that never send vehicle commands:
+
+- **Car status** (`CarWidget`) — live-ish status snapshot refreshed by its update worker
+- **Cost summary** (`CostSummaryWidget`) — known charging cost, cost/100 (only when every charge in range is priced), coverage labels, and energy for 7/30/90-day windows. Values come from Room + `SettingsDataStore` only; `DataSyncWorker` triggers an immediate refresh after a successful sync.
+
+Widget formatting must use `UnitFormatter` for labels only — TeslaMateApi already converts numeric values to the user's unit system.
+
+### Room analytics cache
+
+`StatsDatabase` (currently version 13) stores drive/charge summaries plus:
+
+- **Battery health snapshots** (`BatteryHealthSnapshot`) — one max-range sample per car per day when the Battery screen loads, pruned to ~90 rows, used for the Battery history chart
+
+Cost and trip intelligence calculators (`CostAnalyticsCalculator`, `TripsSummaryCalculator`, `TripIntelligenceCalculator`) are pure functions over cached data so widgets and screens stay honest about partial pricing.
+
 ## Configuration
 
 On first launch, you'll be prompted to configure your TeslamateApi connection:

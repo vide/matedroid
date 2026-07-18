@@ -184,6 +184,10 @@
 
     <!-- Navigation button to software versions screen -->
     <string name="nav_software">Software</string>
+    <!-- Dashboard navigation entry to the cost analytics screen -->
+    <string name="nav_costs">Costs</string>
+    <!-- Subtitle under the Costs nav button describing what it opens -->
+    <string name="nav_costs_subtitle">Charging cost breakdown</string>
 
     <!-- Tire pressure position labels (Front Left, Front Right, Rear Left, Rear Right) -->
     <string name="tire_fl">FL</string>
@@ -513,6 +517,18 @@
     <!-- Degradation info dialog -->
     <string name="estimated_degradation_title">Estimated Degradation</string>
     <string name="estimated_degradation_message">Battery degradation is estimated based on Teslamate data.\n\n• Capacity (%): Remaining battery health compared to new\n• Loss (kWh): Energy capacity lost due to degradation\n• Loss (%): Percentage of original capacity lost\n\nNote: This is an estimate. Tesla does not provide official degradation data.</string>
+
+    <!-- Battery health history (max-range trend recorded on each open of the Battery screen) -->
+    <!-- Card title above the max-range trend chart -->
+    <string name="battery_history_title">Max range over time</string>
+    <!-- Info dialog title explaining the trend chart -->
+    <string name="battery_history_info_title">Max range history</string>
+    <!-- Info dialog body: what the trend chart shows and how snapshots are captured -->
+    <string name="battery_history_info_message">MateDroid records a snapshot of your battery\'s max range each time you open this screen (at most once per day). The chart shows how that figure has changed since you started using the app.\n\nRange fluctuates with temperature and driving style — treat short-term dips as noise, not degradation.</string>
+    <!-- Subtitle shown under the chart with first and last snapshot dates. %1$s = first date, %2$s = last date -->
+    <string name="battery_history_range">%1$s – %2$s</string>
+    <!-- Placeholder shown when there aren\'t enough snapshots yet to draw a trend -->
+    <string name="battery_history_not_enough_data">Come back after another day — you need at least two snapshots to plot a trend.</string>
 
     <!-- Range section -->
     <string name="range">Range</string>
@@ -1131,10 +1147,39 @@
     <string name="trip_energy_charged">Energy charged</string>
     <!-- Charge cost label -->
     <string name="trip_charge_cost">Charge cost</string>
+    <!-- Shown when only some charging sessions in the selected trips have recorded costs -->
+    <string name="trip_cost_coverage_partial">Costs include %1$d of %2$d charging sessions</string>
+    <!-- Shown when trips have charging sessions but none have a recorded cost -->
+    <string name="trip_cost_coverage_none">No charging costs recorded for these trips</string>
     <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
     <string name="consumption">Consumption</string>
     <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
     <string name="trip_cost_per_100">Cost / 100 %1$s</string>
+
+    <!-- Trip Intelligence card -->
+    <!-- Header of the highlights card sitting under the summary on the Trips list -->
+    <string name="trip_intelligence_title">Trip highlights</string>
+    <!-- Row label: trip with lowest Wh/km (or Wh/mi) consumption -->
+    <string name="trip_intelligence_most_efficient">Most efficient</string>
+    <!-- Row label: trip with the highest Wh/km (or Wh/mi) consumption -->
+    <string name="trip_intelligence_least_efficient">Least efficient</string>
+    <!-- Row label: cheapest cost per 100 km (or 100 mi) among fully-priced trips. %1$s is the distance unit (km or mi). -->
+    <string name="trip_intelligence_cheapest_per_100">Cheapest / 100 %1$s</string>
+    <!-- Row label: most expensive cost per 100 km (or 100 mi) among fully-priced trips. %1$s is the distance unit (km or mi). -->
+    <string name="trip_intelligence_pricey_per_100">Priciest / 100 %1$s</string>
+    <!-- Row label: trip covering the greatest distance -->
+    <string name="trip_intelligence_longest">Longest trip</string>
+    <!-- Row label: trip whose charging stops took the biggest share of wall-clock time -->
+    <string name="trip_intelligence_charge_overhead">Most charging overhead</string>
+    <!-- Row label: sum(energyCharged) - sum(energyConsumed) across the filtered set -->
+    <string name="trip_intelligence_energy_gap">Energy gap</string>
+    <!-- Row label: mean minutes spent charging per trip across the filtered set -->
+    <string name="trip_intelligence_avg_charge_time">Avg charging / trip</string>
+    <!-- Value format for a percentage highlight, e.g. "18%" -->
+    <string name="trip_intelligence_percent">%1$d%%</string>
+    <!-- Content description hint that a highlight row is tappable and opens the trip -->
+    <string name="trip_intelligence_open_trip">Open trip</string>
+
     <!-- Drive leg label with number -->
     <string name="trip_leg_drive">Drive %1$d</string>
     <!-- Charge leg label with number -->
@@ -1413,4 +1458,91 @@
         <item quantity="one">%d comparable charge nearby</item>
         <item quantity="other">%d comparable charges nearby</item>
     </plurals>
+
+    <!-- ==================== Cost Analytics screen ==================== -->
+    <!-- Top-bar title of the Cost Analytics screen -->
+    <string name="cost_analytics_title">Cost analytics</string>
+    <!-- Placeholder shown when a metric is unavailable -->
+    <string name="cost_analytics_unavailable">—</string>
+    <!-- Header of the primary cost card -->
+    <string name="cost_analytics_headline_title">Cost overview</string>
+    <!-- Total known cost of all priced charges in the selected range -->
+    <string name="cost_analytics_known_cost">Known cost</string>
+    <!-- Cost per 100 units of distance. %1$s = distance unit (km/mi) -->
+    <string name="cost_analytics_cost_per_100">Cost / 100 %1$s</string>
+    <!-- Total energy added to the battery in the range -->
+    <string name="cost_analytics_energy_added">Energy added</string>
+    <!-- Average cost per kWh, from priced charges only -->
+    <string name="cost_analytics_avg_cost_per_kwh">Avg cost / kWh</string>
+    <!-- Total distance driven in the range -->
+    <string name="cost_analytics_distance">Distance</string>
+    <!-- Number of charging sessions counted in the range -->
+    <string name="cost_analytics_charges">Charges</string>
+    <!-- Header of the coverage card -->
+    <string name="cost_analytics_coverage_title">Cost coverage</string>
+    <!-- Label for the coverage summary cell -->
+    <string name="cost_analytics_coverage_label">Coverage</string>
+    <!-- Shown when no charges in the range have a cost recorded -->
+    <string name="cost_analytics_coverage_none">Not priced</string>
+    <!-- Shown when some but not all charges are priced. %1$d priced / %2$d total -->
+    <string name="cost_analytics_coverage_partial">%1$d of %2$d priced</string>
+    <!-- Shown when every charge in the range is priced -->
+    <string name="cost_analytics_coverage_complete">All priced</string>
+    <!-- Explanation shown under the coverage row when no charge has a cost -->
+    <string name="cost_analytics_coverage_none_note">Add cost to charges in TeslaMate to see cost / distance and average cost / kWh.</string>
+    <!-- Explanation shown under the coverage row when only some charges are priced -->
+    <string name="cost_analytics_coverage_partial_note">Cost / distance stays hidden until every charge in the range is priced. Totals reflect only the priced sessions.</string>
+    <!-- Count of charges in the range that are missing a cost -->
+    <string name="cost_analytics_missing">Missing cost</string>
+    <!-- Count of charges in the range that are priced at 0 (free) -->
+    <string name="cost_analytics_free_sessions">Free sessions</string>
+    <!-- Empty-state text when no charges fall inside the selected range -->
+    <string name="cost_analytics_empty">No charges in this range yet.</string>
+    <!-- Range chips on the Cost Analytics screen -->
+    <string name="cost_analytics_range_7_days">7d</string>
+    <string name="cost_analytics_range_30_days">30d</string>
+    <string name="cost_analytics_range_90_days">90d</string>
+    <string name="cost_analytics_range_all_time">All time</string>
+
+    <!-- ==================== Cost Summary Widget ==================== -->
+    <!-- Widget title shown in the system widget picker for cost summaries -->
+    <string name="cost_widget_title">Cost summary</string>
+    <!-- Widget description shown in the system widget picker -->
+    <string name="cost_widget_description">Charging cost, coverage, and energy by range</string>
+    <!-- Range labels for the cost summary widget -->
+    <string name="cost_widget_period_last_7_days">Last 7 days</string>
+    <string name="cost_widget_period_last_30_days">Last 30 days</string>
+    <string name="cost_widget_period_last_90_days">Last 90 days</string>
+    <!-- Section header in the widget config activity -->
+    <string name="cost_widget_range_title">Summary range</string>
+    <!-- Empty-state text shown on the widget when there are no charges in range -->
+    <string name="cost_widget_empty">No charges in this range</string>
+    <!-- Metric tile label: total energy added -->
+    <string name="cost_widget_energy">Energy</string>
+    <!-- Metric tile label: number of charging sessions -->
+    <string name="cost_widget_charges">Charges</string>
+    <!-- Metric tile label: cost per 100 units of distance. %1$s = distance unit -->
+    <string name="cost_widget_cost_per_distance">Cost/100 %1$s</string>
+    <!-- Metric tile label: average cost per kWh -->
+    <string name="cost_widget_avg_cost_per_kwh">Avg/kWh</string>
+    <!-- Placeholder shown for widget metrics that cannot be computed honestly -->
+    <string name="cost_widget_no_value">N/A</string>
+    <!-- Coverage badge: no charges in range at all -->
+    <string name="cost_widget_no_charges">No charges</string>
+    <!-- Coverage badge: charges exist but none are priced -->
+    <string name="cost_widget_cost_none_priced">Cost · none priced</string>
+    <!-- Coverage badge: some charges priced. %1$d priced / %2$d total -->
+    <string name="cost_widget_cost_partially_priced">Cost · %1$d/%2$d priced</string>
+    <!-- Coverage badge: every charge in range is priced -->
+    <string name="cost_widget_cost_all_priced">Cost · all priced</string>
+    <!-- Compact widget footer showing cost per distance. %1$s = formatted rate -->
+    <string name="cost_widget_compact_cost_per_distance">%1$s /100</string>
+    <!-- Compact widget footer shown when cost/distance is unavailable -->
+    <string name="cost_widget_compact_cost_per_distance_unavailable">Rate N/A</string>
+    <!-- Compact widget footer showing avg cost per kWh. %1$s = formatted rate -->
+    <string name="cost_widget_compact_avg_cost_per_kwh">%1$s /kWh</string>
+    <!-- Timestamp label shown at the top of the widget. %1$s = formatted time -->
+    <string name="cost_widget_updated">Updated %1$s</string>
+    <!-- Save button in the widget configuration activity -->
+    <string name="widget_save">Save widget</string>
 </resources>

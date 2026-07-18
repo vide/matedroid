@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import com.matedroid.R
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.widget.CostSummaryWidgetUpdateWorker
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -129,11 +130,16 @@ class DataSyncWorker @AssistedInject constructor(
 
             return if (hasNetworkError) {
                 log("Sync incomplete due to network errors, scheduling retry")
+                // Summaries may still have landed — refresh cost widget before retrying details.
+                CostSummaryWidgetUpdateWorker.scheduleImmediateUpdate(applicationContext)
                 Result.retry()
             } else {
                 log("Sync complete for all cars")
                 // Schedule background geocoding for location data
                 scheduleGeocoding()
+                // Refresh the cost summary widget so it shows the freshest
+                // Room-cached numbers without waiting for the periodic worker.
+                CostSummaryWidgetUpdateWorker.scheduleImmediateUpdate(applicationContext)
                 Result.success()
             }
         } catch (e: Exception) {

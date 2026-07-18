@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Cost analytics screen** — a new "Costs" entry on the dashboard opens a focused view of your charging spend. Pick 7/30/90-day or all-time windows to see known cost, cost per 100 km/mi (only when every charge in range is priced), average cost per kWh, energy added, and a coverage summary that surfaces missing prices and free sessions honestly.
+- **Cost summary home-screen widget** — a read-only Glance widget that mirrors the Cost Analytics numbers on your home screen. Configurable per car with 7/30/90-day ranges, refreshes on each background sync, and never contacts the car or the API (all values come from the Room cache).
+- **Richer Trips summary** — the Trips list summary now includes energy used, average efficiency, energy charged, charging cost, and cost per 100 km/mi. Known costs stay visible when only some sessions are priced, with an honest coverage note; cost/100 only appears when every charge in range is priced.
+- **Trip highlights card** — a new card under the Trips summary surfaces standout trips in the current filter: most and least efficient, cheapest and priciest per 100 km/mi (only when every charge is priced), longest, biggest charging-overhead share, plus the total energy gap and average charging minutes per trip. Tap a highlight to jump straight to that trip.
+- **Battery health history** — the Battery screen now records a max-range snapshot each time it loads (once per day) and shows a trend chart with the last three months of data once enough snapshots exist.
+
 ### Changed
 - **Snappier throughout** — smoother list scrolling, lighter chart rendering, the Stats and Trips screens do their heavy work off the UI thread, and the dashboard stops polling for status while it's off screen (less background battery use). No change to how anything looks.
 - **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
