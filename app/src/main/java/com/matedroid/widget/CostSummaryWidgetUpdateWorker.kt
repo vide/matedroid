@@ -19,8 +19,6 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.model.Currency
-import com.matedroid.data.repository.ApiResult
-import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.CostAnalyticsCalculator
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -42,7 +40,6 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
     private val driveSummaryDao: DriveSummaryDao,
     private val chargeSummaryDao: ChargeSummaryDao,
     private val settingsDataStore: SettingsDataStore,
-    private val teslamateRepository: TeslamateRepository,
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -100,7 +97,11 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
 
         val settings = settingsDataStore.settings.firstOrNull()
         val currency = Currency.findByCode(settings?.currencyCode ?: Currency.DEFAULT.code)
-        val units = resolveUnits(settings?.unitOfLength)
+        // Use only the cached unit that was stored with the last summary sync so Room
+        // values and labels stay aligned (never live-fetch settings here).
+        val units = Units(
+            unitOfLength = settings?.unitOfLength?.takeIf { it == "km" || it == "mi" } ?: "km"
+        )
 
         for (glanceId in glanceIds) {
             try {
@@ -146,26 +147,5 @@ class CostSummaryWidgetUpdateWorker @AssistedInject constructor(
         }
 
         return Result.success()
-    }
-
-    /**
-     * Prefer a freshly cached TeslaMate unit-of-length so Room values are labeled
-     * honestly. Falls back to the DataStore cache, then km only as a last resort.
-     * This hits the TeslamateApi settings endpoint (never the vehicle).
-     */
-    private suspend fun resolveUnits(cachedUnitOfLength: String?): Units {
-        when (val result = teslamateRepository.getGlobalSettings()) {
-            is ApiResult.Success -> {
-                val unit = result.data.settings?.teslamateUnits?.unitOfLength
-                    ?.takeIf { it == "km" || it == "mi" }
-                if (unit != null) {
-                    settingsDataStore.saveUnitOfLength(unit)
-                    return Units(unitOfLength = unit)
-                }
-            }
-            is ApiResult.Error -> Unit
-        }
-        val fallback = cachedUnitOfLength?.takeIf { it == "km" || it == "mi" } ?: "km"
-        return Units(unitOfLength = fallback)
     }
 }
