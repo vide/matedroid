@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The system back button now closes the year/month/day overlays on the Mileage screen and the Battery detail overlay** instead of leaving the screen entirely.
 - **Maps no longer leak background tile-loader threads** — every embedded map now releases its resources when its screen closes.
 - **The dashboard map now follows the car while driving** instead of staying centered on where the car was when the dashboard opened.
+- **The dashboard map dot now marks the car's exact position** — the dot is drawn in the upper third of the card (clear of the place name) but the map was centered on the car at the middle, so the dot appeared a few tens of meters north of reality (typically just off the road). The map's rendered center now shifts to the dot's position.
 - **Every remaining hardcoded English (and one Spanish) label is now translated** — settings validation and sync errors, the charges location-filter chip, the trip cost donut, the trip energy-flow labels, the merge-trip sheet, "N/A" placeholders on the Stats screen, and the "Where was I" speed/power labels are now proper string resources in all six languages.
 
 ## [1.10.0] - 2026-07-01
