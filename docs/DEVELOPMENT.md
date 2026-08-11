@@ -51,6 +51,10 @@ if (uiState.isLoading) {
 
 If the screen has a car palette in scope pass `palette.accent`; otherwise leave the default (Material primary). Keep small inline progress (button spinners, sub-section card loaders, weather card) on `CircularProgressIndicator` — the MD spinner is too visually heavy at that scale.
 
+### Embedded maps
+
+Never instantiate an osmdroid `MapView` inside a raw `AndroidView` — use `RouteMapView` (in `ui/components/RouteMapView.kt`). It owns the shared boilerplate: MAPNIK tile source, gesture handling (`MapGestureMode.TWO_FINGER_PAN` for maps embedded in scrollable pages, `INERT` for tap-through mini-maps, `FULL` for fullscreen), the optional dim/desaturate tile filter (`dimTiles`), an optional 120 ms deferred mount (`deferMount`) so the first frame paints before osmdroid's synchronous constructor runs, and the mandatory `onDetach()` on release. Screen-specific content goes through `onMapReady` (one-time setup: markers, polylines, zoom/center) and `update` (change-driven passes — guard expensive overlay rebuilds against unchanged inputs, see `TripDetailScreen`/`RegionsVisitedScreen`). The same file exports `mapDimFilter(isDark)` and `boundingBoxOf(points)` for padded route viewports.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:

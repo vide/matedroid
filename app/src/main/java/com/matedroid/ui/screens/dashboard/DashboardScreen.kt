@@ -147,19 +147,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.ui.components.CarImagePickerDialog
+import com.matedroid.ui.components.MapGestureMode
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.util.formatDuration
 import com.matedroid.util.formatShortNoYear
 import com.matedroid.util.formatTime
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.CustomZoomButtonsController
-import org.osmdroid.views.MapView
 import com.matedroid.data.api.models.BatteryDetails
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarExterior
@@ -2031,48 +2029,41 @@ private fun LocationCard(
             )
 
             if (latitude != null && longitude != null) {
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(false)
-                            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
-                            isClickable = false
-                            isFocusable = false
-                            // Mute the basemap so roads/labels recede behind the scrim
-                            // and pin. Dark theme: grayscale + darken. Light theme:
-                            // grayscale + lift toward white to soften the detail.
-                            val matrix = ColorMatrix().apply { setSaturation(0f) }
-                            matrix.postConcat(
-                                if (dark) {
-                                    ColorMatrix(
-                                        floatArrayOf(
-                                            0.55f, 0f, 0f, 0f, 0f,
-                                            0f, 0.55f, 0f, 0f, 0f,
-                                            0f, 0f, 0.60f, 0f, 0f,
-                                            0f, 0f, 0f, 1f, 0f
-                                        )
+                RouteMapView(
+                    gestureMode = MapGestureMode.INERT,
+                    onMapReady = { mapView ->
+                        // Mute the basemap so roads/labels recede behind the scrim
+                        // and pin. Dark theme: grayscale + darken. Light theme:
+                        // grayscale + lift toward white to soften the detail.
+                        // (Deliberately not the shared dim filter — this mini-map
+                        // mutes harder than the detail-screen hero maps.)
+                        val matrix = ColorMatrix().apply { setSaturation(0f) }
+                        matrix.postConcat(
+                            if (dark) {
+                                ColorMatrix(
+                                    floatArrayOf(
+                                        0.55f, 0f, 0f, 0f, 0f,
+                                        0f, 0.55f, 0f, 0f, 0f,
+                                        0f, 0f, 0.60f, 0f, 0f,
+                                        0f, 0f, 0f, 1f, 0f
                                     )
-                                } else {
-                                    ColorMatrix(
-                                        floatArrayOf(
-                                            0.92f, 0f, 0f, 0f, 18f,
-                                            0f, 0.92f, 0f, 0f, 18f,
-                                            0f, 0f, 0.92f, 0f, 18f,
-                                            0f, 0f, 0f, 1f, 0f
-                                        )
+                                )
+                            } else {
+                                ColorMatrix(
+                                    floatArrayOf(
+                                        0.92f, 0f, 0f, 0f, 18f,
+                                        0f, 0.92f, 0f, 0f, 18f,
+                                        0f, 0f, 0.92f, 0f, 18f,
+                                        0f, 0f, 0f, 1f, 0f
                                     )
-                                }
-                            )
-                            overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(matrix))
-                            controller.setZoom(15.0)
-                            controller.setCenter(GeoPoint(latitude, longitude))
-                            // Fully inert — no pan, no zoom. Taps are handled by the
-                            // Compose overlay above the map.
-                            setOnTouchListener { _, _ -> true }
-                        }
+                                )
+                            }
+                        )
+                        mapView.overlayManager.tilesOverlay.setColorFilter(ColorMatrixColorFilter(matrix))
+                        mapView.controller.setZoom(15.0)
+                        mapView.controller.setCenter(GeoPoint(latitude, longitude))
                     },
-                    // factory only runs once — without this the map stays centered on
+                    // onMapReady only runs once — without this the map stays centered on
                     // wherever the car was at first composition while the status polls on.
                     update = { map ->
                         val center = GeoPoint(latitude, longitude)
@@ -2082,8 +2073,6 @@ private fun LocationCard(
                             map.controller.setCenter(center)
                         }
                     },
-                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
-                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }

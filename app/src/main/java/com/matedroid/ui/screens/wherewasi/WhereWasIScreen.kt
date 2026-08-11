@@ -58,7 +58,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.WeatherCondition
@@ -67,11 +66,10 @@ import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.util.formatDuration
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalettes
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -212,28 +210,17 @@ fun WhereWasIScreen(
                                     .height(250.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
-                                AndroidView(
-                                    factory = { ctx ->
-                                        MapView(ctx).apply {
-                                            setTileSource(TileSourceFactory.MAPNIK)
-                                            setMultiTouchControls(true)
-                                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
-                                            setOnTouchListener { v, event ->
-                                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
-                                                false
-                                            }
-                                            controller.setZoom(15.0)
-                                            controller.setCenter(GeoPoint(lat, lon))
-                                            val marker = org.osmdroid.views.overlay.Marker(this)
-                                            marker.position = GeoPoint(lat, lon)
-                                            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
-                                            marker.icon = createPinMarkerDrawable(ctx.resources, accentArgb)
-                                            marker.title = youWereHere
-                                            overlays.add(marker)
-                                        }
+                                RouteMapView(
+                                    onMapReady = { mapView ->
+                                        mapView.controller.setZoom(15.0)
+                                        mapView.controller.setCenter(GeoPoint(lat, lon))
+                                        val marker = org.osmdroid.views.overlay.Marker(mapView)
+                                        marker.position = GeoPoint(lat, lon)
+                                        marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                                        marker.icon = createPinMarkerDrawable(mapView.context.resources, accentArgb)
+                                        marker.title = youWereHere
+                                        mapView.overlays.add(marker)
                                     },
-                                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
-                                    onRelease = { it.onDetach() },
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 FilledIconButton(
