@@ -594,11 +594,14 @@ class CarWidget : GlanceAppWidget() {
                 this[CAR_ID_KEY] = data.carId
                 this[HAS_DATA_KEY] = true
                 this[CAR_NAME_KEY] = data.carName
-                data.exteriorColor?.let { this[EXTERIOR_COLOR_KEY] = it }
-                data.model?.let { this[MODEL_KEY] = it }
-                data.trimBadging?.let { this[TRIM_BADGING_KEY] = it }
-                data.wheelType?.let { this[WHEEL_TYPE_KEY] = it }
-                data.state?.let { this[STATE_KEY] = it }
+                // Remove keys on null instead of skipping the write (like imageOverride /
+                // locationText below) — otherwise a field the API stops returning keeps
+                // rendering its stale value (wrong palette / car image) indefinitely.
+                if (data.exteriorColor != null) this[EXTERIOR_COLOR_KEY] = data.exteriorColor else remove(EXTERIOR_COLOR_KEY)
+                if (data.model != null) this[MODEL_KEY] = data.model else remove(MODEL_KEY)
+                if (data.trimBadging != null) this[TRIM_BADGING_KEY] = data.trimBadging else remove(TRIM_BADGING_KEY)
+                if (data.wheelType != null) this[WHEEL_TYPE_KEY] = data.wheelType else remove(WHEEL_TYPE_KEY)
+                if (data.state != null) this[STATE_KEY] = data.state else remove(STATE_KEY)
                 this[IS_LOCKED_KEY] = data.isLocked
                 this[SENTRY_MODE_KEY] = data.sentryModeActive
                 this[PLUGGED_IN_KEY] = data.pluggedIn
