@@ -123,8 +123,11 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
         val glanceIds = manager.getGlanceIds(CarWidget::class.java)
 
         if (glanceIds.isEmpty()) {
-            Log.d(TAG, "No active widgets, skipping update")
-            scheduleNextUpdate()
+            // No widgets on any launcher: stop the chain AND the periodic backup instead of
+            // rescheduling forever. onDisabled can't cover chains started by
+            // scheduleImmediateUpdate (e.g. a sentry alert) on a device with no widgets.
+            Log.d(TAG, "No active widgets, stopping update work")
+            cancelWork(appContext)
             return Result.success()
         }
 

@@ -185,6 +185,10 @@ class TeslamateApiFactory(
                 }
                 chain.proceed(requestBuilder.build())
             }
+            // Deliberately aggressive: executeWithFallback tries the primary server on EVERY
+            // request, and dual-address setups (local IP + VPN IP) hit this timeout on each
+            // call while on the other network before falling back to the secondary. Raising
+            // it makes every operation that much slower for those users — don't.
             .connectTimeout(1, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

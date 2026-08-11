@@ -82,7 +82,8 @@ class MateDroidApp : Application(), Configuration.Provider {
 
     /**
      * Enqueue background sync work.
-     * Uses KEEP policy to not restart if already running.
+     * Uses REPLACE so a stuck/backoff-waiting worker gets a fresh start on every app open;
+     * an interrupted sync loses little (unprocessed-ID queries resume where it left off).
      */
     private fun enqueueSyncWork() {
         val constraints = Constraints.Builder()
