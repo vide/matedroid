@@ -54,14 +54,19 @@ class ChargingNotificationWorker @AssistedInject constructor(
 
         private const val INTERVAL_SECONDS = 30L
 
+        // Idle cadence: nothing is charging, plugged in, or sentry-armed, so the only job is
+        // discovering a new charge/sentry session — 5 min keeps that latency acceptable while
+        // cutting idle polling 10×. The dashboard's own 5 s poll covers the app-open case.
+        private const val IDLE_INTERVAL_SECONDS = 300L
+
         /**
          * Schedule charging/sentry notification monitoring.
          *
          * Uses two strategies:
-         * 1. Self-rescheduling OneTimeWorkRequest for frequent checks (30s)
+         * 1. Self-rescheduling OneTimeWorkRequest for frequent checks (30s active / 5min idle)
          * 2. PeriodicWorkRequest (15min) as reliable fallback when app is killed
          */
-        fun schedulePeriodicWork(context: Context) {
+        fun schedulePeriodicWork(context: Context, intervalSeconds: Long = INTERVAL_SECONDS) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
@@ -69,7 +74,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
             // Strategy 1: OneTimeWorkRequest with delay for frequent checks
             val oneTimeRequest = OneTimeWorkRequestBuilder<ChargingNotificationWorker>()
                 .setConstraints(constraints)
-                .setInitialDelay(INTERVAL_SECONDS, TimeUnit.SECONDS)
+                .setInitialDelay(intervalSeconds, TimeUnit.SECONDS)
                 .addTag(TAG)
                 .build()
 
@@ -94,7 +99,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
                 periodicRequest
             )
 
-            Log.d(TAG, "Scheduled notification check (${INTERVAL_SECONDS}s + 15min backup)")
+            Log.d(TAG, "Scheduled notification check (${intervalSeconds}s + 15min backup)")
         }
 
         /**
@@ -127,11 +132,12 @@ class ChargingNotificationWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         Log.d(TAG, "Starting notification check")
 
-        // Check if server is configured
+        // Check if server is configured. Don't re-arm the frequent chain — the 15-min
+        // periodic backstop (a cheap local settings read, no network) resumes polling
+        // once the user configures a server.
         val settings = settingsDataStore.settings.first()
         if (!settings.isConfigured) {
             Log.d(TAG, "Server not configured, skipping check")
-            scheduleNextCheck()
             return Result.success()
         }
 
@@ -142,14 +148,14 @@ class ChargingNotificationWorker @AssistedInject constructor(
                 is ApiResult.Success -> carsResult.data
                 is ApiResult.Error -> {
                     Log.e(TAG, "Failed to fetch cars: ${carsResult.message}")
-                    scheduleNextCheck()
+                    scheduleNextCheck(frequent = true)
                     return Result.retry()
                 }
             }
 
             if (cars.isEmpty()) {
                 Log.d(TAG, "No cars found")
-                scheduleNextCheck()
+                scheduleNextCheck(frequent = false)
                 return Result.success()
             }
 
@@ -161,6 +167,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
             // notification with it) 30 s after another car's iteration started it.
             val needMonitor = mutableListOf<Pair<CarData, CarStatus>>()
             var anyCheckFailed = false
+            var anyWantsFrequentPolling = false
             for (car in cars) {
                 val outcome = try {
                     checkCarStatus(car)
@@ -171,7 +178,13 @@ class ChargingNotificationWorker @AssistedInject constructor(
                 when (outcome) {
                     is CheckOutcome.NeedsMonitor -> needMonitor.add(car to outcome.status)
                     CheckOutcome.Failed -> anyCheckFailed = true
-                    CheckOutcome.Idle -> { /* nothing to do */ }
+                    is CheckOutcome.Idle -> {
+                        // Plugged-in cars can start charging any moment; sentry-armed cars
+                        // need 30s polling to catch the ~1-minute alert window.
+                        if (outcome.status.pluggedIn == true || outcome.status.sentryMode == true) {
+                            anyWantsFrequentPolling = true
+                        }
+                    }
                 }
             }
 
@@ -200,12 +213,15 @@ class ChargingNotificationWorker @AssistedInject constructor(
             }
 
             Log.d(TAG, "Check complete")
-            scheduleNextCheck()
+            // Back off to the idle cadence when nothing is (about to be) charging and no
+            // car is sentry-armed; keep 30s on errors so recovery is quick.
+            val frequent = needMonitor.isNotEmpty() || anyCheckFailed || anyWantsFrequentPolling
+            scheduleNextCheck(frequent)
             return Result.success()
 
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error in worker", e)
-            scheduleNextCheck()
+            scheduleNextCheck(frequent = true)
             return Result.retry()
         }
     }
@@ -214,8 +230,8 @@ class ChargingNotificationWorker @AssistedInject constructor(
     private sealed interface CheckOutcome {
         /** Car is charging (or DC-finished-but-plugged) — the monitor service must run. */
         data class NeedsMonitor(val status: CarStatus) : CheckOutcome
-        /** Car positively does not need monitoring. */
-        data object Idle : CheckOutcome
+        /** Car positively does not need monitoring (status carried for cadence decisions). */
+        data class Idle(val status: CarStatus) : CheckOutcome
         /** Status unknown (fetch failed) — must not count as idle. */
         data object Failed : CheckOutcome
     }
@@ -262,7 +278,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
         } else {
             Log.d(TAG, "Car $carId is not charging")
             chargingNotificationManager.cancelNotification(carId)
-            CheckOutcome.Idle
+            CheckOutcome.Idle(status)
         }
 
         // --- Sentry ---
@@ -292,8 +308,12 @@ class ChargingNotificationWorker @AssistedInject constructor(
 
     /**
      * Schedule the next check using self-rescheduling pattern.
+     * [frequent] = 30s (charging/plugged/sentry-armed/errors); otherwise the 5-min idle cadence.
      */
-    private fun scheduleNextCheck() {
-        schedulePeriodicWork(appContext)
+    private fun scheduleNextCheck(frequent: Boolean) {
+        schedulePeriodicWork(
+            appContext,
+            if (frequent) INTERVAL_SECONDS else IDLE_INTERVAL_SECONDS
+        )
     }
 }
