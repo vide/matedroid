@@ -6,6 +6,10 @@ import androidx.room.Upsert
 import com.matedroid.data.local.entity.ChargeSummary
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Range-parameterized queries: callers wanting all-time results pass
+ * [DateBounds.MIN] / [DateBounds.MAX] as the date bounds.
+ */
 @Dao
 interface ChargeSummaryDao {
 
@@ -26,107 +30,70 @@ interface ChargeSummaryDao {
     // === Quick Stats Queries ===
 
     // Total count
-    @Query("SELECT COUNT(*) FROM charges_summary WHERE carId = :carId")
-    suspend fun count(carId: Int): Int
-
-    // Flow-based count for real-time progress updates
-    @Query("SELECT COUNT(*) FROM charges_summary WHERE carId = :carId")
-    fun observeCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
-
     @Query("""
         SELECT COUNT(*) FROM charges_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun countInRange(carId: Int, startDate: String, endDate: String): Int
+    suspend fun count(carId: Int, startDate: String, endDate: String): Int
+
+    // Flow-based count for real-time progress updates
+    @Query("SELECT COUNT(*) FROM charges_summary WHERE carId = :carId")
+    fun observeCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
 
     // Total energy added
-    @Query("SELECT COALESCE(SUM(energyAdded), 0) FROM charges_summary WHERE carId = :carId")
-    suspend fun sumEnergyAdded(carId: Int): Double
-
     @Query("""
         SELECT COALESCE(SUM(energyAdded), 0) FROM charges_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun sumEnergyAddedInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun sumEnergyAdded(carId: Int, startDate: String, endDate: String): Double
 
     // Total cost
-    @Query("SELECT COALESCE(SUM(cost), 0) FROM charges_summary WHERE carId = :carId")
-    suspend fun sumCost(carId: Int): Double
-
     @Query("""
         SELECT COALESCE(SUM(cost), 0) FROM charges_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun sumCostInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun sumCost(carId: Int, startDate: String, endDate: String): Double
 
     // Average cost per kWh
     @Query("""
         SELECT COALESCE(SUM(cost) / NULLIF(SUM(energyAdded), 0), 0)
-        FROM charges_summary WHERE carId = :carId AND cost IS NOT NULL
-    """)
-    suspend fun avgCostPerKwh(carId: Int): Double
-
-    // Average cost per kWh in range
-    @Query("""
-        SELECT COALESCE(SUM(cost) / NULLIF(SUM(energyAdded), 0), 0)
-        FROM charges_summary 
-        WHERE carId = :carId 
-        AND startDate >= :startDate 
+        FROM charges_summary
+        WHERE carId = :carId
+        AND startDate >= :startDate
         AND startDate < :endDate
         AND cost IS NOT NULL
     """)
-    suspend fun avgCostPerKwhInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun avgCostPerKwh(carId: Int, startDate: String, endDate: String): Double
 
     // Biggest single charge (by energy added)
     @Query("""
         SELECT * FROM charges_summary
         WHERE carId = :carId
-        ORDER BY energyAdded DESC LIMIT 1
-    """)
-    suspend fun biggestCharge(carId: Int): ChargeSummary?
-
-    @Query("""
-        SELECT * FROM charges_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY energyAdded DESC LIMIT 1
     """)
-    suspend fun biggestChargeInRange(carId: Int, startDate: String, endDate: String): ChargeSummary?
+    suspend fun biggestCharge(carId: Int, startDate: String, endDate: String): ChargeSummary?
 
     // Most expensive single charge
     @Query("""
         SELECT * FROM charges_summary
         WHERE carId = :carId AND cost IS NOT NULL
-        ORDER BY cost DESC LIMIT 1
-    """)
-    suspend fun mostExpensiveCharge(carId: Int): ChargeSummary?
-
-    @Query("""
-        SELECT * FROM charges_summary
-        WHERE carId = :carId AND cost IS NOT NULL
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY cost DESC LIMIT 1
     """)
-    suspend fun mostExpensiveChargeInRange(carId: Int, startDate: String, endDate: String): ChargeSummary?
+    suspend fun mostExpensiveCharge(carId: Int, startDate: String, endDate: String): ChargeSummary?
 
     // Most expensive per kWh charge
     @Query("""
         SELECT * FROM charges_summary
         WHERE carId = :carId AND cost IS NOT NULL AND energyAdded > 0
-        ORDER BY (cost / energyAdded) DESC LIMIT 1
-    """)
-    suspend fun mostExpensivePerKwhCharge(carId: Int): ChargeSummary?
-
-    @Query("""
-        SELECT * FROM charges_summary
-        WHERE carId = :carId AND cost IS NOT NULL AND energyAdded > 0
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY (cost / energyAdded) DESC LIMIT 1
     """)
-    suspend fun mostExpensivePerKwhChargeInRange(carId: Int, startDate: String, endDate: String): ChargeSummary?
+    suspend fun mostExpensivePerKwhCharge(carId: Int, startDate: String, endDate: String): ChargeSummary?
 
     // Average charge duration
     @Query("SELECT AVG(durationMin) FROM charges_summary WHERE carId = :carId")
@@ -170,36 +137,6 @@ interface ChargeSummaryDao {
     // === Range Records Queries ===
 
     /**
-     * Find the maximum distance traveled between two consecutive charges.
-     * Sums actual logged drives between charges (not odometer diff, which can include unlogged drives).
-     */
-    @Query("""
-        SELECT
-            prev.chargeId as fromChargeId,
-            curr.chargeId as toChargeId,
-            COALESCE((
-                SELECT SUM(d.distance)
-                FROM drives_summary d
-                WHERE d.carId = curr.carId
-                  AND d.startDate > prev.startDate
-                  AND d.startDate < curr.startDate
-            ), 0) as distance,
-            prev.startDate as fromDate,
-            curr.startDate as toDate
-        FROM charges_summary curr
-        INNER JOIN charges_summary prev ON prev.carId = curr.carId
-            AND prev.startDate = (
-                SELECT MAX(p.startDate)
-                FROM charges_summary p
-                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
-            )
-        WHERE curr.carId = :carId
-        ORDER BY distance DESC
-        LIMIT 1
-    """)
-    suspend fun maxDistanceBetweenCharges(carId: Int): MaxDistanceBetweenChargesResult?
-
-    /**
      * Find the maximum distance traveled between two consecutive charges within a date range.
      * Both charges must be within the range.
      * Sums actual logged drives between charges (not odometer diff, which can include unlogged drives).
@@ -230,7 +167,7 @@ interface ChargeSummaryDao {
         ORDER BY distance DESC
         LIMIT 1
     """)
-    suspend fun maxDistanceBetweenChargesInRange(
+    suspend fun maxDistanceBetweenCharges(
         carId: Int,
         startDate: String,
         endDate: String
@@ -238,27 +175,8 @@ interface ChargeSummaryDao {
 
     /**
      * Find the longest gap (in days) between two consecutive charges.
+     * Both charges must be within the date range.
      */
-    @Query("""
-        SELECT
-            prev.chargeId as fromChargeId,
-            curr.chargeId as toChargeId,
-            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
-            prev.startDate as fromDate,
-            curr.startDate as toDate
-        FROM charges_summary curr
-        INNER JOIN charges_summary prev ON prev.carId = curr.carId
-            AND prev.startDate = (
-                SELECT MAX(p.startDate)
-                FROM charges_summary p
-                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
-            )
-        WHERE curr.carId = :carId
-        ORDER BY gapDays DESC
-        LIMIT 1
-    """)
-    suspend fun longestGapBetweenCharges(carId: Int): GapBetweenChargesResult?
-
     @Query("""
         SELECT
             prev.chargeId as fromChargeId,
@@ -279,7 +197,7 @@ interface ChargeSummaryDao {
         ORDER BY gapDays DESC
         LIMIT 1
     """)
-    suspend fun longestGapBetweenChargesInRange(
+    suspend fun longestGapBetweenCharges(
         carId: Int,
         startDate: String,
         endDate: String
@@ -291,19 +209,11 @@ interface ChargeSummaryDao {
     @Query("""
         SELECT * FROM charges_summary
         WHERE carId = :carId
-        ORDER BY (endBatteryLevel - startBatteryLevel) DESC
-        LIMIT 1
-    """)
-    suspend fun biggestBatteryGainCharge(carId: Int): ChargeSummary?
-
-    @Query("""
-        SELECT * FROM charges_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY (endBatteryLevel - startBatteryLevel) DESC
         LIMIT 1
     """)
-    suspend fun biggestBatteryGainChargeInRange(
+    suspend fun biggestBatteryGainCharge(
         carId: Int,
         startDate: String,
         endDate: String
