@@ -102,19 +102,20 @@ class SyncRepository @Inject constructor(
             return true
         }
 
-        // Phase 2: Sync drive details
-        val driveSuccess = syncDriveDetails(carId)
-        if (!driveSuccess) {
-            syncManager.markSyncError(carId, "Failed to sync drive details")
+        // Phase 2: Sync drive details. Failed items keep no aggregate row, so a retry
+        // reprocesses only them — don't mark the phase complete while failures remain.
+        val driveFailures = syncDriveDetails(carId)
+        if (driveFailures > 0) {
+            syncManager.markSyncError(carId, "$driveFailures drive details failed — will retry")
             return false
         }
 
         syncManager.markDriveDetailsComplete(carId)
 
         // Phase 3: Sync charge details
-        val chargeSuccess = syncChargeDetails(carId)
-        if (!chargeSuccess) {
-            syncManager.markSyncError(carId, "Failed to sync charge details")
+        val chargeFailures = syncChargeDetails(carId)
+        if (chargeFailures > 0) {
+            syncManager.markSyncError(carId, "$chargeFailures charge details failed — will retry")
             return false
         }
 
@@ -167,8 +168,11 @@ class SyncRepository @Inject constructor(
      * Processes drives in parallel batches for improved performance.
      * Locations are enqueued for geocoding incrementally (per batch) and geocoding
      * starts in parallel without blocking drive retrieval.
+     *
+     * @return number of drives whose detail fetch failed (0 = fully synced)
      */
-    suspend fun syncDriveDetails(carId: Int): Boolean {
+    suspend fun syncDriveDetails(carId: Int): Int {
+        var failures = 0
         val unprocessedIds = driveSummaryDao.getUnprocessedDriveIds(carId, SchemaVersion.CURRENT)
         val total = unprocessedIds.size
         log("Processing $total drive details for car $carId (batch size: $BATCH_SIZE)")
@@ -203,6 +207,7 @@ class SyncRepository @Inject constructor(
                     }
                     is ApiResult.Error -> {
                         logError("Drive $driveId failed: ${result.message}")
+                        failures++
                         null
                     }
                 }
@@ -237,7 +242,7 @@ class SyncRepository @Inject constructor(
             }
         }
 
-        return true
+        return failures
     }
 
     /**
@@ -245,8 +250,11 @@ class SyncRepository @Inject constructor(
      * Processes charges in parallel batches for improved performance.
      * Locations are enqueued for geocoding incrementally (per batch) and geocoding
      * starts in parallel without blocking charge retrieval.
+     *
+     * @return number of charges whose detail fetch failed (0 = fully synced)
      */
-    suspend fun syncChargeDetails(carId: Int): Boolean {
+    suspend fun syncChargeDetails(carId: Int): Int {
+        var failures = 0
         val unprocessedIds = chargeSummaryDao.getUnprocessedChargeIds(carId, SchemaVersion.CURRENT)
         val total = unprocessedIds.size
         log("Processing $total charge details for car $carId (batch size: $BATCH_SIZE)")
@@ -289,6 +297,7 @@ class SyncRepository @Inject constructor(
                     is ApiResult.Error -> {
                         logError("Charge $chargeId failed: ${result.message}")
                         // Continue with other charges instead of failing entirely
+                        failures++
                     }
                 }
             }
@@ -322,7 +331,7 @@ class SyncRepository @Inject constructor(
             }
         }
 
-        return true
+        return failures
     }
 
     /**
