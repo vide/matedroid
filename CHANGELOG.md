@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Background polling now backs off when nothing is happening** — the 30-second charging/sentry check drops to every 5 minutes while the car is parked, unplugged, and not sentry-armed, and stops entirely when no server is configured. Driving, plugged-in, sentry-armed and charging cars keep the 30-second cadence, so a fast-charge stop mid-trip is still picked up promptly.
 - **The widget updater stops itself when no widgets are on the launcher** instead of polling forever.
 - **Location lookups back off when the geocoding service is unreachable** instead of retrying the whole queue at full speed on every sync.
+- **Location identification (geocoding) is much lighter** — cached lookups are applied with indexed batch updates instead of one full-table scan per location cluster after every sync, the work queue is checked in one read instead of one query per location, and all OpenStreetMap requests (including the sentry-history and widget address lookups) now share the 1-request-per-second limit their usage policy requires.
+- **The location-identification progress bar no longer goes backwards** — already-queued work was re-counted into the total on every sync, and with two cars the counters mixed both cars' totals.
+- **Country boundaries and address lookups no longer accumulate unbounded memory** — in-memory caches are now size-capped.
 - **A sync with failed drive/charge details now reports the failure and retries them** instead of pretending everything synced.
 - **Syncs are now incremental** — instead of re-downloading the entire drive/charge history on every sync (a multi-MB download for long histories), only entries since the last sync are fetched, with a 7-day overlap and a weekly full refresh to pick up edits to older entries (e.g. charge costs added later).
 
