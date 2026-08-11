@@ -258,6 +258,7 @@ fun TripDetailScreen(
         AddLegSheet(
             eligible = uiState.eligibleLegs!!,
             dcChargeIds = uiState.dcChargeIds,
+            units = uiState.units,
             palette = palette,
             onPickLegs = viewModel::pickLegs,
             onDismiss = viewModel::closeAddLegSheet
@@ -266,6 +267,7 @@ fun TripDetailScreen(
     if (uiState.showMergeSheet) {
         MergeTripSheet(
             adjacentTrips = uiState.adjacentTrips,
+            units = uiState.units,
             palette = palette,
             onPick = viewModel::pickMergeTarget,
             onDismiss = viewModel::closeMergeSheet

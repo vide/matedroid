@@ -45,11 +45,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
+import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.entity.ChargeSummary
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.domain.EligibleLegs
 import com.matedroid.domain.LegRef
+import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.util.formatDuration
@@ -63,6 +65,7 @@ import java.util.Locale
 fun AddLegSheet(
     eligible: EligibleLegs,
     dcChargeIds: Set<Int>,
+    units: Units?,
     palette: CarColorPalette,
     onPickLegs: (List<LegRef>) -> Unit,
     onDismiss: () -> Unit,
@@ -124,6 +127,7 @@ fun AddLegSheet(
                         val ref = candidate.toRef()
                         CandidateRow(
                             candidate = candidate,
+                            units = units,
                             palette = palette,
                             isDc = candidate is Candidate.Charge && candidate.charge.chargeId in dcChargeIds,
                             multiMode = multiMode,
@@ -217,6 +221,7 @@ private fun buildCandidateList(eligible: EligibleLegs): List<Candidate> {
 @Composable
 private fun CandidateRow(
     candidate: Candidate,
+    units: Units?,
     palette: CarColorPalette,
     isDc: Boolean,
     multiMode: Boolean,
@@ -274,7 +279,7 @@ private fun CandidateRow(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "%.1f km".format(candidate.drive.distance),
+                        text = "%.1f %s".format(candidate.drive.distance, UnitFormatter.getDistanceUnit(units)),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
