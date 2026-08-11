@@ -109,6 +109,10 @@ private fun FullscreenChartOverlay(
 
     // Lock orientation to landscape and hide system bars for the duration of the overlay.
     DisposableEffect(Unit) {
+        // Restore whatever policy the activity had (usually UNSPECIFIED) — hardcoding
+        // PORTRAIT on dispose locked the whole app to portrait after one fullscreen use.
+        val priorOrientation = activity?.requestedOrientation
+            ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
         activity?.window?.let { window ->
             WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -118,7 +122,7 @@ private fun FullscreenChartOverlay(
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            activity?.requestedOrientation = priorOrientation
             activity?.window?.let { window ->
                 WindowCompat.setDecorFitsSystemWindows(window, true)
                 val controller = WindowInsetsControllerCompat(window, view)
