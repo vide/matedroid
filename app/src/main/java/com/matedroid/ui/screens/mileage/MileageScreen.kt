@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -122,6 +123,15 @@ fun MileageScreen(
         uiState.error?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearError()
+        }
+    }
+
+    // System back closes the innermost overlay level instead of popping the whole screen.
+    BackHandler(enabled = uiState.selectedYear != null) {
+        when {
+            uiState.selectedDay != null -> viewModel.clearSelectedDay()
+            uiState.selectedMonth != null -> viewModel.clearSelectedMonth()
+            else -> viewModel.clearSelectedYear()
         }
     }
 

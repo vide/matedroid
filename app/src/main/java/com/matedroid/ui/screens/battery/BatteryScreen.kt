@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.AlertDialog
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,6 +101,11 @@ fun BatteryScreen(
             snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
+    }
+
+    // System back closes the detail overlay instead of popping the whole screen.
+    BackHandler(enabled = uiState.showDetail) {
+        viewModel.hideDetail()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
