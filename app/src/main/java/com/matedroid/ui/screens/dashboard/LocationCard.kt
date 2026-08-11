@@ -32,14 +32,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +53,16 @@ import com.matedroid.ui.components.MapGestureMode
 import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.theme.CarColorPalette
 import org.osmdroid.util.GeoPoint
+
+// Map card geometry. The pin overlay sits in the upper third (clear of the place-name text),
+// and the map's rendered center is shifted to the SAME point via setMapCenterOffset so the
+// dot marks the car's true position — centering the map on the car while drawing the dot
+// higher up made the car appear ~30 m north of reality (always just off the road).
+private val MAP_HEIGHT = 172.dp
+private val PIN_GLOW_SIZE = 46.dp
+
+/** Vertical center of the pin overlay, measured from the top of the map box. */
+private val PIN_CENTER_Y = 64.dp
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,7 +110,7 @@ internal fun LocationCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(172.dp)
+                .height(MAP_HEIGHT)
         ) {
             // Base (shows while tiles load, or when there are no coordinates).
             Box(
@@ -109,9 +120,15 @@ internal fun LocationCard(
             )
 
             if (latitude != null && longitude != null) {
+                val centerOffsetYPx = with(LocalDensity.current) {
+                    (PIN_CENTER_Y - MAP_HEIGHT / 2).roundToPx()
+                }
                 RouteMapView(
                     gestureMode = MapGestureMode.INERT,
                     onMapReady = { mapView ->
+                        // Render the map center (the car) under the pin overlay instead of
+                        // at the geometric middle of the card — see MAP_HEIGHT docs above.
+                        mapView.setMapCenterOffset(0, centerOffsetYPx)
                         // Mute the basemap so roads/labels recede behind the scrim
                         // and pin. Dark theme: grayscale + darken. Light theme:
                         // grayscale + lift toward white to soften the detail.
@@ -177,14 +194,17 @@ internal fun LocationCard(
             )
 
             // Glowing pin in the upper third so the place name below it never overlaps.
+            // Its center must match PIN_CENTER_Y — the map's rendered center is shifted there.
             if (latitude != null && longitude != null) {
                 Box(
-                    modifier = Modifier.align(BiasAlignment(0f, -0.35f)),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = PIN_CENTER_Y - PIN_GLOW_SIZE / 2),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(46.dp)
+                            .size(PIN_GLOW_SIZE)
                             .background(
                                 Brush.radialGradient(
                                     listOf(palette.accent.copy(alpha = 0.45f), Color.Transparent)
