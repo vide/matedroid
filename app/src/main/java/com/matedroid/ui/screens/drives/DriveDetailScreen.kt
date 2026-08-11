@@ -199,6 +199,9 @@ private fun DriveDetailContent(
     val timeLabels = remember(positions) {
         if (hasCharts) extractTimeLabels(positions!!, is24Hour) else emptyList()
     }
+    val hasSpeedData = remember(positions) {
+        hasCharts && positions!!.any { it.speed != null }
+    }
     val fractionToTimeLabel: (Float) -> String = remember(positions) {
         label@{ fraction: Float ->
             val pos = positions
@@ -230,9 +233,9 @@ private fun DriveDetailContent(
         }
 
         // Primary chart: speed profile, accent-tinted
-        if (hasCharts && positions!!.any { it.speed != null }) {
+        if (hasSpeedData) {
             SpeedChartCard(
-                positions = positions,
+                positions = positions!!,
                 units = units,
                 color = palette.accent,
                 timeLabels = timeLabels,
@@ -669,7 +672,10 @@ private fun DriveMoreDetails(
                         onXSelected = onXSelected,
                         fractionToTimeLabel = fractionToTimeLabel
                     )
-                    if (positions.any { it.elevation != null && it.elevation != 0 }) {
+                    val hasElevationData = remember(positions) {
+                        positions.any { it.elevation != null && it.elevation != 0 }
+                    }
+                    if (hasElevationData) {
                         ElevationChartCard(
                             positions = positions,
                             timeLabels = timeLabels,
@@ -688,7 +694,9 @@ private fun DriveMoreDetails(
 private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
     val context = LocalContext.current
     val routeColorArgb = routeColor.toArgb()
-    val validPositions = positions.filter { it.latitude != null && it.longitude != null }
+    val validPositions = remember(positions) {
+        positions.filter { it.latitude != null && it.longitude != null }
+    }
 
     if (validPositions.isEmpty()) return
 

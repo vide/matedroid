@@ -86,7 +86,7 @@ fun MergeTripSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(adjacentTrips) { (id, trip) ->
+                    items(adjacentTrips, key = { it.first }) { (id, trip) ->
                         AdjacentTripRow(
                             trip = trip,
                             units = units,

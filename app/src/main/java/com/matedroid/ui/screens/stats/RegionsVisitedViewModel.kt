@@ -57,39 +57,14 @@ data class RegionsVisitedUiState(
     val availableYears: List<Int> = emptyList(),    // Years with data in this country
     val selectedMapYear: Int? = null,                // null = all years
     val sortOrder: GeoSortOrder = GeoSortOrder.FIRST_VISIT,
-    val error: String? = null
-) {
+    // Precomputed by the ViewModel whenever the source lists or filters change,
+    // so composition reads don't re-filter the full lists
     /** Charges filtered by type and year for map display */
-    val filteredChargeLocations: List<ChargeLocation>
-        get() {
-            var filtered = chargeLocations
-
-            // Filter by year if selected
-            if (selectedMapYear != null) {
-                filtered = filtered.filter { charge ->
-                    charge.date.take(4).toIntOrNull() == selectedMapYear
-                }
-            }
-
-            // Filter by charge type
-            filtered = when (chargeTypeFilter) {
-                ChargeTypeFilter.ALL -> filtered
-                ChargeTypeFilter.AC_ONLY -> filtered.filter { !it.isDcCharge }
-                ChargeTypeFilter.DC_ONLY -> filtered.filter { it.isDcCharge }
-            }
-
-            return filtered
-        }
-
+    val filteredChargeLocations: List<ChargeLocation> = emptyList(),
     /** Drives filtered by year for map display */
-    val filteredDriveLocations: List<DriveLocation>
-        get() {
-            if (selectedMapYear == null) return driveLocations
-            return driveLocations.filter { drive ->
-                drive.date.take(4).toIntOrNull() == selectedMapYear
-            }
-        }
-}
+    val filteredDriveLocations: List<DriveLocation> = emptyList(),
+    val error: String? = null
+)
 
 @HiltViewModel
 class RegionsVisitedViewModel @Inject constructor(
@@ -143,7 +118,7 @@ class RegionsVisitedViewModel @Inject constructor(
                         driveLocations = driveLocations,
                         availableYears = availableYears,
                         error = null
-                    )
+                    ).withFilteredLocations()
                 }
 
                 // Fetch country boundary asynchronously (non-blocking)
@@ -185,12 +160,44 @@ class RegionsVisitedViewModel @Inject constructor(
             } else {
                 filter
             }
-            current.copy(chargeTypeFilter = newFilter)
+            current.copy(chargeTypeFilter = newFilter).withFilteredLocations()
         }
     }
 
     fun setMapYearFilter(year: Int?) {
-        _uiState.update { it.copy(selectedMapYear = year) }
+        _uiState.update { it.copy(selectedMapYear = year).withFilteredLocations() }
+    }
+
+    /** Recompute the filtered map locations from the current source lists and filters. */
+    private fun RegionsVisitedUiState.withFilteredLocations(): RegionsVisitedUiState {
+        var filteredCharges = chargeLocations
+
+        // Filter by year if selected
+        if (selectedMapYear != null) {
+            filteredCharges = filteredCharges.filter { charge ->
+                charge.date.take(4).toIntOrNull() == selectedMapYear
+            }
+        }
+
+        // Filter by charge type
+        filteredCharges = when (chargeTypeFilter) {
+            ChargeTypeFilter.ALL -> filteredCharges
+            ChargeTypeFilter.AC_ONLY -> filteredCharges.filter { !it.isDcCharge }
+            ChargeTypeFilter.DC_ONLY -> filteredCharges.filter { it.isDcCharge }
+        }
+
+        val filteredDrives = if (selectedMapYear == null) {
+            driveLocations
+        } else {
+            driveLocations.filter { drive ->
+                drive.date.take(4).toIntOrNull() == selectedMapYear
+            }
+        }
+
+        return copy(
+            filteredChargeLocations = filteredCharges,
+            filteredDriveLocations = filteredDrives
+        )
     }
 
     private fun sortRegions(

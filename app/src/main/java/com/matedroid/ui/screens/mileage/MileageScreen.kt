@@ -275,7 +275,7 @@ private fun YearOverviewContent(
         }
 
         // Year list
-        items(uiState.yearlyData, contentType = { "year" }) { yearData ->
+        items(uiState.yearlyData, key = { it.year }, contentType = { "year" }) { yearData ->
             YearRow(
                 yearData = yearData,
                 units = uiState.units,
@@ -508,7 +508,7 @@ private fun YearDetailScreen(
             }
 
             // Monthly list
-            items(uiState.monthlyData, contentType = { "month" }) { monthData ->
+            items(uiState.monthlyData, key = { it.yearMonth.toString() }, contentType = { "month" }) { monthData ->
                 MonthRow(
                     monthData = monthData,
                     units = uiState.units,
@@ -768,7 +768,7 @@ private fun MonthDetailScreen(
                 }
 
                 // Daily trip rows
-                items(dailyData, contentType = { "day" }) { dayData ->
+                items(dailyData, key = { it.date.toString() }, contentType = { "day" }) { dayData ->
                     DayTripRow(
                         dayData = dayData,
                         units = units,
@@ -1428,7 +1428,7 @@ private fun DayDetailScreen(
                 }
 
                 // Drive rows
-                items(dayData.drives, contentType = { "drive" }) { drive ->
+                items(dayData.drives, key = { it.driveId }, contentType = { "drive" }) { drive ->
                     DriveRow(
                         drive = drive,
                         units = units,
