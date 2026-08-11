@@ -24,16 +24,19 @@ object ShortEntryFilter {
     /** A drive shorter than this many minutes is "short". */
     const val MIN_DRIVE_DURATION_MIN = 1
 
-    /** A drive shorter than this many km is "short". */
+    /**
+     * A drive shorter than this many km is "short". API distances arrive pre-converted
+     * (km or mi), so the comparison scales this through [UnitSystem.thresholdKmToUserUnits].
+     */
     const val MIN_DRIVE_DISTANCE_KM = 1.0
 
     /** A charge that added this much energy (kWh) or less is "short". */
     const val MIN_CHARGE_ENERGY_KWH = 0.1
 
     /** True when a drive is significant enough to show in lists. */
-    fun isSignificantDrive(durationMin: Int?, distanceKm: Double?): Boolean =
+    fun isSignificantDrive(durationMin: Int?, distance: Double?): Boolean =
         (durationMin ?: 0) >= MIN_DRIVE_DURATION_MIN &&
-            (distanceKm ?: 0.0) >= MIN_DRIVE_DISTANCE_KM
+            (distance ?: 0.0) >= UnitSystem.thresholdKmToUserUnits(MIN_DRIVE_DISTANCE_KM)
 
     /** True when a charge is significant enough to show in lists. */
     fun isSignificantCharge(energyKwh: Double?): Boolean =

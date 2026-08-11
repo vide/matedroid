@@ -15,6 +15,7 @@ import com.matedroid.data.api.models.UpdateData
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
+import com.matedroid.domain.UnitSystem
 import kotlinx.coroutines.flow.first
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
@@ -241,12 +242,29 @@ class TeslamateRepository @Inject constructor(
     suspend fun getCar(carId: Int): ApiResult<CarData> =
         executeWithFallback { api -> api.getCar(carId).toResult("car") { it?.data?.cars?.firstOrNull() } }
 
-    suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> =
-        executeWithFallback { api ->
+    suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> {
+        val result = executeWithFallback { api ->
             api.getCarStatus(carId).toResult("status") { body ->
                 body?.data?.let { data -> data.status?.let { CarStatusWithUnits(it, data.units ?: Units()) } }
             }
         }
+        if (result is ApiResult.Success) {
+            updateUnitSystem(result.data.units.isImperial)
+        }
+        return result
+    }
+
+    // Tracks what we last persisted so the DataStore write happens at most once per change.
+    private var lastPersistedImperial: Boolean? = null
+
+    /** Keep [UnitSystem] (and its persisted copy) in sync with the server's unit setting. */
+    private suspend fun updateUnitSystem(imperial: Boolean) {
+        UnitSystem.isImperial = imperial
+        if (lastPersistedImperial != imperial) {
+            lastPersistedImperial = imperial
+            settingsDataStore.saveIsImperial(imperial)
+        }
+    }
 
     suspend fun getCharges(
         carId: Int,

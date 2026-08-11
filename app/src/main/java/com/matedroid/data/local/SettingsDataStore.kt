@@ -79,6 +79,18 @@ class SettingsDataStore @Inject constructor(
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
+    private val isImperialKey = booleanPreferencesKey("is_imperial")
+
+    /** Last known TeslamateAPI unit system; used to restore [com.matedroid.domain.UnitSystem] at app start. */
+    val isImperial: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[isImperialKey] ?: false
+    }
+
+    suspend fun saveIsImperial(value: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[isImperialKey] = value
+        }
+    }
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
