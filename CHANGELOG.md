@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The widget updater stops itself when no widgets are on the launcher** instead of polling forever.
 - **Location lookups back off when the geocoding service is unreachable** instead of retrying the whole queue at full speed on every sync.
 - **A sync with failed drive/charge details now reports the failure and retries them** instead of pretending everything synced.
+- **Syncs are now incremental** — instead of re-downloading the entire drive/charge history on every sync (a multi-MB download for long histories), only entries since the last sync are fetched, with a 7-day overlap and a weekly full refresh to pick up edits to older entries (e.g. charge costs added later).
 
 ### Fixed
 - **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
