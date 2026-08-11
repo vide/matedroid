@@ -421,9 +421,7 @@ private fun computeYearAggregation(
     val totalLifetimeDistance = yearlyData.sumOf { it.totalDistance }
     val totalLifetimeDriveCount = yearlyData.sumOf { it.driveCount }
     val totalLifetimeEnergy = yearlyData.sumOf { it.totalEnergy }
-    // Distance is already in the user's unit (the API pre-converts before we
-    // store it), so the efficiency denominator is used as-is — no km→mi math.
-    val avgLifetimeEnergyDistance = if (totalLifetimeDistance > 0) (totalLifetimeEnergy * 1000.0) / totalLifetimeDistance else 0.0
+    val avgLifetimeEnergyDistance = efficiencyWhPerUnit(totalLifetimeEnergy, totalLifetimeDistance)
     val totalLifetimeEnergyCost = charges.mapNotNull { it.charge.cost }.sum().takeIf { it > 0 }
 
     val firstDriveDate = drives.minByOrNull { it.dateTime }?.dateTime?.toLocalDate()
@@ -495,9 +493,7 @@ private fun computeMonthAggregation(
     val yearDriveCount = monthlyData.sumOf { it.driveCount }
     val avgMonthlyDistance = if (monthlyData.isNotEmpty()) yearTotalDistance / monthlyData.size else 0.0
     val yearTotalEnergy = monthlyData.sumOf { it.totalEnergy }
-    // Distance is already in the user's unit (the API pre-converts before we
-    // store it), so the efficiency denominator is used as-is — no km→mi math.
-    val avgYearEnergyDistance = if (yearTotalDistance > 0) (yearTotalEnergy * 1000.0) / yearTotalDistance else 0.0
+    val avgYearEnergyDistance = efficiencyWhPerUnit(yearTotalEnergy, yearTotalDistance)
     val yearTotalEnergyCost = monthlyData.mapNotNull { it.totalEnergyCost }.sum().takeIf { it > 0 }
 
     return MonthAggregation(
