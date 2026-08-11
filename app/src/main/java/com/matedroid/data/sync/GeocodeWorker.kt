@@ -77,12 +77,12 @@ class GeocodeWorker @AssistedInject constructor(
             geocodingRepository.resetFailedItems()
         }
 
-        // If queue is completely empty but we have cached items, progress should match cache
-        // This handles the case where queue was cleared but progress wasn't updated
+        // If queue is completely empty but progress shows incomplete work, close it out
+        // (handles the case where the queue was cleared but progress wasn't updated)
         if (totalQueue == 0 && cachedCount > 0) {
-            geocodingRepository.syncProgressWithCache(cachedCount)
-            Log.d(TAG, "Synced progress with cache count: $cachedCount")
-            log("Synced progress with cache count: $cachedCount")
+            geocodingRepository.markProgressComplete()
+            Log.d(TAG, "Queue empty — marked progress complete")
+            log("Queue empty — marked progress complete")
         }
 
         // Run as foreground service (optional - may fail from background)

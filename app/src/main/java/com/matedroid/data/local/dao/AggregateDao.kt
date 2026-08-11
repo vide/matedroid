@@ -648,26 +648,62 @@ interface AggregateDao {
     """)
     suspend fun countChargesNeedingGeocode(carId: Int): Int
 
-    // Get coordinates of drives that need geocoding (have coordinates but no country)
+    // Get ids + coordinates of drives that need geocoding (have coordinates but no country).
+    // Carrying the id lets callers apply cached geocode data with indexed per-id updates
+    // instead of CAST(lat*100)-matching UPDATEs, which SQLite can never index (full scan
+    // per grid cell).
     @Query("""
-        SELECT startLatitude AS latitude, startLongitude AS longitude FROM drive_detail_aggregates
+        SELECT driveId AS id, startLatitude AS latitude, startLongitude AS longitude
+        FROM drive_detail_aggregates
         WHERE carId = :carId
         AND startLatitude IS NOT NULL
         AND startLongitude IS NOT NULL
         AND startCountryCode IS NULL
     """)
-    suspend fun getDriveLocationsNeedingGeocode(carId: Int): List<LatLonResult>
+    suspend fun getDriveLocationsNeedingGeocode(carId: Int): List<IdLatLonResult>
 
-    // Get coordinates of charges that need geocoding
+    // (0.0, 0.0) is the sentinel for "API returned no coordinates" — exclude it or those
+    // charges get geocoded to Null Island.
     @Query("""
-        SELECT c.latitude, c.longitude FROM charge_detail_aggregates a
+        SELECT c.chargeId AS id, c.latitude, c.longitude FROM charge_detail_aggregates a
         JOIN charges_summary c ON a.chargeId = c.chargeId
         WHERE a.carId = :carId
-        AND c.latitude IS NOT NULL
-        AND c.longitude IS NOT NULL
+        AND NOT (c.latitude = 0.0 AND c.longitude = 0.0)
         AND a.countryCode IS NULL
     """)
-    suspend fun getChargeLocationsNeedingGeocode(carId: Int): List<LatLonResult>
+    suspend fun getChargeLocationsNeedingGeocode(carId: Int): List<IdLatLonResult>
+
+    @Query("""
+        UPDATE drive_detail_aggregates
+        SET startCountryCode = :countryCode,
+            startCountryName = :countryName,
+            startRegionName = :regionName,
+            startCity = :city
+        WHERE driveId IN (:driveIds)
+    """)
+    suspend fun updateDriveLocationsByIds(
+        driveIds: List<Int>,
+        countryCode: String?,
+        countryName: String?,
+        regionName: String?,
+        city: String?
+    )
+
+    @Query("""
+        UPDATE charge_detail_aggregates
+        SET countryCode = :countryCode,
+            countryName = :countryName,
+            regionName = :regionName,
+            city = :city
+        WHERE chargeId IN (:chargeIds)
+    """)
+    suspend fun updateChargeLocationsByIds(
+        chargeIds: List<Int>,
+        countryCode: String?,
+        countryName: String?,
+        regionName: String?,
+        city: String?
+    )
 
     // === Charge Locations for Country Map ===
 
@@ -774,14 +810,13 @@ data class DriveLocationResult(
 )
 
 /**
- * Simple lat/lon result for geocoding queries.
+ * Row id + coordinates for geocoding queries.
  */
-data class LatLonResult(
+data class IdLatLonResult(
+    val id: Int,
     val latitude: Double,
     val longitude: Double
-) {
-    fun toLatLon(): Pair<Double, Double> = latitude to longitude
-}
+)
 
 /**
  * Result of a country visit aggregation query.
