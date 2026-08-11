@@ -15,6 +15,8 @@ import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -112,8 +114,11 @@ class ChargeDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             // Fetch charge detail and units in parallel
-            val detailResult = repository.getChargeDetail(carId, chargeId)
-            val statusResult = repository.getCarStatus(carId)
+            val (detailResult, statusResult) = coroutineScope {
+                val detail = async { repository.getChargeDetail(carId, chargeId) }
+                val status = async { repository.getCarStatus(carId) }
+                detail.await() to status.await()
+            }
 
             val units = when (statusResult) {
                 is ApiResult.Success -> statusResult.data.units

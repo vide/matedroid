@@ -120,12 +120,15 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
@@ -996,23 +999,28 @@ private fun CarImage(
         }
     }
 
-    val bitmap = remember(assetPath) {
-        try {
-            context.assets.open(assetPath).use { inputStream ->
-                BitmapFactory.decodeStream(inputStream)
-            }
-        } catch (e: Exception) {
-            // Try fallback to default
+    // Decode off the main thread: this runs per pager swipe between cars
+    val bitmap = produceState<Bitmap?>(initialValue = null, assetPath) {
+        // Reset before decoding so a stale image never shows when the car changes
+        value = null
+        value = withContext(Dispatchers.Default) {
             try {
-                val fallbackPath = CarImageResolver.getDefaultAssetPath(carModel)
-                context.assets.open(fallbackPath).use { inputStream ->
+                context.assets.open(assetPath).use { inputStream ->
                     BitmapFactory.decodeStream(inputStream)
                 }
-            } catch (e2: Exception) {
-                null
+            } catch (e: Exception) {
+                // Try fallback to default
+                try {
+                    val fallbackPath = CarImageResolver.getDefaultAssetPath(carModel)
+                    context.assets.open(fallbackPath).use { inputStream ->
+                        BitmapFactory.decodeStream(inputStream)
+                    }
+                } catch (e2: Exception) {
+                    null
+                }
             }
         }
-    }
+    }.value
 
     // Glow radius in pixels
     val glowRadius = 70f
@@ -1037,18 +1045,22 @@ private fun CarImage(
     // Color subtly shifts between accent and a blend with AC/DC color
     val glowColor = androidx.compose.ui.graphics.lerp(accentColor, chargeTypeColor, breathProgress * 0.4f)
 
-    // Create single glow bitmap
-    val glowBitmap = remember(bitmap, isCharging) {
-        if (isCharging && bitmap != null) {
-            createGlowBitmap(
-                source = bitmap,
-                glowColor = Color.White,
-                glowRadius = glowRadius
-            )
+    // Create single glow bitmap — triple-blur render is expensive, keep it off the main thread
+    val glowBitmap = produceState<Bitmap?>(initialValue = null, bitmap, isCharging) {
+        // Reset so a stale glow never lingers over a different bitmap
+        value = null
+        value = if (isCharging && bitmap != null) {
+            withContext(Dispatchers.Default) {
+                createGlowBitmap(
+                    source = bitmap,
+                    glowColor = Color.White,
+                    glowRadius = glowRadius
+                )
+            }
         } else {
             null
         }
-    }
+    }.value
 
     // Calculate scale compensation for glow (glow bitmap is larger due to padding)
     val glowScaleCompensation = remember(bitmap, glowBitmap) {

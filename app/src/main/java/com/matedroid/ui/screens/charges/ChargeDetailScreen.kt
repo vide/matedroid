@@ -200,9 +200,12 @@ private fun ChargeDetailContent(
     }
 
     // Chart time labels are shared by the primary power chart and the secondary charts.
+    // Remembered so crosshair-drag recompositions don't re-parse every point's date.
     val chargePoints = detail.chargePoints
-    val timeLabels = chargePoints?.takeIf { it.size > 2 }
-        ?.let { extractTimeLabels(it, is24Hour) } ?: emptyList()
+    val timeLabels = remember(chargePoints, is24Hour) {
+        chargePoints?.takeIf { it.size > 2 }
+            ?.let { extractTimeLabels(it, is24Hour) } ?: emptyList()
+    }
     val fractionToTimeLabel: (Float) -> String = label@{ fraction ->
         val cp = chargePoints
         if (cp == null || cp.size <= 2) return@label ""
@@ -243,7 +246,8 @@ private fun ChargeDetailContent(
 
         // Primary chart: power curve, accent-tinted by charge type (DC orange / AC green)
         val cp = chargePoints
-        if (cp != null && cp.size > 2 && cp.any { (it.chargerPower ?: 0) > 0 }) {
+        val hasPower = remember(cp) { cp?.any { (it.chargerPower ?: 0) > 0 } == true }
+        if (cp != null && cp.size > 2 && hasPower) {
             PowerChartCard(
                 chargePoints = cp,
                 timeLabels = timeLabels,
@@ -973,7 +977,7 @@ private fun PowerChartCard(
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val powers = chargePoints.mapNotNull { it.chargerPower?.toFloat() }
+    val powers = remember(chargePoints) { chargePoints.mapNotNull { it.chargerPower?.toFloat() } }
     if (powers.size < 2) return
 
     ChartCard(
@@ -998,7 +1002,7 @@ private fun VoltageChartCard(
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val voltages = chargePoints.mapNotNull { it.chargerVoltage?.toFloat() }
+    val voltages = remember(chargePoints) { chargePoints.mapNotNull { it.chargerVoltage?.toFloat() } }
     if (voltages.size < 2) return
 
     ChartCard(
@@ -1023,7 +1027,7 @@ private fun CurrentChartCard(
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val currents = chargePoints.mapNotNull { it.chargerCurrent?.toFloat() }
+    val currents = remember(chargePoints) { chargePoints.mapNotNull { it.chargerCurrent?.toFloat() } }
     if (currents.size < 2) return
 
     ChartCard(
@@ -1049,13 +1053,16 @@ private fun TemperatureChartCard(
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val temps = chargePoints.mapNotNull { it.outsideTemp?.toFloat() }
+    val temps = remember(chargePoints) { chargePoints.mapNotNull { it.outsideTemp?.toFloat() } }
     if (temps.size < 2) return
-    var yMin = kotlin.math.floor(temps.min())
-    var yMax = kotlin.math.ceil(temps.max())
-    if (yMin == yMax) {
-        yMin -= 1
-        yMax += 1
+    val fixedMinMax = remember(temps) {
+        var yMin = kotlin.math.floor(temps.min())
+        var yMax = kotlin.math.ceil(temps.max())
+        if (yMin == yMax) {
+            yMin -= 1
+            yMax += 1
+        }
+        Pair(yMin, yMax)
     }
     ChartCard(
         title = title,
@@ -1064,7 +1071,7 @@ private fun TemperatureChartCard(
         color = Color(0xFFFF9800),
         unit = UnitFormatter.getTemperatureUnit(units),
         timeLabels = timeLabels,
-        fixedMinMax = Pair(yMin, yMax),
+        fixedMinMax = fixedMinMax,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
         fractionToTimeLabel = fractionToTimeLabel
@@ -1081,13 +1088,16 @@ private fun BatteryChartCard(
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val batteryLevels = chargePoints.mapNotNull { it.batteryLevel?.toFloat() }
+    val batteryLevels = remember(chargePoints) { chargePoints.mapNotNull { it.batteryLevel?.toFloat() } }
     if (batteryLevels.size < 2) return
-    var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
-    var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
-    if (yMin == yMax) {
-        yMin -= 1
-        yMax += 1
+    val fixedMinMax = remember(batteryLevels) {
+        var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+        var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+        if (yMin == yMax) {
+            yMin -= 1
+            yMax += 1
+        }
+        Pair(yMin, yMax)
     }
 
     ChartCard(
@@ -1096,7 +1106,7 @@ private fun BatteryChartCard(
         data = batteryLevels,
         color = color,
         unit = "%",
-        fixedMinMax = Pair(yMin, yMax),
+        fixedMinMax = fixedMinMax,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,

@@ -123,7 +123,7 @@ fun AddLegSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(merged) { candidate ->
+                    items(merged, key = { it.toRef().let { ref -> "${ref.type}:${ref.id}" } }) { candidate ->
                         val ref = candidate.toRef()
                         CandidateRow(
                             candidate = candidate,

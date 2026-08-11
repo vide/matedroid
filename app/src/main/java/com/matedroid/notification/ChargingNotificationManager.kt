@@ -19,6 +19,7 @@ import com.matedroid.data.api.models.CarStatus
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalettes
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,6 +43,9 @@ class ChargingNotificationManager @Inject constructor(
 
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
             as NotificationManager
+
+    // Decoded car images keyed by asset path (singleton-lifetime, a handful of small PNGs)
+    private val carImageCache = ConcurrentHashMap<String, Bitmap>()
 
     /**
      * Show or update the charging notification for a car.
@@ -324,6 +328,9 @@ class ChargingNotificationManager @Inject constructor(
 
     /**
      * Load car image from assets.
+     * Decoded bitmaps are memoized per asset path — this runs on every notification
+     * update (every 30s while charging), so avoid re-decoding the same PNG.
+     * Failures are not cached, so a null result can be retried.
      */
     private fun loadCarImage(car: CarData): Bitmap? {
         return try {
@@ -334,9 +341,9 @@ class ChargingNotificationManager @Inject constructor(
                 trimBadging = car.carDetails?.trimBadging
             )
 
-            context.assets.open(assetPath).use { inputStream ->
+            carImageCache[assetPath] ?: context.assets.open(assetPath).use { inputStream ->
                 BitmapFactory.decodeStream(inputStream)
-            }
+            }?.also { carImageCache[assetPath] = it }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load car image", e)
             null

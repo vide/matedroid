@@ -51,7 +51,9 @@ class TripDetector @Inject constructor() {
         val events = mutableListOf<Event>()
         realDrives.forEach { events.add(Event.Drive(it)) }
         dcCharges.forEach { events.add(Event.Charge(it)) }
-        events.sortBy { parseDateTime(it.startDate) ?: LocalDateTime.MIN }
+        // Timestamps are uniform ISO-8601, so lexicographic order == chronological order.
+        // Sorting by the raw string avoids parsing a date per comparison.
+        events.sortBy { it.startDate }
 
         val trips = mutableListOf<Trip>()
         var currentDrives = mutableListOf<DriveSummary>()

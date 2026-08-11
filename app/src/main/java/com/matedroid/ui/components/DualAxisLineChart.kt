@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 /**
@@ -66,28 +67,34 @@ fun DualAxisLineChart(
 ) {
     if (dataLeft.size < 2 && dataRight.size < 2) return
 
+    val density = LocalDensity.current
+    // Text sizes in sp so labels respect density and the user's font scale.
+    val axisLabelTextSizePx = with(density) { 9.sp.toPx() }
+    val timeLabelTextSizePx = with(density) { 10.sp.toPx() }
+    val chipTextSizePx = with(density) { 11.sp.toPx() }
+
     val surfaceColor = MaterialTheme.colorScheme.onSurface
     // Built once and reused across draws (the 800ms entrance redraws every frame).
-    val leftLabelPaint = remember(colorLeft) {
+    val leftLabelPaint = remember(colorLeft, axisLabelTextSizePx) {
         android.graphics.Paint().apply {
             color = colorLeft.copy(alpha = 0.8f).toArgb()
-            textSize = 24f
+            textSize = axisLabelTextSizePx
             isAntiAlias = true
             textAlign = android.graphics.Paint.Align.LEFT
         }
     }
-    val rightLabelPaint = remember(colorRight) {
+    val rightLabelPaint = remember(colorRight, axisLabelTextSizePx) {
         android.graphics.Paint().apply {
             color = colorRight.copy(alpha = 0.8f).toArgb()
-            textSize = 24f
+            textSize = axisLabelTextSizePx
             isAntiAlias = true
             textAlign = android.graphics.Paint.Align.RIGHT
         }
     }
-    val timeLabelPaint = remember(surfaceColor) {
+    val timeLabelPaint = remember(surfaceColor, timeLabelTextSizePx) {
         android.graphics.Paint().apply {
             color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
+            textSize = timeLabelTextSizePx
             isAntiAlias = true
         }
     }
@@ -98,7 +105,6 @@ fun DualAxisLineChart(
     val chartDataLeft = remember(dataLeft) { prepareChartData(dataLeft, fixedMinMax = null) { it } }
     val chartDataRight = remember(dataRight) { prepareChartData(dataRight, fixedMinMax = null) { it } }
 
-    val density = LocalDensity.current
     val chartHeightPx = with(density) { chartHeight.toPx() }
     var canvasWidthPx by remember { mutableStateOf(0f) }
 
@@ -106,7 +112,7 @@ fun DualAxisLineChart(
     // points, so tap indices must index those too. Raw indices past
     // MAX_DISPLAY_POINTS would look up nothing and leave the tooltip valueless.
     val dataSize = maxOf(chartDataLeft.displayPoints.size, chartDataRight.displayPoints.size)
-    val rightLabelWidth = 70f
+    val rightLabelWidth = with(density) { 27.dp.toPx() }
 
     // Pre-compute smooth paths
     val chartWidth = (canvasWidthPx - rightLabelWidth).coerceAtLeast(0f)
@@ -293,7 +299,7 @@ fun DualAxisLineChart(
                 if (fractionToTimeLabel != null && timeLabelHeightPx > 0) {
                     val fraction = if (dataSize > 1) point.index.toFloat() / (dataSize - 1) else 0f
                     val timeStr = fractionToTimeLabel(fraction)
-                    drawFloatingTimeChip(timeStr, pointX, colorLeft, chartHeightPx, timeLabelHeightPx, width - rLabelWidth)
+                    drawFloatingTimeChip(timeStr, pointX, colorLeft, chartHeightPx, timeLabelHeightPx, width - rLabelWidth, chipTextSizePx)
                 }
             }
         }

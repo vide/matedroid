@@ -289,10 +289,17 @@ private fun CurrentChargeContent(
             DcUnplugWarningBanner(dcFinishedSince = dcFinishedSince)
         }
 
-        // Charts - always show cards, even with few data points
-        val timeLabels = extractChronoTimeLabels(chronologicalPoints, is24Hour)
-        val powers = chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
-        val batteryLevels = chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
+        // Charts - always show cards, even with few data points.
+        // Derivations are remembered so crosshair-drag recompositions don't recompute them.
+        val timeLabels = remember(chronologicalPoints, is24Hour) {
+            extractChronoTimeLabels(chronologicalPoints, is24Hour)
+        }
+        val powers = remember(chronologicalPoints) {
+            chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
+        }
+        val batteryLevels = remember(chronologicalPoints) {
+            chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
+        }
         val fractionToTimeLabel: (Float) -> String = { fraction ->
             val pts = chronologicalPoints
             val index = (fraction * pts.lastIndex).roundToInt().coerceIn(0, pts.lastIndex)
@@ -308,17 +315,20 @@ private fun CurrentChargeContent(
             icon = Icons.Default.Bolt
         ) {
             if (powers.size >= 2) {
-                var yMin = kotlin.math.floor(powers.min())
-                var yMax = kotlin.math.ceil(powers.max())
-                if (yMin == yMax) {
-                    yMin -= 1
-                    yMax += 1
+                val fixedMinMax = remember(powers) {
+                    var yMin = kotlin.math.floor(powers.min())
+                    var yMax = kotlin.math.ceil(powers.max())
+                    if (yMin == yMax) {
+                        yMin -= 1
+                        yMax += 1
+                    }
+                    Pair(yMin, yMax)
                 }
                 FullscreenLineChart(
                     data = powers,
                     color = accentColor,
                     unit = "kW",
-                    fixedMinMax = Pair(yMin, yMax),
+                    fixedMinMax = fixedMinMax,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
@@ -330,8 +340,12 @@ private fun CurrentChargeContent(
 
         // Voltage & Current combined chart (AC only)
         if (!isDcCharge) {
-            val voltages = chronologicalPoints.mapNotNull { it.chargerVoltage?.toFloat() }
-            val currents = chronologicalPoints.mapNotNull { it.chargerCurrent?.toFloat() }
+            val voltages = remember(chronologicalPoints) {
+                chronologicalPoints.mapNotNull { it.chargerVoltage?.toFloat() }
+            }
+            val currents = remember(chronologicalPoints) {
+                chronologicalPoints.mapNotNull { it.chargerCurrent?.toFloat() }
+            }
 
             val vcTitle = stringResource(R.string.voltage_and_current_profile)
             LiveChartCard(
@@ -363,17 +377,20 @@ private fun CurrentChargeContent(
             icon = Icons.Default.BatteryChargingFull
         ) {
             if (batteryLevels.size >= 2) {
-                var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
-                var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
-                if (yMin == yMax) {
-                    yMin -= 1
-                    yMax += 1
+                val fixedMinMax = remember(batteryLevels) {
+                    var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+                    var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+                    if (yMin == yMax) {
+                        yMin -= 1
+                        yMax += 1
+                    }
+                    Pair(yMin, yMax)
                 }
                 FullscreenLineChart(
                     data = batteryLevels,
                     color = MaterialTheme.colorScheme.primary,
                     unit = "%",
-                    fixedMinMax = Pair(yMin, yMax),
+                    fixedMinMax = fixedMinMax,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },

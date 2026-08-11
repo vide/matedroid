@@ -873,39 +873,41 @@ private fun ChargesChartPage(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        val barData = when (chartType) {
-            ChargesChartType.ENERGY -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.totalEnergy,
-                    displayValue = "%.1f kWh".format(data.totalEnergy),
-                    segments = listOf(
-                        BarSegment(data.energyAc, palette.acColor, "AC"),
-                        BarSegment(data.energyDc, palette.dcColor, "DC")
+        val barData = remember(chartData, chartType, currencySymbol, palette) {
+            when (chartType) {
+                ChargesChartType.ENERGY -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.totalEnergy,
+                        displayValue = "%.1f kWh".format(data.totalEnergy),
+                        segments = listOf(
+                            BarSegment(data.energyAc, palette.acColor, "AC"),
+                            BarSegment(data.energyDc, palette.dcColor, "DC")
+                        )
                     )
-                )
-            }
-            ChargesChartType.COST -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.totalCost,
-                    displayValue = "$currencySymbol%.2f".format(data.totalCost),
-                    segments = listOf(
-                        BarSegment(data.costAc, palette.acColor, "AC"),
-                        BarSegment(data.costDc, palette.dcColor, "DC")
+                }
+                ChargesChartType.COST -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.totalCost,
+                        displayValue = "$currencySymbol%.2f".format(data.totalCost),
+                        segments = listOf(
+                            BarSegment(data.costAc, palette.acColor, "AC"),
+                            BarSegment(data.costDc, palette.dcColor, "DC")
+                        )
                     )
-                )
-            }
-            ChargesChartType.COUNT -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.count.toDouble(),
-                    displayValue = data.count.toString(),
-                    segments = listOf(
-                        BarSegment(data.countAc.toDouble(), palette.acColor, "AC"),
-                        BarSegment(data.countDc.toDouble(), palette.dcColor, "DC")
+                }
+                ChargesChartType.COUNT -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.count.toDouble(),
+                        displayValue = data.count.toString(),
+                        segments = listOf(
+                            BarSegment(data.countAc.toDouble(), palette.acColor, "AC"),
+                            BarSegment(data.countDc.toDouble(), palette.dcColor, "DC")
+                        )
                     )
-                )
+                }
             }
         }
 

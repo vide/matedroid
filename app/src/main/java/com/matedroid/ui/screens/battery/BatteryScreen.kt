@@ -138,7 +138,7 @@ fun BatteryScreen(
                 if (uiState.isLoading && !uiState.isRefreshing) {
                     MateDroidLoadingPlaceholder(color = palette.accent)
                 } else {
-                    val stats = viewModel.computeStats()
+                    val stats = uiState.stats
                     if (stats != null) {
                         BatteryHealthContent(
                             stats = stats,
@@ -168,7 +168,7 @@ fun BatteryScreen(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it })
         ) {
-            val stats = viewModel.computeStats()
+            val stats = uiState.stats
             if (stats != null) {
                 BatteryDetailScreen(
                     stats = stats,

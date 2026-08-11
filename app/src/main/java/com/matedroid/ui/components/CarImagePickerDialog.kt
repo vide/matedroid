@@ -1,5 +1,6 @@
 package com.matedroid.ui.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,6 +56,8 @@ import com.matedroid.R
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.domain.model.WheelOption
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * A dialog for manually selecting car appearance (variant and wheel style).
@@ -361,15 +365,20 @@ private fun WheelOptionItem(
 ) {
     val context = LocalContext.current
 
-    val bitmap = remember(wheel.assetPath) {
-        try {
-            context.assets.open(wheel.assetPath).use { inputStream ->
-                BitmapFactory.decodeStream(inputStream)
+    // Decode off the main thread; the placeholder box renders while null.
+    // Reset first so a recycled LazyRow slot never shows the previous wheel's image.
+    val bitmap = produceState<Bitmap?>(initialValue = null, wheel.assetPath) {
+        value = null
+        value = withContext(Dispatchers.IO) {
+            try {
+                context.assets.open(wheel.assetPath).use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream)
+                }
+            } catch (e: Exception) {
+                null
             }
-        } catch (e: Exception) {
-            null
         }
-    }
+    }.value
 
     val borderColor = if (isSelected) {
         MaterialTheme.colorScheme.primary

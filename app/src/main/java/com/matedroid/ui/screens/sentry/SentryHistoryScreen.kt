@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -123,7 +124,9 @@ fun SentryHistoryScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: SentryHistoryViewModel = hiltViewModel()
 ) {
-    viewModel.setCarId(carId)
+    LaunchedEffect(carId) {
+        viewModel.setCarId(carId)
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
