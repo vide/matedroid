@@ -16,6 +16,11 @@ data class SyncState(
     val lastDriveSyncAt: Long = 0,
     val lastChargeSyncAt: Long = 0,
 
+    // Last time summaries were fetched WITHOUT a startDate filter. Incremental syncs only
+    // fetch entries newer than the last sync (minus an overlap window), so a periodic full
+    // fetch picks up server-side edits (e.g. costs added to old charges).
+    val lastFullSummarySyncAt: Long = 0,
+
     // Detail sync tracking (individual endpoints)
     val lastDriveDetailId: Int = 0,
     val lastChargeDetailId: Int = 0,

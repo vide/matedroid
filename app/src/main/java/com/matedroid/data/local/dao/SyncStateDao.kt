@@ -25,6 +25,10 @@ interface SyncStateDao {
     """)
     suspend fun markSummariesSynced(carId: Int, timestamp: Long)
 
+    // Recorded only when the summary fetch ran without a startDate filter
+    @Query("UPDATE sync_state SET lastFullSummarySyncAt = :timestamp WHERE carId = :carId")
+    suspend fun markFullSummarySync(carId: Int, timestamp: Long)
+
     // Detail sync progress updates
     @Query("""
         UPDATE sync_state

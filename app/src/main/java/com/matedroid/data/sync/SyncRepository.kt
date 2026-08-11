@@ -47,10 +47,25 @@ class SyncRepository @Inject constructor(
         private const val TAG = "SyncRepository"
         private const val THROTTLE_DELAY_MS = 10L  // Reduced from 100ms
         private const val BATCH_SIZE = 10  // Number of concurrent API calls
+
+        // Incremental summary sync: fetch entries newer than the last sync minus this
+        // overlap (absorbs clock skew, in-progress drives, and recent cost edits)...
+        private const val SUMMARY_OVERLAP_MS = 7L * 24 * 60 * 60 * 1000
+        // ...and do a periodic unfiltered fetch to pick up older server-side edits.
+        private const val FULL_REFRESH_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
     }
 
     private fun log(message: String) = logCollector.log(TAG, message)
     private fun logError(message: String, error: Throwable? = null) = logCollector.logError(TAG, message, error)
+
+    /**
+     * RFC3339 UTC ("2024-12-07T00:00:00Z") — one of the two formats TeslamateApi's
+     * parseDateParam accepts. The 7-day overlap absorbs any timezone interpretation drift.
+     */
+    private fun formatSyncStartDate(epochMs: Long): String =
+        java.time.Instant.ofEpochMilli(epochMs)
+            .truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+            .toString()
 
     /**
      * Ensure geocoding worker is running or scheduled.
@@ -88,13 +103,27 @@ class SyncRepository @Inject constructor(
         // Phase 1: Sync summaries
         syncManager.updateSummaryProgress(carId, "Fetching drives and charges...")
 
-        val summariesSuccess = syncSummaries(carId)
+        // Incremental fetch when possible: for large histories the unfiltered list endpoints
+        // are a multi-MB download + full-table upsert on EVERY sync.
+        val state = syncManager.getOrCreateSyncState(carId)
+        val now = System.currentTimeMillis()
+        val fullSync = !state.summariesSynced ||
+            state.lastDriveSyncAt == 0L ||
+            state.lastChargeSyncAt == 0L ||
+            now - state.lastFullSummarySyncAt > FULL_REFRESH_INTERVAL_MS
+        val startDate = if (fullSync) {
+            null
+        } else {
+            formatSyncStartDate(minOf(state.lastDriveSyncAt, state.lastChargeSyncAt) - SUMMARY_OVERLAP_MS)
+        }
+
+        val summariesSuccess = syncSummaries(carId, startDate)
         if (!summariesSuccess) {
             syncManager.markSyncError(carId, "Failed to sync summaries")
             return false
         }
 
-        syncManager.markSummariesComplete(carId)
+        syncManager.markSummariesComplete(carId, wasFullSync = fullSync)
 
         // Check if details need syncing
         if (syncManager.areDetailsSynced(carId)) {
@@ -130,12 +159,16 @@ class SyncRepository @Inject constructor(
     /**
      * Sync only summaries (Quick Stats).
      * Fast operation - 2 API calls regardless of data size.
+     * [startDate] (RFC3339) limits the fetch to entries newer than it; null fetches everything.
      */
-    suspend fun syncSummaries(carId: Int): Boolean {
-        log("Syncing summaries for car $carId")
+    suspend fun syncSummaries(carId: Int, startDate: String? = null): Boolean {
+        log(
+            if (startDate == null) "Syncing summaries for car $carId (full)"
+            else "Syncing summaries for car $carId (incremental since $startDate)"
+        )
 
         // Fetch and store drives
-        when (val drivesResult = teslamateRepository.getDrives(carId)) {
+        when (val drivesResult = teslamateRepository.getDrives(carId, startDate = startDate)) {
             is ApiResult.Success -> {
                 val summaries = drivesResult.data.map { it.toDriveSummary(carId) }
                 driveSummaryDao.upsertAll(summaries)
@@ -148,7 +181,7 @@ class SyncRepository @Inject constructor(
         }
 
         // Fetch and store charges
-        when (val chargesResult = teslamateRepository.getCharges(carId)) {
+        when (val chargesResult = teslamateRepository.getCharges(carId, startDate = startDate)) {
             is ApiResult.Success -> {
                 val summaries = chargesResult.data.map { it.toChargeSummary(carId) }
                 chargeSummaryDao.upsertAll(summaries)
