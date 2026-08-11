@@ -68,8 +68,10 @@ class GeocodeWorker @AssistedInject constructor(
         Log.d(TAG, "Queue state: total=$totalQueue, pending=$pendingQueue, failed=$failedQueue, cached=$cachedCount")
         log("Queue state: total=$totalQueue, pending=$pendingQueue, failed=$failedQueue, cached=$cachedCount")
 
-        // If there are failed items but no pending items, reset and retry them
-        if (pendingQueue == 0 && failedQueue > 0) {
+        // If there are failed items but no pending items, reset and retry them — but only on
+        // a fresh trigger (a sync enqueued us), never on our own backoff retries. Resetting on
+        // every run made a dead endpoint burn through the whole queue again on each attempt.
+        if (runAttemptCount == 0 && pendingQueue == 0 && failedQueue > 0) {
             Log.d(TAG, "Resetting $failedQueue failed items to retry")
             log("Resetting $failedQueue failed items to retry")
             geocodingRepository.resetFailedItems()
@@ -130,6 +132,14 @@ class GeocodeWorker @AssistedInject constructor(
 
         Log.d(TAG, "Processed $processedCount locations this run")
         log("Processed $processedCount locations this run")
+
+        // Persistent errors → the endpoint is likely down or throttling us. Retry with
+        // WorkManager's exponential backoff instead of hammering Nominatim immediately.
+        if (consecutiveErrors >= 5) {
+            Log.w(TAG, "Too many consecutive errors, retrying with backoff")
+            log("Too many consecutive errors, retrying with backoff")
+            return Result.retry()
+        }
 
         // Check if there's more work to do
         val remaining = geocodingRepository.getPendingCount()
