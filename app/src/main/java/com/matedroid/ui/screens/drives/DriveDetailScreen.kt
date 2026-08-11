@@ -73,7 +73,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
@@ -85,13 +84,12 @@ import com.matedroid.domain.DriveComparison
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
+import com.matedroid.ui.components.boundingBoxOf
 import com.matedroid.ui.screens.trips.displayName
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
 import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
@@ -741,56 +739,29 @@ private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
-                            setOnTouchListener { v, event ->
-                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
-                                false
-                            }
+                RouteMapView(
+                    onMapReady = { mapView ->
+                        val geoPoints = validPositions.map { pos ->
+                            GeoPoint(pos.latitude!!, pos.longitude!!)
+                        }
 
-                            val geoPoints = validPositions.map { pos ->
-                                GeoPoint(pos.latitude!!, pos.longitude!!)
-                            }
+                        val polyline = Polyline().apply {
+                            setPoints(geoPoints)
+                            outlinePaint.color = routeColorArgb
+                            outlinePaint.strokeWidth = 8f
+                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                            outlinePaint.strokeJoin = Paint.Join.ROUND
+                        }
+                        mapView.overlays.add(polyline)
 
-                            val polyline = Polyline().apply {
-                                setPoints(geoPoints)
-                                outlinePaint.color = routeColorArgb
-                                outlinePaint.strokeWidth = 8f
-                                outlinePaint.strokeCap = Paint.Cap.ROUND
-                                outlinePaint.strokeJoin = Paint.Join.ROUND
-                            }
-                            overlays.add(polyline)
-
-                            if (geoPoints.isNotEmpty()) {
-                                val north = geoPoints.maxOf { it.latitude }
-                                val south = geoPoints.minOf { it.latitude }
-                                val east = geoPoints.maxOf { it.longitude }
-                                val west = geoPoints.minOf { it.longitude }
-
-                                val latPadding = (north - south) * 0.15
-                                val lonPadding = (east - west) * 0.15
-
-                                val boundingBox = BoundingBox(
-                                    north + latPadding,
-                                    east + lonPadding,
-                                    south - latPadding,
-                                    west - lonPadding
-                                )
-
-                                post {
-                                    zoomToBoundingBox(boundingBox, false)
-                                    invalidate()
-                                }
+                        if (geoPoints.isNotEmpty()) {
+                            val boundingBox = boundingBoxOf(geoPoints)
+                            mapView.post {
+                                mapView.zoomToBoundingBox(boundingBox, false)
+                                mapView.invalidate()
                             }
                         }
                     },
-                    // onDetach() shuts down osmdroid's tile-loader threads and cache;
-                    // without it every visit to this screen leaks a tile provider.
-                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }

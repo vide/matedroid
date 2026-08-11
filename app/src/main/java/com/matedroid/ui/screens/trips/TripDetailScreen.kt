@@ -1,7 +1,5 @@
 package com.matedroid.ui.screens.trips
 
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.view.MotionEvent
 import androidx.compose.foundation.Canvas
@@ -88,7 +86,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.activity.compose.BackHandler
@@ -100,7 +97,9 @@ import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.components.CostDonutStop
+import com.matedroid.ui.components.MapGestureMode
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.TripCostDonut
 import com.matedroid.ui.components.computeCostShades
 import com.matedroid.ui.components.TripEditActions
@@ -116,10 +115,8 @@ import com.matedroid.ui.theme.StatusSuccess
 import com.matedroid.util.formatDuration
 import com.matedroid.util.formatMedium
 import com.matedroid.util.formatMediumNoYear
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 
@@ -1075,8 +1072,6 @@ private fun TripMapCard(
     currencySymbol: String,
     onChargeClick: (chargeId: Int) -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-
     val mapColors = remember(palette) {
         MapColors(
             start = StatusSuccess.toArgb(),
@@ -1129,7 +1124,6 @@ private fun TripMapCard(
             preparedRoute = preparedRoute,
             markers = markers,
             mapColors = mapColors,
-            isDark = isDark,
             isMapLoading = isMapLoading,
             trip = trip,
             units = units,
@@ -1156,7 +1150,6 @@ private fun TripMapCard(
             preparedRoute = preparedRoute,
             markers = markers,
             mapColors = mapColors,
-            isDark = isDark,
             isMapLoading = isMapLoading,
             trip = trip,
             units = units,
@@ -1176,7 +1169,6 @@ private fun TripMapContent(
     preparedRoute: PreparedRoute?,
     markers: List<TripMapMarker>,
     mapColors: MapColors,
-    isDark: Boolean,
     isMapLoading: Boolean,
     trip: Trip,
     units: Units?,
@@ -1194,7 +1186,6 @@ private fun TripMapContent(
             preparedRoute = preparedRoute,
             markers = markers,
             mapColors = mapColors,
-            isDark = isDark,
             isMapLoading = isMapLoading,
             singleFingerScrollsPage = singleFingerScrollsPage,
             onChargeClick = onChargeClick,
@@ -1229,7 +1220,6 @@ private fun TripMapAndroidView(
     preparedRoute: PreparedRoute?,
     markers: List<TripMapMarker>,
     mapColors: MapColors,
-    isDark: Boolean,
     isMapLoading: Boolean,
     singleFingerScrollsPage: Boolean,
     onChargeClick: (chargeId: Int) -> Unit,
@@ -1253,41 +1243,22 @@ private fun TripMapAndroidView(
     // Track the last applied data so we can skip redrawing overlays when nothing changed.
     val lastApplied = remember { arrayOfNulls<Any>(3) }
 
-    // Defer MapView instantiation by a short delay so the first frame paints before osmdroid's
-    // synchronous MapView constructor runs on the main thread.
-    var mapMounted by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(120)
-        mapMounted = true
-    }
-
     Box(modifier = modifier) {
-        if (mapMounted) AndroidView(
-            factory = { mapCtx ->
-                MapView(mapCtx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
-                    setMultiTouchControls(true)
-                    // Dim + desaturate the tiles so the accent route and the docked vitals bar
-                    // read as a deliberate hero rather than raw map data.
-                    overlayManager.tilesOverlay.setColorFilter(mapDimFilter(isDark))
-                    if (singleFingerScrollsPage) {
-                        // Inline hero: one finger scrolls the surrounding page; two fingers
-                        // pan/zoom the map (we hold the parent off only with a second finger).
-                        setOnTouchListener { v, event ->
-                            v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
-                            false
-                        }
-                    }
-                }
-            },
+        RouteMapView(
+            gestureMode = if (singleFingerScrollsPage) MapGestureMode.TWO_FINGER_PAN
+            else MapGestureMode.FULL,
+            // Dim + desaturate the tiles so the accent route and the docked vitals bar
+            // read as a deliberate hero rather than raw map data.
+            dimTiles = true,
+            deferMount = true,
             update = { mapView ->
-                val prep = preparedRoute ?: return@AndroidView
+                val prep = preparedRoute ?: return@RouteMapView
 
                 // Skip the expensive overlay rebuild when the inputs haven't changed.
                 if (lastApplied[0] == prep &&
                     lastApplied[1] == markers &&
                     lastApplied[2] == mapColors
-                ) return@AndroidView
+                ) return@RouteMapView
                 lastApplied[0] = prep
                 lastApplied[1] = markers
                 lastApplied[2] = mapColors
@@ -1381,8 +1352,6 @@ private fun TripMapAndroidView(
                     }
                 }
             },
-            // onDetach() shuts down osmdroid's tile-loader threads and cache.
-            onRelease = { it.onDetach() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -1415,7 +1384,6 @@ private fun TripMapFullscreen(
     preparedRoute: PreparedRoute?,
     markers: List<TripMapMarker>,
     mapColors: MapColors,
-    isDark: Boolean,
     isMapLoading: Boolean,
     trip: Trip,
     units: Units?,
@@ -1440,7 +1408,6 @@ private fun TripMapFullscreen(
             preparedRoute = preparedRoute,
             markers = markers,
             mapColors = mapColors,
-            isDark = isDark,
             isMapLoading = isMapLoading,
             trip = trip,
             units = units,
@@ -1486,25 +1453,6 @@ private fun BoxScope.MapCornerButton(
             tint = MaterialTheme.colorScheme.onSurface
         )
     }
-}
-
-// Dim + desaturate map tiles so overlaid data stays legible. The route polyline and markers
-// are separate overlays and are unaffected by this tile-only filter.
-private fun mapDimFilter(isDark: Boolean): ColorMatrixColorFilter {
-    val matrix = ColorMatrix().apply { setSaturation(if (isDark) 0.35f else 0.55f) }
-    val toneScale = if (isDark) 0.60f else 0.92f
-    val toneLift = if (isDark) 0f else 18f
-    matrix.postConcat(
-        ColorMatrix(
-            floatArrayOf(
-                toneScale, 0f, 0f, 0f, toneLift,
-                0f, toneScale, 0f, 0f, toneLift,
-                0f, 0f, toneScale, 0f, toneLift,
-                0f, 0f, 0f, 1f, 0f
-            )
-        )
-    )
-    return ColorMatrixColorFilter(matrix)
 }
 
 // Docked vitals bar — the two figures you compare trips by (consumption, cost/100), sitting on

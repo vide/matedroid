@@ -74,7 +74,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
@@ -85,13 +84,12 @@ import com.matedroid.domain.ChargeComparison
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.screens.trips.displayName
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
@@ -817,35 +815,23 @@ private fun ChargeMapCard(latitude: Double, longitude: Double, accent: Color) {
             ) {
                 val primaryColor = accent.toArgb()
 
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
-                            setOnTouchListener { v, event ->
-                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
-                                false
-                            }
+                RouteMapView(
+                    onMapReady = { mapView ->
+                        val geoPoint = GeoPoint(latitude, longitude)
 
-                            val geoPoint = GeoPoint(latitude, longitude)
-
-                            // Add marker at charge location
-                            val marker = Marker(this).apply {
-                                position = geoPoint
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                title = chargeLocationMarker
-                                icon = createPinMarkerDrawable(ctx.resources, primaryColor)
-                            }
-                            overlays.add(marker)
-
-                            // Center on the location
-                            controller.setZoom(16.0)
-                            controller.setCenter(geoPoint)
+                        // Add marker at charge location
+                        val marker = Marker(mapView).apply {
+                            position = geoPoint
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = chargeLocationMarker
+                            icon = createPinMarkerDrawable(mapView.context.resources, primaryColor)
                         }
+                        mapView.overlays.add(marker)
+
+                        // Center on the location
+                        mapView.controller.setZoom(16.0)
+                        mapView.controller.setCenter(geoPoint)
                     },
-                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
-                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }

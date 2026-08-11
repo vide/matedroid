@@ -56,7 +56,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.CountryBoundary
@@ -68,14 +67,13 @@ import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
+import com.matedroid.ui.components.boundingBoxOf
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.BoundaryColor
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import com.matedroid.util.formatMedium
@@ -507,21 +505,23 @@ private fun CountryMapCard(
                     .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
                     .clip(RoundedCornerShape(16.dp))
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // One finger scrolls the surrounding page; two fingers pan/zoom the map.
-                            setOnTouchListener { v, event ->
-                                v.parent?.requestDisallowInterceptTouchEvent(event.pointerCount >= 2)
-                                false
-                            }
-                        }
-                    },
-                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
-                    onRelease = { it.onDetach() },
+                // Track the last applied data so unrelated update passes don't rebuild
+                // hundreds of markers.
+                val lastApplied = remember { arrayOfNulls<Any>(4) }
+
+                RouteMapView(
                     update = { mapView ->
+                        // Skip the expensive marker rebuild when the inputs haven't changed.
+                        if (lastApplied[0] == mapViewMode &&
+                            lastApplied[1] == chargeLocations &&
+                            lastApplied[2] == driveLocations &&
+                            lastApplied[3] == countryBoundary
+                        ) return@RouteMapView
+                        lastApplied[0] = mapViewMode
+                        lastApplied[1] = chargeLocations
+                        lastApplied[2] = driveLocations
+                        lastApplied[3] = countryBoundary
+
                         // Clear all overlays except keep any info windows
                         mapView.overlays.clear()
 
@@ -557,7 +557,9 @@ private fun CountryMapCard(
 
                                 // Only zoom on initial load
                                 if (!hasInitialZoom && chargeLocations.isNotEmpty()) {
-                                    val boundingBox = calculateChargeBoundingBox(chargeLocations)
+                                    val boundingBox = boundingBoxOf(
+                                        chargeLocations.map { GeoPoint(it.latitude, it.longitude) }
+                                    )
                                     mapView.post {
                                         mapView.zoomToBoundingBox(boundingBox, false, 60)
                                         hasInitialZoom = true
@@ -587,7 +589,9 @@ private fun CountryMapCard(
 
                                 // Only zoom on initial load
                                 if (!hasInitialZoom && driveLocations.isNotEmpty()) {
-                                    val boundingBox = calculateDriveBoundingBox(driveLocations)
+                                    val boundingBox = boundingBoxOf(
+                                        driveLocations.map { GeoPoint(it.latitude, it.longitude) }
+                                    )
                                     mapView.post {
                                         mapView.zoomToBoundingBox(boundingBox, false, 60)
                                         hasInitialZoom = true
@@ -798,71 +802,6 @@ private fun MapModeToggle(
             }
         }
     }
-}
-
-/**
- * Calculate bounding box that contains all charge locations with some padding.
- */
-private fun calculateChargeBoundingBox(chargeLocations: List<ChargeLocation>): BoundingBox {
-    if (chargeLocations.isEmpty()) {
-        // Default to Europe if no locations
-        return BoundingBox(55.0, 15.0, 35.0, -10.0)
-    }
-
-    // Note: Double.MIN_VALUE is the smallest POSITIVE double, not the most negative —
-    // seeding max with it breaks for all-negative coordinates (southern/western hemispheres).
-    val minLat = chargeLocations.minOf { it.latitude }
-    val maxLat = chargeLocations.maxOf { it.latitude }
-    val minLon = chargeLocations.minOf { it.longitude }
-    val maxLon = chargeLocations.maxOf { it.longitude }
-
-    // Add some padding (about 10% on each side)
-    val latPadding = (maxLat - minLat) * 0.15
-    val lonPadding = (maxLon - minLon) * 0.15
-
-    // Ensure minimum padding for single point
-    val minPadding = 0.01
-    val effectiveLatPadding = maxOf(latPadding, minPadding)
-    val effectiveLonPadding = maxOf(lonPadding, minPadding)
-
-    return BoundingBox(
-        maxLat + effectiveLatPadding,  // north
-        maxLon + effectiveLonPadding,  // east
-        minLat - effectiveLatPadding,  // south
-        minLon - effectiveLonPadding   // west
-    )
-}
-
-/**
- * Calculate bounding box that contains all drive locations with some padding.
- */
-private fun calculateDriveBoundingBox(driveLocations: List<DriveLocation>): BoundingBox {
-    if (driveLocations.isEmpty()) {
-        // Default to Europe if no locations
-        return BoundingBox(55.0, 15.0, 35.0, -10.0)
-    }
-
-    // See calculateChargeBoundingBox — Double.MIN_VALUE seeding broke negative coordinates.
-    val minLat = driveLocations.minOf { it.latitude }
-    val maxLat = driveLocations.maxOf { it.latitude }
-    val minLon = driveLocations.minOf { it.longitude }
-    val maxLon = driveLocations.maxOf { it.longitude }
-
-    // Add some padding (about 10% on each side)
-    val latPadding = (maxLat - minLat) * 0.15
-    val lonPadding = (maxLon - minLon) * 0.15
-
-    // Ensure minimum padding for single point
-    val minPadding = 0.01
-    val effectiveLatPadding = maxOf(latPadding, minPadding)
-    val effectiveLonPadding = maxOf(lonPadding, minPadding)
-
-    return BoundingBox(
-        maxLat + effectiveLatPadding,  // north
-        maxLon + effectiveLonPadding,  // east
-        minLat - effectiveLatPadding,  // south
-        minLon - effectiveLonPadding   // west
-    )
 }
 
 /**
