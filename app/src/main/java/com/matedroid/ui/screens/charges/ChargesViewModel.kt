@@ -418,7 +418,7 @@ class ChargesViewModel @Inject constructor(
 
         // Calculate summary and chart data from filtered charges
         val summary = calculateSummary(chargesForStatsFiltered)
-        val chartData = calculateChartData(chargesForStatsFiltered, granularity, state.startDate)
+        val chartData = calculateChartData(chargesForStatsFiltered, granularity, state.startDate, ::isDc)
 
         _uiState.update {
             it.copy(
@@ -443,7 +443,12 @@ class ChargesViewModel @Inject constructor(
         }
     }
 
-    private fun calculateChartData(charges: List<ChargeData>, granularity: ChartGranularity, startDate: LocalDate?): List<ChargeChartData> =
+    private fun calculateChartData(
+        charges: List<ChargeData>,
+        granularity: ChartGranularity,
+        startDate: LocalDate?,
+        isDc: (ChargeData) -> Boolean
+    ): List<ChargeChartData> =
         buildTimeSeries(
             items = charges,
             granularity = granularity,
@@ -455,18 +460,19 @@ class ChargesViewModel @Inject constructor(
                 label = label,
                 sortKey = sortKey,
                 charges = bucket,
-                dcChargeIds = _uiState.value.dcChargeIds
+                isDc = isDc
             )
         }
 
-    // Helper function to centralize chart data creation
+    // Helper function to centralize chart data creation.
+    // Uses the same AC/DC classifier as the list badges so charts and list agree.
     private fun createChargeChartPoint(
         label: String,
         sortKey: Long,
         charges: List<ChargeData>,
-        dcChargeIds: Set<Int>
+        isDc: (ChargeData) -> Boolean
     ): ChargeChartData {
-        val dcCharges = charges.filter { it.chargeId in dcChargeIds }
+        val dcCharges = charges.filter(isDc)
         val energyDc = dcCharges.sumOf { it.chargeEnergyAdded ?: 0.0 }
         val energyTotal = charges.sumOf { it.chargeEnergyAdded ?: 0.0 }
         val costDc = dcCharges.sumOf { it.cost ?: 0.0 }
