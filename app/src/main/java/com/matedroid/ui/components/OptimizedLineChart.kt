@@ -4,15 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,19 +16,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 
 /**
  * An optimized line chart component with premium visuals:
@@ -84,7 +74,6 @@ fun OptimizedLineChart(
         }
     }
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-    val tooltipBg = MaterialTheme.colorScheme.inverseSurface
     val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
 
     val chartData = remember(data, fixedMinMax, convertValue) {
@@ -110,35 +99,30 @@ fun OptimizedLineChart(
         animProgress.animateTo(1f, tween(800, easing = FastOutSlowInEasing))
     }
 
-    var selectedPoint by remember { mutableStateOf<SelectedPoint?>(null) }
-    var isUserInteracting by remember { mutableStateOf(false) }
+    val selection = rememberChartSelectionState<SelectedPoint>(
+        externalSelectedFraction = externalSelectedFraction,
+        clearOnExternalDismiss = onXSelected != null
+    )
 
     val timeLabelHeightDp = if (timeLabels.isNotEmpty()) 20.dp else 0.dp
     val timeLabelHeightPx = with(density) { timeLabelHeightDp.toPx() }
     val totalHeightDp = chartHeight + timeLabelHeightDp
 
+    // Builds the selected point at a display-point index (position in canvas pixels).
+    fun pointAt(index: Int): SelectedPoint {
+        val points = chartData.displayPoints
+        val pointX = indexToX(index, points.size, canvasWidthPx)
+        val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
+        return SelectedPoint(index, points[index], Offset(pointX, pointY))
+    }
+
     val externalPoint: SelectedPoint? = remember(externalSelectedFraction, chartData, canvasWidthPx) {
         if (externalSelectedFraction == null || canvasWidthPx == 0f) return@remember null
-        val points = chartData.displayPoints
-        if (points.isEmpty()) return@remember null
-        val index = (externalSelectedFraction * (points.size - 1)).roundToInt().coerceIn(0, points.lastIndex)
-        val stepX = canvasWidthPx / (points.size - 1).coerceAtLeast(1)
-        val pointX = index * stepX
-        val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
-        SelectedPoint(index, points[index], Offset(pointX, pointY))
+        if (chartData.displayPoints.isEmpty()) return@remember null
+        pointAt(fractionToIndex(externalSelectedFraction, chartData.displayPoints.size))
     }
 
-    LaunchedEffect(externalSelectedFraction) {
-        if (externalSelectedFraction == null && onXSelected != null && !isUserInteracting) {
-            selectedPoint = null
-        }
-    }
-
-    val displayedPoint = if (!isUserInteracting && externalSelectedFraction != null) {
-        externalPoint
-    } else {
-        selectedPoint
-    }
+    val displayedPoint = selection.displayed(externalSelectedFraction, externalPoint)
 
     Box(modifier = modifier) {
         Canvas(
@@ -146,50 +130,26 @@ fun OptimizedLineChart(
                 .fillMaxWidth()
                 .height(totalHeightDp)
                 .onSizeChanged { canvasWidthPx = it.width.toFloat() }
-                // Tap toggles the tooltip at the nearest point.
-                .pointerInput(chartData) {
-                    val points = chartData.displayPoints
-                    if (points.isEmpty()) return@pointerInput
-                    detectTapGestures { offset ->
-                        val width = size.width.toFloat()
-                        val stepX = width / (points.size - 1).coerceAtLeast(1)
-                        val index = (offset.x / stepX).roundToInt().coerceIn(0, points.lastIndex)
-                        if (selectedPoint?.index == index) {
-                            selectedPoint = null
+                .chartScrubber(
+                    chartData,
+                    enabled = chartData.displayPoints.isNotEmpty(),
+                    onScrubbingChange = { selection.isUserInteracting = it },
+                    onTap = { fraction, _ ->
+                        val index = fractionToIndex(fraction, chartData.displayPoints.size)
+                        if (selection.selected?.index == index) {
+                            selection.selected = null
                             onXSelected?.invoke(null)
                         } else {
-                            val fraction = if (points.size > 1) index.toFloat() / (points.size - 1) else 0f
-                            val pointX = index * stepX
-                            val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
-                            selectedPoint = SelectedPoint(index, points[index], Offset(pointX, pointY))
-                            onXSelected?.invoke(fraction)
+                            selection.selected = pointAt(index)
+                            onXSelected?.invoke(indexToFraction(index, chartData.displayPoints.size))
                         }
+                    },
+                    onScrub = { fraction, _ ->
+                        val index = fractionToIndex(fraction, chartData.displayPoints.size)
+                        selection.selected = pointAt(index)
+                        onXSelected?.invoke(indexToFraction(index, chartData.displayPoints.size))
                     }
-                }
-                // Only claim HORIZONTAL drags (scrubbing the crosshair); vertical swipes fall
-                // through to the enclosing scroll container so the page still scrolls.
-                .pointerInput(chartData) {
-                    val points = chartData.displayPoints
-                    if (points.isEmpty()) return@pointerInput
-
-                    fun updateSelection(xOffset: Float) {
-                        val width = size.width.toFloat()
-                        val stepX = width / (points.size - 1).coerceAtLeast(1)
-                        val index = ((xOffset / stepX).roundToInt()).coerceIn(0, points.lastIndex)
-                        val fraction = if (points.size > 1) index.toFloat() / (points.size - 1) else 0f
-                        val pointX = index * stepX
-                        val pointY = chartHeightPx * (1 - (points[index] - chartData.minValue) / chartData.range)
-                        selectedPoint = SelectedPoint(index, points[index], Offset(pointX, pointY))
-                        onXSelected?.invoke(fraction)
-                    }
-
-                    detectHorizontalDragGestures(
-                        onDragStart = { offset -> isUserInteracting = true; updateSelection(offset.x) },
-                        onDragEnd = { isUserInteracting = false },
-                        onDragCancel = { isUserInteracting = false },
-                        onHorizontalDrag = { change, _ -> updateSelection(change.position.x) }
-                    )
-                }
+                )
         ) {
             val width = size.width
             val progress = animProgress.value
@@ -235,9 +195,7 @@ fun OptimizedLineChart(
 
                 // Floating time chip
                 if (fractionToTimeLabel != null && timeLabelHeightPx > 0) {
-                    val pts = chartData.displayPoints
-                    val fraction = if (pts.size > 1) point.index.toFloat() / (pts.size - 1) else 0f
-                    val timeStr = fractionToTimeLabel(fraction)
+                    val timeStr = fractionToTimeLabel(indexToFraction(point.index, chartData.displayPoints.size))
                     drawFloatingTimeChip(timeStr, point.position.x, color, chartHeightPx, timeLabelHeightPx, width, chipTextSizePx)
                 }
             }
@@ -245,34 +203,26 @@ fun OptimizedLineChart(
 
         // Theme-aware tooltip
         displayedPoint?.let { point ->
-            var tooltipWidth by remember { mutableStateOf(0) }
-            var tooltipHeight by remember { mutableStateOf(0) }
-
             val tooltipText = if (fractionToTimeLabel != null) {
-                val pts = chartData.displayPoints
-                val fraction = if (pts.size > 1) point.index.toFloat() / (pts.size - 1) else 0f
-                val timeStr = fractionToTimeLabel(fraction)
+                val timeStr = fractionToTimeLabel(indexToFraction(point.index, chartData.displayPoints.size))
                 "$timeStr  \u2022  ${"%.1f".format(point.value)} $unit"
             } else {
                 "${"%.1f".format(point.value)} $unit"
             }
 
-            val xPx = (point.position.x - tooltipWidth / 2f)
-                .coerceIn(0f, (canvasWidthPx - tooltipWidth).coerceAtLeast(0f))
-            val yPx = (point.position.y - tooltipHeight - 24f).coerceAtLeast(0f)
-
-            Text(
-                text = tooltipText,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = tooltipFg,
-                modifier = Modifier
-                    .offset { IntOffset(xPx.roundToInt(), yPx.roundToInt()) }
-                    .onSizeChanged { tooltipWidth = it.width; tooltipHeight = it.height }
-                    .shadow(4.dp, RoundedCornerShape(8.dp))
-                    .background(tooltipBg, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            )
+            ChartTooltip(
+                anchorX = { point.position.x },
+                anchorY = { point.position.y },
+                containerWidthPx = { canvasWidthPx },
+                verticalPadding = 4.dp
+            ) {
+                Text(
+                    text = tooltipText,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = tooltipFg
+                )
+            }
         }
     }
 }

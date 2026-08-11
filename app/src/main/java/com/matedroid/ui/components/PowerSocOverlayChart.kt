@@ -2,20 +2,15 @@ package com.matedroid.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,9 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +33,6 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -108,9 +100,8 @@ fun PowerSocOverlayChart(
     val topPad = with(density) { 6.dp.toPx() }
 
     var selectedSoc by remember { mutableStateOf<Float?>(null) }
-    // Track the container + tooltip widths so the tooltip can follow the crosshair X (clamped on screen).
+    // Track the container width so the tooltip can follow the crosshair X (clamped on screen).
     var containerWidthPx by remember { mutableStateOf(0) }
-    var tooltipWidthPx by remember { mutableStateOf(0) }
 
     // Parent bumps dismissKey (on an outside tap or a scroll) to clear the tooltip.
     LaunchedEffect(dismissKey) { selectedSoc = null }
@@ -165,21 +156,14 @@ fun PowerSocOverlayChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(chartHeight + 18.dp)
-                // Tap sets the crosshair at that SoC.
-                .pointerInput(valid, socMin, socMax) {
-                    detectTapGestures { offset ->
-                        selectedSoc = socMin + (offset.x / size.width).coerceIn(0f, 1f) * socRange
-                    }
-                }
-                // Only claim HORIZONTAL drags (scrubbing); vertical swipes fall through to the
-                // enclosing scroll container so the page still scrolls.
-                .pointerInput(valid, socMin, socMax) {
-                    detectHorizontalDragGestures(
-                        onHorizontalDrag = { change, _ ->
-                            selectedSoc = socMin + (change.position.x / size.width).coerceIn(0f, 1f) * socRange
-                        }
-                    )
-                }
+                // Tap or scrub sets the crosshair at that SoC (continuous, no index snapping
+                // and no tap-to-dismiss toggle: dismissal comes from the parent's dismissKey).
+                .chartScrubber(
+                    valid, socMin, socMax,
+                    scrubOnDragStart = false,
+                    onTap = { fraction, _ -> selectedSoc = socMin + fraction * socRange },
+                    onScrub = { fraction, _ -> selectedSoc = socMin + fraction * socRange }
+                )
         ) {
             val w = size.width
             val plotH = chartHeightPx - topPad
@@ -248,23 +232,16 @@ fun PowerSocOverlayChart(
         selectedSoc?.let { soc ->
             val rows = renderCurves.mapNotNull { c -> interpolatePower(c.points, soc)?.let { c to it } }
             if (rows.isNotEmpty()) {
-                val tooltipBg = MaterialTheme.colorScheme.inverseSurface
                 val tooltipFg = MaterialTheme.colorScheme.inverseOnSurface
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset {
-                            val crosshairX = if (containerWidthPx > 0) {
-                                ((soc - socMin) / socRange) * containerWidthPx
-                            } else 0f
-                            val maxX = (containerWidthPx - tooltipWidthPx).coerceAtLeast(0)
-                            val x = (crosshairX - tooltipWidthPx / 2f).coerceIn(0f, maxX.toFloat())
-                            IntOffset(x.roundToInt(), 4.dp.roundToPx())
-                        }
-                        .onSizeChanged { tooltipWidthPx = it.width }
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(tooltipBg)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ChartTooltip(
+                    anchorX = {
+                        if (containerWidthPx > 0) {
+                            ((soc - socMin) / socRange) * containerWidthPx
+                        } else 0f
+                    },
+                    containerWidthPx = { containerWidthPx.toFloat() },
+                    anchorY = null, // pinned near the top of the chart
+                    elevated = false,
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
