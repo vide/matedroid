@@ -65,6 +65,11 @@ class ChargingMonitorService : Service() {
     private var isMonitoring = false
     private val activeNotificationCarIds = mutableSetOf<Int>()
 
+    // Last successfully posted foreground notification, so a redundant start command can
+    // satisfy the system's startForeground() deadline without flashing the placeholder.
+    private var lastForegroundId = INITIAL_NOTIFICATION_ID
+    private var lastForegroundNotification: Notification? = null
+
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
@@ -72,7 +77,17 @@ class ChargingMonitorService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (isMonitoring) {
-            Log.d(TAG, "Service already monitoring, ignoring start command")
+            // Every startForegroundService() call (the worker sends one per 30 s poll while
+            // charging) re-arms the system's "must call startForeground()" deadline, so we
+            // must satisfy it even when already monitoring — waiting up to 30 s for the
+            // monitor loop risks a ForegroundServiceDidNotStartInTimeException.
+            Log.d(TAG, "Service already monitoring, re-posting foreground notification")
+            val current = lastForegroundNotification
+            if (current != null) {
+                postForeground(lastForegroundId, current)
+            } else {
+                startForegroundImmediately()
+            }
             return START_STICKY
         }
 
@@ -126,20 +141,31 @@ class ChargingMonitorService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        try {
+        if (postForeground(INITIAL_NOTIFICATION_ID, notification)) {
+            Log.d(TAG, "Started foreground with placeholder notification")
+        } else {
+            stopSelf()
+        }
+    }
+
+    /** SDK-gated startForeground wrapper; remembers the last posted notification on success. */
+    private fun postForeground(notificationId: Int, notification: Notification): Boolean {
+        return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startForeground(
-                    INITIAL_NOTIFICATION_ID,
+                    notificationId,
                     notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                 )
             } else {
-                startForeground(INITIAL_NOTIFICATION_ID, notification)
+                startForeground(notificationId, notification)
             }
-            Log.d(TAG, "Started foreground with placeholder notification")
+            lastForegroundId = notificationId
+            lastForegroundNotification = notification
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start foreground", e)
-            stopSelf()
+            Log.e(TAG, "startForeground failed", e)
+            false
         }
     }
 
@@ -191,18 +217,7 @@ class ChargingMonitorService : Service() {
         status: com.matedroid.data.api.models.CarStatus,
         liveChargeAvailable: Boolean
     ) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(
-                    notificationId,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
-            } else {
-                startForeground(notificationId, notification)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update foreground notification", e)
+        if (!postForeground(notificationId, notification)) {
             chargingNotificationManager.showChargingNotification(
                 car, status, liveChargeAvailable,
                 chronometerBaseMs = status.stateSinceEpochMs
