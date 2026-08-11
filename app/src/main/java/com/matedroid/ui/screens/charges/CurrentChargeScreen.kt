@@ -67,6 +67,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import androidx.compose.ui.platform.LocalContext
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.FullscreenDualAxisLineChart
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -592,7 +593,7 @@ private fun CurrentChargeHeaderCard(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                             }
-                            LiveChargeTypeBadge(isDcCharge = isDcCharge)
+                            ChargeTypeBadge(isDc = isDcCharge)
                         }
                         Text(
                             text = stringResource(R.string.soc_instant_power),
@@ -633,27 +634,6 @@ private fun CurrentChargeHeaderCard(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun LiveChargeTypeBadge(isDcCharge: Boolean) {
-    val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
     }
 }
 

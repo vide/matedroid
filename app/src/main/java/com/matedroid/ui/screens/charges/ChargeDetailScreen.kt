@@ -82,7 +82,9 @@ import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ChargeComparison
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.FullscreenLineChart
+import com.matedroid.ui.components.extractTimeLabels
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.createPinMarkerDrawable
@@ -202,7 +204,7 @@ private fun ChargeDetailContent(
     val chargePoints = detail.chargePoints
     val timeLabels = remember(chargePoints, is24Hour) {
         chargePoints?.takeIf { it.size > 2 }
-            ?.let { extractTimeLabels(it, is24Hour) } ?: emptyList()
+            ?.let { pts -> extractTimeLabels(pts.map { it.date }, is24Hour) } ?: emptyList()
     }
     val fractionToTimeLabel: (Float) -> String = label@{ fraction ->
         val cp = chargePoints
@@ -246,11 +248,14 @@ private fun ChargeDetailContent(
         val cp = chargePoints
         val hasPower = remember(cp) { cp?.any { (it.chargerPower ?: 0) > 0 } == true }
         if (cp != null && cp.size > 2 && hasPower) {
-            PowerChartCard(
+            MetricChartCard(
                 chargePoints = cp,
-                timeLabels = timeLabels,
+                metricValue = { it.chargerPower?.toFloat() },
                 title = stringResource(R.string.power_profile),
+                icon = Icons.Default.Bolt,
                 color = if (isDcCharge) palette.dcColor else palette.acColor,
+                unit = "kW",
+                timeLabels = timeLabels,
                 externalSelectedFraction = sharedXFraction,
                 onXSelected = { sharedXFraction = it },
                 fractionToTimeLabel = fractionToTimeLabel
@@ -357,7 +362,7 @@ private fun ChargeHeroSection(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
-            ChargeTypeBadge(isDcCharge = isDcCharge)
+            ChargeTypeBadge(isDc = isDcCharge)
         }
 
         // Balanced row of labelled key figures
@@ -729,20 +734,28 @@ private fun ChargeMoreDetails(
                 if (chargePoints != null) {
                     if (!isDcCharge) {
                         if (chargePoints.any { (it.chargerVoltage ?: 0) > 0 }) {
-                            VoltageChartCard(
+                            MetricChartCard(
                                 chargePoints = chargePoints,
-                                timeLabels = timeLabels,
+                                metricValue = { it.chargerVoltage?.toFloat() },
                                 title = stringResource(R.string.voltage_profile),
+                                icon = Icons.Default.ElectricalServices,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                unit = "V",
+                                timeLabels = timeLabels,
                                 externalSelectedFraction = sharedXFraction,
                                 onXSelected = onXSelected,
                                 fractionToTimeLabel = fractionToTimeLabel
                             )
                         }
                         if (chargePoints.any { (it.chargerCurrent ?: 0) > 0 }) {
-                            CurrentChartCard(
+                            MetricChartCard(
                                 chargePoints = chargePoints,
-                                timeLabels = timeLabels,
+                                metricValue = { it.chargerCurrent?.toFloat() },
                                 title = stringResource(R.string.current_profile),
+                                icon = Icons.Default.Power,
+                                color = MaterialTheme.colorScheme.secondary,
+                                unit = "A",
+                                timeLabels = timeLabels,
                                 externalSelectedFraction = sharedXFraction,
                                 onXSelected = onXSelected,
                                 fractionToTimeLabel = fractionToTimeLabel
@@ -750,22 +763,30 @@ private fun ChargeMoreDetails(
                         }
                     }
                     if (chargePoints.any { it.outsideTemp != null }) {
-                        TemperatureChartCard(
+                        MetricChartCard(
                             chargePoints = chargePoints,
-                            units = units,
-                            timeLabels = timeLabels,
+                            metricValue = { it.outsideTemp?.toFloat() },
                             title = temperatureLabel,
+                            icon = Icons.Default.DeviceThermostat,
+                            color = Color(0xFFFF9800),
+                            unit = UnitFormatter.getTemperatureUnit(units),
+                            timeLabels = timeLabels,
+                            fixedMinMax = ::temperatureMinMax,
                             externalSelectedFraction = sharedXFraction,
                             onXSelected = onXSelected,
                             fractionToTimeLabel = fractionToTimeLabel
                         )
                     }
                     if (chargePoints.any { it.batteryLevel != null }) {
-                        BatteryChartCard(
+                        MetricChartCard(
                             chargePoints = chargePoints,
-                            timeLabels = timeLabels,
+                            metricValue = { it.batteryLevel?.toFloat() },
                             title = stringResource(R.string.battery_level),
+                            icon = Icons.Default.BatteryChargingFull,
                             color = palette.accent,
+                            unit = "%",
+                            timeLabels = timeLabels,
+                            fixedMinMax = ::batteryMinMax,
                             externalSelectedFraction = sharedXFraction,
                             onXSelected = onXSelected,
                             fractionToTimeLabel = fractionToTimeLabel
@@ -953,25 +974,35 @@ private fun StatItemView(
     }
 }
 
+/**
+ * One card per charge metric: extracts the metric's values from the charge points,
+ * optionally derives a fixed Y range from them, and renders the shared [ChartCard].
+ */
 @Composable
-private fun PowerChartCard(
+private fun MetricChartCard(
     chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
+    metricValue: (ChargePoint) -> Float?,
     title: String,
+    icon: ImageVector,
     color: Color,
+    unit: String,
+    timeLabels: List<String>,
+    fixedMinMax: ((List<Float>) -> Pair<Float, Float>)? = null,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val powers = remember(chargePoints) { chargePoints.mapNotNull { it.chargerPower?.toFloat() } }
-    if (powers.size < 2) return
+    val values = remember(chargePoints) { chargePoints.mapNotNull(metricValue) }
+    if (values.size < 2) return
+    val minMax = remember(values) { fixedMinMax?.invoke(values) }
 
     ChartCard(
         title = title,
-        icon = Icons.Default.Bolt,
-        data = powers,
+        icon = icon,
+        data = values,
         color = color,
-        unit = "kW",
+        unit = unit,
+        fixedMinMax = minMax,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
@@ -979,125 +1010,26 @@ private fun PowerChartCard(
     )
 }
 
-@Composable
-private fun VoltageChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val voltages = remember(chargePoints) { chargePoints.mapNotNull { it.chargerVoltage?.toFloat() } }
-    if (voltages.size < 2) return
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.ElectricalServices,
-        data = voltages,
-        color = MaterialTheme.colorScheme.tertiary,
-        unit = "V",
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
-}
-
-@Composable
-private fun CurrentChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val currents = remember(chargePoints) { chargePoints.mapNotNull { it.chargerCurrent?.toFloat() } }
-    if (currents.size < 2) return
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.Power,
-        data = currents,
-        color = MaterialTheme.colorScheme.secondary,
-        unit = "A",
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
-}
-
-@Composable
-private fun TemperatureChartCard(
-    chargePoints: List<ChargePoint>,
-    units: Units?,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val temps = remember(chargePoints) { chargePoints.mapNotNull { it.outsideTemp?.toFloat() } }
-    if (temps.size < 2) return
-    val fixedMinMax = remember(temps) {
-        var yMin = kotlin.math.floor(temps.min())
-        var yMax = kotlin.math.ceil(temps.max())
-        if (yMin == yMax) {
-            yMin -= 1
-            yMax += 1
-        }
-        Pair(yMin, yMax)
+/** Y range for the temperature chart: floor/ceil to whole degrees, padded when flat. */
+private fun temperatureMinMax(temps: List<Float>): Pair<Float, Float> {
+    var yMin = kotlin.math.floor(temps.min())
+    var yMax = kotlin.math.ceil(temps.max())
+    if (yMin == yMax) {
+        yMin -= 1
+        yMax += 1
     }
-    ChartCard(
-        title = title,
-        icon = Icons.Default.DeviceThermostat,
-        data = temps,
-        color = Color(0xFFFF9800),
-        unit = UnitFormatter.getTemperatureUnit(units),
-        timeLabels = timeLabels,
-        fixedMinMax = fixedMinMax,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
+    return Pair(yMin, yMax)
 }
 
-@Composable
-private fun BatteryChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    color: Color,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val batteryLevels = remember(chargePoints) { chargePoints.mapNotNull { it.batteryLevel?.toFloat() } }
-    if (batteryLevels.size < 2) return
-    val fixedMinMax = remember(batteryLevels) {
-        var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
-        var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
-        if (yMin == yMax) {
-            yMin -= 1
-            yMax += 1
-        }
-        Pair(yMin, yMax)
+/** Y range for the battery chart: rounded out to the nearest 10%, padded when flat. */
+private fun batteryMinMax(batteryLevels: List<Float>): Pair<Float, Float> {
+    var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+    var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+    if (yMin == yMax) {
+        yMin -= 1
+        yMax += 1
     }
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.BatteryChargingFull,
-        data = batteryLevels,
-        color = color,
-        unit = "%",
-        fixedMinMax = fixedMinMax,
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
+    return Pair(yMin, yMax)
 }
 
 @Composable
@@ -1110,7 +1042,6 @@ private fun ChartCard(
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
-    convertValue: (Float) -> Float = { it },
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
@@ -1149,56 +1080,12 @@ private fun ChartCard(
                 showZeroLine = showZeroLine,
                 fixedMinMax = fixedMinMax,
                 timeLabels = timeLabels,
-                convertValue = convertValue,
                 externalSelectedFraction = externalSelectedFraction,
                 onXSelected = onXSelected,
                 fractionToTimeLabel = fractionToTimeLabel,
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-@Composable
-private fun ChargeTypeBadge(isDcCharge: Boolean) {
-    val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-    }
-}
-
-/**
- * Extract 5 time labels from charge points for X axis display.
- * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
- * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
- */
-private fun extractTimeLabels(chargePoints: List<ChargePoint>, is24Hour: Boolean? = null): List<String> {
-    if (chargePoints.isEmpty()) return listOf("", "", "", "", "")
-
-    val locale = java.util.Locale.getDefault()
-    val times = chargePoints.mapNotNull { point ->
-        point.date?.let { parseIsoDateTime(it) }
-    }
-
-    if (times.isEmpty()) return listOf("", "", "", "", "")
-
-    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
-    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
-    return indices.map { idx ->
-        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }
 

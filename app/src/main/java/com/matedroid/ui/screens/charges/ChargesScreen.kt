@@ -76,6 +76,7 @@ import com.matedroid.data.api.models.ChargeData
 import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.ui.components.BarChartData
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.BarSegment
 import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
@@ -701,7 +702,7 @@ private fun ChargeItem(
         heroUnit = "kWh",
         onClick = onClick,
         datelineTrailing = {
-            ChargeTypeBadge(isDcCharge = isDcCharge, palette = palette)
+            ChargeTypeBadge(isDc = isDcCharge, dcColor = palette.dcColor, acColor = palette.acColor)
         }
     ) {
         EditorialPill(charge.durationStr ?: "${charge.durationMin ?: 0}m")
@@ -728,27 +729,6 @@ private fun ChargeItem(
                 fontWeight = FontWeight.Bold
             )
         }
-    }
-}
-
-@Composable
-private fun ChargeTypeBadge(isDcCharge: Boolean, palette: CarColorPalette) {
-    val backgroundColor = if (isDcCharge) palette.dcColor else palette.acColor
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
     }
 }
 

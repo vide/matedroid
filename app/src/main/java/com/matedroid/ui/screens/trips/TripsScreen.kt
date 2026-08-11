@@ -71,6 +71,7 @@ import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.SummaryItem
 import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
@@ -389,41 +390,6 @@ private fun SummaryCard(
                     modifier = Modifier.weight(0.8f)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
         }
     }
 }

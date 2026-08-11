@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.matedroid.ui.theme.CarColorPalette
 import kotlin.math.max
-import kotlin.math.sqrt
 
 /**
  * A thin horizontal "fingerprint" of a trip for the trips list.
@@ -59,35 +58,18 @@ fun TripFingerprintStrip(
     }
 }
 
-private const val IDLE_LINEAR_THRESHOLD_MIN = 30f
-private const val IDLE_COMPRESSION_SCALE = 0.5f
 private const val MIN_SEGMENT_RATIO = 0.02f
 
-/** Mirrors the detail timeline's compression so silhouettes match between screens. */
+/** Uses the detail timeline's shared compression ([segmentWeight]) so silhouettes match between screens. */
 private fun computeFingerprintRatios(segments: List<TripTimelineSegment>): List<Float> {
     if (segments.isEmpty()) return emptyList()
-    val weights = segments.map { seg ->
-        when (seg) {
-            is TripTimelineSegment.Parking -> compressIdle(seg.durationMin)
-            is TripTimelineSegment.Charge ->
-                if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
-                else compressIdle(seg.durationMin)
-            is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
-        }
-    }
+    val weights = segments.map { segmentWeight(it) }
     val total = weights.sum().coerceAtLeast(1f)
     val raw = weights.map { it / total }
     val effectiveMin = MIN_SEGMENT_RATIO.coerceAtMost(1f / segments.size)
     val lifted = raw.map { max(it, effectiveMin) }
     val liftedSum = lifted.sum()
     return lifted.map { it / liftedSum }
-}
-
-private fun compressIdle(durationMin: Int): Float {
-    val d = durationMin.toFloat().coerceAtLeast(1f)
-    return if (d <= IDLE_LINEAR_THRESHOLD_MIN) d
-    else IDLE_LINEAR_THRESHOLD_MIN +
-            sqrt((d - IDLE_LINEAR_THRESHOLD_MIN) * IDLE_LINEAR_THRESHOLD_MIN) * IDLE_COMPRESSION_SCALE
 }
 
 /** Alpha applied to every segment so the strip reads as a quiet accent, not a loud bar. */
@@ -97,11 +79,4 @@ private fun fingerprintColorFor(
     seg: TripTimelineSegment,
     palette: CarColorPalette,
     parkingColor: Color
-): Color {
-    val base = when (seg) {
-        is TripTimelineSegment.Drive -> palette.accent
-        is TripTimelineSegment.Charge -> if (seg.isDc) palette.dcColor else palette.acColor
-        is TripTimelineSegment.Parking -> parkingColor
-    }
-    return base.copy(alpha = FINGERPRINT_ALPHA)
-}
+): Color = colorForSegment(seg, palette, parkingColor).copy(alpha = FINGERPRINT_ALPHA)
