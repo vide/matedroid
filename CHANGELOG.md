@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chart labels now respect the system font size** — axis and tooltip text in the native charts was sized in raw pixels; it now scales with display density and the accessibility font setting.
 - **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
 
+### Changed (battery & background work)
+- **Background polling now backs off when nothing is happening** — the 30-second charging/sentry check drops to every 5 minutes while no car is charging, plugged in, or sentry-armed, and stops entirely when no server is configured. It returns to 30 seconds as soon as a charge or sentry session could start.
+- **The widget updater stops itself when no widgets are on the launcher** instead of polling forever.
+- **Location lookups back off when the geocoding service is unreachable** instead of retrying the whole queue at full speed on every sync.
+- **A sync with failed drive/charge details now reports the failure and retries them** instead of pretending everything synced.
+
 ### Fixed
 - **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
 - **Drive comparison curves are correct again for miles/imperial users** — the compare-drives overlay was applying a km→miles conversion to speeds the API had already converted (curves plotted ~40% low), and its energy estimate mixed km distances with mph speeds, skewing the consumption ranking.
