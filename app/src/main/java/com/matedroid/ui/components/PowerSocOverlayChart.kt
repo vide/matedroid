@@ -45,8 +45,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+
+private val overlayDashEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))
+
+/** Pre-built render geometry for one curve, so paths aren't rebuilt on every draw frame. */
+private class RenderedCurve(
+    val curve: OverlayCurve,
+    val path: Path,
+    val fillPath: Path?,
+    val fillBrush: Brush?
+)
 
 /** One session's curve. [points] are (x, y). [dashed] draws it as a thin dashed reference line. */
 data class OverlayCurve(
@@ -104,11 +115,45 @@ fun PowerSocOverlayChart(
     // Parent bumps dismissKey (on an outside tap or a scroll) to clear the tooltip.
     LaunchedEffect(dismissKey) { selectedSoc = null }
 
-    val labelPaint = remember(labelColor) {
+    // Label size in sp so it respects density and the user's font scale.
+    val labelTextSizePx = with(density) { 10.sp.toPx() }
+    val labelPaint = remember(labelColor, labelTextSizePx) {
         android.graphics.Paint().apply {
             color = labelColor.toArgb()
-            textSize = 26f
+            textSize = labelTextSizePx
             isAntiAlias = true
+        }
+    }
+
+    // Curve geometry (paths, base fill + gradient brush) is rebuilt only when the data or
+    // canvas geometry changes — not on every draw frame during crosshair drags. The Canvas
+    // below fills the container, so containerWidthPx (tracked via onSizeChanged) is its width.
+    val renderedCurves = remember(renderCurves, containerWidthPx, socMin, socMax, powerMax, chartHeightPx) {
+        val w = containerWidthPx.toFloat()
+        if (w <= 0f) return@remember emptyList()
+        val plotH = chartHeightPx - topPad
+        fun xFor(soc: Float) = (soc - socMin) / socRange * w
+        fun yFor(power: Float) = topPad + (1f - power / powerMax) * plotH
+        renderCurves.map { c ->
+            val pts = c.points
+            val path = Path()
+            pts.forEachIndexed { idx, p ->
+                val px = xFor(p.x)
+                val py = yFor(p.y)
+                if (idx == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            }
+            val fillPath = if (c.isBase) {
+                Path().apply {
+                    addPath(path)
+                    lineTo(xFor(pts.last().x), yFor(0f))
+                    lineTo(xFor(pts.first().x), yFor(0f))
+                    close()
+                }
+            } else null
+            val fillBrush = if (c.isBase) {
+                Brush.verticalGradient(listOf(c.color.copy(alpha = 0.25f), c.color.copy(alpha = 0f)))
+            } else null
+            RenderedCurve(c, path, fillPath, fillBrush)
         }
     }
 
@@ -165,35 +210,19 @@ fun PowerSocOverlayChart(
                 )
             }
 
-            // Curves — others first so the base draws on top (points pre-sorted above)
-            renderCurves.forEach { c ->
-                val pts = c.points
-                val path = Path()
-                pts.forEachIndexed { idx, p ->
-                    val px = xFor(p.x)
-                    val py = yFor(p.y)
-                    if (idx == 0) path.moveTo(px, py) else path.lineTo(px, py)
-                }
-                if (c.isBase) {
-                    val fill = Path().apply {
-                        addPath(path)
-                        lineTo(xFor(pts.last().x), yFor(0f))
-                        lineTo(xFor(pts.first().x), yFor(0f))
-                        close()
-                    }
-                    drawPath(
-                        fill,
-                        Brush.verticalGradient(listOf(c.color.copy(alpha = 0.25f), c.color.copy(alpha = 0f)))
-                    )
+            // Curves — others first so the base draws on top (geometry pre-built above)
+            renderedCurves.forEach { rc ->
+                if (rc.fillPath != null && rc.fillBrush != null) {
+                    drawPath(rc.fillPath, rc.fillBrush)
                 }
                 drawPath(
-                    path,
-                    c.color,
+                    rc.path,
+                    rc.curve.color,
                     style = Stroke(
-                        width = if (c.isBase) 7f else if (c.dashed) 3f else 4f,
+                        width = if (rc.curve.isBase) 7f else if (rc.curve.dashed) 3f else 4f,
                         cap = StrokeCap.Round,
                         join = StrokeJoin.Round,
-                        pathEffect = if (c.dashed) PathEffect.dashPathEffect(floatArrayOf(12f, 10f)) else null
+                        pathEffect = if (rc.curve.dashed) overlayDashEffect else null
                     )
                 )
             }

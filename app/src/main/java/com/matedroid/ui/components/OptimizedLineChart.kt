@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 
 /**
@@ -68,12 +69,17 @@ fun OptimizedLineChart(
 ) {
     if (data.size < 2) return
 
+    val density = LocalDensity.current
+    // Text sizes in sp so labels respect density and the user's font scale.
+    val labelTextSizePx = with(density) { 10.sp.toPx() }
+    val chipTextSizePx = with(density) { 11.sp.toPx() }
+
     val surfaceColor = MaterialTheme.colorScheme.onSurface
     // Built once and reused across draws (the 800ms entrance redraws every frame).
-    val labelPaint = remember(surfaceColor) {
+    val labelPaint = remember(surfaceColor, labelTextSizePx) {
         android.graphics.Paint().apply {
             this.color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
+            textSize = labelTextSizePx
             isAntiAlias = true
         }
     }
@@ -86,7 +92,6 @@ fun OptimizedLineChart(
     }
 
     // Pre-compute the smooth path and fill path
-    val density = LocalDensity.current
     val chartHeightPx = with(density) { chartHeight.toPx() }
     var canvasWidthPx by remember { mutableStateOf(0f) }
 
@@ -233,7 +238,7 @@ fun OptimizedLineChart(
                     val pts = chartData.displayPoints
                     val fraction = if (pts.size > 1) point.index.toFloat() / (pts.size - 1) else 0f
                     val timeStr = fractionToTimeLabel(fraction)
-                    drawFloatingTimeChip(timeStr, point.position.x, color, chartHeightPx, timeLabelHeightPx, width)
+                    drawFloatingTimeChip(timeStr, point.position.x, color, chartHeightPx, timeLabelHeightPx, width, chipTextSizePx)
                 }
             }
         }

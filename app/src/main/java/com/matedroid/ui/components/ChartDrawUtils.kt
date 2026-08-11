@@ -237,6 +237,23 @@ private fun computeMonotoneTangents(xs: FloatArray, ys: FloatArray): FloatArray 
 private val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f))
 private val crosshairDashEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
 
+// Reused across draw frames (crosshair drags and entrance animations redraw every frame).
+// Draws only happen on the UI thread, so shared mutable instances are safe.
+private val chipTextPaint = Paint().apply {
+    color = android.graphics.Color.WHITE
+    isAntiAlias = true
+    textAlign = Paint.Align.CENTER
+}
+private val chipBgPaint = Paint().apply {
+    isAntiAlias = true
+}
+private val chipRect = android.graphics.RectF()
+
+// Gradient fill brushes are cached per (color, alpha): drawGradientFill runs on every draw
+// frame, and Brush.verticalGradient with default bounds is size-independent so the same
+// instance can be reused. Chart colors come from the theme, so the map stays tiny.
+private val gradientFillCache = HashMap<Pair<Color, Float>, Brush>()
+
 /**
  * Draws Grafana-style annotation bands on the chart.
  * Each range is rendered as a semi-transparent vertical band spanning the full chart height,
@@ -324,9 +341,11 @@ fun DrawScope.drawGradientFill(
     alpha: Float = 0.3f,
     progress: Float = 1f
 ) {
-    val brush = Brush.verticalGradient(
-        listOf(color.copy(alpha = alpha), Color.Transparent)
-    )
+    val brush = gradientFillCache.getOrPut(color to alpha) {
+        Brush.verticalGradient(
+            listOf(color.copy(alpha = alpha), Color.Transparent)
+        )
+    }
     if (progress >= 1f) {
         drawPath(fillPath, brush = brush)
     } else {
@@ -481,29 +500,22 @@ fun DrawScope.drawFloatingTimeChip(
     chipColor: Color,
     chartHeight: Float,
     timeLabelHeight: Float,
-    canvasWidth: Float
+    canvasWidth: Float,
+    textSizePx: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 28f
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-        val bgPaint = Paint().apply {
-            color = chipColor.copy(alpha = 0.9f).toArgb()
-            isAntiAlias = true
-        }
+        chipTextPaint.textSize = textSizePx
+        chipBgPaint.color = chipColor.copy(alpha = 0.9f).toArgb()
 
-        val textWidth = textPaint.measureText(timeStr)
+        val textWidth = chipTextPaint.measureText(timeStr)
         val chipPadding = 12f
         val chipWidth = textWidth + chipPadding * 2
         val chipHeight = timeLabelHeight * 0.85f
         val chipTop = chartHeight + (timeLabelHeight - chipHeight) / 2
         val chipLeft = (xCenter - chipWidth / 2).coerceIn(0f, canvasWidth - chipWidth)
 
-        val rect = android.graphics.RectF(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
-        drawRoundRect(rect, 8f, 8f, bgPaint)
-        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + textPaint.textSize / 3, textPaint)
+        chipRect.set(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
+        drawRoundRect(chipRect, 8f, 8f, chipBgPaint)
+        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + chipTextPaint.textSize / 3, chipTextPaint)
     }
 }

@@ -69,7 +69,9 @@ fun InteractiveBarChart(
 ) {
     if (data.isEmpty()) return
 
-    val textMeasurer = rememberTextMeasurer()
+    // Default cache holds 8 layouts; monthly/daily charts draw up to 31 X labels + 2 Y labels
+    // per frame, so a larger cache avoids re-measuring every label on every draw.
+    val textMeasurer = rememberTextMeasurer(cacheSize = 64)
     val maxValue = data.maxOfOrNull { it.value } ?: 1.0
 
     // Reset selection when data changes to avoid IndexOutOfBoundsException

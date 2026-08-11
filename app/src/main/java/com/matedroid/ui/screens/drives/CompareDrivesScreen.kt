@@ -39,7 +39,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -473,35 +472,41 @@ private fun LineOverlay(
         Color(0xFF5B8DD9), Color(0xFF4CAF50), Color(0xFF9B6BD9), Color(0xFF6D7A92)
     )
     val thisDriveLabel = stringResource(R.string.compare_this_drive)
+    val averageLabel = stringResource(R.string.compare_average)
+    val averageColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    var otherIndex = 0
-    val overlay = curves.map { sessionCurve ->
-        val meta = byId[sessionCurve.driveId]
-        val color = if (sessionCurve.isBase) palette.accent else otherColors[otherIndex++ % otherColors.size]
-        val label = if (sessionCurve.isBase) {
-            thisDriveLabel
-        } else {
-            meta?.startDate?.let { parseIsoDateTime(it)?.toLocalDate()?.formatMedium(Locale.getDefault()) } ?: ""
+    // Curve point lists hold thousands of Offsets — build them once per data/palette change,
+    // not on every recomposition (e.g. while a tooltip is being dragged).
+    val allOverlay = remember(curves, averageCurve, palette, comparison) {
+        var otherIndex = 0
+        val overlay = curves.map { sessionCurve ->
+            val meta = byId[sessionCurve.driveId]
+            val color = if (sessionCurve.isBase) palette.accent else otherColors[otherIndex++ % otherColors.size]
+            val label = if (sessionCurve.isBase) {
+                thisDriveLabel
+            } else {
+                meta?.startDate?.let { parseIsoDateTime(it)?.toLocalDate()?.formatMedium(Locale.getDefault()) } ?: ""
+            }
+            OverlayCurve(
+                label = label,
+                color = color,
+                isBase = sessionCurve.isBase,
+                points = sessionCurve.points.map { Offset(it.distance, it.value) }
+            )
         }
-        OverlayCurve(
-            label = label,
-            color = color,
-            isBase = sessionCurve.isBase,
-            points = sessionCurve.points.map { Offset(it.distance, it.value) }
-        )
+        val averageOverlay = averageCurve.takeIf { it.isNotEmpty() }?.let { avg ->
+            OverlayCurve(
+                label = averageLabel,
+                color = averageColor,
+                isBase = false,
+                points = avg.map { Offset(it.distance, it.value) },
+                dashed = true
+            )
+        }
+        overlay + listOfNotNull(averageOverlay)
     }
-    val averageOverlay = averageCurve.takeIf { it.isNotEmpty() }?.let { avg ->
-        OverlayCurve(
-            label = stringResource(R.string.compare_average),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            isBase = false,
-            points = avg.map { Offset(it.distance, it.value) },
-            dashed = true
-        )
-    }
-    val allOverlay = overlay + listOfNotNull(averageOverlay)
 
-    if (overlay.isEmpty()) {
+    if (curves.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
