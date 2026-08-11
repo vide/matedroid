@@ -2059,6 +2059,18 @@ private fun LocationCard(
                             setOnTouchListener { _, _ -> true }
                         }
                     },
+                    // factory only runs once — without this the map stays centered on
+                    // wherever the car was at first composition while the status polls on.
+                    update = { map ->
+                        val center = GeoPoint(latitude, longitude)
+                        if (map.mapCenter.latitude != center.latitude ||
+                            map.mapCenter.longitude != center.longitude
+                        ) {
+                            map.controller.setCenter(center)
+                        }
+                    },
+                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
+                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
