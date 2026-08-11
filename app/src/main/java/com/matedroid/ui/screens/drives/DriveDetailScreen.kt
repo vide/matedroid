@@ -367,7 +367,8 @@ private fun DriveHeroSection(
                     )
                     Spacer(modifier = Modifier.width(5.dp))
                     Text(
-                        text = formatDateTime(detail.startDate, is24Hour),
+                        text = formatDateTime(detail.startDate, is24Hour)
+                            ?: stringResource(R.string.unknown),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1069,8 +1070,8 @@ private fun extractTimeLabels(positions: List<DrivePosition>, is24Hour: Boolean?
     }
 }
 
-private fun formatDateTime(dateStr: String?, is24Hour: Boolean? = null): String {
-    if (dateStr.isNullOrBlank()) return "Unknown"
+private fun formatDateTime(dateStr: String?, is24Hour: Boolean? = null): String? {
+    if (dateStr.isNullOrBlank()) return null
     val dt = parseIsoDateTime(dateStr) ?: return dateStr
     val locale = java.util.Locale.getDefault()
     return "${dt.toLocalDate().formatMedium(locale)} ${dt.formatTime(locale, is24Hour)}"

@@ -107,7 +107,7 @@ fun CarImagePickerDialog(
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("No variants available for this model.")
+                    Text(stringResource(R.string.car_picker_no_variants))
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = onDismiss) {
                         Text(stringResource(R.string.ok))

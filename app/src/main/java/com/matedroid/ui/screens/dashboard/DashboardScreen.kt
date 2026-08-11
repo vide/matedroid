@@ -1979,7 +1979,8 @@ private fun LocationCard(
 
     val headline = geofence?.takeIf { it.isNotBlank() }
         ?: resolvedAddress?.takeIf { it.isNotBlank() }
-        ?: if (latitude != null && longitude != null) "%.5f, %.5f".format(latitude, longitude) else "Unknown"
+        ?: if (latitude != null && longitude != null) "%.5f, %.5f".format(latitude, longitude)
+        else stringResource(R.string.unknown)
     // Show the street address as a subline only when the headline is a geofence name.
     val subAddress = resolvedAddress?.takeIf { it.isNotBlank() && it != headline }
 

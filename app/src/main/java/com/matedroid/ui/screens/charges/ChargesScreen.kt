@@ -65,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -953,7 +954,11 @@ private fun LocationFilterDropdown(
                     if (hasSelection && selectedLocations.size == 1)
                         selectedLocations.first()
                     else if (hasSelection)
-                        "${selectedLocations.size} ubicaciones"
+                        pluralStringResource(
+                            R.plurals.charges_locations_selected,
+                            selectedLocations.size,
+                            selectedLocations.size
+                        )
                     else
                         stringResource(R.string.filter_location)
                 )
