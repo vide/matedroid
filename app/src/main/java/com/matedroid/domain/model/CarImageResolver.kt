@@ -4,11 +4,9 @@ package com.matedroid.domain.model
  * Represents a car model variant for the image picker.
  *
  * @param id The internal variant ID (e.g., "my", "myj", "myjs", "myjp")
- * @param displayNameResId The string resource ID for the display name
  */
 data class CarVariant(
-    val id: String,
-    val displayNameResId: Int
+    val id: String
 )
 
 /**
@@ -508,18 +506,6 @@ object CarImageResolver {
         return DetectedDefault(variant, wheelCode)
     }
 
-    // String resource IDs for variant names (must match R.string.car_variant_*)
-    // These are placeholder IDs - actual values will be resolved at runtime
-    object VariantResIds {
-        const val MY_LEGACY = "car_variant_my_legacy"
-        const val MY_STANDARD = "car_variant_my_standard"
-        const val MY_PREMIUM = "car_variant_my_premium"
-        const val MY_PERFORMANCE = "car_variant_my_performance"
-        const val M3_LEGACY = "car_variant_m3_legacy"
-        const val M3_HIGHLAND = "car_variant_m3_highland"
-        const val M3_HIGHLAND_PERF = "car_variant_m3_highland_perf"
-    }
-
     // Wheel display names (not localized - technical names)
     private val WHEEL_DISPLAY_NAMES = mapOf(
         // Legacy Model 3
@@ -606,14 +592,14 @@ object CarImageResolver {
         val showPerformance = isPerformanceTrim || isPerformanceWheel ||
             (trimBadging == null && wheelType == null)
 
-        val myLegacy = CarVariant("my", VariantResIds.MY_LEGACY.hashCode())
-        val myStandard = CarVariant("myjs", VariantResIds.MY_STANDARD.hashCode())
-        val myPremium = CarVariant("myj", VariantResIds.MY_PREMIUM.hashCode())
-        val myPerformance = CarVariant("myjp", VariantResIds.MY_PERFORMANCE.hashCode())
+        val myLegacy = CarVariant("my")
+        val myStandard = CarVariant("myjs")
+        val myPremium = CarVariant("myj")
+        val myPerformance = CarVariant("myjp")
 
-        val m3Legacy = CarVariant("m3", VariantResIds.M3_LEGACY.hashCode())
-        val m3Highland = CarVariant("m3h", VariantResIds.M3_HIGHLAND.hashCode())
-        val m3HighlandPerf = CarVariant("m3hp", VariantResIds.M3_HIGHLAND_PERF.hashCode())
+        val m3Legacy = CarVariant("m3")
+        val m3Highland = CarVariant("m3h")
+        val m3HighlandPerf = CarVariant("m3hp")
 
         return when (model?.uppercase()) {
             "Y" -> {
@@ -709,21 +695,5 @@ object CarImageResolver {
         val color = colorCode ?: DEFAULT_COLORS[variant] ?: "PPSW"
         val validatedColor = validateColorForVariant(variant, color)
         return "car_images/${variant}_${validatedColor}_${wheelCode}.png"
-    }
-
-    /**
-     * Get the variant display name resource ID.
-     */
-    fun getVariantDisplayNameResId(variant: String): String {
-        return when (variant) {
-            "my" -> VariantResIds.MY_LEGACY
-            "myjs" -> VariantResIds.MY_STANDARD
-            "myj" -> VariantResIds.MY_PREMIUM
-            "myjp" -> VariantResIds.MY_PERFORMANCE
-            "m3" -> VariantResIds.M3_LEGACY
-            "m3h" -> VariantResIds.M3_HIGHLAND
-            "m3hp" -> VariantResIds.M3_HIGHLAND_PERF
-            else -> variant
-        }
     }
 }

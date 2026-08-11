@@ -29,9 +29,6 @@ interface AggregateDao {
     // === Charge Detail Aggregates ===
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertChargeAggregate(aggregate: ChargeDetailAggregate)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertChargeAggregates(aggregates: List<ChargeDetailAggregate>)
 
     @Query("SELECT * FROM charge_detail_aggregates WHERE chargeId = :chargeId")
@@ -355,13 +352,6 @@ interface AggregateDao {
     """)
     suspend fun getRegionsVisited(carId: Int, countryCode: String, startDate: String, endDate: String): List<RegionVisitResult>
 
-    // Count unique regions in a country
-    @Query("""
-        SELECT COUNT(DISTINCT startRegionName) FROM drive_detail_aggregates
-        WHERE carId = :carId AND startCountryCode = :countryCode AND startRegionName IS NOT NULL
-    """)
-    suspend fun countUniqueRegions(carId: Int, countryCode: String): Int
-
     // === Deep Stats: Cities Visited (Drives) ===
 
     @Query("""
@@ -371,37 +361,6 @@ interface AggregateDao {
         AND d.startDate >= :startDate AND d.startDate < :endDate
     """)
     suspend fun countUniqueDriveCities(carId: Int, startDate: String, endDate: String): Int
-
-    // === Deep Stats: Cities/Countries for Charges ===
-
-    @Query("""
-        SELECT COUNT(DISTINCT countryCode) FROM charge_detail_aggregates
-        WHERE carId = :carId AND countryCode IS NOT NULL
-    """)
-    suspend fun countUniqueChargeCountries(carId: Int): Int
-
-    @Query("""
-        SELECT a.city, a.countryCode, COUNT(*) as chargeCount, SUM(c.energyAdded) as totalEnergy
-        FROM charge_detail_aggregates a
-        JOIN charges_summary c ON a.chargeId = c.chargeId
-        WHERE a.carId = :carId AND a.city IS NOT NULL
-        GROUP BY a.city, a.countryCode
-        ORDER BY chargeCount DESC
-        LIMIT :limit
-    """)
-    suspend fun getTopChargeCities(carId: Int, limit: Int = 5): List<CityChargeStats>
-
-    @Query("""
-        SELECT a.countryCode, a.countryName,
-               COUNT(*) as chargeCount,
-               SUM(CASE WHEN a.isFastCharger = 1 THEN 1 ELSE 0 END) as dcCount,
-               SUM(CASE WHEN a.isFastCharger = 0 THEN 1 ELSE 0 END) as acCount
-        FROM charge_detail_aggregates a
-        WHERE a.carId = :carId AND a.countryCode IS NOT NULL
-        GROUP BY a.countryCode
-        ORDER BY chargeCount DESC
-    """)
-    suspend fun getChargeStatsByCountry(carId: Int): List<CountryChargeStats>
 
     // === Location Update Methods (called by GeocodeWorker) ===
 
@@ -452,26 +411,6 @@ interface AggregateDao {
         regionName: String?,
         city: String?
     )
-
-    // Count drives/charges that need geocoding (have coordinates but no country)
-    @Query("""
-        SELECT COUNT(*) FROM drive_detail_aggregates
-        WHERE carId = :carId
-        AND startLatitude IS NOT NULL
-        AND startLongitude IS NOT NULL
-        AND startCountryCode IS NULL
-    """)
-    suspend fun countDrivesNeedingGeocode(carId: Int): Int
-
-    @Query("""
-        SELECT COUNT(*) FROM charge_detail_aggregates a
-        JOIN charges_summary c ON a.chargeId = c.chargeId
-        WHERE a.carId = :carId
-        AND c.latitude IS NOT NULL
-        AND c.longitude IS NOT NULL
-        AND a.countryCode IS NULL
-    """)
-    suspend fun countChargesNeedingGeocode(carId: Int): Int
 
     // Get ids + coordinates of drives that need geocoding (have coordinates but no country).
     // Carrying the id lets callers apply cached geocode data with indexed per-id updates
@@ -628,27 +567,6 @@ data class CountryVisitResult(
     val totalDistanceKm: Double,
     val totalChargeEnergyKwh: Double,
     val chargeCount: Int
-)
-
-/**
- * Result of top charge cities query.
- */
-data class CityChargeStats(
-    val city: String,
-    val countryCode: String?,
-    val chargeCount: Int,
-    val totalEnergy: Double
-)
-
-/**
- * Result of charge stats by country query.
- */
-data class CountryChargeStats(
-    val countryCode: String,
-    val countryName: String?,
-    val chargeCount: Int,
-    val dcCount: Int,
-    val acCount: Int
 )
 
 /**

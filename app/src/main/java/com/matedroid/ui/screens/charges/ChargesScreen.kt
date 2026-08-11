@@ -774,7 +774,6 @@ private fun ChargesChartsPager(
                         palette = palette
                     )
                 }
-                //ChartLegend(palette = palette)
             }
         }
 

@@ -67,7 +67,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.isSystemInDarkTheme
-//import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Battery5Bar
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
 import androidx.compose.material.icons.outlined.EnergySavingsLeaf
@@ -1449,7 +1448,6 @@ private fun DaySummaryCard(
     palette: CarColorPalette
 ) {
     val avgDistance = if (dayData.driveCount > 0) dayData.totalDistance / dayData.driveCount else 0.0
-    //val avgEnergy = if (dayData.driveCount > 0) dayData.totalEnergy / dayData.driveCount else 0.0
     val avgEfficiency = if (dayData.totalDistance > 0) (dayData.totalEnergy * 1000.0) / dayData.totalDistance else 0.0
 
     Card(

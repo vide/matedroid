@@ -951,8 +951,3 @@ private fun formatDate(dateStr: String): String {
     return dt.toLocalDate().formatMedium(Locale.getDefault())
 }
 
-/**
- * Get the localized country name for a given ISO country code.
- * Falls back to the country code if localization fails.
- */
-

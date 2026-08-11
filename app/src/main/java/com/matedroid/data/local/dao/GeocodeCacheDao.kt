@@ -25,14 +25,6 @@ interface GeocodeCacheDao {
 
     @Query("SELECT gridLat, gridLon FROM geocode_cache")
     suspend fun getAllGridKeys(): List<GridKey>
-
-    // For stats: count unique countries in cache
-    @Query("SELECT COUNT(DISTINCT countryCode) FROM geocode_cache WHERE countryCode IS NOT NULL")
-    suspend fun countUniqueCountries(): Int
-
-    // For stats: count unique cities in cache
-    @Query("SELECT COUNT(DISTINCT city) FROM geocode_cache WHERE city IS NOT NULL")
-    suspend fun countUniqueCities(): Int
 }
 
 /** A grid-cell key (0.01° precision). */

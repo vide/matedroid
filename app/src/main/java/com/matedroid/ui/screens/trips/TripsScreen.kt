@@ -619,14 +619,4 @@ internal fun Trip.displayName(): String {
     return custom ?: "${extractCity(startAddress)} → ${extractCity(endAddress)}"
 }
 
-/**
- * Format a minutes-granularity duration with unit cascading: as the duration grows into
- * a larger magnitude the smaller unit is dropped (rounded into the next-larger one),
- * so readers aren't distracted by precision that no longer matters.
- *  <1h → "Xm"
- *  1–24h → "Xh Ym" (minute precision)
- *  1–7d → "Xd Yh" (hour precision, minutes rolled into hours)
- *  1w–~1mo → "Xw Yd"
- *  ≥30d → "Xmo Yw"
- */
 

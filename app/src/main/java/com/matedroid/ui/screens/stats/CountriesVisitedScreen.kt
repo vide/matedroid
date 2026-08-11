@@ -310,7 +310,3 @@ private fun EmptyState(palette: CarColorPalette) {
     }
 }
 
-/**
- * Get the localized country name for a given ISO country code.
- * Falls back to the country code if localization fails.
- */
