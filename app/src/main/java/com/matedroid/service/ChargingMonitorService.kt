@@ -11,10 +11,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.matedroid.R
-import com.matedroid.data.local.ChargeSessionStateDataStore
-import com.matedroid.data.local.SettingsDataStore
-import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.data.sync.ChargingCheckUseCase
 import com.matedroid.notification.ChargingNotificationManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +21,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -42,6 +39,15 @@ class ChargingMonitorService : Service() {
         private const val UPDATE_INTERVAL_MS = 30_000L  // 30 seconds
         private const val INITIAL_NOTIFICATION_ID = 3999  // Temporary ID for initial foreground
 
+        /**
+         * True between onCreate and onDestroy. ChargingNotificationWorker skips its own
+         * check while this is set — the service's loop runs the same one (incl. sentry),
+         * and both polling would double every API call.
+         */
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
         fun start(context: Context) {
             val intent = Intent(context, ChargingMonitorService::class.java)
             context.startForegroundService(intent)
@@ -54,9 +60,8 @@ class ChargingMonitorService : Service() {
     }
 
     @Inject lateinit var teslamateRepository: TeslamateRepository
-    @Inject lateinit var settingsDataStore: SettingsDataStore
+    @Inject lateinit var chargingCheckUseCase: ChargingCheckUseCase
     @Inject lateinit var chargingNotificationManager: ChargingNotificationManager
-    @Inject lateinit var chargeSessionStateDataStore: ChargeSessionStateDataStore
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var monitorJob: Job? = null
@@ -72,6 +77,7 @@ class ChargingMonitorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         Log.d(TAG, "Service created")
     }
 
@@ -106,6 +112,7 @@ class ChargingMonitorService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "Service destroyed, cancelling ${activeNotificationCarIds.size} notifications")
+        isRunning = false
         isMonitoring = false
         monitorJob?.cancel()
 
@@ -231,50 +238,27 @@ class ChargingMonitorService : Service() {
      */
     private suspend fun performChargingCheck(): Boolean {
         try {
-            val settings = settingsDataStore.settings.first()
-            if (!settings.isConfigured) {
-                Log.d(TAG, "Server not configured")
-                return false
-            }
-
-            val carsResult = teslamateRepository.getCars()
-            val cars = when (carsResult) {
-                is ApiResult.Success -> carsResult.data
-                is ApiResult.Error -> {
-                    Log.e(TAG, "Failed to fetch cars: ${carsResult.message}")
+            val checked = when (val result = chargingCheckUseCase.checkAllCars()) {
+                is ChargingCheckUseCase.Result.NotConfigured -> {
+                    Log.d(TAG, "Server not configured")
                     return false
                 }
+                is ChargingCheckUseCase.Result.Error -> {
+                    Log.e(TAG, "Failed to fetch cars: ${result.message}")
+                    return false
+                }
+                is ChargingCheckUseCase.Result.Checked -> result
             }
 
             var anyCharging = false
 
-            for (car in cars) {
-                val statusResult = teslamateRepository.getCarStatus(car.carId)
-                val statusData = when (statusResult) {
-                    is ApiResult.Success -> statusResult.data
-                    is ApiResult.Error -> {
-                        Log.e(TAG, "Failed to fetch status for car ${car.carId}: ${statusResult.message}")
-                        continue
-                    }
-                }
-
-                val status = statusData.status
-
+            for (check in checked.cars) {
+                val car = check.car
+                val status = check.status
                 val notificationId = ChargingNotificationManager.NOTIFICATION_ID_BASE + car.carId
 
-                // Only `isCharging && phases == 0` confirms DC. After completion phases
-                // is null for any charge type, so we persist the in-session flag.
-                if (status.isCharging && status.isDcCharging) {
-                    chargeSessionStateDataStore.setLastSessionDc(car.carId, true)
-                } else if (status.pluggedIn == false) {
-                    chargeSessionStateDataStore.clear(car.carId)
-                }
-
-                val wasDcSession = chargeSessionStateDataStore.wasLastSessionDc(car.carId)
-                val dcFinishedPluggedIn = status.isChargeCompletePluggedIn && wasDcSession
-
                 when {
-                    status.isCharging -> {
+                    check.isCharging -> {
                         anyCharging = true
                         activeNotificationCarIds.add(car.carId)
                         Log.d(TAG, "Car ${car.carId} charging at ${status.batteryLevel}%")
@@ -287,7 +271,7 @@ class ChargingMonitorService : Service() {
                         updateForegroundNotification(notificationId, notification, car, status, liveChargeAvailable)
                     }
 
-                    dcFinishedPluggedIn -> {
+                    check.dcFinishedPluggedIn -> {
                         // DC charge finished but cable still plugged — keep notification alive
                         anyCharging = true
                         activeNotificationCarIds.add(car.carId)
