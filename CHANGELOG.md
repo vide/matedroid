@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuring both HTTP basic auth and an API token no longer sends two Authorization headers** (which some reverse proxies reject) — the API token takes precedence.
 - **A missed database migration can no longer silently wipe synced data in release builds** — that recovery path is now debug-only.
 - **The widget no longer keeps a stale colour or car model** if the server stops reporting a field.
+- **The regions map frames correctly in the Americas and the southern hemisphere** — the initial zoom stretched to the equator/Greenwich meridian for all-negative coordinates.
+- **Viewing a chart fullscreen no longer locks the whole app to portrait afterwards** — the previous orientation setting is restored on exit.
+- **The system back button now closes the year/month/day overlays on the Mileage screen and the Battery detail overlay** instead of leaving the screen entirely.
+- **Maps no longer leak background tile-loader threads** — every embedded map now releases its resources when its screen closes.
+- **The dashboard map now follows the car while driving** instead of staying centered on where the car was when the dashboard opened.
 
 ## [1.10.0] - 2026-07-01
 

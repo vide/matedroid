@@ -519,6 +519,8 @@ private fun CountryMapCard(
                             }
                         }
                     },
+                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
+                    onRelease = { it.onDetach() },
                     update = { mapView ->
                         // Clear all overlays except keep any info windows
                         mapView.overlays.clear()
@@ -807,17 +809,12 @@ private fun calculateChargeBoundingBox(chargeLocations: List<ChargeLocation>): B
         return BoundingBox(55.0, 15.0, 35.0, -10.0)
     }
 
-    var minLat = Double.MAX_VALUE
-    var maxLat = Double.MIN_VALUE
-    var minLon = Double.MAX_VALUE
-    var maxLon = Double.MIN_VALUE
-
-    chargeLocations.forEach { location ->
-        minLat = minOf(minLat, location.latitude)
-        maxLat = maxOf(maxLat, location.latitude)
-        minLon = minOf(minLon, location.longitude)
-        maxLon = maxOf(maxLon, location.longitude)
-    }
+    // Note: Double.MIN_VALUE is the smallest POSITIVE double, not the most negative —
+    // seeding max with it breaks for all-negative coordinates (southern/western hemispheres).
+    val minLat = chargeLocations.minOf { it.latitude }
+    val maxLat = chargeLocations.maxOf { it.latitude }
+    val minLon = chargeLocations.minOf { it.longitude }
+    val maxLon = chargeLocations.maxOf { it.longitude }
 
     // Add some padding (about 10% on each side)
     val latPadding = (maxLat - minLat) * 0.15
@@ -845,17 +842,11 @@ private fun calculateDriveBoundingBox(driveLocations: List<DriveLocation>): Boun
         return BoundingBox(55.0, 15.0, 35.0, -10.0)
     }
 
-    var minLat = Double.MAX_VALUE
-    var maxLat = Double.MIN_VALUE
-    var minLon = Double.MAX_VALUE
-    var maxLon = Double.MIN_VALUE
-
-    driveLocations.forEach { location ->
-        minLat = minOf(minLat, location.latitude)
-        maxLat = maxOf(maxLat, location.latitude)
-        minLon = minOf(minLon, location.longitude)
-        maxLon = maxOf(maxLon, location.longitude)
-    }
+    // See calculateChargeBoundingBox — Double.MIN_VALUE seeding broke negative coordinates.
+    val minLat = driveLocations.minOf { it.latitude }
+    val maxLat = driveLocations.maxOf { it.latitude }
+    val minLon = driveLocations.minOf { it.longitude }
+    val maxLon = driveLocations.maxOf { it.longitude }
 
     // Add some padding (about 10% on each side)
     val latPadding = (maxLat - minLat) * 0.15

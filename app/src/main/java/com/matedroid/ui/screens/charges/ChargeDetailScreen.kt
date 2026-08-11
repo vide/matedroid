@@ -840,6 +840,8 @@ private fun ChargeMapCard(latitude: Double, longitude: Double, accent: Color) {
                             controller.setCenter(geoPoint)
                         }
                     },
+                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
+                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }

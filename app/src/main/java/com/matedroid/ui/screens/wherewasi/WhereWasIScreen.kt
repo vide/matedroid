@@ -232,6 +232,8 @@ fun WhereWasIScreen(
                                             overlays.add(marker)
                                         }
                                     },
+                                    // onDetach() shuts down osmdroid's tile-loader threads and cache.
+                                    onRelease = { it.onDetach() },
                                     modifier = Modifier.fillMaxSize()
                                 )
                                 FilledIconButton(
