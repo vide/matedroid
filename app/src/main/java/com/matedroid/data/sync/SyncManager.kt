@@ -69,9 +69,15 @@ class SyncManager @Inject constructor(
 
     /**
      * Mark summaries as synced and calculate total items to process.
+     * [wasFullSync] records that this fetch had no startDate filter, resetting the
+     * periodic full-refresh clock used by incremental syncs.
      */
-    suspend fun markSummariesComplete(carId: Int) {
-        syncStateDao.markSummariesSynced(carId, System.currentTimeMillis())
+    suspend fun markSummariesComplete(carId: Int, wasFullSync: Boolean = true) {
+        val now = System.currentTimeMillis()
+        syncStateDao.markSummariesSynced(carId, now)
+        if (wasFullSync) {
+            syncStateDao.markFullSummarySync(carId, now)
+        }
 
         // Calculate total items to process for detail sync
         val unprocessedDrives = driveSummaryDao.countUnprocessedDrives(carId, SchemaVersion.CURRENT)
