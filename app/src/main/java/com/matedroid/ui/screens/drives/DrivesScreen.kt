@@ -75,6 +75,7 @@ import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MateDroidPulseSpinner
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.SummaryItem
 import com.matedroid.ui.components.rememberDebouncedLoading
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
@@ -471,41 +472,6 @@ private fun SummaryCard(summary: DrivesSummary, units: Units?, palette: CarColor
                     modifier = Modifier.weight(0.8f)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
         }
     }
 }

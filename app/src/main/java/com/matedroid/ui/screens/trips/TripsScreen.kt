@@ -71,6 +71,7 @@ import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.SummaryItem
 import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
@@ -394,41 +395,6 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun SummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-        }
-    }
-}
-
-@Composable
 private fun TripItem(
     trip: Trip,
     units: Units?,
@@ -653,14 +619,4 @@ internal fun Trip.displayName(): String {
     return custom ?: "${extractCity(startAddress)} → ${extractCity(endAddress)}"
 }
 
-/**
- * Format a minutes-granularity duration with unit cascading: as the duration grows into
- * a larger magnitude the smaller unit is dropped (rounded into the next-larger one),
- * so readers aren't distracted by precision that no longer matters.
- *  <1h → "Xm"
- *  1–24h → "Xh Ym" (minute precision)
- *  1–7d → "Xd Yh" (hour precision, minutes rolled into hours)
- *  1w–~1mo → "Xw Yd"
- *  ≥30d → "Xmo Yw"
- */
 

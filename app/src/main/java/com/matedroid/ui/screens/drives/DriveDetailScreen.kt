@@ -86,6 +86,7 @@ import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.boundingBoxOf
+import com.matedroid.ui.components.extractTimeLabels
 import com.matedroid.ui.screens.trips.displayName
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -195,7 +196,7 @@ private fun DriveDetailContent(
     val positions = detail.positions
     val hasCharts = positions != null && positions.size > 2
     val timeLabels = remember(positions) {
-        if (hasCharts) extractTimeLabels(positions!!, is24Hour) else emptyList()
+        if (hasCharts) extractTimeLabels(positions!!.map { it.date }, is24Hour) else emptyList()
     }
     val hasSpeedData = remember(positions) {
         hasCharts && positions!!.any { it.speed != null }
@@ -1026,26 +1027,6 @@ private fun ChartCard(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-/**
- * Extract 5 time labels from drive positions for X axis display.
- * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
- */
-private fun extractTimeLabels(positions: List<DrivePosition>, is24Hour: Boolean? = null): List<String> {
-    if (positions.isEmpty()) return listOf("", "", "", "", "")
-
-    val locale = java.util.Locale.getDefault()
-    val times = positions.mapNotNull { position ->
-        position.date?.let { parseIsoDateTime(it) }
-    }
-
-    if (times.isEmpty()) return listOf("", "", "", "", "")
-
-    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
-    return indices.map { idx ->
-        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }
 

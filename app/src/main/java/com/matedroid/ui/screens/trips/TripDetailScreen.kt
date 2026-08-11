@@ -92,10 +92,10 @@ import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
-import com.matedroid.domain.isSignificant
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.CostDonutStop
 import com.matedroid.ui.components.MapGestureMode
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -1623,29 +1623,15 @@ private sealed class TripLeg {
 }
 
 private fun buildLegList(trip: Trip, showShort: Boolean): List<TripLeg> {
-    val legs = mutableListOf<TripLeg>()
     var driveIdx = 0
     var chargeIdx = 0
-    // Hide short legs unless the user opted in — same rule as the timeline (ShortEntryFilter).
-    val drives = if (showShort) trip.drives else trip.drives.filter { it.isSignificant() }
-    val charges = if (showShort) trip.charges else trip.charges.filter { it.isSignificant() }
-    val allEvents = mutableListOf<Pair<String, Any>>()
-    drives.forEach { allEvents.add(it.startDate to it) }
-    charges.forEach { allEvents.add(it.startDate to it) }
-    allEvents.sortBy { it.first }
-    for ((_, event) in allEvents) {
+    // Hide short legs unless the user opted in — same rule as the timeline (mergeTripEvents).
+    return mergeTripEvents(trip, showShort).map { event ->
         when (event) {
-            is com.matedroid.data.local.entity.DriveSummary -> {
-                driveIdx++
-                legs.add(TripLeg.Drive(driveIdx, event))
-            }
-            is com.matedroid.data.local.entity.ChargeSummary -> {
-                chargeIdx++
-                legs.add(TripLeg.Charge(chargeIdx, event))
-            }
+            is TripEvent.Drive -> TripLeg.Drive(++driveIdx, event.drive)
+            is TripEvent.Charge -> TripLeg.Charge(++chargeIdx, event.charge)
         }
     }
-    return legs
 }
 
 @Composable
@@ -1733,19 +1719,13 @@ private fun ChargeLegCard(
                 tint = chipColor
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(chipColor)
-                    .padding(horizontal = 5.dp, vertical = 1.dp)
-            ) {
-                Text(
-                    text = if (isDc) "DC" else "AC",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = androidx.compose.ui.graphics.Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            ChargeTypeBadge(
+                isDc = isDc,
+                dcColor = chipColor,
+                acColor = chipColor,
+                horizontalPadding = 5.dp,
+                verticalPadding = 1.dp
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = extractCity(leg.charge.address),

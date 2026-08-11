@@ -30,10 +30,10 @@ import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.ui.screens.common.buildTimeSeries
 
-enum class ChargeTypeFilter(val label: String) {
-    ALL("All"),
-    AC("AC"),
-    DC("DC")
+enum class ChargeTypeFilter {
+    ALL,
+    AC,
+    DC
 }
 
 enum class CostFilter(@get:StringRes val labelRes: Int) {
@@ -41,8 +41,6 @@ enum class CostFilter(@get:StringRes val labelRes: Int) {
     HAS_COST(R.string.cost_filter_has_cost),
     NO_COST(R.string.cost_filter_no_cost)
 }
-
-data class LocationFilter(val name: String) // null name = All locations
 
 data class ChargeChartData(
     val label: String,

@@ -64,7 +64,6 @@ data class MileageUiState(
     val isRefreshing: Boolean = false,
     val error: String? = null,
     val allDrives: List<DriveData> = emptyList(),
-    val allCharges: List<ChargeData> = emptyList(),
 
     // Lifetime totals (year overview)
     val yearlyData: List<YearlyMileage> = emptyList(),
@@ -289,7 +288,6 @@ class MileageViewModel @Inject constructor(
                             isLoading = false,
                             isRefreshing = false,
                             allDrives = drives,
-                            allCharges = charges,
                             error = null,
                             yearlyData = prepared.agg.yearlyData,
                             totalLifetimeDistance = prepared.agg.totalLifetimeDistance,

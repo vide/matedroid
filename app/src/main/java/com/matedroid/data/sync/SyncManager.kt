@@ -38,13 +38,6 @@ class SyncManager @Inject constructor(
     fun getProgressForCar(carId: Int): SyncProgress? = _carProgress.value[carId]
 
     /**
-     * Check if summaries are synced for a car (Quick Stats available).
-     */
-    suspend fun areSummariesSynced(carId: Int): Boolean {
-        return syncStateDao.get(carId)?.summariesSynced == true
-    }
-
-    /**
      * Check if details are synced for a car (Deep Stats available).
      */
     suspend fun areDetailsSynced(carId: Int): Boolean {

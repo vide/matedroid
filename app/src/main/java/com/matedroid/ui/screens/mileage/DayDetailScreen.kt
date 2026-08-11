@@ -137,7 +137,6 @@ private fun DaySummaryCard(
     palette: CarColorPalette
 ) {
     val avgDistance = if (dayData.driveCount > 0) dayData.totalDistance / dayData.driveCount else 0.0
-    //val avgEnergy = if (dayData.driveCount > 0) dayData.totalEnergy / dayData.driveCount else 0.0
     val avgEfficiency = efficiencyWhPerUnit(dayData.totalEnergy, dayData.totalDistance)
 
     Card(

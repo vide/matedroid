@@ -53,7 +53,7 @@ class TripRepository @Inject constructor(
     suspend fun getTrips(carId: Int): List<Trip> = withContext(Dispatchers.Default) {
         // Detection, duplicate healing (SHA-256 per trip) and trip building are CPU work — keep
         // them off the caller's (main) thread. Room still runs the queries on its own executor.
-        val drives = driveSummaryDao.getAllChronological(carId)
+        val drives = driveSummaryDao.getAllForCar(carId)
         val dcCharges = aggregateDao.getDcChargeSummaries(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
 
@@ -137,7 +137,7 @@ class TripRepository @Inject constructor(
         if (newLegs.isEmpty()) return
         val existing = savedTripDao.getWithLegs(tripId) ?: return
         val carId = existing.trip.carId
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val combined = (existing.legs.map { LegRef(it.legType, it.legId) } + newLegs).distinct()
@@ -172,7 +172,7 @@ class TripRepository @Inject constructor(
         val kept = savedTripDao.getWithLegs(keptTripId) ?: return null
         val consumed = savedTripDao.getWithLegs(consumedTripId) ?: return null
 
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val keptRange = tripRange(kept, drives, charges) ?: return null
@@ -247,7 +247,7 @@ class TripRepository @Inject constructor(
     suspend fun getAdjacentTrips(tripId: Long, carId: Int, windowDays: Int = 14): List<Pair<Long, Trip>> {
         val allSaved = savedTripDao.getAllWithLegs(carId)
         val currentSwl = allSaved.find { it.trip.id == tripId } ?: return emptyList()
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val currentRange = tripRange(currentSwl, drives, charges) ?: return emptyList()
@@ -273,7 +273,7 @@ class TripRepository @Inject constructor(
     /** Drives and charges near [tripId]'s time range, not already part of any saved trip on [carId]. */
     suspend fun getEligibleNewLegs(tripId: Long, carId: Int, windowDays: Int = 2): EligibleLegs {
         val swl = savedTripDao.getWithLegs(tripId) ?: return EligibleLegs(emptyList(), emptyList())
-        val allDrives = driveSummaryDao.getAllChronological(carId)
+        val allDrives = driveSummaryDao.getAllForCar(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
         val drivesById = allDrives.associateBy { it.driveId }
         val chargesById = allCharges.associateBy { it.chargeId }
@@ -311,7 +311,7 @@ class TripRepository @Inject constructor(
         anchorEnd: String,
         windowDays: Int = 2
     ): EligibleLegs {
-        val allDrives = driveSummaryDao.getAllChronological(carId)
+        val allDrives = driveSummaryDao.getAllForCar(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
         val windowStart = shiftDate(anchorStart, -windowDays.toLong())
         val windowEnd = shiftDate(anchorEnd, windowDays.toLong())
@@ -334,7 +334,7 @@ class TripRepository @Inject constructor(
 
     /** Resolve a set of leg refs into their drive/charge summaries (for building a draft preview). */
     suspend fun resolveLegs(carId: Int, refs: List<LegRef>): EligibleLegs {
-        val drivesById = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drivesById = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val chargesById = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val drives = refs.filter { it.type == SavedTripLeg.TYPE_DRIVE }.mapNotNull { drivesById[it.id] }
         val charges = refs.filter { it.type == SavedTripLeg.TYPE_CHARGE }.mapNotNull { chargesById[it.id] }
@@ -349,7 +349,7 @@ class TripRepository @Inject constructor(
      */
     suspend fun createTrip(carId: Int, legs: List<LegRef>, name: String?): Long? {
         if (legs.none { it.type == SavedTripLeg.TYPE_DRIVE }) return null
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val sorted = legs.distinct().sortedBy { ref -> legStartDate(ref, drives, charges) ?: "" }
         val now = System.currentTimeMillis()
@@ -516,7 +516,7 @@ class TripRepository @Inject constructor(
             swl.legs.any { it.legType == legType && it.legId == legId }
         } ?: return null
 
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val trip = TripAggregator.buildTrip(
             tripDrivesIn(match, drives),

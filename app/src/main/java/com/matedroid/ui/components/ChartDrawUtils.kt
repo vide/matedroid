@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.dp
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -517,5 +519,25 @@ fun DrawScope.drawFloatingTimeChip(
         chipRect.set(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
         drawRoundRect(chipRect, 8f, 8f, chipBgPaint)
         drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + chipTextPaint.textSize / 3, chipTextPaint)
+    }
+}
+
+/**
+ * Extract 5 time labels from a series' ISO date strings for X axis display.
+ * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
+ * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
+ */
+fun extractTimeLabels(dates: List<String?>, is24Hour: Boolean? = null): List<String> {
+    if (dates.isEmpty()) return listOf("", "", "", "", "")
+
+    val locale = java.util.Locale.getDefault()
+    val times = dates.mapNotNull { parseIsoDateTime(it) }
+
+    if (times.isEmpty()) return listOf("", "", "", "", "")
+
+    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
+    return indices.map { idx ->
+        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }

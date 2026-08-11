@@ -5,13 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.matedroid.data.local.entity.GeocodeQueueItem
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GeocodeQueueDao {
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun enqueue(item: GeocodeQueueItem)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun enqueueAll(items: List<GeocodeQueueItem>)
@@ -33,10 +29,6 @@ interface GeocodeQueueDao {
     // For batch dedup when enqueueing (progress totals must not re-count queued items)
     @Query("SELECT gridLat, gridLon FROM geocode_queue")
     suspend fun getAllGridKeys(): List<GridKey>
-
-    // Flow-based query for real-time UI updates (Room emits on table changes)
-    @Query("SELECT COUNT(*) FROM geocode_queue WHERE attempts < 3")
-    fun observePendingCount(): Flow<Int>
 
     @Query("""
         UPDATE geocode_queue

@@ -52,6 +52,7 @@ import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.domain.EligibleLegs
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.util.formatDuration
@@ -314,7 +315,7 @@ private fun CandidateRow(
                     )
                 }
                 Spacer(Modifier.width(8.dp))
-                ChargeTypeChip(isDc = isDc, chipColor = chipColor)
+                ChargeTypeBadge(isDc = isDc, dcColor = chipColor, acColor = chipColor)
                 Spacer(Modifier.width(8.dp))
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
@@ -331,24 +332,6 @@ private fun CandidateRow(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ChargeTypeChip(isDc: Boolean, chipColor: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(chipColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = if (isDc) "DC" else "AC",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

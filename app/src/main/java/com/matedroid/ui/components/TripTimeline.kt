@@ -69,7 +69,6 @@ import com.matedroid.util.formatDuration
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import java.util.Locale
-import kotlin.math.sqrt
 
 /** A segment in a trip timeline, representing a slice of the trip's wall-clock time. */
 @Immutable
@@ -102,15 +101,6 @@ data class TripTimelineCountry(
     val countryCode: String,
     val flagEmoji: String
 )
-
-/**
- * "Idle" segments (parking gaps and AC charges) share the same compression curve:
- * linear up to 30 min, sqrt-compressed beyond, scaled 0.5× so multi-hour/day stretches
- * stay visible without crushing the drives. DC sessions are left linear since they're
- * naturally bounded (~1h) and their duration is useful signal.
- */
-private const val IDLE_LINEAR_THRESHOLD_MIN = 30f
-private const val IDLE_COMPRESSION_SCALE = 0.5f
 
 /**
  * Per-segment "base" share of the bar, added to every segment before the remaining width is
@@ -944,25 +934,6 @@ private fun DrawScope.drawSegmentIcon(
     }
 }
 
-private fun colorForSegment(
-    seg: TripTimelineSegment,
-    palette: CarColorPalette,
-    parkingColor: Color
-): Color = when (seg) {
-    is TripTimelineSegment.Drive -> palette.accent
-    is TripTimelineSegment.Charge -> if (seg.isDc) palette.dcColor else palette.acColor
-    is TripTimelineSegment.Parking -> parkingColor
-}
-
-/** Visual weight for one segment — drives and DC charges are honest, AC and parking are sqrt-compressed. */
-private fun segmentWeight(seg: TripTimelineSegment): Float = when (seg) {
-    is TripTimelineSegment.Parking -> compressIdle(seg.durationMin)
-    is TripTimelineSegment.Charge ->
-        if (seg.isDc) seg.durationMin.toFloat().coerceAtLeast(1f)
-        else compressIdle(seg.durationMin)
-    is TripTimelineSegment.Drive -> seg.durationMin.toFloat().coerceAtLeast(1f)
-}
-
 /**
  * Compute visual width ratios for each segment. Each segment gets a small fixed base share, and
  * the remaining width is split strictly in proportion to (compressed) duration. This keeps the
@@ -978,14 +949,6 @@ private fun computeSegmentRatios(segments: List<TripTimelineSegment>): List<Floa
     val base = SEGMENT_BASE_FRACTION.coerceAtMost(SEGMENT_BASE_MAX_TOTAL / segments.size)
     val proportionalShare = 1f - base * segments.size
     return raw.map { base + it * proportionalShare }
-}
-
-/** Linear up to 30min, then sqrt-compressed and scaled down. Used for both parking gaps and AC charges. */
-private fun compressIdle(durationMin: Int): Float {
-    val d = durationMin.toFloat().coerceAtLeast(1f)
-    return if (d <= IDLE_LINEAR_THRESHOLD_MIN) d
-    else IDLE_LINEAR_THRESHOLD_MIN +
-            sqrt((d - IDLE_LINEAR_THRESHOLD_MIN) * IDLE_LINEAR_THRESHOLD_MIN) * IDLE_COMPRESSION_SCALE
 }
 
 private fun formatClockTime(dateStr: String, is24Hour: Boolean): String {
