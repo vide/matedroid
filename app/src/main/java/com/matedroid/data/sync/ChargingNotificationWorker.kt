@@ -180,8 +180,15 @@ class ChargingNotificationWorker @AssistedInject constructor(
                     CheckOutcome.Failed -> anyCheckFailed = true
                     is CheckOutcome.Idle -> {
                         // Plugged-in cars can start charging any moment; sentry-armed cars
-                        // need 30s polling to catch the ~1-minute alert window.
-                        if (outcome.status.pluggedIn == true || outcome.status.sentryMode == true) {
+                        // need 30s polling to catch the ~1-minute alert window; a driving
+                        // car may pull into a DC fast charger, where plug-to-charging is
+                        // seconds — a 5-min idle cadence would miss the start of a short
+                        // session. Only parked+unplugged+unarmed cars use the idle cadence.
+                        val status = outcome.status
+                        if (status.pluggedIn == true ||
+                            status.sentryMode == true ||
+                            status.state?.lowercase() == "driving"
+                        ) {
                             anyWantsFrequentPolling = true
                         }
                     }

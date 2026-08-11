@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
 
 ### Changed (battery & background work)
-- **Background polling now backs off when nothing is happening** — the 30-second charging/sentry check drops to every 5 minutes while no car is charging, plugged in, or sentry-armed, and stops entirely when no server is configured. It returns to 30 seconds as soon as a charge or sentry session could start.
+- **Background polling now backs off when nothing is happening** — the 30-second charging/sentry check drops to every 5 minutes while the car is parked, unplugged, and not sentry-armed, and stops entirely when no server is configured. Driving, plugged-in, sentry-armed and charging cars keep the 30-second cadence, so a fast-charge stop mid-trip is still picked up promptly.
 - **The widget updater stops itself when no widgets are on the launcher** instead of polling forever.
 - **Location lookups back off when the geocoding service is unreachable** instead of retrying the whole queue at full speed on every sync.
 - **A sync with failed drive/charge details now reports the failure and retries them** instead of pretending everything synced.
