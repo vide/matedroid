@@ -22,11 +22,6 @@ data class CarStats(
 sealed class YearFilter {
     data object AllTime : YearFilter()
     data class Year(val year: Int) : YearFilter()
-
-    fun toDisplayString(): String = when (this) {
-        is AllTime -> "All Time"
-        is Year -> year.toString()
-    }
 }
 
 /**
@@ -121,19 +116,7 @@ data class DeepStats(
     // === Sync Progress ===
     val driveDetailsProcessed: Int,
     val chargeDetailsProcessed: Int
-) {
-    val acDcRatio: String
-        get() {
-            val total = acChargeCount + dcChargeCount
-            return if (total > 0) {
-                val acPercent = (acChargeCount * 100) / total
-                val dcPercent = (dcChargeCount * 100) / total
-                "$acPercent% AC / $dcPercent% DC"
-            } else {
-                "N/A"
-            }
-        }
-}
+)
 
 /**
  * Record for elevation-related drives.

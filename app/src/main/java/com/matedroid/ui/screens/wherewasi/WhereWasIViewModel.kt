@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.wherewasi
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.models.ChargeData
 import com.matedroid.data.api.models.DriveData
@@ -84,7 +85,10 @@ class WhereWasIViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val targetTime = parseDateTime(timestamp) ?: run {
-                    _uiState.value = WhereWasIUiState(isLoading = false, error = "Invalid date")
+                    _uiState.value = WhereWasIUiState(
+                        isLoading = false,
+                        error = appContext.getString(R.string.wherewasi_error_invalid_date)
+                    )
                     return@launch
                 }
 

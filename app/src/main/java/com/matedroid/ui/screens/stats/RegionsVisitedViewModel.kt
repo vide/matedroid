@@ -1,7 +1,9 @@
 package com.matedroid.ui.screens.stats
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.CountryBoundary
@@ -13,6 +15,7 @@ import com.matedroid.domain.model.DriveLocation
 import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.YearFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -90,6 +93,7 @@ data class RegionsVisitedUiState(
 
 @HiltViewModel
 class RegionsVisitedViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val statsRepository: StatsRepository,
     private val teslamateRepository: TeslamateRepository
 ) : ViewModel() {
@@ -152,7 +156,7 @@ class RegionsVisitedViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load regions"
+                        error = e.message ?: context.getString(R.string.regions_error_load_failed)
                     )
                 }
             }

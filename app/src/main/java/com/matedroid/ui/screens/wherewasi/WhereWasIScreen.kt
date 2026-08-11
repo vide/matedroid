@@ -408,7 +408,7 @@ fun WhereWasIScreen(
                                     CarActivityState.DRIVING -> {
                                         Row(modifier = Modifier.fillMaxWidth()) {
                                             InfoItem(
-                                                label = stringResource(R.string.speed_profile).split(" ").first(),
+                                                label = stringResource(R.string.speed),
                                                 value = state.speed?.let { "$it ${UnitFormatter.getSpeedUnit(state.units)}" } ?: "—",
                                                 palette = palette,
                                                 modifier = Modifier.weight(1f)
@@ -432,7 +432,7 @@ fun WhereWasIScreen(
                                                 modifier = Modifier.weight(1f)
                                             )
                                             InfoItem(
-                                                label = stringResource(R.string.power_profile).split(" ").first(),
+                                                label = stringResource(R.string.power),
                                                 value = state.chargerPower?.let { "$it kW" } ?: "—",
                                                 palette = palette,
                                                 modifier = Modifier.weight(1f)

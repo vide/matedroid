@@ -224,7 +224,7 @@ fun TripDetailScreen(
                         .fillMaxSize()
                         .padding(padding),
                     contentAlignment = Alignment.Center
-                ) { Text("Trip not found") }
+                ) { Text(stringResource(R.string.trip_not_found)) }
             }
             else -> {
                 val trip = uiState.trip!!
@@ -971,7 +971,7 @@ private fun HorizontalEnergyFlow(
                     color = accent
                 )
                 Text(
-                    text = "kWh charged",
+                    text = stringResource(R.string.trip_kwh_charged),
                     style = MaterialTheme.typography.labelSmall,
                     color = accent.copy(alpha = 0.78f)
                 )
@@ -999,7 +999,7 @@ private fun HorizontalEnergyFlow(
                     color = dcColor
                 )
                 Text(
-                    text = "%.0f kW avg".format(dcAvgKw),
+                    text = stringResource(R.string.power_kw_avg, "%.0f".format(dcAvgKw)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1021,7 +1021,7 @@ private fun HorizontalEnergyFlow(
                     color = acColor
                 )
                 Text(
-                    text = "%.1f kW avg".format(acAvgKw),
+                    text = stringResource(R.string.power_kw_avg, "%.1f".format(acAvgKw)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

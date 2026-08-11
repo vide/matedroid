@@ -36,16 +36,6 @@ enum class DriveDistanceFilter(
     COMMUTE(10.0, null),           // < 10 km / 6 mi
     DAY_TRIP(100.0, 10.0),         // 10-100 km / 6-60 mi
     ROAD_TRIP(null, 100.0);        // > 100 km / 60 mi
-
-    fun getLabel(units: Units?): String {
-        val isImperial = units?.isImperial == true
-        return when (this) {
-            ALL -> "All"
-            COMMUTE -> if (isImperial) "Commute (< 6 mi)" else "Commute (< 10 km)"
-            DAY_TRIP -> if (isImperial) "Day trip (6-60 mi)" else "Day trip (10-100 km)"
-            ROAD_TRIP -> if (isImperial) "Road trip (> 60 mi)" else "Road trip (> 100 km)"
-        }
-    }
 }
 
 data class DriveChartData(

@@ -53,6 +53,18 @@ class SettingsViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         context = mockk(relaxed = true)
+        // Error strings are now resources; return their English values so the
+        // assertions below keep testing the user-visible messages.
+        every { context.getString(com.matedroid.R.string.settings_error_server_url_required) } returns
+            "Server URL is required"
+        every { context.getString(com.matedroid.R.string.settings_error_url_scheme) } returns
+            "URL must start with http:// or https://"
+        every { context.getString(com.matedroid.R.string.settings_error_primary_not_tested) } returns
+            "Primary URL not tested"
+        every { context.getString(com.matedroid.R.string.settings_error_secondary_url_scheme) } returns
+            "Secondary URL must start with http:// or https://"
+        every { context.getString(com.matedroid.R.string.settings_error_save_failed) } returns
+            "Failed to save settings"
         settingsDataStore = mockk()
         repository = mockk()
         syncManager = mockk()

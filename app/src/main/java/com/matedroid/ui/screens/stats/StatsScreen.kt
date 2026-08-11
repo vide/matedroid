@@ -668,7 +668,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = stringResource(R.string.stats_cost_per_distance, UnitFormatter.getDistanceUnit(units)),
-                value = costPer100Km?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: "N/A",
+                value = costPer100Km?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -704,7 +704,7 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
                 )
                 StatItem(
                     label = stringResource(R.string.stats_avg_cost_kwh),
-                    value = quickStats.avgCostPerKwh?.let { UnitFormatter.formatCost(it, currencySymbol, perKwh = true) } ?: "N/A",
+                    value = quickStats.avgCostPerKwh?.let { UnitFormatter.formatCost(it, currencySymbol, perKwh = true) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -837,7 +837,7 @@ private fun RecordsCard(
         weatherRecords.add(RecordData("🏔️", labelHighestPoint, UnitFormatter.formatElevation(record.elevationM, units), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.driveWithMostClimbing?.let { record ->
-        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+" + UnitFormatter.formatElevation(it, units) } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
+        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+" + UnitFormatter.formatElevation(it, units) } ?: stringResource(R.string.value_not_available), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
     }
     deepStats?.hottestDrive?.let { record ->
         weatherRecords.add(RecordData("🌡️", labelHottestDrive, UnitFormatter.formatTemperature(record.tempC, units, 1), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
@@ -1100,12 +1100,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette,
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_hottest),
-                value = deepStats.maxOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                value = deepStats.maxOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
                 label = stringResource(R.string.stats_coldest),
-                value = deepStats.minOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                value = deepStats.minOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1122,12 +1122,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette,
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
                     label = stringResource(R.string.stats_hottest),
-                    value = deepStats.maxCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                    value = deepStats.maxCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
                     label = stringResource(R.string.stats_coldest),
-                    value = deepStats.minCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                    value = deepStats.minCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
             }

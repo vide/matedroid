@@ -1,7 +1,9 @@
 package com.matedroid.ui.screens.stats
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.StatsRepository
@@ -9,6 +11,7 @@ import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.YearFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +33,7 @@ data class CountriesVisitedUiState(
 
 @HiltViewModel
 class CountriesVisitedViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val statsRepository: StatsRepository,
     private val teslamateRepository: TeslamateRepository
 ) : ViewModel() {
@@ -65,7 +69,7 @@ class CountriesVisitedViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load countries"
+                        error = e.message ?: context.getString(R.string.countries_error_load_failed)
                     )
                 }
             }
