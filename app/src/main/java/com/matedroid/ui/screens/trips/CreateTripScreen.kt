@@ -138,6 +138,7 @@ fun CreateTripScreen(
                     drives = uiState.drives,
                     charges = uiState.charges,
                     dcChargeIds = uiState.dcChargeIds,
+                    units = uiState.units,
                     palette = palette,
                     onRemove = viewModel::removeLeg
                 )
@@ -166,6 +167,7 @@ fun CreateTripScreen(
         AddLegSheet(
             eligible = uiState.eligibleLegs!!,
             dcChargeIds = uiState.dcChargeIds,
+            units = uiState.units,
             palette = palette,
             startInMultiSelect = true,
             onPickLegs = viewModel::pickLegs,
@@ -262,6 +264,7 @@ private fun LegList(
     drives: List<DriveSummary>,
     charges: List<ChargeSummary>,
     dcChargeIds: Set<Int>,
+    units: com.matedroid.data.api.models.Units?,
     palette: CarColorPalette,
     onRemove: (LegRef) -> Unit
 ) {
@@ -299,8 +302,9 @@ private fun LegList(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "%.1f km · %s".format(
+                                text = "%.1f %s · %s".format(
                                     d.distance,
+                                    UnitFormatter.getDistanceUnit(units),
                                     formatDuration(context.resources, d.durationMin)
                                 ),
                                 style = MaterialTheme.typography.labelSmall,

@@ -493,8 +493,15 @@ fun WhereWasIScreen(
                                     tint = weatherIconColor(state.weatherCondition!!)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
+                                // Open-meteo always returns \u00B0C (external data, not TeslamateAPI),
+                                // so converting for \u00B0F users is legitimate here.
+                                val displayTemp = if (state.units?.unitOfTemperature == "F") {
+                                    state.weatherTemperature!! * 1.8 + 32
+                                } else {
+                                    state.weatherTemperature!!
+                                }
                                 Text(
-                                    text = "%.1f\u00B0C".format(state.weatherTemperature),
+                                    text = UnitFormatter.formatTemperature(displayTemp, state.units, decimals = 1),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.onSurface

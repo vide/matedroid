@@ -187,17 +187,19 @@ class DriveComparisonViewModel @Inject constructor(
                 val pLat = prevLat
                 val pLon = prevLon
                 if (pLat != null && pLon != null) {
-                    val segKm = haversineMeters(pLat, pLon, lat, lon) / 1000.0
-                    cumDistanceDisplay += (segKm * toDisplay).toFloat()
+                    // Haversine over raw GPS is always km; convert the segment to the display unit
+                    // so it matches the API speed, which arrives pre-converted (km/h or mph).
+                    val segDisplay = haversineMeters(pLat, pLon, lat, lon) / 1000.0 * toDisplay
+                    cumDistanceDisplay += segDisplay.toFloat()
                     val power = position.power
                     if (speed != null && speed > 0 && power != null) {
-                        cumEnergyKwh += power.toDouble() * (segKm / speed.toDouble()) // kW × h
+                        cumEnergyKwh += power.toDouble() * (segDisplay / speed.toDouble()) // kW × h
                     }
                 }
                 prevLat = lat
                 prevLon = lon
                 if (speed != null) {
-                    samples.add(DriveCurveSample(cumDistanceDisplay, speed.toFloat() * toDisplay, cumEnergyKwh.toFloat()))
+                    samples.add(DriveCurveSample(cumDistanceDisplay, speed.toFloat(), cumEnergyKwh.toFloat()))
                 }
             }
         }

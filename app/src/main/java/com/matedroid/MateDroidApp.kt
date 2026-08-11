@@ -13,12 +13,19 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
+import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.domain.UnitSystem
 import com.matedroid.notification.SentryNotificationManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class MateDroidApp : Application(), Configuration.Provider {
@@ -29,6 +36,11 @@ class MateDroidApp : Application(), Configuration.Provider {
     @Inject
     lateinit var sentryNotificationManager: SentryNotificationManager
 
+    @Inject
+    lateinit var settingsDataStore: SettingsDataStore
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -37,6 +49,11 @@ class MateDroidApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Restore the last known unit system before any trip detection / filtering runs.
+        appScope.launch {
+            UnitSystem.isImperial = settingsDataStore.isImperial.first()
+        }
 
         // Configure OSMDroid tile cache (shared across all map screens)
         org.osmdroid.config.Configuration.getInstance().apply {

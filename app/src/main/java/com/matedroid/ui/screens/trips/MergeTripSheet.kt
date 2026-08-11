@@ -33,7 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
+import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
+import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.util.formatMediumNoYear
 import com.matedroid.util.parseIsoDateTime
@@ -43,6 +45,7 @@ import java.util.Locale
 @Composable
 fun MergeTripSheet(
     adjacentTrips: List<Pair<Long, Trip>>,
+    units: Units?,
     palette: CarColorPalette,
     onPick: (tripId: Long, trip: Trip) -> Unit,
     onDismiss: () -> Unit
@@ -85,6 +88,7 @@ fun MergeTripSheet(
                     items(adjacentTrips) { (id, trip) ->
                         AdjacentTripRow(
                             trip = trip,
+                            units = units,
                             palette = palette,
                             onClick = { onPick(id, trip) }
                         )
@@ -98,6 +102,7 @@ fun MergeTripSheet(
 @Composable
 private fun AdjacentTripRow(
     trip: Trip,
+    units: Units?,
     palette: CarColorPalette,
     onClick: () -> Unit
 ) {
@@ -133,7 +138,7 @@ private fun AdjacentTripRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "%.0f km".format(trip.totalDistance),
+                text = "%.0f %s".format(trip.totalDistance, UnitFormatter.getDistanceUnit(units)),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold
             )
