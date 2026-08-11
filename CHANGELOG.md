@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
+- **Drive comparison curves are correct again for miles/imperial users** — the compare-drives overlay was applying a km→miles conversion to speeds the API had already converted (curves plotted ~40% low), and its energy estimate mixed km distances with mph speeds, skewing the consumption ranking.
+- **Distances in the trip editing sheets now respect the unit setting** — the add-leg, create-trip and merge-trip sheets showed a hardcoded "km" label on values that are miles for imperial users.
+- **"Where was I" shows the temperature in °F for imperial users** instead of always °C.
+- **Charge charts now classify AC vs DC the same way as the list** — recent DC charges whose details hadn't synced yet were counted in the AC segment of the energy/cost/count charts while showing a DC badge in the list.
+- **Trip detection and the short-drive filter now behave the same for miles/imperial users** — the "at least 300 km" road-trip rule and the "under 1 km" short-drive rule were being read as 300 mi / 1 mi; the thresholds are now scaled to the unit system.
 
 ## [1.10.0] - 2026-07-01
 
