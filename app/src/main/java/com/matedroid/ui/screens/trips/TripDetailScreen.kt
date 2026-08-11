@@ -1381,6 +1381,8 @@ private fun TripMapAndroidView(
                     }
                 }
             },
+            // onDetach() shuts down osmdroid's tile-loader threads and cache.
+            onRelease = { it.onDetach() },
             modifier = Modifier.fillMaxSize()
         )
 

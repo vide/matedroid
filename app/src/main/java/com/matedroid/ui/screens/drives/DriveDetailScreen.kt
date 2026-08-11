@@ -779,6 +779,9 @@ private fun DriveMapCard(positions: List<DrivePosition>, routeColor: Color) {
                             }
                         }
                     },
+                    // onDetach() shuts down osmdroid's tile-loader threads and cache;
+                    // without it every visit to this screen leaks a tile provider.
+                    onRelease = { it.onDetach() },
                     modifier = Modifier.fillMaxSize()
                 )
             }
