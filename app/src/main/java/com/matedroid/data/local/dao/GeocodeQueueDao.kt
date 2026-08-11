@@ -30,6 +30,10 @@ interface GeocodeQueueDao {
     @Query("SELECT COUNT(*) FROM geocode_queue WHERE attempts < 3")
     suspend fun countPending(): Int
 
+    // For batch dedup when enqueueing (progress totals must not re-count queued items)
+    @Query("SELECT gridLat, gridLon FROM geocode_queue")
+    suspend fun getAllGridKeys(): List<GridKey>
+
     // Flow-based query for real-time UI updates (Room emits on table changes)
     @Query("SELECT COUNT(*) FROM geocode_queue WHERE attempts < 3")
     fun observePendingCount(): Flow<Int>
