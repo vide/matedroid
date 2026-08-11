@@ -1301,4 +1301,43 @@
     <plurals name="compare_sessions_nearby">
         <item quantity="other">附近 %d 次可比充电</item>
     </plurals>
+
+    <!-- Charges location filter chip when several locations are selected. %d = count -->
+    <plurals name="charges_locations_selected">
+        <item quantity="other">%d 个地点</item>
+    </plurals>
+    <!-- Settings: server connection validation / save errors -->
+    <string name="settings_error_server_url_required">服务器 URL 为必填项</string>
+    <string name="settings_error_url_scheme">URL 必须以 http:// 或 https:// 开头</string>
+    <string name="settings_error_primary_not_tested">未测试主 URL</string>
+    <string name="settings_error_secondary_url_scheme">备用 URL 必须以 http:// 或 https:// 开头</string>
+    <string name="settings_error_save_failed">无法保存设置</string>
+    <!-- Snackbar after the debug "force full resync" action succeeds -->
+    <string name="settings_resync_started">已开始完全重新同步。所有缓存数据已清除。请在统计页面查看进度。</string>
+    <!-- %1$s = error detail from the server -->
+    <string name="settings_error_resync_failed">无法开始重新同步：%1$s</string>
+    <!-- Generic load-failure snackbars -->
+    <string name="stats_error_load_failed">无法加载统计数据</string>
+    <string name="regions_error_load_failed">无法加载地区</string>
+    <string name="countries_error_load_failed">无法加载国家/地区</string>
+    <!-- Where-was-I: shown when the requested timestamp can't be parsed -->
+    <string name="wherewasi_error_invalid_date">日期无效</string>
+    <!-- Center of the trip cost donut. %d = number of charging stops -->
+    <plurals name="trip_cost_stops">
+        <item quantity="other">%d 次停靠</item>
+    </plurals>
+    <!-- Car image picker: model has a single render, nothing to choose -->
+    <string name="car_picker_no_variants">此车型没有可用的变体。</string>
+    <!-- Trip detail: the requested trip no longer exists -->
+    <string name="trip_not_found">未找到旅程</string>
+    <!-- Label under the total in the trip energy flow diagram (kWh is not translated) -->
+    <string name="trip_kwh_charged">已充电 kWh</string>
+    <!-- Average power label in the trip energy flow. %1$s = pre-formatted number, kW not translated -->
+    <string name="power_kw_avg">平均 %1$s kW</string>
+    <!-- Merge sheet: how many drives+charges a trip contains. %d = count -->
+    <plurals name="trip_legs">
+        <item quantity="other">%d 段</item>
+    </plurals>
+    <!-- Placeholder when a stat has no value -->
+    <string name="value_not_available">暂无</string>
 </resources>

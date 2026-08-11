@@ -1394,4 +1394,46 @@
         <item quantity="one">%d vergleichbare Ladung in der Nähe</item>
         <item quantity="other">%d vergleichbare Ladungen in der Nähe</item>
     </plurals>
+
+    <!-- Charges location filter chip when several locations are selected. %d = count -->
+    <plurals name="charges_locations_selected">
+        <item quantity="one">%d Standort</item>
+        <item quantity="other">%d Standorte</item>
+    </plurals>
+    <!-- Settings: server connection validation / save errors -->
+    <string name="settings_error_server_url_required">Server-URL ist erforderlich</string>
+    <string name="settings_error_url_scheme">Die URL muss mit http:// oder https:// beginnen</string>
+    <string name="settings_error_primary_not_tested">Primäre URL nicht getestet</string>
+    <string name="settings_error_secondary_url_scheme">Die sekundäre URL muss mit http:// oder https:// beginnen</string>
+    <string name="settings_error_save_failed">Einstellungen konnten nicht gespeichert werden</string>
+    <!-- Snackbar after the debug "force full resync" action succeeds -->
+    <string name="settings_resync_started">Vollständige Neusynchronisierung gestartet. Alle zwischengespeicherten Daten wurden gelöscht. Den Fortschritt siehst du im Statistik-Bildschirm.</string>
+    <!-- %1$s = error detail from the server -->
+    <string name="settings_error_resync_failed">Neusynchronisierung konnte nicht gestartet werden: %1$s</string>
+    <!-- Generic load-failure snackbars -->
+    <string name="stats_error_load_failed">Statistiken konnten nicht geladen werden</string>
+    <string name="regions_error_load_failed">Regionen konnten nicht geladen werden</string>
+    <string name="countries_error_load_failed">Länder konnten nicht geladen werden</string>
+    <!-- Where-was-I: shown when the requested timestamp can't be parsed -->
+    <string name="wherewasi_error_invalid_date">Ungültiges Datum</string>
+    <!-- Center of the trip cost donut. %d = number of charging stops -->
+    <plurals name="trip_cost_stops">
+        <item quantity="one">%d Stopp</item>
+        <item quantity="other">%d Stopps</item>
+    </plurals>
+    <!-- Car image picker: model has a single render, nothing to choose -->
+    <string name="car_picker_no_variants">Für dieses Modell sind keine Varianten verfügbar.</string>
+    <!-- Trip detail: the requested trip no longer exists -->
+    <string name="trip_not_found">Trip nicht gefunden</string>
+    <!-- Label under the total in the trip energy flow diagram (kWh is not translated) -->
+    <string name="trip_kwh_charged">kWh geladen</string>
+    <!-- Average power label in the trip energy flow. %1$s = pre-formatted number, kW not translated -->
+    <string name="power_kw_avg">Ø %1$s kW</string>
+    <!-- Merge sheet: how many drives+charges a trip contains. %d = count -->
+    <plurals name="trip_legs">
+        <item quantity="one">%d Etappe</item>
+        <item quantity="other">%d Etappen</item>
+    </plurals>
+    <!-- Placeholder when a stat has no value -->
+    <string name="value_not_available">k. A.</string>
 </resources>
