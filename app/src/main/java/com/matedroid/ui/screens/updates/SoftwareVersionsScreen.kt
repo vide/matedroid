@@ -377,12 +377,14 @@ private fun MonthlyUpdatesChart(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            val chartData = monthlyData.map { data ->
-                BarChartData(
-                    label = data.yearMonth.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())),
-                    value = data.count.toDouble(),
-                    displayValue = updatesFormat.format(data.count)
-                )
+            val chartData = remember(monthlyData, updatesFormat) {
+                monthlyData.map { data ->
+                    BarChartData(
+                        label = data.yearMonth.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())),
+                        value = data.count.toDouble(),
+                        displayValue = updatesFormat.format(data.count)
+                    )
+                }
             }
 
             InteractiveBarChart(
