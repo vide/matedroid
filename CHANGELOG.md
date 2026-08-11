@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Where was I" shows the temperature in °F for imperial users** instead of always °C.
 - **Charge charts now classify AC vs DC the same way as the list** — recent DC charges whose details hadn't synced yet were counted in the AC segment of the energy/cost/count charts while showing a DC badge in the list.
 - **Trip detection and the short-drive filter now behave the same for miles/imperial users** — the "at least 300 km" road-trip rule and the "under 1 km" short-drive rule were being read as 300 mi / 1 mi; the thresholds are now scaled to the unit system.
+- **With two cars, the charging notification no longer flickers** — the background check stopped the shared monitor whenever *any* car was idle, so the other car's charging notification was killed and recreated every 30 seconds.
+- **Editing trips (merge, add or remove legs) is now crash-safe** — the database writes happen atomically, so an interruption mid-edit can no longer leave a merged trip coexisting with its originals.
+- **A brief network hiccup no longer disables the live charging view for the rest of the session** — only a definitive "endpoint not available" answer from the server is remembered; transient errors are retried.
+- **Configuring both HTTP basic auth and an API token no longer sends two Authorization headers** (which some reverse proxies reject) — the API token takes precedence.
+- **A missed database migration can no longer silently wipe synced data in release builds** — that recovery path is now debug-only.
+- **The widget no longer keeps a stale colour or car model** if the server stops reporting a field.
 
 ## [1.10.0] - 2026-07-01
 

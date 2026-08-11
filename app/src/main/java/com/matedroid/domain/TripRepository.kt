@@ -1,5 +1,7 @@
 package com.matedroid.domain
 
+import androidx.room.withTransaction
+import com.matedroid.data.local.StatsDatabase
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
@@ -36,6 +38,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class TripRepository @Inject constructor(
+    private val database: StatsDatabase,
     private val driveSummaryDao: DriveSummaryDao,
     private val chargeSummaryDao: ChargeSummaryDao,
     private val aggregateDao: AggregateDao,
@@ -144,16 +147,19 @@ class TripRepository @Inject constructor(
         }
 
         val now = System.currentTimeMillis()
-        if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
-            val priorFingerprint = computeFingerprint(existing.driveIds())
-            savedTripDao.insertConsumedFingerprints(
-                listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
-            )
-            savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, now)
-        } else {
-            savedTripDao.updateSource(tripId, existing.trip.source, now)
+        // Atomic: a crash between these writes must not leave a half-edited trip.
+        database.withTransaction {
+            if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
+                val priorFingerprint = computeFingerprint(existing.driveIds())
+                savedTripDao.insertConsumedFingerprints(
+                    listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
+                )
+                savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, now)
+            } else {
+                savedTripDao.updateSource(tripId, existing.trip.source, now)
+            }
+            savedTripDao.replaceLegs(tripId, legsToWrite)
         }
-        savedTripDao.replaceLegs(tripId, legsToWrite)
     }
 
     /**
@@ -210,26 +216,31 @@ class TripRepository @Inject constructor(
         // Inherit the kept trip's custom name; fall back to the consumed trip's name if only the
         // consumed one had been renamed. Either way, user-chosen names don't disappear at merge.
         val inheritedName = kept.trip.name ?: consumed.trip.name
-        val newId = savedTripDao.insertTripWithLegs(
-            trip = SavedTrip(
-                carId = carId,
-                name = inheritedName,
-                source = SavedTrip.SOURCE_USER_MERGED,
-                createdAt = now,
-                updatedAt = now
-            ),
-            legs = { tripId ->
-                allRefs.mapIndexed { index, ref ->
-                    SavedTripLeg(tripId = tripId, position = index, legType = ref.type, legId = ref.id)
+        // Atomic: a crash mid-merge would otherwise leave the merged trip coexisting with the
+        // originals — duplicates that share legs but not a fingerprint, which the duplicate
+        // healer in cleanupDuplicateSavedTrips can't detect.
+        return database.withTransaction {
+            val newId = savedTripDao.insertTripWithLegs(
+                trip = SavedTrip(
+                    carId = carId,
+                    name = inheritedName,
+                    source = SavedTrip.SOURCE_USER_MERGED,
+                    createdAt = now,
+                    updatedAt = now
+                ),
+                legs = { tripId ->
+                    allRefs.mapIndexed { index, ref ->
+                        SavedTripLeg(tripId = tripId, position = index, legType = ref.type, legId = ref.id)
+                    }
                 }
-            }
-        )
-        savedTripDao.insertConsumedFingerprints(
-            inheritedFingerprints.map { SavedTripConsumedFingerprint(savedTripId = newId, fingerprint = it) }
-        )
-        savedTripDao.deleteTrip(keptTripId)
-        savedTripDao.deleteTrip(consumedTripId)
-        return newId
+            )
+            savedTripDao.insertConsumedFingerprints(
+                inheritedFingerprints.map { SavedTripConsumedFingerprint(savedTripId = newId, fingerprint = it) }
+            )
+            savedTripDao.deleteTrip(keptTripId)
+            savedTripDao.deleteTrip(consumedTripId)
+            newId
+        }
     }
 
     /** Trips for [carId] whose date range is within [windowDays] of [tripId]'s range, excluding [tripId] itself. */
@@ -537,16 +548,19 @@ class TripRepository @Inject constructor(
             return
         }
 
-        if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
-            val priorFingerprint = computeFingerprint(existing.driveIds())
-            savedTripDao.insertConsumedFingerprints(
-                listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
-            )
-            savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, System.currentTimeMillis())
-        } else {
-            savedTripDao.updateSource(tripId, existing.trip.source, System.currentTimeMillis())
+        // Atomic: a crash between these writes must not leave a half-edited trip.
+        database.withTransaction {
+            if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
+                val priorFingerprint = computeFingerprint(existing.driveIds())
+                savedTripDao.insertConsumedFingerprints(
+                    listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
+                )
+                savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, System.currentTimeMillis())
+            } else {
+                savedTripDao.updateSource(tripId, existing.trip.source, System.currentTimeMillis())
+            }
+            savedTripDao.replaceLegs(tripId, remaining)
         }
-        savedTripDao.replaceLegs(tripId, remaining)
     }
 }
 

@@ -87,9 +87,10 @@ class TeslamateRepository @Inject constructor(
 
     /**
      * Check whether the current charge endpoint is available for the given car.
-     * Makes a dedicated HTTP call and checks only the status code: 200 means the endpoint exists,
-     * anything else (e.g. 404 on old TM versions) means it doesn't.
-     * Result is cached for the app session since the API version doesn't change at runtime.
+     * Makes a dedicated HTTP call and checks only the status code: 200 means the endpoint
+     * exists, 404 means an old TM version without it. Only those two definitive answers are
+     * cached for the app session — a transient failure (timeout, DNS, 5xx) must not disable
+     * the live-charge UI until process death, so it leaves the cache unset and is retried.
      */
     suspend fun isCurrentChargeAvailable(carId: Int): Boolean {
         currentChargeApiAvailable[carId]?.let { return it }
@@ -98,9 +99,17 @@ class TeslamateRepository @Inject constructor(
             if (response.code() == 200) ApiResult.Success(true)
             else ApiResult.Error("Not available", response.code())
         }
-        val available = result is ApiResult.Success
-        currentChargeApiAvailable[carId] = available
-        return available
+        return when {
+            result is ApiResult.Success -> {
+                currentChargeApiAvailable[carId] = true
+                true
+            }
+            result is ApiResult.Error && result.code == 404 -> {
+                currentChargeApiAvailable[carId] = false
+                false
+            }
+            else -> false // transient — don't cache, probe again next time
+        }
     }
 
     private suspend fun getSettings(): AppSettings = settingsDataStore.settings.first()

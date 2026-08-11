@@ -15,6 +15,7 @@ import androidx.work.WorkerParameters
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.api.models.CarData
+import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.SentryEvent
 import com.matedroid.data.repository.SentryStateRepository
@@ -154,13 +155,48 @@ class ChargingNotificationWorker @AssistedInject constructor(
 
             Log.d(TAG, "Checking status for ${cars.size} cars")
 
-            // Check each car
+            // Check each car, collecting which ones need the shared monitor service.
+            // The start/stop decision must aggregate across ALL cars: stopping inside the
+            // per-car loop made any idle car kill the service (and every charging
+            // notification with it) 30 s after another car's iteration started it.
+            val needMonitor = mutableListOf<Pair<CarData, CarStatus>>()
+            var anyCheckFailed = false
             for (car in cars) {
-                try {
+                val outcome = try {
                     checkCarStatus(car)
                 } catch (e: Exception) {
                     Log.e(TAG, "Error checking car ${car.carId}", e)
+                    CheckOutcome.Failed
                 }
+                when (outcome) {
+                    is CheckOutcome.NeedsMonitor -> needMonitor.add(car to outcome.status)
+                    CheckOutcome.Failed -> anyCheckFailed = true
+                    CheckOutcome.Idle -> { /* nothing to do */ }
+                }
+            }
+
+            if (needMonitor.isNotEmpty()) {
+                try {
+                    ChargingMonitorService.start(appContext)
+                } catch (e: Exception) {
+                    // On Android 12+, can't start foreground service from background.
+                    // Fall back to showing notifications directly (won't update in real-time).
+                    Log.w(TAG, "Cannot start foreground service, showing notifications directly: ${e.message}")
+                    for ((car, status) in needMonitor) {
+                        if (status.isCharging) {
+                            val liveChargeAvailable = teslamateRepository.isCurrentChargeAvailable(car.carId)
+                            chargingNotificationManager.showChargingNotification(
+                                car, status, liveChargeAvailable,
+                                chronometerBaseMs = status.stateSinceEpochMs
+                            )
+                        }
+                    }
+                }
+            } else if (!anyCheckFailed) {
+                // Only stop when we positively know no car is charging — a failed check
+                // (transient network error) shouldn't tear down an active monitor.
+                Log.d(TAG, "No car needs monitoring, stopping monitor service")
+                ChargingMonitorService.stop(appContext)
             }
 
             Log.d(TAG, "Check complete")
@@ -174,7 +210,22 @@ class ChargingNotificationWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun checkCarStatus(car: CarData) {
+    /** Result of a per-car check; the caller aggregates these into one service start/stop decision. */
+    private sealed interface CheckOutcome {
+        /** Car is charging (or DC-finished-but-plugged) — the monitor service must run. */
+        data class NeedsMonitor(val status: CarStatus) : CheckOutcome
+        /** Car positively does not need monitoring. */
+        data object Idle : CheckOutcome
+        /** Status unknown (fetch failed) — must not count as idle. */
+        data object Failed : CheckOutcome
+    }
+
+    /**
+     * Per-car check: persists the DC-session flag, handles sentry events, and cancels the
+     * charging notification for idle cars. Starting or stopping the shared monitor service
+     * is the caller's job — it must aggregate across all cars.
+     */
+    private suspend fun checkCarStatus(car: CarData): CheckOutcome {
         // The car object is already in hand from doWork()'s getCars() — no refetch.
         val carId = car.carId
 
@@ -183,7 +234,7 @@ class ChargingNotificationWorker @AssistedInject constructor(
             is ApiResult.Success -> statusResult.data
             is ApiResult.Error -> {
                 Log.e(TAG, "Failed to fetch status for car $carId: ${statusResult.message}")
-                return
+                return CheckOutcome.Failed
             }
         }
 
@@ -201,32 +252,17 @@ class ChargingNotificationWorker @AssistedInject constructor(
             chargeSessionStateDataStore.wasLastSessionDc(carId)
 
         // --- Charging ---
-        if (status.isCharging) {
+        val chargingOutcome = if (status.isCharging) {
             Log.d(TAG, "Car $carId is charging at ${status.batteryLevel}%")
-            try {
-                ChargingMonitorService.start(appContext)
-            } catch (e: Exception) {
-                // On Android 12+, can't start foreground service from background
-                // Fall back to showing notification directly (won't update in real-time)
-                Log.w(TAG, "Cannot start foreground service, showing notification directly: ${e.message}")
-                val liveChargeAvailable = teslamateRepository.isCurrentChargeAvailable(carId)
-                chargingNotificationManager.showChargingNotification(
-                    car, status, liveChargeAvailable,
-                    chronometerBaseMs = status.stateSinceEpochMs
-                )
-            }
+            CheckOutcome.NeedsMonitor(status)
         } else if (dcFinishedPluggedIn) {
             // DC charge finished but cable still plugged — keep service alive
             Log.d(TAG, "Car $carId DC charge finished but still plugged in")
-            try {
-                ChargingMonitorService.start(appContext)
-            } catch (e: Exception) {
-                Log.w(TAG, "Cannot start foreground service for DC-finished state: ${e.message}")
-            }
+            CheckOutcome.NeedsMonitor(status)
         } else {
-            Log.d(TAG, "Car $carId is not charging, stopping monitor service")
-            ChargingMonitorService.stop(appContext)
+            Log.d(TAG, "Car $carId is not charging")
             chargingNotificationManager.cancelNotification(carId)
+            CheckOutcome.Idle
         }
 
         // --- Sentry ---
@@ -250,6 +286,8 @@ class ChargingNotificationWorker @AssistedInject constructor(
             }
             null -> { /* no event */ }
         }
+
+        return chargingOutcome
     }
 
     /**
