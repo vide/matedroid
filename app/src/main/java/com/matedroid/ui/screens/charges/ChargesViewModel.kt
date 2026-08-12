@@ -16,12 +16,14 @@ import android.content.Context
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.Locale
 import java.time.temporal.ChronoUnit
@@ -238,7 +240,7 @@ class ChargesViewModel @Inject constructor(
     fun setCostFilter(filter: CostFilter) {
         _uiState.update { it.copy(costFilter = filter) }
         savedStateHandle[KEY_COST_FILTER] = filter.name
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun setChargeTypeFilter(filter: ChargeTypeFilter) {
@@ -251,7 +253,7 @@ class ChargesViewModel @Inject constructor(
         }
         _uiState.update { it.copy(chargeTypeFilter = newFilter) }
         savedStateHandle[KEY_CHARGE_TYPE_FILTER] = newFilter.name
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun setLocationFilter(location: String) {
@@ -259,13 +261,13 @@ class ChargesViewModel @Inject constructor(
         val updated = if (location in current) current - location else current + location
         _uiState.update { it.copy(selectedLocations = updated) }
         savedStateHandle[KEY_LOCATIONS] = ArrayList(updated)
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun clearLocationFilter() {
         _uiState.update { it.copy(selectedLocations = emptySet()) }
         savedStateHandle[KEY_LOCATIONS] = ArrayList<String>()
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun clearError() {
@@ -346,15 +348,50 @@ class ChargesViewModel @Inject constructor(
         }
     }
 
-    private fun applyFiltersAndUpdateState() {
+    /** Pure output of the filter pipeline, computed off the main thread. */
+    private data class FilteredChargesResult(
+        val displayCharges: List<ChargeData>,
+        val locations: List<String>,
+        val summary: ChargesSummary,
+        val chartData: List<ChargeChartData>
+    )
+
+    private suspend fun applyFiltersAndUpdateState() {
+        // Snapshot inputs on the caller context, then push the multi-pass
+        // filtering/aggregation to Dispatchers.Default (same pattern as
+        // MileageViewModel) so filter taps don't chew the main thread.
         val state = _uiState.value
+        val charges = allCharges
+        val includeShort = showShortDrivesCharges
+        val result = withContext(Dispatchers.Default) {
+            computeFilteredCharges(state, charges, includeShort)
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isRefreshing = false,
+                isFilterLoading = false,
+                charges = result.displayCharges,
+                availableLocations = result.locations,
+                summary = result.summary,
+                chartData = result.chartData
+            )
+        }
+    }
+
+    private fun computeFilteredCharges(
+        state: ChargesUiState,
+        allCharges: List<ChargeData>,
+        showShortCharges: Boolean
+    ): FilteredChargesResult {
         val chargeTypeFilter = state.chargeTypeFilter
         val costFilter = state.costFilter
         val dcChargeIds = state.dcChargeIds
         val granularity = state.chartGranularity
 
         // First apply short charges filter (see ShortEntryFilter for the shared rule)
-        var filteredCharges = if (showShortDrivesCharges) {
+        var filteredCharges = if (showShortCharges) {
             allCharges
         } else {
             allCharges.filter { it.isSignificant() }
@@ -418,17 +455,12 @@ class ChargesViewModel @Inject constructor(
         val summary = calculateSummary(chargesForStatsFiltered)
         val chartData = calculateChartData(chargesForStatsFiltered, granularity, state.startDate, ::isDc)
 
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                isRefreshing = false,
-                isFilterLoading = false,
-                charges = displayChargesFiltered,
-                availableLocations = locations,
-                summary = summary,
-                chartData = chartData
-            )
-        }
+        return FilteredChargesResult(
+            displayCharges = displayChargesFiltered,
+            locations = locations,
+            summary = summary,
+            chartData = chartData
+        )
     }
 
     private fun determineGranularity(startDate: LocalDate?, endDate: LocalDate?): ChartGranularity {

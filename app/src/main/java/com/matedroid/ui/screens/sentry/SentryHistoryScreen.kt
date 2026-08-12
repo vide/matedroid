@@ -75,16 +75,21 @@ import java.time.format.FormatStyle
 
 /**
  * Find the LazyColumn item index that corresponds to a given timestamp.
- * Returns the index of the first alert at or after that timestamp, or -1 if none found.
+ * Returns the absolute index (directly usable with `animateScrollToItem`, no further
+ * correction needed) of the first alert in the heatmap bucket starting at that
+ * timestamp, or -1 if none found.
+ *
+ * This mirrors the LazyColumn layout in [SentryHistoryScreen]:
+ * item 0 = heatmap, item 1 = "Current Session" header,
+ * then current session alerts (or empty card),
+ * then spacer + "Past Alerts" header + day groups.
+ * Keep in sync with that layout when adding items.
  */
 private fun findAlertIndexForTimestamp(
     uiState: SentryHistoryUiState,
     targetMillis: Long
 ): Int {
-    // Layout: item 0 = section header "Current Session"
-    // Then current session alerts or empty card
-    // Then past alerts section header + day groups
-    var index = 1 // skip "Current Session" header
+    var index = 2 // skip the heatmap (0) and the "Current Session" header (1)
 
     // Current session alerts
     if (uiState.currentSessionAlerts.isEmpty()) {
@@ -186,8 +191,7 @@ fun SentryHistoryScreen(
                             val itemIndex = findAlertIndexForTimestamp(uiState, targetMillis)
                             if (itemIndex >= 0) {
                                 coroutineScope.launch {
-                                    // +1 to account for the heatmap item itself at position 0
-                                    listState.animateScrollToItem(itemIndex + 1)
+                                    listState.animateScrollToItem(itemIndex)
                                 }
                             }
                         }
