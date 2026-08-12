@@ -43,9 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -68,7 +66,12 @@ import kotlin.math.roundToInt
 enum class UpdatesDateFilter(val months: Int?) {
     LAST_6_MONTHS(6),
     LAST_YEAR(12),
-    ALL_TIME(null)
+    ALL_TIME(null);
+
+    companion object {
+        fun fromMonths(months: Int?): UpdatesDateFilter =
+            entries.firstOrNull { it.months == months } ?: ALL_TIME
+    }
 }
 
 @Composable
@@ -90,7 +93,9 @@ fun SoftwareVersionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    var selectedFilter by remember { mutableStateOf(UpdatesDateFilter.ALL_TIME) }
+    // Single source of truth: the ViewModel's filterMonths drives the chips, so
+    // the UI can't disagree with the applied filter (e.g. after process death).
+    val selectedFilter = UpdatesDateFilter.fromMonths(uiState.filterMonths)
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
@@ -103,11 +108,6 @@ fun SoftwareVersionsScreen(
             snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
-    }
-
-    fun applyDateFilter(filter: UpdatesDateFilter) {
-        selectedFilter = filter
-        viewModel.setFilter(filter.months)
     }
 
     Scaffold(
@@ -143,7 +143,7 @@ fun SoftwareVersionsScreen(
                     uiState = uiState,
                     selectedFilter = selectedFilter,
                     palette = palette,
-                    onFilterSelected = { applyDateFilter(it) }
+                    onFilterSelected = { viewModel.setFilter(it.months) }
                 )
             }
         }
