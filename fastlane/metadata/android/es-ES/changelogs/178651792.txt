@@ -1,0 +1,11 @@
+Más rápida, más ligera y más precisa: mejor rendimiento, menos consumo de batería y muchas correcciones para quienes usan millas.
+
+Cambios:
+- Desplazamiento, gráficos y pantallas más fluidos
+- Las comprobaciones se ralentizan con el coche aparcado
+- Sincronización incremental en vez de completa
+
+Corregido:
+- Eficiencia, velocidad y distancias erróneas en millas
+- Notificación de carga inestable con dos coches
+- Fallos de mapa, botón atrás y gráficos

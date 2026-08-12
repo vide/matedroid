@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-08-12
+
+A maintenance release: the app is noticeably faster and lighter on battery, syncs incrementally instead of re-downloading everything, and a long list of unit-system bugs that gave miles/imperial users wrong numbers is fixed.
+
 ### Changed
 - **Snappier throughout** — smoother list scrolling, lighter chart rendering, the Stats and Trips screens do their heavy work off the UI thread, and the dashboard stops polling for status while it's off screen (less background battery use). No change to how anything looks.
 - **Smoother charts and screens (second pass)** — dragging the crosshair on charge/drive charts no longer recomputes the whole screen per frame, chart drawing stops allocating per frame, the dashboard car image and its charging glow render off the UI thread (no more hiccup when swiping between cars), detail screens fetch their data truly in parallel, and the Stats auto-refresh pauses while the app is in the background.
@@ -767,7 +771,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/vide/matedroid/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0
 [1.10.0-beta2]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...v1.10.0-beta2
 [1.10.0-beta1]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0-beta1

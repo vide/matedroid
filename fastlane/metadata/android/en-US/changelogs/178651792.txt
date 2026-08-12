@@ -1,0 +1,11 @@
+Faster, lighter and more accurate: a broad performance pass, smarter background checks that save battery, and many fixes for miles users.
+
+Changed:
+- Smoother scrolling, charts and screens
+- Background checks slow down while the car is parked
+- Syncs are incremental instead of full re-downloads
+
+Fixed:
+- Wrong efficiency, speed and distances for miles users
+- Charging notification flickering with two cars
+- Map, back button and chart glitches

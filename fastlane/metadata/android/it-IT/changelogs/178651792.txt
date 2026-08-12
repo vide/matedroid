@@ -1,0 +1,11 @@
+Più veloce, più leggera e più precisa: prestazioni migliorate, meno consumo di batteria e tante correzioni per chi usa le miglia.
+
+Modifiche:
+- Scorrimento, grafici e schermate più fluidi
+- I controlli in background rallentano ad auto parcheggiata
+- Sincronizzazione incrementale invece che completa
+
+Correzioni:
+- Efficienza, velocità e distanze errate in miglia
+- Notifica di ricarica instabile con due auto
+- Problemi di mappa, tasto indietro e grafici
