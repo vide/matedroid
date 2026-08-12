@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Settings are now split into sections** — instead of one long scrolling page, Settings opens a list of categories (Connection, Display, Notifications, Data & sync, About) that each open their own page. The new Notifications page links straight to Android's per-channel settings for charging, sentry and tire-pressure alerts, and the first-run setup now shows only the connection form. Connection settings still have an explicit Save; everything else applies as soon as you change it.
+
 ## [1.10.1] - 2026-08-12
 
 A maintenance release: the app is noticeably faster and lighter on battery, syncs incrementally instead of re-downloading everything, and a long list of unit-system bugs that gave miles/imperial users wrong numbers is fixed.

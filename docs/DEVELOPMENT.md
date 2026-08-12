@@ -55,6 +55,30 @@ If the screen has a car palette in scope pass `palette.accent`; otherwise leave 
 
 Never instantiate an osmdroid `MapView` inside a raw `AndroidView` — use `RouteMapView` (in `ui/components/RouteMapView.kt`). It owns the shared boilerplate: MAPNIK tile source, gesture handling (`MapGestureMode.TWO_FINGER_PAN` for maps embedded in scrollable pages, `INERT` for tap-through mini-maps, `FULL` for fullscreen), the optional dim/desaturate tile filter (`dimTiles`), an optional 120 ms deferred mount (`deferMount`) so the first frame paints before osmdroid's synchronous constructor runs, and the mandatory `onDetach()` on release. Screen-specific content goes through `onMapReady` (one-time setup: markers, polylines, zoom/center) and `update` (change-driven passes — guard expensive overlay rebuilds against unchanged inputs, see `TripDetailScreen`/`RegionsVisitedScreen`). The same file exports `mapDimFilter(isDark)` and `boundingBoxOf(points)` for padded route viewports.
 
+### Settings screen architecture
+
+Settings is a **category list → detail page** structure (the pattern Android and iOS system settings use), not a single scrolling form.
+
+- `ui/screens/settings/SettingsScreen.kt` is the **hub**: one tappable card per section, each showing a live summary of its current value. Backed by `SettingsHubViewModel`, which reads the DataStore only — it deliberately does not depend on the repository or sync manager.
+- `ui/screens/settings/SettingsSection.kt` is the **registry**: an enum of sections carrying the navigation id, title/summary string resources, icon, and a `debugOnly` flag. Order of the enum constants is the display order.
+- `ui/screens/settings/sections/` holds one composable per detail page. They share `SettingsViewModel`, each instantiating its own copy via `hiltViewModel()`.
+- `ui/screens/settings/SettingsComponents.kt` holds the shared building blocks: `SettingsSectionScaffold` (top bar + back arrow + snackbar + scrolling column), `SettingsCategoryCard`, `SettingsSwitchRow`, `SettingsLinkRow`, `SettingsGroupHeader`, `SettingsSpacer`.
+
+**Save semantics**: only the Connection page has an explicit Save, because its URL and credentials need validating together. Every other preference writes through to the DataStore the moment it changes — do not add a save button to a new section.
+
+**Navigation**: sections are real destinations (`Screen.SettingsSection(sectionId, onboarding)`), not local state, so the back stack, rotation and deep links work for free. `sectionId` is the stable `SettingsSection.id` string — renaming one breaks existing deep links.
+
+**First run**: when no server is configured, `StartDestinationViewModel` starts directly on the Connection page with `onboarding = true`. That hides the back arrow, skips the hub entirely (the other sections are meaningless without a server), and makes Save continue to the dashboard instead of staying put.
+
+**Notifications** deep-link into the Android per-channel settings rather than duplicating toggles in-app, so sound/importance/DND stay owned by the OS. A channel only exists once its first notification has fired, so the intent falls back to the app-level notification page.
+
+#### Adding a new settings section
+
+1. Add a constant to the `SettingsSection` enum with its id, title/summary string resources and icon.
+2. Add the string resources to all six locale files (see [Adding a New String](#adding-a-new-string)).
+3. Create the composable in `ui/screens/settings/sections/`, wrapping the content in `SettingsSectionScaffold`.
+4. Add the branch to the `when` in `NavGraph.kt`'s `composable<Screen.SettingsSection>`.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:

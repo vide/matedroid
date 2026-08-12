@@ -199,6 +199,48 @@
     <string name="collapse">Einklappen</string>
     <string name="expand">Ausklappen</string>
 
+    <!-- Settings hub: category names shown in the settings list, one per detail page -->
+    <string name="settings_section_connection">Verbindung</string>
+    <string name="settings_section_connection_summary">Server-URL und Zugangsdaten</string>
+    <string name="settings_section_display">Anzeige</string>
+    <string name="settings_section_display_summary">Währung und Listeninhalte</string>
+    <string name="settings_section_notifications">Benachrichtigungen</string>
+    <string name="settings_section_notifications_summary">Lade-, Sentry- und Reifenwarnungen</string>
+    <string name="settings_section_data">Daten &amp; Synchronisierung</string>
+    <string name="settings_section_data_summary">Wartung der gespeicherten Daten</string>
+    <string name="settings_section_about">Über</string>
+    <string name="settings_section_about_summary">Version und Support</string>
+    <string name="settings_section_debug">Debug-Werkzeuge</string>
+    <string name="settings_section_debug_summary">Entwickleroptionen</string>
+
+    <!-- Summary shown in the settings hub when no server has been set up yet -->
+    <string name="settings_not_configured">Nicht eingerichtet</string>
+
+    <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_costs">Kosten</string>
+    <string name="settings_group_lists">Listen</string>
+    <string name="settings_group_channels">Benachrichtigungskanäle</string>
+    <string name="settings_group_maintenance">Wartung</string>
+    <string name="settings_group_support">Support</string>
+    <string name="settings_group_appearance_debug">Darstellung</string>
+    <string name="settings_group_tpms_debug">Reifendruck</string>
+    <string name="settings_group_sentry_debug">Sentry</string>
+
+    <!-- Notifications settings page -->
+    <string name="settings_notifications_description">MateDroid-Benachrichtigungen werden von Android verwaltet. Tippe auf eine Kategorie, um Ton und Wichtigkeit zu ändern oder sie abzuschalten.</string>
+    <string name="settings_notifications_all_title">Alle MateDroid-Benachrichtigungen</string>
+    <string name="settings_notifications_all_hint">Systemeinstellungen für App-Benachrichtigungen öffnen</string>
+
+    <!-- Save button on the connection page when not in first-run setup -->
+    <string name="settings_save_short">Speichern</string>
+    <!-- Snackbar confirmation after saving connection settings -->
+    <string name="settings_saved">Einstellungen gespeichert</string>
+
+    <!-- About page -->
+    <string name="settings_report_issue_hint">Fehler melden oder Funktion auf GitHub vorschlagen</string>
+    <string name="settings_source_code">Quellcode</string>
+    <string name="settings_source_code_hint">Projekt auf GitHub ansehen</string>
+
     <!-- Server connection section -->
     <string name="settings_connect_title">Mit TeslamateApi verbinden</string>
     <string name="settings_connect_description">Gib die URL deines TeslamateApi-Servers ein, um eine Verbindung herzustellen.</string>

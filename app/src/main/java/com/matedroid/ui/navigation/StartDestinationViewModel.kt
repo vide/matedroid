@@ -3,6 +3,7 @@ package com.matedroid.ui.navigation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.ui.screens.settings.SettingsSection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,12 @@ class StartDestinationViewModel @Inject constructor(
             _startDestination.value = if (settings.isConfigured) {
                 Screen.Dashboard
             } else {
-                Screen.Settings
+                // First run: drop straight into the connection form. The category list
+                // would only offer sections that are meaningless without a server.
+                Screen.SettingsSection(
+                    sectionId = SettingsSection.CONNECTION.id,
+                    onboarding = true
+                )
             }
         }
         viewModelScope.launch {

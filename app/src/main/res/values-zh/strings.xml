@@ -199,6 +199,48 @@
     <string name="collapse">收起</string>
     <string name="expand">展开</string>
 
+    <!-- Settings hub: category names shown in the settings list, one per detail page -->
+    <string name="settings_section_connection">连接</string>
+    <string name="settings_section_connection_summary">服务器地址和凭据</string>
+    <string name="settings_section_display">显示</string>
+    <string name="settings_section_display_summary">货币和列表内容</string>
+    <string name="settings_section_notifications">通知</string>
+    <string name="settings_section_notifications_summary">充电、哨兵和胎压提醒</string>
+    <string name="settings_section_data">数据与同步</string>
+    <string name="settings_section_data_summary">缓存数据维护</string>
+    <string name="settings_section_about">关于</string>
+    <string name="settings_section_about_summary">版本与支持</string>
+    <string name="settings_section_debug">调试工具</string>
+    <string name="settings_section_debug_summary">开发者选项</string>
+
+    <!-- Summary shown in the settings hub when no server has been set up yet -->
+    <string name="settings_not_configured">尚未配置</string>
+
+    <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_costs">费用</string>
+    <string name="settings_group_lists">列表</string>
+    <string name="settings_group_channels">通知渠道</string>
+    <string name="settings_group_maintenance">维护</string>
+    <string name="settings_group_support">支持</string>
+    <string name="settings_group_appearance_debug">外观</string>
+    <string name="settings_group_tpms_debug">胎压</string>
+    <string name="settings_group_sentry_debug">哨兵</string>
+
+    <!-- Notifications settings page -->
+    <string name="settings_notifications_description">MateDroid 的通知由 Android 管理。点按某个类别即可更改提示音、重要程度或将其关闭。</string>
+    <string name="settings_notifications_all_title">所有 MateDroid 通知</string>
+    <string name="settings_notifications_all_hint">打开系统的应用通知设置</string>
+
+    <!-- Save button on the connection page when not in first-run setup -->
+    <string name="settings_save_short">保存</string>
+    <!-- Snackbar confirmation after saving connection settings -->
+    <string name="settings_saved">设置已保存</string>
+
+    <!-- About page -->
+    <string name="settings_report_issue_hint">在 GitHub 上报告问题或提出功能建议</string>
+    <string name="settings_source_code">源代码</string>
+    <string name="settings_source_code_hint">在 GitHub 上浏览项目</string>
+
     <!-- Server connection section -->
     <string name="settings_connect_title">连接 TeslamateApi</string>
     <string name="settings_connect_description">输入你的 TeslamateApi 服务器 URL 以连接。</string>

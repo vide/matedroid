@@ -199,6 +199,48 @@
     <string name="collapse">Contraure</string>
     <string name="expand">Expandir</string>
 
+    <!-- Settings hub: category names shown in the settings list, one per detail page -->
+    <string name="settings_section_connection">Connexió</string>
+    <string name="settings_section_connection_summary">URL del servidor i credencials</string>
+    <string name="settings_section_display">Pantalla</string>
+    <string name="settings_section_display_summary">Moneda i contingut de les llistes</string>
+    <string name="settings_section_notifications">Notificacions</string>
+    <string name="settings_section_notifications_summary">Alertes de càrrega, Sentinella i pneumàtics</string>
+    <string name="settings_section_data">Dades i sincronització</string>
+    <string name="settings_section_data_summary">Manteniment de les dades desades</string>
+    <string name="settings_section_about">Quant a</string>
+    <string name="settings_section_about_summary">Versió i suport</string>
+    <string name="settings_section_debug">Eines de depuració</string>
+    <string name="settings_section_debug_summary">Opcions per a desenvolupadors</string>
+
+    <!-- Summary shown in the settings hub when no server has been set up yet -->
+    <string name="settings_not_configured">Sense configurar</string>
+
+    <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_costs">Costos</string>
+    <string name="settings_group_lists">Llistes</string>
+    <string name="settings_group_channels">Canals de notificació</string>
+    <string name="settings_group_maintenance">Manteniment</string>
+    <string name="settings_group_support">Suport</string>
+    <string name="settings_group_appearance_debug">Aparença</string>
+    <string name="settings_group_tpms_debug">Pressió dels pneumàtics</string>
+    <string name="settings_group_sentry_debug">Sentinella</string>
+
+    <!-- Notifications settings page -->
+    <string name="settings_notifications_description">Android gestiona les notificacions de MateDroid. Toca una categoria per canviar-ne el so, la importància o desactivar-la.</string>
+    <string name="settings_notifications_all_title">Totes les notificacions de MateDroid</string>
+    <string name="settings_notifications_all_hint">Obre la configuració de notificacions del sistema per a l\'app</string>
+
+    <!-- Save button on the connection page when not in first-run setup -->
+    <string name="settings_save_short">Desa</string>
+    <!-- Snackbar confirmation after saving connection settings -->
+    <string name="settings_saved">Configuració desada</string>
+
+    <!-- About page -->
+    <string name="settings_report_issue_hint">Informa d\'un error o demana una funció a GitHub</string>
+    <string name="settings_source_code">Codi font</string>
+    <string name="settings_source_code_hint">Explora el projecte a GitHub</string>
+
     <!-- Server connection section -->
     <string name="settings_connect_title">Connecta a TeslamateApi</string>
     <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
