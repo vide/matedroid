@@ -24,6 +24,7 @@ import com.matedroid.domain.model.StreakRecord
 import com.matedroid.domain.model.YearFilter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -143,121 +144,118 @@ class StatsRepository @Inject constructor(
      * Get deep stats (from aggregate tables, requires sync).
      * Returns null if no aggregates exist yet.
      */
-    suspend fun getDeepStats(carId: Int, yearFilter: YearFilter): DeepStats? {
-        val driveAggregates = aggregateDao.countDriveAggregates(carId)
-        val chargeAggregates = aggregateDao.countChargeAggregates(carId)
+    suspend fun getDeepStats(carId: Int, yearFilter: YearFilter): DeepStats? = coroutineScope {
+        // Existence gate: everything below is pointless without aggregates.
+        val driveAggregatesDeferred = async { aggregateDao.countDriveAggregates(carId) }
+        val chargeAggregatesDeferred = async { aggregateDao.countChargeAggregates(carId) }
+        val driveAggregates = driveAggregatesDeferred.await()
+        val chargeAggregates = chargeAggregatesDeferred.await()
 
         // Return null if no aggregates exist at all
         if (driveAggregates == 0 && chargeAggregates == 0) {
-            return null
+            return@coroutineScope null
         }
 
         val (startDate, endDate) = yearFilter.toDateBounds()
         val allTime = yearFilter is YearFilter.AllTime
 
-        // Elevation records
-        val driveWithMaxElev = aggregateDao.driveWithMaxElevation(carId, startDate, endDate)
-        val driveWithMinElev = if (allTime) aggregateDao.driveWithMinElevation(carId) else null // Not shown in year view
-        val driveWithMostGain = aggregateDao.driveWithMostElevationGain(carId, startDate, endDate)
+        // All queries below are independent; Room suspend queries run on Room's
+        // query executor, so launching them under async fans them out in parallel
+        // instead of paying ~23 sequential round trips.
 
-        // Temperature records (driving)
-        val hottestDriveAgg = aggregateDao.hottestDrive(carId, startDate, endDate)
-        val coldestDriveAgg = aggregateDao.coldestDrive(carId, startDate, endDate)
+        // Elevation
+        val maxElevation = async { aggregateDao.maxElevation(carId, startDate, endDate) }
+        val minElevation = async { if (allTime) aggregateDao.minElevation(carId) else null } // Not shown in year view
+        val driveWithMaxElev = async { aggregateDao.driveWithMaxElevation(carId, startDate, endDate) }
+        val driveWithMinElev = async { if (allTime) aggregateDao.driveWithMinElevation(carId) else null } // Not shown in year view
+        val driveWithMostGain = async { aggregateDao.driveWithMostElevationGain(carId, startDate, endDate) }
 
-        // Temperature records (charging)
-        val hottestChargeAgg = aggregateDao.hottestCharge(carId, startDate, endDate)
-        val coldestChargeAgg = aggregateDao.coldestCharge(carId, startDate, endDate)
+        // Temperature (driving)
+        val maxOutsideTempDriving = async { aggregateDao.maxOutsideTempDriving(carId, startDate, endDate) }
+        val minOutsideTempDriving = async { aggregateDao.minOutsideTempDriving(carId, startDate, endDate) }
+        val maxInsideTemp = async { aggregateDao.maxInsideTemp(carId, startDate, endDate) }
+        val minInsideTemp = async { aggregateDao.minInsideTemp(carId, startDate, endDate) }
+        val hottestDrive = async { aggregateDao.hottestDrive(carId, startDate, endDate) }
+        val coldestDrive = async { aggregateDao.coldestDrive(carId, startDate, endDate) }
 
-        // Power record
-        val chargeWithMaxPowerAgg = aggregateDao.chargeWithMaxPower(carId, startDate, endDate)
+        // Temperature (charging)
+        val maxOutsideTempCharging = async { aggregateDao.maxOutsideTempCharging(carId, startDate, endDate) }
+        val minOutsideTempCharging = async { aggregateDao.minOutsideTempCharging(carId, startDate, endDate) }
+        val hottestCharge = async { aggregateDao.hottestCharge(carId, startDate, endDate) }
+        val coldestCharge = async { aggregateDao.coldestCharge(carId, startDate, endDate) }
 
-        return DeepStats(
-            maxElevationM = aggregateDao.maxElevation(carId, startDate, endDate),
-            minElevationM = if (allTime) aggregateDao.minElevation(carId) else null, // Not shown in year view
-            driveWithMaxElevation = driveWithMaxElev?.let { agg ->
-                val drive = driveSummaryDao.get(agg.driveId)
+        // Charging power
+        val maxChargerPower = async { aggregateDao.maxChargerPower(carId, startDate, endDate) }
+        val chargeWithMaxPower = async { aggregateDao.chargeWithMaxPower(carId, startDate, endDate) }
+
+        // AC/DC split
+        val acChargeCount = async { aggregateDao.countAcCharges(carId, startDate, endDate) }
+        val dcChargeCount = async { aggregateDao.countDcCharges(carId, startDate, endDate) }
+        val acChargeEnergy = async { aggregateDao.sumAcChargeEnergy(carId, startDate, endDate) }
+        val dcChargeEnergy = async { aggregateDao.sumDcChargeEnergy(carId, startDate, endDate) }
+
+        // Countries
+        val uniqueCountries = async { aggregateDao.countUniqueCountries(carId, startDate, endDate) }
+
+        DeepStats(
+            maxElevationM = maxElevation.await(),
+            minElevationM = minElevation.await(),
+            driveWithMaxElevation = driveWithMaxElev.await()?.let {
                 DriveElevationRecord(
-                    driveId = agg.driveId,
-                    elevationM = agg.maxElevation ?: 0,
-                    elevationGainM = agg.elevationGain,
-                    date = drive?.startDate
+                    driveId = it.driveId,
+                    elevationM = it.elevation ?: 0,
+                    elevationGainM = it.elevationGain,
+                    date = it.startDate
                 )
             },
-            driveWithMinElevation = driveWithMinElev?.let { agg ->
-                val drive = driveSummaryDao.get(agg.driveId)
+            driveWithMinElevation = driveWithMinElev.await()?.let {
                 DriveElevationRecord(
-                    driveId = agg.driveId,
-                    elevationM = agg.minElevation ?: 0,
-                    elevationGainM = agg.elevationGain,
-                    date = drive?.startDate
+                    driveId = it.driveId,
+                    elevationM = it.elevation ?: 0,
+                    elevationGainM = it.elevationGain,
+                    date = it.startDate
                 )
             },
-            driveWithMostClimbing = driveWithMostGain?.let { agg ->
-                val drive = driveSummaryDao.get(agg.driveId)
+            driveWithMostClimbing = driveWithMostGain.await()?.let {
                 DriveElevationRecord(
-                    driveId = agg.driveId,
-                    elevationM = agg.maxElevation ?: 0,
-                    elevationGainM = agg.elevationGain,
-                    date = drive?.startDate
+                    driveId = it.driveId,
+                    elevationM = it.elevation ?: 0,
+                    elevationGainM = it.elevationGain,
+                    date = it.startDate
                 )
             },
 
-            maxOutsideTempDrivingC = aggregateDao.maxOutsideTempDriving(carId, startDate, endDate),
-            minOutsideTempDrivingC = aggregateDao.minOutsideTempDriving(carId, startDate, endDate),
-            maxCabinTempC = aggregateDao.maxInsideTemp(carId, startDate, endDate),
-            minCabinTempC = aggregateDao.minInsideTemp(carId, startDate, endDate),
-            hottestDrive = hottestDriveAgg?.let { agg ->
-                val drive = driveSummaryDao.get(agg.driveId)
-                DriveTempRecord(
-                    driveId = agg.driveId,
-                    tempC = agg.maxOutsideTemp ?: 0.0,
-                    date = drive?.startDate
-                )
+            maxOutsideTempDrivingC = maxOutsideTempDriving.await(),
+            minOutsideTempDrivingC = minOutsideTempDriving.await(),
+            maxCabinTempC = maxInsideTemp.await(),
+            minCabinTempC = minInsideTemp.await(),
+            hottestDrive = hottestDrive.await()?.let {
+                DriveTempRecord(driveId = it.driveId, tempC = it.outsideTemp ?: 0.0, date = it.startDate)
             },
-            coldestDrive = coldestDriveAgg?.let { agg ->
-                val drive = driveSummaryDao.get(agg.driveId)
-                DriveTempRecord(
-                    driveId = agg.driveId,
-                    tempC = agg.minOutsideTemp ?: 0.0,
-                    date = drive?.startDate
-                )
+            coldestDrive = coldestDrive.await()?.let {
+                DriveTempRecord(driveId = it.driveId, tempC = it.outsideTemp ?: 0.0, date = it.startDate)
             },
 
-            maxOutsideTempChargingC = aggregateDao.maxOutsideTempCharging(carId, startDate, endDate),
-            minOutsideTempChargingC = aggregateDao.minOutsideTempCharging(carId, startDate, endDate),
-            hottestCharge = hottestChargeAgg?.let { agg ->
-                val charge = chargeSummaryDao.get(agg.chargeId)
-                ChargeTempRecord(
-                    chargeId = agg.chargeId,
-                    tempC = agg.maxOutsideTemp ?: 0.0,
-                    date = charge?.startDate
-                )
+            maxOutsideTempChargingC = maxOutsideTempCharging.await(),
+            minOutsideTempChargingC = minOutsideTempCharging.await(),
+            hottestCharge = hottestCharge.await()?.let {
+                ChargeTempRecord(chargeId = it.chargeId, tempC = it.outsideTemp ?: 0.0, date = it.startDate)
             },
-            coldestCharge = coldestChargeAgg?.let { agg ->
-                val charge = chargeSummaryDao.get(agg.chargeId)
-                ChargeTempRecord(
-                    chargeId = agg.chargeId,
-                    tempC = agg.minOutsideTemp ?: 0.0,
-                    date = charge?.startDate
-                )
+            coldestCharge = coldestCharge.await()?.let {
+                ChargeTempRecord(chargeId = it.chargeId, tempC = it.outsideTemp ?: 0.0, date = it.startDate)
             },
 
-            maxChargerPowerKw = aggregateDao.maxChargerPower(carId, startDate, endDate),
-            chargeWithMaxPower = chargeWithMaxPowerAgg?.let { agg ->
-                val charge = chargeSummaryDao.get(agg.chargeId)
-                ChargePowerRecord(
-                    chargeId = agg.chargeId,
-                    powerKw = agg.maxChargerPower ?: 0,
-                    date = charge?.startDate
-                )
+            maxChargerPowerKw = maxChargerPower.await(),
+            chargeWithMaxPower = chargeWithMaxPower.await()?.let {
+                ChargePowerRecord(chargeId = it.chargeId, powerKw = it.maxChargerPower ?: 0, date = it.startDate)
             },
 
-            acChargeCount = aggregateDao.countAcCharges(carId, startDate, endDate),
-            dcChargeCount = aggregateDao.countDcCharges(carId, startDate, endDate),
-            acChargeEnergyKwh = aggregateDao.sumAcChargeEnergy(carId, startDate, endDate),
-            dcChargeEnergyKwh = aggregateDao.sumDcChargeEnergy(carId, startDate, endDate),
+            acChargeCount = acChargeCount.await(),
+            dcChargeCount = dcChargeCount.await(),
+            acChargeEnergyKwh = acChargeEnergy.await(),
+            dcChargeEnergyKwh = dcChargeEnergy.await(),
 
-            countriesVisitedCount = aggregateDao.countUniqueCountries(carId, startDate, endDate).takeIf { it > 0 },
+            countriesVisitedCount = uniqueCountries.await().takeIf { it > 0 },
 
             driveDetailsProcessed = driveAggregates,
             chargeDetailsProcessed = chargeAggregates
