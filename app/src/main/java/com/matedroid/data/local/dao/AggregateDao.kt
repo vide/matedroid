@@ -53,13 +53,14 @@ interface AggregateDao {
 
     // Drive with highest altitude
     @Query("""
-        SELECT a.* FROM drive_detail_aggregates a
+        SELECT a.driveId, a.maxElevation AS elevation, a.elevationGain, d.startDate
+        FROM drive_detail_aggregates a
         JOIN drives_summary d ON a.driveId = d.driveId
         WHERE a.carId = :carId AND a.hasElevationData = 1
         AND d.startDate >= :startDate AND d.startDate < :endDate
         ORDER BY a.maxElevation DESC LIMIT 1
     """)
-    suspend fun driveWithMaxElevation(carId: Int, startDate: String, endDate: String): DriveDetailAggregate?
+    suspend fun driveWithMaxElevation(carId: Int, startDate: String, endDate: String): DriveElevationResult?
 
     // Lowest altitude ever reached
     @Query("""
@@ -68,24 +69,29 @@ interface AggregateDao {
     """)
     suspend fun minElevation(carId: Int): Int?
 
-    // Drive with lowest altitude
+    // Drive with lowest altitude (all-time only).
+    // LEFT JOIN: the record must survive even without a matching summary row
+    // (date is simply null then), matching the old follow-up-lookup behavior.
     @Query("""
-        SELECT a.* FROM drive_detail_aggregates a
+        SELECT a.driveId, a.minElevation AS elevation, a.elevationGain, d.startDate
+        FROM drive_detail_aggregates a
+        LEFT JOIN drives_summary d ON a.driveId = d.driveId
         WHERE a.carId = :carId AND a.hasElevationData = 1
         ORDER BY a.minElevation ASC LIMIT 1
     """)
-    suspend fun driveWithMinElevation(carId: Int): DriveDetailAggregate?
+    suspend fun driveWithMinElevation(carId: Int): DriveElevationResult?
 
     // Drive with most accumulated elevation gain (total meters climbed)
     @Query("""
-        SELECT a.* FROM drive_detail_aggregates a
+        SELECT a.driveId, a.maxElevation AS elevation, a.elevationGain, d.startDate
+        FROM drive_detail_aggregates a
         JOIN drives_summary d ON a.driveId = d.driveId
         WHERE a.carId = :carId
         AND a.elevationGain IS NOT NULL
         AND d.startDate >= :startDate AND d.startDate < :endDate
         ORDER BY a.elevationGain DESC LIMIT 1
     """)
-    suspend fun driveWithMostElevationGain(carId: Int, startDate: String, endDate: String): DriveDetailAggregate?
+    suspend fun driveWithMostElevationGain(carId: Int, startDate: String, endDate: String): DriveElevationResult?
 
     // === Deep Stats: Temperature (Driving) ===
 
@@ -100,13 +106,14 @@ interface AggregateDao {
 
     // Drive with hottest temperature
     @Query("""
-        SELECT a.* FROM drive_detail_aggregates a
+        SELECT a.driveId, a.maxOutsideTemp AS outsideTemp, d.startDate
+        FROM drive_detail_aggregates a
         JOIN drives_summary d ON a.driveId = d.driveId
         WHERE a.carId = :carId AND a.maxOutsideTemp IS NOT NULL
         AND d.startDate >= :startDate AND d.startDate < :endDate
         ORDER BY a.maxOutsideTemp DESC LIMIT 1
     """)
-    suspend fun hottestDrive(carId: Int, startDate: String, endDate: String): DriveDetailAggregate?
+    suspend fun hottestDrive(carId: Int, startDate: String, endDate: String): DriveTempResult?
 
     // Coldest outside temperature while driving
     @Query("""
@@ -119,13 +126,14 @@ interface AggregateDao {
 
     // Drive with coldest temperature
     @Query("""
-        SELECT a.* FROM drive_detail_aggregates a
+        SELECT a.driveId, a.minOutsideTemp AS outsideTemp, d.startDate
+        FROM drive_detail_aggregates a
         JOIN drives_summary d ON a.driveId = d.driveId
         WHERE a.carId = :carId AND a.minOutsideTemp IS NOT NULL
         AND d.startDate >= :startDate AND d.startDate < :endDate
         ORDER BY a.minOutsideTemp ASC LIMIT 1
     """)
-    suspend fun coldestDrive(carId: Int, startDate: String, endDate: String): DriveDetailAggregate?
+    suspend fun coldestDrive(carId: Int, startDate: String, endDate: String): DriveTempResult?
 
     // Hottest cabin temperature
     @Query("""
@@ -167,23 +175,25 @@ interface AggregateDao {
 
     // Charge with hottest temperature
     @Query("""
-        SELECT a.* FROM charge_detail_aggregates a
+        SELECT a.chargeId, a.maxOutsideTemp AS outsideTemp, c.startDate
+        FROM charge_detail_aggregates a
         JOIN charges_summary c ON a.chargeId = c.chargeId
         WHERE a.carId = :carId AND a.maxOutsideTemp IS NOT NULL
         AND c.startDate >= :startDate AND c.startDate < :endDate
         ORDER BY a.maxOutsideTemp DESC LIMIT 1
     """)
-    suspend fun hottestCharge(carId: Int, startDate: String, endDate: String): ChargeDetailAggregate?
+    suspend fun hottestCharge(carId: Int, startDate: String, endDate: String): ChargeTempResult?
 
     // Charge with coldest temperature
     @Query("""
-        SELECT a.* FROM charge_detail_aggregates a
+        SELECT a.chargeId, a.minOutsideTemp AS outsideTemp, c.startDate
+        FROM charge_detail_aggregates a
         JOIN charges_summary c ON a.chargeId = c.chargeId
         WHERE a.carId = :carId AND a.minOutsideTemp IS NOT NULL
         AND c.startDate >= :startDate AND c.startDate < :endDate
         ORDER BY a.minOutsideTemp ASC LIMIT 1
     """)
-    suspend fun coldestCharge(carId: Int, startDate: String, endDate: String): ChargeDetailAggregate?
+    suspend fun coldestCharge(carId: Int, startDate: String, endDate: String): ChargeTempResult?
 
     // === Deep Stats: Charging Power ===
 
@@ -198,13 +208,14 @@ interface AggregateDao {
 
     // Charge with max power
     @Query("""
-        SELECT a.* FROM charge_detail_aggregates a
+        SELECT a.chargeId, a.maxChargerPower, c.startDate
+        FROM charge_detail_aggregates a
         JOIN charges_summary c ON a.chargeId = c.chargeId
         WHERE a.carId = :carId AND a.maxChargerPower IS NOT NULL
         AND c.startDate >= :startDate AND c.startDate < :endDate
         ORDER BY a.maxChargerPower DESC LIMIT 1
     """)
-    suspend fun chargeWithMaxPower(carId: Int, startDate: String, endDate: String): ChargeDetailAggregate?
+    suspend fun chargeWithMaxPower(carId: Int, startDate: String, endDate: String): ChargePowerResult?
 
     // === Deep Stats: AC/DC Ratio ===
 
@@ -533,6 +544,47 @@ interface AggregateDao {
     """)
     suspend fun getDriveEdgeCoordinates(driveIds: List<Int>): List<DriveEdgeCoordinateResult>
 }
+
+/**
+ * Elevation record row: aggregate extremes plus the drive date fetched in the
+ * same query (no follow-up drives_summary lookup needed).
+ * [elevation] is maxElevation or minElevation depending on the query.
+ */
+data class DriveElevationResult(
+    val driveId: Int,
+    val elevation: Int?,
+    val elevationGain: Int?,
+    val startDate: String?
+)
+
+/**
+ * Temperature record row for a drive; [temp] is the max or min outside
+ * temperature depending on the query.
+ */
+data class DriveTempResult(
+    val driveId: Int,
+    val outsideTemp: Double?,
+    val startDate: String?
+)
+
+/**
+ * Temperature record row for a charge; [temp] is the max or min outside
+ * temperature depending on the query.
+ */
+data class ChargeTempResult(
+    val chargeId: Int,
+    val outsideTemp: Double?,
+    val startDate: String?
+)
+
+/**
+ * Peak-power record row for a charge.
+ */
+data class ChargePowerResult(
+    val chargeId: Int,
+    val maxChargerPower: Int?,
+    val startDate: String?
+)
 
 /**
  * Result of drive locations query for map display.
