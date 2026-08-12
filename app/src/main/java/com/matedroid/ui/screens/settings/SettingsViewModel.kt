@@ -314,6 +314,11 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(testResult = null)
     }
 
+    /** Surfaces a snackbar from the UI layer (e.g. the "saved" confirmation). */
+    fun showMessage(message: String) {
+        _uiState.value = _uiState.value.copy(successMessage = message)
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

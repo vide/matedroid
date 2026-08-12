@@ -32,6 +32,13 @@ import com.matedroid.ui.screens.drives.DriveDetailScreen
 import com.matedroid.ui.screens.drives.DrivesScreen
 import com.matedroid.ui.screens.mileage.MileageScreen
 import com.matedroid.ui.screens.settings.SettingsScreen
+import com.matedroid.ui.screens.settings.SettingsSection
+import com.matedroid.ui.screens.settings.sections.AboutSettingsScreen
+import com.matedroid.ui.screens.settings.sections.ConnectionSettingsScreen
+import com.matedroid.ui.screens.settings.sections.DataSyncSettingsScreen
+import com.matedroid.ui.screens.settings.sections.DebugSettingsScreen
+import com.matedroid.ui.screens.settings.sections.DisplaySettingsScreen
+import com.matedroid.ui.screens.settings.sections.NotificationSettingsScreen
 import com.matedroid.ui.screens.stats.CountriesVisitedScreen
 import com.matedroid.ui.screens.stats.RegionsVisitedScreen
 import com.matedroid.ui.screens.stats.StatsScreen
@@ -56,6 +63,16 @@ import kotlinx.serialization.Serializable
 sealed interface Screen {
     @Serializable
     data object Settings : Screen
+
+    /**
+     * One settings detail page. [sectionId] is a [com.matedroid.ui.screens.settings.SettingsSection]
+     * id, kept as a String so the route stays stable and deep-linkable.
+     *
+     * [onboarding] marks the first-run pass, where this is the start destination: the
+     * category list is skipped entirely and saving continues to the dashboard.
+     */
+    @Serializable
+    data class SettingsSection(val sectionId: String, val onboarding: Boolean = false) : Screen
 
     @Serializable
     data object Dashboard : Screen
@@ -199,15 +216,43 @@ fun NavGraph(
     ) {
         composable<Screen.Settings> {
             SettingsScreen(
-                onNavigateToDashboard = {
-                    navController.navigate(Screen.Dashboard) {
-                        popUpTo<Screen.Settings> { inclusive = true }
-                    }
+                onNavigateToSection = { section ->
+                    navController.navigate(Screen.SettingsSection(section.id))
                 },
-                onNavigateToPalettePreview = {
-                    navController.navigate(Screen.PalettePreview)
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable<Screen.SettingsSection> { backStackEntry ->
+            val route = backStackEntry.toRoute<Screen.SettingsSection>()
+            val onBack = { navController.popBackStack(); Unit }
+
+            when (SettingsSection.fromId(route.sectionId)) {
+                SettingsSection.CONNECTION -> ConnectionSettingsScreen(
+                    isOnboarding = route.onboarding,
+                    onNavigateBack = onBack,
+                    onNavigateToDashboard = {
+                        navController.navigate(Screen.Dashboard) {
+                            popUpTo<Screen.SettingsSection> { inclusive = true }
+                        }
+                    }
+                )
+
+                SettingsSection.DISPLAY -> DisplaySettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.NOTIFICATIONS -> NotificationSettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.DATA -> DataSyncSettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.ABOUT -> AboutSettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.DEBUG -> DebugSettingsScreen(
+                    onNavigateBack = onBack,
+                    onNavigateToPalettePreview = {
+                        navController.navigate(Screen.PalettePreview)
+                    }
+                )
+            }
         }
 
         composable<Screen.Dashboard> {

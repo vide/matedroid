@@ -195,9 +195,50 @@
     <!-- Shown while loading settings from storage -->
     <string name="loading_settings">Cargando ajustes…</string>
 
-    <!-- Content description for expand/collapse section arrows -->
-    <string name="collapse">Contraer</string>
-    <string name="expand">Expandir</string>
+    <!-- Settings hub: category names shown in the settings list, one per detail page -->
+    <string name="settings_section_connection">Conexión</string>
+    <string name="settings_section_connection_summary">URL del servidor y credenciales</string>
+    <string name="settings_section_display">Pantalla</string>
+    <string name="settings_section_display_summary">Moneda y contenido de las listas</string>
+    <string name="settings_section_notifications">Notificaciones</string>
+    <string name="settings_section_notifications_summary">Alertas de carga, Centinela y neumáticos</string>
+    <string name="settings_section_data">Datos y sincronización</string>
+    <string name="settings_section_data_summary">Mantenimiento de los datos guardados</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_section_about_summary">Versión y soporte</string>
+    <string name="settings_section_debug">Herramientas de depuración</string>
+    <string name="settings_section_debug_summary">Opciones para desarrolladores</string>
+
+    <!-- Summary shown in the settings hub when no server has been set up yet -->
+    <string name="settings_not_configured">Sin configurar</string>
+
+    <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_server">Servidor</string>
+    <string name="settings_group_authentication">Autenticación</string>
+    <string name="settings_group_security">Seguridad</string>
+    <string name="settings_group_costs">Costes</string>
+    <string name="settings_group_lists">Listas</string>
+    <string name="settings_group_channels">Canales de notificación</string>
+    <string name="settings_group_maintenance">Mantenimiento</string>
+    <string name="settings_group_support">Soporte</string>
+    <string name="settings_group_appearance_debug">Apariencia</string>
+    <string name="settings_group_tpms_debug">Presión de neumáticos</string>
+    <string name="settings_group_sentry_debug">Centinela</string>
+
+    <!-- Notifications settings page -->
+    <string name="settings_notifications_description">Android gestiona las notificaciones de MateDroid. Toca una categoría para cambiar su sonido, su importancia o desactivarla.</string>
+    <string name="settings_notifications_all_title">Todas las notificaciones de MateDroid</string>
+    <string name="settings_notifications_all_hint">Abrir los ajustes de notificaciones del sistema para la app</string>
+
+    <!-- Save button on the connection page when not in first-run setup -->
+    <string name="settings_save_short">Guardar</string>
+    <!-- Snackbar confirmation after saving connection settings -->
+    <string name="settings_saved">Ajustes guardados</string>
+
+    <!-- About page -->
+    <string name="settings_report_issue_hint">Informa de un error o solicita una función en GitHub</string>
+    <string name="settings_source_code">Código fuente</string>
+    <string name="settings_source_code_hint">Explora el proyecto en GitHub</string>
 
     <!-- Server connection section -->
     <string name="settings_connect_title">Conectar a TeslamateApi</string>
@@ -206,9 +247,6 @@
     <!-- Server URL field -->
     <string name="settings_server_url_label">URL del servidor</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
-
-    <!-- Advanced network settings section (collapsible) -->
-    <string name="settings_advanced_network">Ajustes de red avanzados</string>
 
     <!-- Secondary server URL field -->
     <string name="settings_secondary_url_label">URL del servidor secundario (opcional)</string>
