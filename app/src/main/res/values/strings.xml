@@ -198,10 +198,6 @@
     <!-- Shown while loading settings from storage -->
     <string name="loading_settings">Loading settings…</string>
 
-    <!-- Content description for expand/collapse section arrows -->
-    <string name="collapse">Collapse</string>
-    <string name="expand">Expand</string>
-
     <!-- Settings hub: category names shown in the settings list, one per detail page -->
     <string name="settings_section_connection">Connection</string>
     <string name="settings_section_connection_summary">Server URL and credentials</string>
@@ -220,6 +216,9 @@
     <string name="settings_not_configured">Not configured</string>
 
     <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_server">Server</string>
+    <string name="settings_group_authentication">Authentication</string>
+    <string name="settings_group_security">Security</string>
     <string name="settings_group_costs">Costs</string>
     <string name="settings_group_lists">Lists</string>
     <string name="settings_group_channels">Notification channels</string>
@@ -251,9 +250,6 @@
     <!-- Server URL field -->
     <string name="settings_server_url_label">Server URL</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
-
-    <!-- Advanced network settings section (collapsible) -->
-    <string name="settings_advanced_network">Advanced network settings</string>
 
     <!-- Secondary server URL field -->
     <string name="settings_secondary_url_label">Secondary Server URL (optional)</string>

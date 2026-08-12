@@ -195,10 +195,6 @@
     <!-- Shown while loading settings from storage -->
     <string name="loading_settings">正在加载设置…</string>
 
-    <!-- Content description for expand/collapse section arrows -->
-    <string name="collapse">收起</string>
-    <string name="expand">展开</string>
-
     <!-- Settings hub: category names shown in the settings list, one per detail page -->
     <string name="settings_section_connection">连接</string>
     <string name="settings_section_connection_summary">服务器地址和凭据</string>
@@ -217,6 +213,9 @@
     <string name="settings_not_configured">尚未配置</string>
 
     <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_server">服务器</string>
+    <string name="settings_group_authentication">身份验证</string>
+    <string name="settings_group_security">安全</string>
     <string name="settings_group_costs">费用</string>
     <string name="settings_group_lists">列表</string>
     <string name="settings_group_channels">通知渠道</string>
@@ -248,9 +247,6 @@
     <!-- Server URL field -->
     <string name="settings_server_url_label">服务器 URL</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
-
-    <!-- Advanced network settings section (collapsible) -->
-    <string name="settings_advanced_network">高级网络设置</string>
 
     <!-- Secondary server URL field -->
     <string name="settings_secondary_url_label">备用服务器 URL（可选）</string>

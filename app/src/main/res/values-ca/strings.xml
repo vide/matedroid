@@ -195,10 +195,6 @@
     <!-- Shown while loading settings from storage -->
     <string name="loading_settings">Carregant configuració…</string>
 
-    <!-- Content description for expand/collapse section arrows -->
-    <string name="collapse">Contraure</string>
-    <string name="expand">Expandir</string>
-
     <!-- Settings hub: category names shown in the settings list, one per detail page -->
     <string name="settings_section_connection">Connexió</string>
     <string name="settings_section_connection_summary">URL del servidor i credencials</string>
@@ -217,6 +213,9 @@
     <string name="settings_not_configured">Sense configurar</string>
 
     <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_server">Servidor</string>
+    <string name="settings_group_authentication">Autenticació</string>
+    <string name="settings_group_security">Seguretat</string>
     <string name="settings_group_costs">Costos</string>
     <string name="settings_group_lists">Llistes</string>
     <string name="settings_group_channels">Canals de notificació</string>
@@ -248,9 +247,6 @@
     <!-- Server URL field -->
     <string name="settings_server_url_label">URL del servidor</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
-
-    <!-- Advanced network settings section (collapsible) -->
-    <string name="settings_advanced_network">Configuració de xarxa avançada</string>
 
     <!-- Secondary server URL field -->
     <string name="settings_secondary_url_label">URL del servidor secundari (opcional)</string>

@@ -1,9 +1,5 @@
 package com.matedroid.ui.screens.settings.sections
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,8 +13,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -32,8 +26,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +35,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.ui.screens.settings.ServerTestResult
+import com.matedroid.ui.screens.settings.SettingsGroupHeader
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
 import com.matedroid.ui.screens.settings.SettingsUiState
@@ -67,8 +61,13 @@ import com.matedroid.ui.theme.StatusSuccess
 import com.matedroid.ui.theme.StatusWarning
 
 /**
- * Server connection settings. The only section with an explicit save: the URL and
- * credentials need validating together, and a half-typed URL must not be committed.
+ * Server connection settings, laid out as flat groups (Server / Authentication /
+ * Security) rather than hiding the optional fields behind a disclosure. Reaching this
+ * page is already one level of disclosure; nesting another inside it is what used to
+ * make HTTP Basic Auth hard to find. Each optional field says so in its own label.
+ *
+ * The only section with an explicit save: URL and credentials need validating together,
+ * so a half-typed URL must not be committed.
  *
  * During first-run onboarding ([isOnboarding]) there is no back arrow and saving
  * continues to the dashboard; afterwards saving stays put and confirms with a snackbar.
@@ -139,7 +138,7 @@ private fun ConnectionSettingsContent(
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     var basicAuthPasswordVisible by remember { mutableStateOf(false) }
-    var advancedNetworkExpanded by rememberSaveable { mutableStateOf(false) }
+    val fieldsEnabled = !uiState.isTesting && !uiState.isSaving
 
     SettingsSectionScaffold(
         title = stringResource(R.string.settings_section_connection),
@@ -160,7 +159,10 @@ private fun ConnectionSettingsContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        SettingsSpacer()
+        SettingsSpacer(24)
+
+        // ==================== Server ====================
+        SettingsGroupHeader(stringResource(R.string.settings_group_server))
 
         OutlinedTextField(
             value = uiState.serverUrl,
@@ -172,30 +174,157 @@ private fun ConnectionSettingsContent(
                 .testTag("urlInput"),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            enabled = !uiState.isTesting && !uiState.isSaving
+            enabled = fieldsEnabled
         )
 
         SettingsSpacer()
 
-        HorizontalDivider()
-
-        AdvancedNetworkSection(
-            expanded = advancedNetworkExpanded,
-            onToggle = { advancedNetworkExpanded = !advancedNetworkExpanded },
-            uiState = uiState,
-            passwordVisible = passwordVisible,
-            onPasswordVisibleChange = { passwordVisible = it },
-            basicAuthPasswordVisible = basicAuthPasswordVisible,
-            onBasicAuthPasswordVisibleChange = { basicAuthPasswordVisible = it },
-            onSecondaryServerUrlChange = onSecondaryServerUrlChange,
-            onApiTokenChange = onApiTokenChange,
-            onHttpBasicAuthUsernameChange = onHttpBasicAuthUsernameChange,
-            onHttpBasicAuthPasswordChange = onHttpBasicAuthPasswordChange,
-            onAcceptInvalidCertsChange = onAcceptInvalidCertsChange
+        OutlinedTextField(
+            value = uiState.secondaryServerUrl,
+            onValueChange = onSecondaryServerUrlChange,
+            label = { Text(stringResource(R.string.settings_secondary_url_label)) },
+            placeholder = { Text(stringResource(R.string.settings_secondary_url_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            enabled = fieldsEnabled
         )
 
+        FieldHint(stringResource(R.string.settings_secondary_url_hint))
+
+        SettingsSpacer(24)
+
+        // ==================== Authentication ====================
+        SettingsGroupHeader(stringResource(R.string.settings_group_authentication))
+
+        OutlinedTextField(
+            value = uiState.apiToken,
+            onValueChange = onApiTokenChange,
+            label = { Text(stringResource(R.string.settings_api_token_label)) },
+            placeholder = { Text(stringResource(R.string.settings_api_token_placeholder)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("tokenInput"),
+            singleLine = true,
+            visualTransformation = if (passwordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                VisibilityToggle(
+                    visible = passwordVisible,
+                    onToggle = { passwordVisible = !passwordVisible },
+                    showDescription = R.string.show_token,
+                    hideDescription = R.string.hide_token
+                )
+            },
+            enabled = fieldsEnabled
+        )
+
+        FieldHint(stringResource(R.string.settings_api_token_hint))
+
+        SettingsSpacer()
+
+        OutlinedTextField(
+            value = uiState.httpBasicAuthUsername,
+            onValueChange = onHttpBasicAuthUsernameChange,
+            label = { Text(stringResource(R.string.settings_http_basic_auth_username_label)) },
+            placeholder = { Text(stringResource(R.string.settings_http_basic_auth_username_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = fieldsEnabled
+        )
+
+        SettingsSpacer(8)
+
+        OutlinedTextField(
+            value = uiState.httpBasicAuthPassword,
+            onValueChange = onHttpBasicAuthPasswordChange,
+            label = { Text(stringResource(R.string.settings_http_basic_auth_password_label)) },
+            placeholder = { Text(stringResource(R.string.settings_http_basic_auth_password_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = if (basicAuthPasswordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                VisibilityToggle(
+                    visible = basicAuthPasswordVisible,
+                    onToggle = { basicAuthPasswordVisible = !basicAuthPasswordVisible },
+                    showDescription = R.string.show_password,
+                    hideDescription = R.string.hide_password
+                )
+            },
+            enabled = fieldsEnabled
+        )
+
+        FieldHint(stringResource(R.string.settings_http_basic_auth_hint))
+
+        SettingsSpacer(24)
+
+        // ==================== Security ====================
+        SettingsGroupHeader(stringResource(R.string.settings_group_security))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.settings_accept_invalid_certs),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = stringResource(R.string.settings_accept_invalid_certs_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = uiState.acceptInvalidCerts,
+                onCheckedChange = onAcceptInvalidCertsChange,
+                enabled = fieldsEnabled
+            )
+        }
+
+        if (uiState.acceptInvalidCerts) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = StatusWarning.copy(alpha = 0.1f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = StatusWarning,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.settings_accept_invalid_certs_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StatusWarning
+                    )
+                }
+            }
+        }
+
         uiState.testResult?.let { result ->
-            SettingsSpacer()
+            SettingsSpacer(24)
             TestResultCard(result = result)
         }
 
@@ -258,200 +387,6 @@ private fun ConnectionActionBar(
                         if (isOnboarding) R.string.settings_save else R.string.settings_save_short
                     )
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AdvancedNetworkSection(
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    uiState: SettingsUiState,
-    passwordVisible: Boolean,
-    onPasswordVisibleChange: (Boolean) -> Unit,
-    basicAuthPasswordVisible: Boolean,
-    onBasicAuthPasswordVisibleChange: (Boolean) -> Unit,
-    onSecondaryServerUrlChange: (String) -> Unit,
-    onApiTokenChange: (String) -> Unit,
-    onHttpBasicAuthUsernameChange: (String) -> Unit,
-    onHttpBasicAuthPasswordChange: (String) -> Unit,
-    onAcceptInvalidCertsChange: (Boolean) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggle)
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.settings_advanced_network),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = if (expanded) {
-                    Icons.Filled.KeyboardArrowUp
-                } else {
-                    Icons.Filled.KeyboardArrowDown
-                },
-                contentDescription = stringResource(
-                    if (expanded) R.string.collapse else R.string.expand
-                ),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column {
-                SettingsSpacer(8)
-
-                OutlinedTextField(
-                    value = uiState.secondaryServerUrl,
-                    onValueChange = onSecondaryServerUrlChange,
-                    label = { Text(stringResource(R.string.settings_secondary_url_label)) },
-                    placeholder = { Text(stringResource(R.string.settings_secondary_url_placeholder)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    enabled = !uiState.isTesting && !uiState.isSaving
-                )
-
-                FieldHint(stringResource(R.string.settings_secondary_url_hint))
-
-                SettingsSpacer()
-
-                OutlinedTextField(
-                    value = uiState.apiToken,
-                    onValueChange = onApiTokenChange,
-                    label = { Text(stringResource(R.string.settings_api_token_label)) },
-                    placeholder = { Text(stringResource(R.string.settings_api_token_placeholder)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tokenInput"),
-                    singleLine = true,
-                    visualTransformation = if (passwordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        VisibilityToggle(
-                            visible = passwordVisible,
-                            onToggle = { onPasswordVisibleChange(!passwordVisible) },
-                            showDescription = R.string.show_token,
-                            hideDescription = R.string.hide_token
-                        )
-                    },
-                    enabled = !uiState.isTesting && !uiState.isSaving
-                )
-
-                FieldHint(stringResource(R.string.settings_api_token_hint))
-
-                SettingsSpacer()
-
-                OutlinedTextField(
-                    value = uiState.httpBasicAuthUsername,
-                    onValueChange = onHttpBasicAuthUsernameChange,
-                    label = { Text(stringResource(R.string.settings_http_basic_auth_username_label)) },
-                    placeholder = { Text(stringResource(R.string.settings_http_basic_auth_username_placeholder)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    enabled = !uiState.isTesting && !uiState.isSaving
-                )
-
-                SettingsSpacer(8)
-
-                OutlinedTextField(
-                    value = uiState.httpBasicAuthPassword,
-                    onValueChange = onHttpBasicAuthPasswordChange,
-                    label = { Text(stringResource(R.string.settings_http_basic_auth_password_label)) },
-                    placeholder = { Text(stringResource(R.string.settings_http_basic_auth_password_placeholder)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = if (basicAuthPasswordVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        VisibilityToggle(
-                            visible = basicAuthPasswordVisible,
-                            onToggle = { onBasicAuthPasswordVisibleChange(!basicAuthPasswordVisible) },
-                            showDescription = R.string.show_password,
-                            hideDescription = R.string.hide_password
-                        )
-                    },
-                    enabled = !uiState.isTesting && !uiState.isSaving
-                )
-
-                FieldHint(stringResource(R.string.settings_http_basic_auth_hint))
-
-                SettingsSpacer()
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_accept_invalid_certs),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_accept_invalid_certs_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = uiState.acceptInvalidCerts,
-                        onCheckedChange = onAcceptInvalidCertsChange,
-                        enabled = !uiState.isTesting && !uiState.isSaving
-                    )
-                }
-
-                if (uiState.acceptInvalidCerts) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = StatusWarning.copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Warning,
-                                contentDescription = null,
-                                tint = StatusWarning,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.settings_accept_invalid_certs_warning),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = StatusWarning
-                            )
-                        }
-                    }
-                }
-
-                SettingsSpacer(8)
             }
         }
     }
@@ -611,6 +546,7 @@ private fun ConnectionSettingsWithResultPreview() {
                 isLoading = false,
                 serverUrl = "https://teslamate.example.com",
                 secondaryServerUrl = "https://teslamate.local",
+                acceptInvalidCerts = true,
                 testResult = TestResult(
                     primaryResult = ServerTestResult.Failure("Connection timed out"),
                     secondaryResult = ServerTestResult.Success
