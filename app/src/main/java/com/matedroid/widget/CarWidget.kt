@@ -13,6 +13,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +64,8 @@ import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.util.GlowBitmapRenderer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import kotlin.math.roundToInt
 
@@ -252,8 +255,16 @@ class CarWidget : GlanceAppWidget() {
                                 isCharging = isCharging,
                                 isDcCharging = isDcCharging
                             )
-                            val bgBitmap = WidgetBackgroundCache.getOrCreate(ctx, bgKey) {
-                                buildBackgroundBitmap(ctx, prefs)
+                            // The cache is pre-warmed from updateWidget, so this is
+                            // normally an allocation-free memory-cache hit. The builder
+                            // only runs as a fallback (first composition before the
+                            // worker has run, or cache eviction); Glance composes on a
+                            // background dispatcher, so even a miss stays off the main
+                            // thread.
+                            val bgBitmap = remember(bgKey) {
+                                WidgetBackgroundCache.getOrCreate(ctx, bgKey) {
+                                    buildBackgroundBitmap(ctx, bgKey)
+                                }
                             }
                             Image(
                                 provider = ImageProvider(bgBitmap),
@@ -564,9 +575,13 @@ class CarWidget : GlanceAppWidget() {
 
                             // Progress bar at the very bottom
                             val barHeight = if (isCompact) 4.dp else 6.dp
-                            val progressBitmap = buildProgressBarBitmap(
+                            val progressBitmap = remember(
                                 batteryLevel, chargeLimit, isCharging, isDcCharging, palette
-                            )
+                            ) {
+                                buildProgressBarBitmap(
+                                    batteryLevel, chargeLimit, isCharging, isDcCharging, palette
+                                )
+                            }
                             Box(
                                 modifier = GlanceModifier.fillMaxSize(),
                                 contentAlignment = Alignment.BottomCenter
@@ -635,8 +650,35 @@ class CarWidget : GlanceAppWidget() {
                 }
             }
         }
+        // Pre-warm the background cache before triggering composition: a cache miss
+        // runs the full glow pipeline (~8-20 MB of transient bitmap allocations plus
+        // a PNG disk encode), which belongs here in the worker rather than inside
+        // Glance composition. The bitmap is size-independent (rendered at the car
+        // image's native resolution, shown with ContentScale.Crop), so no widget
+        // size information is needed. Failures fall back to rendering on demand
+        // during composition.
+        withContext(Dispatchers.Default) {
+            runCatching {
+                val key = backgroundKey(data)
+                WidgetBackgroundCache.getOrCreate(context, key) {
+                    buildBackgroundBitmap(context, key)
+                }
+            }
+        }
         update(context, glanceId)
     }
+
+    /** Background-cache key for [data] — must mirror the key built in [WidgetContent]. */
+    private fun backgroundKey(data: CarWidgetDisplayData) = WidgetBackgroundCache.Key(
+        exteriorColor = data.exteriorColor,
+        model = data.model,
+        trimBadging = data.trimBadging,
+        wheelType = data.wheelType,
+        overrideVariant = data.imageOverride?.variant,
+        overrideWheel = data.imageOverride?.wheelCode,
+        isCharging = data.isCharging,
+        isDcCharging = data.isDcCharging
+    )
 
     // -------------------------------------------------------------------------
     // Background bitmap — decorative only (car + glow + scrim)
@@ -656,20 +698,17 @@ class CarWidget : GlanceAppWidget() {
      */
     private fun buildBackgroundBitmap(
         context: Context,
-        prefs: Preferences,
+        key: WidgetBackgroundCache.Key,
     ): Bitmap {
-        val exteriorColor = prefs[EXTERIOR_COLOR_KEY]
-        val model = prefs[MODEL_KEY]
-        val trimBadging = prefs[TRIM_BADGING_KEY]
-        val wheelType = prefs[WHEEL_TYPE_KEY]
-        val overrideVariant = prefs[IMAGE_OVERRIDE_VARIANT_KEY]
-        val overrideWheel = prefs[IMAGE_OVERRIDE_WHEEL_KEY]
-        val isCharging = prefs[IS_CHARGING_KEY] ?: false
-        val isDcCharging = prefs[IS_DC_CHARGING_KEY] ?: false
+        val isCharging = key.isCharging
+        val isDcCharging = key.isDcCharging
 
-        val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+        val palette = CarColorPalettes.forExteriorColor(key.exteriorColor, darkTheme = true)
 
-        val carBitmap = loadCarBitmap(context, model, exteriorColor, wheelType, trimBadging, overrideVariant, overrideWheel)
+        val carBitmap = loadCarBitmap(
+            context, key.model, key.exteriorColor, key.wheelType, key.trimBadging,
+            key.overrideVariant, key.overrideWheel
+        )
         val width = carBitmap?.width ?: FALLBACK_BG_W
         val height = carBitmap?.height ?: FALLBACK_BG_H
 
