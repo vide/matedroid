@@ -221,21 +221,13 @@ private fun ChargesContent(
         initialFirstVisibleItemScrollOffset = initialScrollOffset
     )
 
-    // Header items in render order: date chips, dropdowns, free hint (conditional),
-    // summary, charts (conditional), history header. Adjust if items are added.
+    // Single source of truth for the header rows preceding the charge list.
+    // The LazyColumn emits exactly these items (in order) before the charges,
+    // and MonthScrollIndicator's index math below uses headerItems.size — so
+    // adding/removing/conditionally-showing a header can't desync the two.
     val showFreeHint = freeSupercharging && selectedCostFilter == CostFilter.NO_COST
-    val headerCount = 4 +
-        (if (showFreeHint) 1 else 0) +
-        (if (chartData.isNotEmpty()) 1 else 0)
-
-    Box(modifier = Modifier.fillMaxSize()) {
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        item {
+    val headerItems: List<@Composable () -> Unit> = buildList {
+        add {
             DateFilterChips(
                 selectedFilter = selectedDateFilter,
                 customStartDate = customStartDate,
@@ -245,8 +237,7 @@ private fun ChargesContent(
                 onCustomRangeSelected = onCustomRangeSelected
             )
         }
-
-        item {
+        add {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -271,9 +262,8 @@ private fun ChargesContent(
                 )
             }
         }
-
-        if (freeSupercharging && selectedCostFilter == CostFilter.NO_COST) {
-            item {
+        if (showFreeHint) {
+            add {
                 Text(
                     text = stringResource(R.string.charges_free_supercharging_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -282,14 +272,12 @@ private fun ChargesContent(
                 )
             }
         }
-
-        item {
+        add {
             SummaryCard(summary = summary, currencySymbol = currencySymbol, palette = palette)
         }
-
         // Charges charts (daily/weekly/monthly based on date range) - swipeable
         if (chartData.isNotEmpty()) {
-            item {
+            add {
                 ChargesChartsPager(
                     chartData = chartData,
                     granularity = chartGranularity,
@@ -298,8 +286,7 @@ private fun ChargesContent(
                 )
             }
         }
-
-        item {
+        add {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.charge_history),
@@ -307,6 +294,17 @@ private fun ChargesContent(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+    val headerCount = headerItems.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(headerCount) { index -> headerItems[index]() }
 
         if (charges.isEmpty()) {
             item {
