@@ -18,6 +18,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.notification.SentryNotificationManager
@@ -42,6 +43,9 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
+    val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+    val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+    val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -105,6 +109,9 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
+                shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
+                shortDriveMinDistance = settings.shortDriveMinDistance,
+                shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
                 isLoading = false
             )
         }
@@ -177,6 +184,40 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showShortDrivesCharges = show)
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
+        }
+    }
+
+    fun updateShortDriveMinDuration(minutes: Int) {
+        _uiState.value = _uiState.value.copy(shortDriveMinDurationMin = minutes)
+        persistShortEntryThresholds()
+    }
+
+    fun updateShortDriveMinDistance(distance: Double) {
+        _uiState.value = _uiState.value.copy(shortDriveMinDistance = distance)
+        persistShortEntryThresholds()
+    }
+
+    fun updateShortChargeMinEnergy(energyKwh: Double) {
+        _uiState.value = _uiState.value.copy(shortChargeMinEnergyKwh = energyKwh)
+        persistShortEntryThresholds()
+    }
+
+    /**
+     * Writes the thresholds to disk and to the [ShortEntryFilter] mirror the lists read from.
+     * The mirror is updated synchronously so a list re-filters on the way back from Settings
+     * rather than on the next app start.
+     */
+    private fun persistShortEntryThresholds() {
+        val state = _uiState.value
+        ShortEntryFilter.minDriveDurationMin = state.shortDriveMinDurationMin
+        ShortEntryFilter.minDriveDistance = state.shortDriveMinDistance
+        ShortEntryFilter.minChargeEnergyKwh = state.shortChargeMinEnergyKwh
+        viewModelScope.launch {
+            settingsDataStore.saveShortEntryThresholds(
+                driveMinDurationMin = state.shortDriveMinDurationMin,
+                driveMinDistance = state.shortDriveMinDistance,
+                chargeMinEnergyKwh = state.shortChargeMinEnergyKwh
+            )
         }
     }
 

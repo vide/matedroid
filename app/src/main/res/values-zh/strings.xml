@@ -216,6 +216,21 @@
     <string name="settings_group_server">服务器</string>
     <string name="settings_group_authentication">身份验证</string>
     <string name="settings_group_security">安全</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">低于这些数值的行程和充电将不在列表中显示，但始终会计入总计和统计数据。</string>
+    <string name="settings_threshold_drive_duration_label">最短行程时长</string>
+    <string name="settings_threshold_drive_distance_label">最短行程距离</string>
+    <string name="settings_threshold_charge_energy_label">最低充电电量</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">不限</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">选择数值</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
     <string name="settings_group_costs">费用</string>
     <string name="settings_group_lists">列表</string>
     <string name="settings_group_channels">通知渠道</string>
@@ -293,7 +308,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">短途行程和充电</string>
-    <string name="settings_short_dialog_text">关闭时（默认），以下内容将从列表中隐藏：\n\n• 不足 1 分钟或不到 1 km 的行程\n• 0.1 kWh 以下的充电\n\n这些记录仍会计入总计、平均值和统计数据。启用此设置可在列表中查看所有记录。</string>
+    <string name="settings_short_dialog_text">关闭时（默认），低于下方所设最小值的行程和充电将从列表中隐藏。\n\n这些记录仍会计入总计、平均值和统计数据。启用此设置可在列表中查看所有记录。</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">强制全量同步</string>

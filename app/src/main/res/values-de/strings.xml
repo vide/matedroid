@@ -216,6 +216,21 @@
     <string name="settings_group_server">Server</string>
     <string name="settings_group_authentication">Authentifizierung</string>
     <string name="settings_group_security">Sicherheit</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">Fahrten und Ladevorgänge unterhalb dieser Werte werden in Listen ausgeblendet. In Summen und Statistiken zählen sie immer mit.</string>
+    <string name="settings_threshold_drive_duration_label">Mindestdauer einer Fahrt</string>
+    <string name="settings_threshold_drive_distance_label">Mindeststrecke einer Fahrt</string>
+    <string name="settings_threshold_charge_energy_label">Mindestenergie eines Ladevorgangs</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">Kein Minimum</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">Wert auswählen</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
     <string name="settings_group_costs">Kosten</string>
     <string name="settings_group_lists">Listen</string>
     <string name="settings_group_channels">Benachrichtigungskanäle</string>
@@ -293,7 +308,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Kurze Fahrten &amp; Ladevorgänge</string>
-    <string name="settings_short_dialog_text">Wenn deaktiviert (Standard), werden die folgenden Einträge in den Listen ausgeblendet:\n\n• Fahrten unter 1 Minute oder weniger als 1 km\n• Ladevorgänge von 0,1 kWh oder weniger\n\nDiese Einträge werden weiterhin in Summen, Durchschnitten und Statistiken berücksichtigt. Aktiviere diese Einstellung, um alle Einträge in den Listen zu sehen.</string>
+    <string name="settings_short_dialog_text">Wenn deaktiviert (Standard), werden Fahrten und Ladevorgänge unterhalb der unten eingestellten Mindestwerte in den Listen ausgeblendet.\n\nDiese Einträge werden weiterhin in Summen, Durchschnitten und Statistiken berücksichtigt. Aktiviere diese Einstellung, um alle Einträge in den Listen zu sehen.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Vollständige Neu-Synchronisierung erzwingen</string>
