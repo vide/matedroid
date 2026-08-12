@@ -1,8 +1,6 @@
 package com.matedroid.widget
 
-import android.appwidget.AppWidgetManager
 import android.content.Context
-import android.os.Bundle
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 
@@ -26,14 +24,8 @@ class CarWidgetReceiver : GlanceAppWidgetReceiver() {
         CarWidgetUpdateWorker.cancelWork(context)
     }
 
-    override fun onAppWidgetOptionsChanged(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        newOptions: Bundle
-    ) {
-        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
-        // Re-fetch data immediately so the resized widget shows fresh content
-        CarWidgetUpdateWorker.scheduleImmediateUpdate(context)
-    }
+    // Note: onAppWidgetOptionsChanged is intentionally NOT overridden. The Glance
+    // base class already recomposes the widget locally with the new size on resize
+    // (goAsync + GlanceAppWidget.resize), so no network re-fetch is needed — resize
+    // is instant and works offline. Data stays fresh via the scheduled worker.
 }
