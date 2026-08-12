@@ -65,8 +65,13 @@ class ChargingMonitorService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var monitorJob: Job? = null
-    private var consecutiveFailures = 0
-    private val maxConsecutiveFailures = 3
+
+    // Consecutive checks that found no charging car. This deliberately lumps
+    // together "car really isn't charging" and "check errored" (API/network
+    // failure) — either way, after maxChecksWithoutCharging strikes (~90 s)
+    // there's nothing left for this service to monitor and it stops itself.
+    private var checksWithoutCharging = 0
+    private val maxChecksWithoutCharging = 3
     private var isMonitoring = false
     private val activeNotificationCarIds = mutableSetOf<Int>()
 
@@ -186,10 +191,10 @@ class ChargingMonitorService : Service() {
             // Initial check
             val initialResult = performChargingCheck()
             if (!initialResult) {
-                consecutiveFailures++
-                Log.d(TAG, "Initial check failed, failure count: $consecutiveFailures")
+                checksWithoutCharging++
+                Log.d(TAG, "Initial check found no charging car ($checksWithoutCharging/$maxChecksWithoutCharging)")
             } else {
-                consecutiveFailures = 0
+                checksWithoutCharging = 0
             }
 
             // Continue monitoring
@@ -198,14 +203,14 @@ class ChargingMonitorService : Service() {
 
                 val stillCharging = performChargingCheck()
                 if (stillCharging) {
-                    consecutiveFailures = 0
+                    checksWithoutCharging = 0
                     Log.d(TAG, "Updated charging notification")
                 } else {
-                    consecutiveFailures++
-                    Log.d(TAG, "Check returned no charging, failure count: $consecutiveFailures")
+                    checksWithoutCharging++
+                    Log.d(TAG, "Check found no charging car ($checksWithoutCharging/$maxChecksWithoutCharging)")
 
-                    if (consecutiveFailures >= maxConsecutiveFailures) {
-                        Log.d(TAG, "Too many failures, stopping service")
+                    if (checksWithoutCharging >= maxChecksWithoutCharging) {
+                        Log.d(TAG, "No charging car for $maxChecksWithoutCharging consecutive checks, stopping service")
                         stopSelf()
                         break
                     }
@@ -234,7 +239,8 @@ class ChargingMonitorService : Service() {
 
     /**
      * Check charging status and update notification.
-     * Returns true if any car is charging, false otherwise.
+     * Returns true if any car is charging; false when none is charging
+     * or the check itself failed (not configured, API error, exception).
      */
     private suspend fun performChargingCheck(): Boolean {
         try {
