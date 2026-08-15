@@ -115,12 +115,14 @@
     <!-- AC (Alternating Current) charging indicator badge -->
     <string name="charging_ac">AC</string>
 
-    <!-- Content description for warning icon when battery is above 90% -->
+    <!-- Content description for warning icon when battery is above the configured warning level -->
     <string name="high_charge_level">Livello carica elevato</string>
 
     <!-- Title and message for the high SoC info dialog shown when tapping the warning icon -->
     <string name="high_soc_warning_title">Stato di carica elevato</string>
     <string name="high_soc_warning_message">Mantenere la batteria al 100% o in prossimità di tale valore per periodi prolungati può accelerare il degrado.\n\n• Batterie NCM (la maggior parte dei modelli Tesla): si consiglia di caricare all\'80–90% per l\'uso quotidiano. Caricare al 100% solo prima di lunghi viaggi.\n• Batterie LFP (Model 3/Y Standard Range): progettate per essere caricate regolarmente al 100% — Tesla lo consiglia per la calibrazione della batteria.\n\nEvita di lasciare l\'auto parcheggiata a piena carica per lunghi periodi quando possibile.</string>
+    <!-- Footer of the same dialog, pointing at the setting that changes or hides the warning -->
+    <string name="high_soc_warning_settings_hint">Puoi cambiare il livello a cui compare questo avviso — o disattivarlo — in Impostazioni → Visualizzazione.</string>
 
     <!-- Location card section title -->
     <string name="location">Posizione</string>
@@ -231,8 +233,22 @@
     <string name="settings_threshold_value_mi">%1$s mi</string>
     <string name="settings_threshold_value_kwh">%1$s kWh</string>
 
+    <!-- Configurable level for the dashboard high-charge warning (Display section) -->
+    <string name="settings_high_soc_hint">La schermata principale segnala una carica elevata quando l\'auto è parcheggiata sopra questo livello. Le batterie LFP (Standard Range) sono progettate per restare a piena carica, quindi scegli Mai se è il caso della tua auto.</string>
+    <string name="settings_high_soc_threshold_label">Avvisa sopra</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">Mai</string>
+    <!-- A high-charge warning level, e.g. "Above 90%" -->
+    <string name="settings_high_soc_value">Sopra il %1$d%%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">Sotto questo livello la percentuale della batteria diventa rossa sulla schermata principale e sul widget, e ambra nei 20 punti appena sopra.</string>
+    <string name="settings_low_soc_threshold_label">Avvisa sotto</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">Sotto il %1$d%%</string>
+
     <string name="settings_group_costs">Costi</string>
     <string name="settings_group_lists">Elenchi</string>
+    <string name="settings_group_battery">Batteria</string>
     <string name="settings_group_channels">Canali di notifica</string>
     <string name="settings_group_maintenance">Manutenzione</string>
     <string name="settings_group_support">Assistenza</string>

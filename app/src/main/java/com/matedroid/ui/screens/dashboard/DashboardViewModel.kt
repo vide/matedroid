@@ -10,6 +10,8 @@ import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
+import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import com.matedroid.data.repository.ApiResult
@@ -23,6 +25,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -47,7 +51,11 @@ data class DashboardUiState(
     val totalTrips: Int? = null,
     /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
     val latestTrip: Trip? = null,
-    val dcFinishedPluggedIn: Boolean = false
+    val dcFinishedPluggedIn: Boolean = false,
+    /** Battery level above which a parked car is flagged; see [HighSocWarning]. */
+    val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    /** Battery level below which the percentage reads as low; see [LowSocWarning]. */
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -104,6 +112,21 @@ class DashboardViewModel @Inject constructor(
             loadCars()
         }
         observeCarImageOverrides()
+        observeSocWarningThresholds()
+    }
+
+    /** Kept live rather than read once, so a change in Settings shows on the way back. */
+    private fun observeSocWarningThresholds() {
+        viewModelScope.launch {
+            settingsDataStore.settings
+                .map { it.highSocWarningThreshold to it.lowSocWarningThreshold }
+                .distinctUntilChanged()
+                .collect { (high, low) ->
+                    _uiState.update {
+                        it.copy(highSocWarningThreshold = high, lowSocWarningThreshold = low)
+                    }
+                }
+        }
     }
 
     private fun observeCarImageOverrides() {
