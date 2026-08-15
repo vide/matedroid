@@ -2,6 +2,7 @@ package com.matedroid.util
 
 import android.content.res.Resources
 import com.matedroid.R
+import com.matedroid.domain.AppTimeZone
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -11,23 +12,34 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * Parse an ISO-8601 datetime string into a [LocalDateTime].
+ * Parse an ISO-8601 datetime string into a [LocalDateTime] for display.
  *
  * Accepts datetime strings with or without a timezone offset, and with or
  * without a trailing "Z" suffix. TeslaMate emits both forms (RFC 3339
  * with offset, or ISO with a trailing Z).
  *
- * Examples:
- *   "2026-05-10T15:39:00Z"      → 2026-05-10T15:39
- *   "2026-05-10T15:39:00+02:00" → 2026-05-10T15:39
- *   "" or null                   → null
+ * The offset is resolved through [AppTimeZone]: under the default
+ * [AppTimeZone.MODE_SERVER] the wall clock is kept exactly as sent (the time
+ * where the car and TeslaMate server are), otherwise the instant is converted
+ * into the configured zone. A string carrying no offset has no instant to
+ * convert, so it is always taken at face value.
+ *
+ * Examples for "2026-05-10T15:39:00Z", with the device in UTC+2:
+ *   MODE_SERVER          → 2026-05-10T15:39
+ *   MODE_DEVICE          → 2026-05-10T17:39
+ *   "" or null           → null
  */
 fun parseIsoDateTime(dateStr: String?): LocalDateTime? {
     if (dateStr.isNullOrBlank()) return null
     return try {
         try {
-            OffsetDateTime.parse(dateStr).toLocalDateTime()
+            val parsed = OffsetDateTime.parse(dateStr)
+            when (val zone = AppTimeZone.displayZone()) {
+                null -> parsed.toLocalDateTime()
+                else -> parsed.atZoneSameInstant(zone).toLocalDateTime()
+            }
         } catch (_: DateTimeParseException) {
+            // No offset in the string — nothing to convert, so take it as written.
             LocalDateTime.parse(dateStr.replace("Z", ""))
         }
     } catch (_: Exception) {

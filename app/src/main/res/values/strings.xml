@@ -219,6 +219,18 @@
     <string name="settings_group_server">Server</string>
     <string name="settings_group_authentication">Authentication</string>
     <string name="settings_group_security">Security</string>
+    <!-- Time zone preference (Display section) -->
+    <string name="settings_group_datetime">Date &amp; time</string>
+    <string name="settings_timezone_label">Time zone</string>
+    <string name="settings_timezone_hint">Which clock times are shown in. TeslaMate server time matches the TeslaMate web interface and shows each drive at the time it happened.</string>
+    <string name="settings_timezone_server">TeslaMate server</string>
+    <!-- %1$s is the device's current time zone, e.g. Europe/Madrid -->
+    <string name="settings_timezone_device">This device (%1$s)</string>
+    <string name="settings_timezone_pick">Pick a time zone…</string>
+    <string name="settings_timezone_search">Search</string>
+    <!-- Content description for the time zone dropdown arrow -->
+    <string name="settings_timezone_select">Select time zone</string>
+
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">Drives and charges below these values are hidden from lists. They are always counted in totals and statistics.</string>
     <string name="settings_threshold_drive_duration_label">Minimum drive duration</string>

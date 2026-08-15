@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.matedroid.domain.AppTimeZone
 import com.matedroid.domain.ShortEntryFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +59,7 @@ data class AppSettings(
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+    val timeZoneMode: String = AppTimeZone.MODE_SERVER,
     val teslamateBaseUrl: String = "",
     val lastSelectedCarId: Int? = null
 ) {
@@ -83,6 +85,7 @@ class SettingsDataStore @Inject constructor(
     private val shortDriveMinDurationKey = intPreferencesKey("short_drive_min_duration_min")
     private val shortDriveMinDistanceKey = doublePreferencesKey("short_drive_min_distance")
     private val shortChargeMinEnergyKey = doublePreferencesKey("short_charge_min_energy_kwh")
+    private val timeZoneModeKey = stringPreferencesKey("time_zone_mode")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
@@ -120,6 +123,7 @@ class SettingsDataStore @Inject constructor(
                 ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
             shortChargeMinEnergyKwh = preferences[shortChargeMinEnergyKey]
                 ?: ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+            timeZoneMode = preferences[timeZoneModeKey] ?: AppTimeZone.MODE_SERVER,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
             lastSelectedCarId = preferences[lastSelectedCarIdKey]
         )
@@ -211,6 +215,16 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveShowShortDrivesCharges(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[showShortDrivesChargesKey] = show
+        }
+    }
+
+    /**
+     * Which clock timestamps are displayed in: [AppTimeZone.MODE_SERVER],
+     * [AppTimeZone.MODE_DEVICE], or an explicit zone id such as `Europe/Madrid`.
+     */
+    suspend fun saveTimeZoneMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[timeZoneModeKey] = mode
         }
     }
 

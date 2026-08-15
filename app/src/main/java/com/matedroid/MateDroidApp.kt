@@ -17,6 +17,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.domain.AppTimeZone
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.domain.UnitSystem
 import com.matedroid.notification.SentryNotificationManager
@@ -56,12 +57,14 @@ class MateDroidApp : Application(), Configuration.Provider {
             UnitSystem.isImperial = settingsDataStore.isImperial.first()
         }
 
-        // Restore the user's short drive/charge thresholds into their process-wide mirror.
+        // Restore the display preferences that live in process-wide mirrors, before any
+        // list filtering or date formatting runs.
         appScope.launch {
             val settings = settingsDataStore.settings.first()
             ShortEntryFilter.minDriveDurationMin = settings.shortDriveMinDurationMin
             ShortEntryFilter.minDriveDistance = settings.shortDriveMinDistance
             ShortEntryFilter.minChargeEnergyKwh = settings.shortChargeMinEnergyKwh
+            AppTimeZone.mode = settings.timeZoneMode
         }
 
         // Configure OSMDroid tile cache (shared across all map screens)

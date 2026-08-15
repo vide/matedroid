@@ -216,6 +216,18 @@
     <string name="settings_group_server">服务器</string>
     <string name="settings_group_authentication">身份验证</string>
     <string name="settings_group_security">安全</string>
+    <!-- Time zone preference (Display section) -->
+    <string name="settings_group_datetime">日期与时间</string>
+    <string name="settings_timezone_label">时区</string>
+    <string name="settings_timezone_hint">显示时间所用的时区。TeslaMate 服务器时间与 TeslaMate 网页界面一致，按行程实际发生的时间显示。</string>
+    <string name="settings_timezone_server">TeslaMate 服务器</string>
+    <!-- %1$s is the device's current time zone, e.g. Europe/Madrid -->
+    <string name="settings_timezone_device">本设备（%1$s）</string>
+    <string name="settings_timezone_pick">选择时区…</string>
+    <string name="settings_timezone_search">搜索</string>
+    <!-- Content description for the time zone dropdown arrow -->
+    <string name="settings_timezone_select">选择时区</string>
+
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">低于这些数值的行程和充电将不在列表中显示，但始终会计入总计和统计数据。</string>
     <string name="settings_threshold_drive_duration_label">最短行程时长</string>

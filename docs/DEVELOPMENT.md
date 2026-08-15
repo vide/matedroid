@@ -111,6 +111,32 @@ When adding a new `drive_*`/`*_drive*` string, translate "drive" with the drive-
 reserve the trip-column term for `trip_*`/`trips_*` strings — never let the two collapse to the
 same word in a locale, or the Drives/Trips navigation and stats become ambiguous.
 
+#### Time zones
+
+TeslamateAPI returns every timestamp as **server-local time with its UTC offset attached**
+(`2026-08-15T11:29:19+02:00`), never bare UTC. The offset makes the instant unambiguous, so the
+app can render it in whichever clock the user prefers.
+
+`domain/AppTimeZone.kt` holds that preference (Settings → Display → Time zone) as a process-wide
+mirror, the same pattern as `UnitSystem` and `ShortEntryFilter` — restored at app start by
+`MateDroidApp`, written through by `SettingsViewModel`. It exists as a mirror because
+`parseIsoDateTime` has ~26 call sites and threading a zone through each would dwarf the change.
+
+- `MODE_SERVER` (**default**) — keep the wall clock as sent. Matches TeslaMate's own web UI and
+  shows each drive at the time it actually happened, wherever you are when you look.
+- `MODE_DEVICE` — convert to the phone's zone.
+- Any other value is an explicit zone id (`Europe/Madrid`). Mainly for TeslaMate instances left
+  on the Docker default of UTC, where neither server nor phone time is what the user wants.
+  An unrecognised id degrades to server time rather than throwing.
+
+Only `parseIsoDateTime` (and `parseIsoDate` through it) consults this. **Elapsed-time math must
+keep using the absolute instant** — `OffsetDateTime.parse(x).toInstant()`, as
+`StatusIndicatorsRow` and `CarModels.stateSinceEpochMs` do — which is correct under every mode.
+
+Known gap: some day-*grouping* code (e.g. `SentryHistoryViewModel`, `WhereWasIDateTimePicker`)
+still buckets by `ZoneId.systemDefault()` independently of this setting, so an entry near midnight
+can group into a different day than its displayed time suggests. Pre-existing, not yet unified.
+
 #### Hiding short drives / charges
 
 The "Show short drives / charges" setting (`showShortDrivesCharges`, default off) hides trivial
