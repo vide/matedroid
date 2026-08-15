@@ -79,7 +79,7 @@ Settings is a **category list → detail page** structure (the pattern Android a
 3. Create the composable in `ui/screens/settings/sections/`, wrapping the content in `SettingsSectionScaffold`.
 4. Add the branch to the `when` in `NavGraph.kt`'s `composable<Screen.SettingsSection>`.
 
-#### High state-of-charge warning
+#### State-of-charge warning levels
 
 The warning triangle next to the battery percentage on the dashboard fires above a
 **user-configurable level** (Settings → Display → "Warn above", default 90%, presets in
@@ -95,6 +95,18 @@ The predicate lives in `HighSocWarning.shouldWarn(batteryLevel, isCharging, thre
 car is never flagged, since it is on its way to the limit set in the car. The threshold reaches
 `BatteryCard` through `DashboardUiState`, which `DashboardViewModel` keeps in sync with the DataStore
 flow (not a one-shot read) so a change applies on the way back from Settings.
+
+The low end is the mirror image: `domain/LowSocWarning.kt` (Settings → Display → "Warn below",
+default 20%) decides when the battery percentage turns red, with an amber band covering the
+`AMBER_MARGIN` (20) points just above — at the default that is red under 20% and amber under 40%,
+exactly where both used to be hardcoded. `isLow()` / `isGettingLow()` are checked in that order, and
+`DISABLED` leaves the percentage in the palette colour at any level.
+
+Unlike the high warning, this one also drives the **widget**: it renders in its own process from
+Glance state, so the threshold is read once per run by `CarWidgetUpdateWorker`, carried in
+`CarWidgetDisplayData` and persisted to `CarWidget.LOW_SOC_THRESHOLD_KEY`. Both widget colour sites
+(the percentage text and `buildProgressBarBitmap`) read it from there — the bar bitmap is cached, so
+the threshold must stay in its `remember` keys or a changed setting won't repaint it.
 
 ### Localization (i18n)
 

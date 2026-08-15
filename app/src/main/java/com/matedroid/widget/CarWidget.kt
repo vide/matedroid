@@ -60,6 +60,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.matedroid.MainActivity
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
@@ -133,6 +134,7 @@ class CarWidget : GlanceAppWidget() {
         val IMAGE_OVERRIDE_WHEEL_KEY = stringPreferencesKey("image_override_wheel")
         val LOCATION_TEXT_KEY = stringPreferencesKey("location_text")
         val IS_IMPERIAL_KEY = booleanPreferencesKey("is_imperial")
+        val LOW_SOC_THRESHOLD_KEY = intPreferencesKey("low_soc_warning_threshold")
     }
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -209,6 +211,8 @@ class CarWidget : GlanceAppWidget() {
                             val carName = prefs[CAR_NAME_KEY] ?: ""
                             val ratedRange = prefs[RATED_RANGE_KEY]?.takeIf { it >= 0f }
                             val isImperial = prefs[IS_IMPERIAL_KEY] ?: false
+                            val lowSocThreshold = prefs[LOW_SOC_THRESHOLD_KEY]
+                                ?: LowSocWarning.DEFAULT_THRESHOLD
                             val chargeLimit = prefs[CHARGE_LIMIT_KEY]?.takeIf { it >= 0 }
                             val locationText = prefs[LOCATION_TEXT_KEY]
                             val chargeEnergyAdded = prefs[CHARGE_ENERGY_ADDED_KEY]?.takeIf { it >= 0f }
@@ -425,8 +429,8 @@ class CarWidget : GlanceAppWidget() {
 
                                 // Battery % + AC/DC badge | range + charge limit
                                 val batteryColor = when {
-                                    batteryLevel < 20 -> Color(0xFFEF5350)
-                                    batteryLevel < 40 -> Color(0xFFFF9800)
+                                    LowSocWarning.isLow(batteryLevel, lowSocThreshold) -> Color(0xFFEF5350)
+                                    LowSocWarning.isGettingLow(batteryLevel, lowSocThreshold) -> Color(0xFFFF9800)
                                     else -> Color.White
                                 }
                                 val batteryFontSize = when {
@@ -576,10 +580,10 @@ class CarWidget : GlanceAppWidget() {
                             // Progress bar at the very bottom
                             val barHeight = if (isCompact) 4.dp else 6.dp
                             val progressBitmap = remember(
-                                batteryLevel, chargeLimit, isCharging, isDcCharging, palette
+                                batteryLevel, chargeLimit, isCharging, isDcCharging, palette, lowSocThreshold
                             ) {
                                 buildProgressBarBitmap(
-                                    batteryLevel, chargeLimit, isCharging, isDcCharging, palette
+                                    batteryLevel, chargeLimit, isCharging, isDcCharging, palette, lowSocThreshold
                                 )
                             }
                             Box(
@@ -636,6 +640,7 @@ class CarWidget : GlanceAppWidget() {
                 this[AC_PHASES_KEY] = data.acPhases ?: -1
                 this[SENTRY_EVENT_COUNT_KEY] = data.sentryEventCount
                 this[IS_IMPERIAL_KEY] = data.isImperial
+                this[LOW_SOC_THRESHOLD_KEY] = data.lowSocWarningThreshold
                 if (data.imageOverride != null) {
                     this[IMAGE_OVERRIDE_VARIANT_KEY] = data.imageOverride.variant
                     this[IMAGE_OVERRIDE_WHEEL_KEY] = data.imageOverride.wheelCode
@@ -838,7 +843,8 @@ class CarWidget : GlanceAppWidget() {
         chargeLimit: Int?,
         isCharging: Boolean,
         isDcCharging: Boolean,
-        palette: CarColorPalette
+        palette: CarColorPalette,
+        lowSocThreshold: Int
     ): Bitmap {
         val w = PROGRESS_BAR_W
         val h = PROGRESS_BAR_H
@@ -871,8 +877,8 @@ class CarWidget : GlanceAppWidget() {
         val fillColor = when {
             isCharging && isDcCharging -> palette.dcColor
             isCharging -> palette.acColor
-            batteryLevel < 20 -> Color(0xFFEF5350)
-            batteryLevel < 40 -> Color(0xFFFF9800)
+            LowSocWarning.isLow(batteryLevel, lowSocThreshold) -> Color(0xFFEF5350)
+            LowSocWarning.isGettingLow(batteryLevel, lowSocThreshold) -> Color(0xFFFF9800)
             else -> palette.accent
         }
         paint.color = android.graphics.Color.argb(

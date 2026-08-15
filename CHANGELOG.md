@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **The high-charge warning level is now configurable, and can be turned off** (#310) (Settings → Display) — the warning triangle next to the battery percentage used to appear above a fixed 90%. Pick the level it appears at, or "Never" to hide it: cars with an LFP battery (Standard Range Model 3/Y) are meant to be charged to 100%, so the warning never applied to them. Tapping the warning now also says where to change it.
+- **The charge warning levels are now configurable, and can be turned off** (#310) (Settings → Display) — the warning triangle next to the battery percentage used to appear above a fixed 90%, and the percentage turned red below a fixed 20%. Both are now yours to pick, or set to "Never": cars with an LFP battery (Standard Range Model 3/Y) are meant to be charged to 100%, so the high warning never applied to them, and how low is "low" depends on the car and how you drive it. The low level also applies to the widget (amber still covers the 20 points just above it). Tapping the high-charge warning now says where to change it.
 - **The "short drives / charges" thresholds are now configurable** (Settings → Display) — pick the minimum drive duration, minimum drive distance and minimum charge energy that count as worth listing, instead of the previously fixed 1 min / 1 km / 0.1 kWh. Each can also be set to "no minimum". As before, hidden entries are still counted in every total, average and statistic, so changing a threshold only affects what the lists show — no resync needed.
 
 ### Changed

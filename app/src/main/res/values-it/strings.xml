@@ -236,10 +236,15 @@
     <!-- Configurable level for the dashboard high-charge warning (Display section) -->
     <string name="settings_high_soc_hint">La schermata principale segnala una carica elevata quando l\'auto è parcheggiata sopra questo livello. Le batterie LFP (Standard Range) sono progettate per restare a piena carica, quindi scegli Mai se è il caso della tua auto.</string>
     <string name="settings_high_soc_threshold_label">Avvisa sopra</string>
-    <!-- Shown when the high-charge warning is switched off -->
-    <string name="settings_high_soc_never">Mai</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">Mai</string>
     <!-- A high-charge warning level, e.g. "Above 90%" -->
     <string name="settings_high_soc_value">Sopra il %1$d%%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">Sotto questo livello la percentuale della batteria diventa rossa sulla schermata principale e sul widget, e ambra nei 20 punti appena sopra.</string>
+    <string name="settings_low_soc_threshold_label">Avvisa sotto</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">Sotto il %1$d%%</string>
 
     <string name="settings_group_costs">Costi</string>
     <string name="settings_group_lists">Elenchi</string>

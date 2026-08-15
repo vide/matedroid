@@ -52,6 +52,7 @@ import com.matedroid.data.api.models.ChargingDetails
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.CarImageOverride
 import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.model.BatteryTypeHelper
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.calculateAcGaugeProgress
@@ -80,6 +81,7 @@ internal fun BatteryCard(
     isCurrentChargeAvailable: Boolean = false,
     sentryEventCount: Int = 0,
     highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
     onNavigateToBattery: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToCurrentCharge: () -> Unit = {},
@@ -91,8 +93,8 @@ internal fun BatteryCard(
 
     val batteryLevel = status.batteryLevel ?: 0
     val batteryColor = when {
-        batteryLevel < 20 -> StatusError
-        batteryLevel < 40 -> StatusWarning
+        LowSocWarning.isLow(batteryLevel, lowSocWarningThreshold) -> StatusError
+        LowSocWarning.isGettingLow(batteryLevel, lowSocWarningThreshold) -> StatusWarning
         else -> palette.onSurface
     }
     val chargeLimit = status.chargeLimitSoc ?: 100

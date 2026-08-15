@@ -236,10 +236,15 @@
     <!-- Configurable level for the dashboard high-charge warning (Display section) -->
     <string name="settings_high_soc_hint">Das Dashboard weist auf einen hohen Ladezustand hin, wenn das Auto oberhalb dieses Werts abgestellt ist. LFP-Batterien (Standard Range) sind dafür ausgelegt, voll geladen zu bleiben – wähle dann Nie.</string>
     <string name="settings_high_soc_threshold_label">Warnen über</string>
-    <!-- Shown when the high-charge warning is switched off -->
-    <string name="settings_high_soc_never">Nie</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">Nie</string>
     <!-- A high-charge warning level, e.g. "Above 90%" -->
     <string name="settings_high_soc_value">Über %1$d %%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">Unterhalb dieses Werts wird der Batteriestand auf dem Dashboard und im Widget rot dargestellt, in den 20 Punkten darüber gelb.</string>
+    <string name="settings_low_soc_threshold_label">Warnen unter</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">Unter %1$d %%</string>
 
     <string name="settings_group_costs">Kosten</string>
     <string name="settings_group_lists">Listen</string>

@@ -239,10 +239,15 @@
     <!-- Configurable level for the dashboard high-charge warning (Display section) -->
     <string name="settings_high_soc_hint">The dashboard flags a high state of charge when the car is parked above this level. LFP batteries (Standard Range) are designed to sit at full charge, so pick Never if that is your car.</string>
     <string name="settings_high_soc_threshold_label">Warn above</string>
-    <!-- Shown when the high-charge warning is switched off -->
-    <string name="settings_high_soc_never">Never</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">Never</string>
     <!-- A high-charge warning level, e.g. "Above 90%" -->
     <string name="settings_high_soc_value">Above %1$d%%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">Below this level the battery percentage turns red on the dashboard and the widget, and amber for the 20 points just above it.</string>
+    <string name="settings_low_soc_threshold_label">Warn below</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">Below %1$d%%</string>
 
     <string name="settings_group_costs">Costs</string>
     <string name="settings_group_lists">Lists</string>

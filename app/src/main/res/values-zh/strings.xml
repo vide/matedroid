@@ -236,10 +236,15 @@
     <!-- Configurable level for the dashboard high-charge warning (Display section) -->
     <string name="settings_high_soc_hint">当车辆停放且电量高于此水平时，主界面会标记高电量状态。LFP 电池（标准续航版）本就适合保持满电，如果你的车是这种电池，请选择「从不」。</string>
     <string name="settings_high_soc_threshold_label">高于此电量时提醒</string>
-    <!-- Shown when the high-charge warning is switched off -->
-    <string name="settings_high_soc_never">从不</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">从不</string>
     <!-- A high-charge warning level, e.g. "Above 90%" -->
     <string name="settings_high_soc_value">高于 %1$d%%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">低于此电量时，主界面和小组件上的电量百分比显示为红色，往上 20 个百分点内显示为琥珀色。</string>
+    <string name="settings_low_soc_threshold_label">低于此电量时提醒</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">低于 %1$d%%</string>
 
     <string name="settings_group_costs">费用</string>
     <string name="settings_group_lists">列表</string>

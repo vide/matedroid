@@ -3,6 +3,7 @@ package com.matedroid.widget
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.local.CarImageOverride
+import com.matedroid.domain.LowSocWarning
 
 /**
  * Data class encapsulating all fields shown on the dashboard battery card.
@@ -47,6 +48,8 @@ data class CarWidgetDisplayData(
     val locationText: String? = null,
     // --- Unit preference ---
     val isImperial: Boolean = false,
+    /** Level below which the percentage reads as low; see [com.matedroid.domain.LowSocWarning]. */
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
 ) {
     companion object {
         fun from(carData: CarData, status: CarStatus): CarWidgetDisplayData {

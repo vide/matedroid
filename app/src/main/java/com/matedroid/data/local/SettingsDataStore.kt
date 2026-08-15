@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +61,7 @@ data class AppSettings(
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
     val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
     val teslamateBaseUrl: String = "",
     val lastSelectedCarId: Int? = null
 ) {
@@ -86,6 +88,7 @@ class SettingsDataStore @Inject constructor(
     private val shortDriveMinDistanceKey = doublePreferencesKey("short_drive_min_distance")
     private val shortChargeMinEnergyKey = doublePreferencesKey("short_charge_min_energy_kwh")
     private val highSocWarningThresholdKey = intPreferencesKey("high_soc_warning_threshold")
+    private val lowSocWarningThresholdKey = intPreferencesKey("low_soc_warning_threshold")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
@@ -125,6 +128,8 @@ class SettingsDataStore @Inject constructor(
                 ?: ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
             highSocWarningThreshold = preferences[highSocWarningThresholdKey]
                 ?: HighSocWarning.DEFAULT_THRESHOLD,
+            lowSocWarningThreshold = preferences[lowSocWarningThresholdKey]
+                ?: LowSocWarning.DEFAULT_THRESHOLD,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
             lastSelectedCarId = preferences[lastSelectedCarIdKey]
         )
@@ -242,6 +247,16 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveHighSocWarningThreshold(threshold: Int) {
         context.dataStore.edit { preferences ->
             preferences[highSocWarningThresholdKey] = threshold
+        }
+    }
+
+    /**
+     * Battery level below which the percentage reads as low (red).
+     * [LowSocWarning.DISABLED] leaves it in the palette colour — see [LowSocWarning].
+     */
+    suspend fun saveLowSocWarningThreshold(threshold: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[lowSocWarningThresholdKey] = threshold
         }
     }
 

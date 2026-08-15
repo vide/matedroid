@@ -22,6 +22,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.LowSocWarning
 import kotlinx.coroutines.flow.firstOrNull
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -134,6 +135,10 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
         // Read image overrides once (same source as the dashboard)
         val imageOverrides = settingsDataStore.carImageOverrides.firstOrNull() ?: emptyMap()
 
+        // The low-charge colouring follows the same preference as the dashboard
+        val lowSocWarningThreshold = settingsDataStore.settings.firstOrNull()?.lowSocWarningThreshold
+            ?: LowSocWarning.DEFAULT_THRESHOLD
+
         // Fetch all cars once to avoid redundant API calls
         val carsResult = teslamateRepository.getCars()
         val cars = when (carsResult) {
@@ -166,7 +171,8 @@ class CarWidgetUpdateWorker @AssistedInject constructor(
                     sentryEventCount = sentryEventCount,
                     imageOverride = imageOverrides[carId],
                     locationText = locationText,
-                    isImperial = isImperial
+                    isImperial = isImperial,
+                    lowSocWarningThreshold = lowSocWarningThreshold
                 )
                 CarWidget().updateWidget(appContext, glanceId, displayData)
                 Log.d(TAG, "Updated widget for car $carId (${car.displayName})")

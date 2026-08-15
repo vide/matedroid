@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.model.Trip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -270,6 +271,7 @@ fun DashboardScreen(
                         sentryEventCount = uiState.sentryEventCount,
                         dcFinishedPluggedIn = uiState.dcFinishedPluggedIn,
                         highSocWarningThreshold = uiState.highSocWarningThreshold,
+                        lowSocWarningThreshold = uiState.lowSocWarningThreshold,
                         onNavigateToCharges = {
                             uiState.selectedCarId?.let { carId ->
                                 onNavigateToCharges(carId, uiState.selectedCarExterior?.exteriorColor)
@@ -566,6 +568,7 @@ private fun DashboardContent(
     sentryEventCount: Int = 0,
     dcFinishedPluggedIn: Boolean = false,
     highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
     onNavigateToCharges: () -> Unit = {},
     onNavigateToDrives: () -> Unit = {},
     onNavigateToBattery: () -> Unit = {},
@@ -624,6 +627,7 @@ private fun DashboardContent(
             isCurrentChargeAvailable = isCurrentChargeAvailable,
             sentryEventCount = sentryEventCount,
             highSocWarningThreshold = highSocWarningThreshold,
+            lowSocWarningThreshold = lowSocWarningThreshold,
             onNavigateToBattery = onNavigateToBattery,
             onNavigateToStats = onNavigateToStats,
             onNavigateToCurrentCharge = onNavigateToCurrentCharge,
