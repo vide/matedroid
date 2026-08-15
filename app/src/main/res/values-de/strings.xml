@@ -454,8 +454,9 @@
     <string name="elevation_descent">Abstieg</string>
     <string name="elevation_net">Netto</string>
     <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
-    <string name="elevation_partial_label">%1$s · %2$d%%</string>
-    <string name="elevation_partial_note">Die Höhe wurde nur für %1$d%% dieser Fahrt aufgezeichnet, diese Werte decken also nur diesen Teil ab.</string>
+    <string name="elevation_partial_warning">Unvollständige Höhendaten</string>
+    <string name="elevation_partial_title">Unvollständige Höhendaten</string>
+    <string name="elevation_partial_message">Das Auto zeichnet die Höhe nur auf, während TeslaMate sie abfragt. Auf dieser Fahrt geschah das nur für %1$d%% der Strecke, für den Rest gibt es also gar keine Höhe.\n\nAlle Werte hier (Anstieg, Abstieg, Netto, Minimum, Maximum und das Höhenprofil) werden allein aus diesem Teil berechnet und können daher weit von der tatsächlichen Fahrt abweichen. Eine Fahrt, die fast auf Meereshöhe endet, kann zum Beispiel trotzdem ein hohes Minimum zeigen.\n\nDas ist eine Lücke in den aufgezeichneten Daten und nichts, was die App neu berechnen kann.</string>
     <string name="outside">Außen</string>
     <string name="inside">Innen</string>
 

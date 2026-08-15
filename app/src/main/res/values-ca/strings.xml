@@ -453,8 +453,9 @@
     <string name="elevation_descent">Descens</string>
     <string name="elevation_net">Net</string>
     <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
-    <string name="elevation_partial_label">%1$s · %2$d%%</string>
-    <string name="elevation_partial_note">L\'altitud només es va registrar durant el %1$d%% d\'aquest trajecte, així que aquests valors només cobreixen aquesta part.</string>
+    <string name="elevation_partial_warning">Dades d\'altitud incompletes</string>
+    <string name="elevation_partial_title">Dades d\'altitud incompletes</string>
+    <string name="elevation_partial_message">El cotxe només registra l\'altitud mentre TeslaMate la consulta. En aquest trajecte això va passar només durant el %1$d%% del recorregut, així que la resta no té cap altitud.\n\nTots els valors d\'aquí (ascens, descens, net, mínim, màxim i el gràfic de perfil) es calculen només amb aquesta part, de manera que poden allunyar-se molt del trajecte real. Un trajecte que acaba gairebé al nivell del mar pot mostrar un mínim alt, per exemple.\n\nÉs un buit en les dades registrades, no res que l\'app pugui recalcular.</string>
     <string name="outside">Exterior</string>
     <string name="inside">Interior</string>
 

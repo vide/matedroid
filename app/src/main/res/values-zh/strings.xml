@@ -453,8 +453,9 @@
     <string name="elevation_descent">下降</string>
     <string name="elevation_net">净变化</string>
     <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
-    <string name="elevation_partial_label">%1$s · %2$d%%</string>
-    <string name="elevation_partial_note">本次行程仅记录了 %1$d%% 的海拔数据，因此这些数值只涵盖该部分。</string>
+    <string name="elevation_partial_warning">海拔数据不完整</string>
+    <string name="elevation_partial_title">海拔数据不完整</string>
+    <string name="elevation_partial_message">只有在 TeslaMate 轮询时，车辆才会记录海拔。本次行程中这只发生在 %1$d%% 的路段，其余路段完全没有海拔数据。\n\n这里的所有数值（爬升、下降、净变化、最小值、最大值以及剖面图）都仅根据该部分计算，因此可能与实际行程相差很大。例如，一次在接近海平面结束的行程仍可能显示很高的最小值。\n\n这是记录数据本身的缺失，应用无法重新计算。</string>
     <string name="outside">车外</string>
     <string name="inside">车内</string>
 
