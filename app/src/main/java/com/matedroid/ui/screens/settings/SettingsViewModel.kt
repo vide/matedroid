@@ -18,6 +18,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.AppTimeZone
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
@@ -46,6 +47,7 @@ data class SettingsUiState(
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+    val timeZoneMode: String = AppTimeZone.MODE_SERVER,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -112,6 +114,7 @@ class SettingsViewModel @Inject constructor(
                 shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
                 shortDriveMinDistance = settings.shortDriveMinDistance,
                 shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
+                timeZoneMode = settings.timeZoneMode,
                 isLoading = false
             )
         }
@@ -184,6 +187,18 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showShortDrivesCharges = show)
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
+        }
+    }
+
+    /**
+     * [mode] is [AppTimeZone.MODE_SERVER], [AppTimeZone.MODE_DEVICE], or a zone id. The mirror
+     * is updated synchronously so dates re-render on the way back out of Settings.
+     */
+    fun updateTimeZoneMode(mode: String) {
+        _uiState.value = _uiState.value.copy(timeZoneMode = mode)
+        AppTimeZone.mode = mode
+        viewModelScope.launch {
+            settingsDataStore.saveTimeZoneMode(mode)
         }
     }
 

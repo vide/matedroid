@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **You can now choose which time zone times are shown in** (Settings → Display → Time zone). The default is unchanged — TeslaMate server time, which matches the TeslaMate web interface and shows each drive at the time it happened. You can switch to your phone's time zone, or pick a specific one. Useful if your TeslaMate runs with the default Docker time zone (UTC), which previously made every time read wrong by your whole offset with no way to correct it.
 - **The "short drives / charges" thresholds are now configurable** (Settings → Display) — pick the minimum drive duration, minimum drive distance and minimum charge energy that count as worth listing, instead of the previously fixed 1 min / 1 km / 0.1 kWh. Each can also be set to "no minimum". As before, hidden entries are still counted in every total, average and statistic, so changing a threshold only affects what the lists show — no resync needed.
 
 ### Changed

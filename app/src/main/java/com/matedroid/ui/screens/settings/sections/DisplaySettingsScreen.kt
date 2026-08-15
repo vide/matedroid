@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.settings.sections
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -29,6 +30,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.model.Currency
+import com.matedroid.domain.AppTimeZone
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.domain.UnitSystem
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
@@ -58,8 +60,10 @@ fun DisplaySettingsScreen(
         shortDriveMinDurationMin = uiState.shortDriveMinDurationMin,
         shortDriveMinDistance = uiState.shortDriveMinDistance,
         shortChargeMinEnergyKwh = uiState.shortChargeMinEnergyKwh,
+        timeZoneMode = uiState.timeZoneMode,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
+        onTimeZoneModeChange = viewModel::updateTimeZoneMode,
         onCurrencyChange = viewModel::updateCurrency,
         onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
         onShortDriveMinDurationChange = viewModel::updateShortDriveMinDuration,
@@ -75,8 +79,10 @@ private fun DisplaySettingsContent(
     shortDriveMinDurationMin: Int,
     shortDriveMinDistance: Double,
     shortChargeMinEnergyKwh: Double,
+    timeZoneMode: String,
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
+    onTimeZoneModeChange: (String) -> Unit,
     onCurrencyChange: (String) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
     onShortDriveMinDurationChange: (Int) -> Unit,
@@ -91,6 +97,22 @@ private fun DisplaySettingsContent(
         onBack = onNavigateBack,
         snackbarHostState = snackbarHostState
     ) {
+        SettingsGroupHeader(stringResource(R.string.settings_group_datetime))
+
+        TimeZonePicker(
+            mode = timeZoneMode,
+            onModeChange = onTimeZoneModeChange
+        )
+
+        Text(
+            text = stringResource(R.string.settings_timezone_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
+        SettingsSpacer(24)
+
         SettingsGroupHeader(stringResource(R.string.settings_group_costs))
 
         val selectedCurrency = Currency.findByCode(currencyCode)
@@ -313,8 +335,10 @@ private fun DisplaySettingsPreview() {
             shortDriveMinDurationMin = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
             shortDriveMinDistance = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
             shortChargeMinEnergyKwh = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+            timeZoneMode = AppTimeZone.MODE_SERVER,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
+            onTimeZoneModeChange = {},
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onShortDriveMinDurationChange = {},

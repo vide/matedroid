@@ -216,6 +216,18 @@
     <string name="settings_group_server">Servidor</string>
     <string name="settings_group_authentication">Autenticació</string>
     <string name="settings_group_security">Seguretat</string>
+    <!-- Time zone preference (Display section) -->
+    <string name="settings_group_datetime">Data i hora</string>
+    <string name="settings_timezone_label">Zona horària</string>
+    <string name="settings_timezone_hint">La zona en què es mostren les hores. L\'hora del servidor TeslaMate coincideix amb la interfície web de TeslaMate i mostra cada trajecte a l\'hora en què va passar.</string>
+    <string name="settings_timezone_server">Servidor TeslaMate</string>
+    <!-- %1$s is the device's current time zone, e.g. Europe/Madrid -->
+    <string name="settings_timezone_device">Aquest dispositiu (%1$s)</string>
+    <string name="settings_timezone_pick">Tria una zona horària…</string>
+    <string name="settings_timezone_search">Cerca</string>
+    <!-- Content description for the time zone dropdown arrow -->
+    <string name="settings_timezone_select">Selecciona la zona horària</string>
+
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">Els trajectes i les càrregues per sota d\'aquests valors s\'amaguen de les llistes. Sempre es compten en els totals i les estadístiques.</string>
     <string name="settings_threshold_drive_duration_label">Durada mínima del trajecte</string>
