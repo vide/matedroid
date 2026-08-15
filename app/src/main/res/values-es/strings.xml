@@ -115,12 +115,14 @@
     <!-- AC (Alternating Current) charging indicator badge -->
     <string name="charging_ac">AC</string>
 
-    <!-- Content description for warning icon when battery is above 90% -->
+    <!-- Content description for warning icon when battery is above the configured warning level -->
     <string name="high_charge_level">Nivel de carga alto</string>
 
     <!-- Title and message for the high SoC info dialog shown when tapping the warning icon -->
     <string name="high_soc_warning_title">Estado de carga elevado</string>
     <string name="high_soc_warning_message">Mantener la batería al 100% o cerca de ese valor durante períodos prolongados puede acelerar la degradación.\n\n• Baterías NCM (la mayoría de los modelos Tesla): se recomienda cargar al 80–90% para el uso diario. Carga al 100% solo antes de viajes largos.\n• Baterías LFP (Model 3/Y Standard Range): diseñadas para cargarse regularmente al 100% — Tesla lo recomienda para la calibración de la batería.\n\nEvita dejar el coche aparcado con la carga completa durante períodos prolongados siempre que sea posible.</string>
+    <!-- Footer of the same dialog, pointing at the setting that changes or hides the warning -->
+    <string name="high_soc_warning_settings_hint">Puedes cambiar el nivel al que aparece este aviso — o desactivarlo — en Ajustes → Pantalla.</string>
 
     <!-- Location card section title -->
     <string name="location">Ubicación</string>
@@ -231,8 +233,17 @@
     <string name="settings_threshold_value_mi">%1$s mi</string>
     <string name="settings_threshold_value_kwh">%1$s kWh</string>
 
+    <!-- Configurable level for the dashboard high-charge warning (Display section) -->
+    <string name="settings_high_soc_hint">La pantalla principal marca una carga elevada cuando el coche está aparcado por encima de este nivel. Las baterías LFP (Standard Range) están diseñadas para permanecer a plena carga, así que elige Nunca si es el caso de tu coche.</string>
+    <string name="settings_high_soc_threshold_label">Avisar por encima de</string>
+    <!-- Shown when the high-charge warning is switched off -->
+    <string name="settings_high_soc_never">Nunca</string>
+    <!-- A high-charge warning level, e.g. "Above 90%" -->
+    <string name="settings_high_soc_value">Por encima del %1$d%%</string>
+
     <string name="settings_group_costs">Costes</string>
     <string name="settings_group_lists">Listas</string>
+    <string name="settings_group_battery">Batería</string>
     <string name="settings_group_channels">Canales de notificación</string>
     <string name="settings_group_maintenance">Mantenimiento</string>
     <string name="settings_group_support">Soporte</string>

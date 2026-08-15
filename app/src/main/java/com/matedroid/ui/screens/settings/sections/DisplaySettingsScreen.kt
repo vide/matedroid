@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.model.Currency
+import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.domain.UnitSystem
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
@@ -58,13 +59,15 @@ fun DisplaySettingsScreen(
         shortDriveMinDurationMin = uiState.shortDriveMinDurationMin,
         shortDriveMinDistance = uiState.shortDriveMinDistance,
         shortChargeMinEnergyKwh = uiState.shortChargeMinEnergyKwh,
+        highSocWarningThreshold = uiState.highSocWarningThreshold,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onCurrencyChange = viewModel::updateCurrency,
         onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
         onShortDriveMinDurationChange = viewModel::updateShortDriveMinDuration,
         onShortDriveMinDistanceChange = viewModel::updateShortDriveMinDistance,
-        onShortChargeMinEnergyChange = viewModel::updateShortChargeMinEnergy
+        onShortChargeMinEnergyChange = viewModel::updateShortChargeMinEnergy,
+        onHighSocWarningThresholdChange = viewModel::updateHighSocWarningThreshold
     )
 }
 
@@ -75,13 +78,15 @@ private fun DisplaySettingsContent(
     shortDriveMinDurationMin: Int,
     shortDriveMinDistance: Double,
     shortChargeMinEnergyKwh: Double,
+    highSocWarningThreshold: Int,
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
     onCurrencyChange: (String) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
     onShortDriveMinDurationChange: (Int) -> Unit,
     onShortDriveMinDistanceChange: (Double) -> Unit,
-    onShortChargeMinEnergyChange: (Double) -> Unit
+    onShortChargeMinEnergyChange: (Double) -> Unit,
+    onHighSocWarningThresholdChange: (Int) -> Unit
 ) {
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
     var showShortDrivesChargesInfoDialog by remember { mutableStateOf(false) }
@@ -238,6 +243,33 @@ private fun DisplaySettingsContent(
             },
             onValueChange = onShortChargeMinEnergyChange
         )
+
+        SettingsSpacer(24)
+
+        SettingsGroupHeader(stringResource(R.string.settings_group_battery))
+
+        Text(
+            text = stringResource(R.string.settings_high_soc_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SettingsSpacer()
+
+        ThresholdPicker(
+            label = stringResource(R.string.settings_high_soc_threshold_label),
+            value = highSocWarningThreshold,
+            options = HighSocWarning.PRESETS,
+            enabled = true,
+            optionLabel = { level ->
+                if (level == HighSocWarning.DISABLED) {
+                    stringResource(R.string.settings_high_soc_never)
+                } else {
+                    stringResource(R.string.settings_high_soc_value, level)
+                }
+            },
+            onValueChange = onHighSocWarningThresholdChange
+        )
     }
 }
 
@@ -313,13 +345,15 @@ private fun DisplaySettingsPreview() {
             shortDriveMinDurationMin = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
             shortDriveMinDistance = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
             shortChargeMinEnergyKwh = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+            highSocWarningThreshold = HighSocWarning.DEFAULT_THRESHOLD,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onCurrencyChange = {},
             onShowShortDrivesChargesChange = {},
             onShortDriveMinDurationChange = {},
             onShortDriveMinDistanceChange = {},
-            onShortChargeMinEnergyChange = {}
+            onShortChargeMinEnergyChange = {},
+            onHighSocWarningThresholdChange = {}
         )
     }
 }

@@ -79,6 +79,23 @@ Settings is a **category list → detail page** structure (the pattern Android a
 3. Create the composable in `ui/screens/settings/sections/`, wrapping the content in `SettingsSectionScaffold`.
 4. Add the branch to the `when` in `NavGraph.kt`'s `composable<Screen.SettingsSection>`.
 
+#### High state-of-charge warning
+
+The warning triangle next to the battery percentage on the dashboard fires above a
+**user-configurable level** (Settings → Display → "Warn above", default 90%, presets in
+`domain/HighSocWarning.kt`). `HighSocWarning.DISABLED` (`0`) is the "Never" option and hides it
+entirely — that is the LFP case (#310): those packs are meant to be charged to 100% regularly, so
+the warning is wrong for them.
+
+The chemistry is **not** auto-detected. `BatteryTypeHelper` infers LFP from `trim_badging == "50"`
+for the DC power ceiling, but that badging is not reliable enough across markets and model years to
+silence a battery-health warning on, so the level is a preference instead.
+
+The predicate lives in `HighSocWarning.shouldWarn(batteryLevel, isCharging, threshold)` — a charging
+car is never flagged, since it is on its way to the limit set in the car. The threshold reaches
+`BatteryCard` through `DashboardUiState`, which `DashboardViewModel` keeps in sync with the DataStore
+flow (not a one-shot read) so a change applies on the way back from Settings.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:

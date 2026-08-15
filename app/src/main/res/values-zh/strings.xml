@@ -115,12 +115,14 @@
     <!-- AC (Alternating Current) charging indicator badge -->
     <string name="charging_ac">AC</string>
 
-    <!-- Content description for warning icon when battery is above 90% -->
+    <!-- Content description for warning icon when battery is above the configured warning level -->
     <string name="high_charge_level">电量过高</string>
 
     <!-- Title and message for the high SoC info dialog shown when tapping the warning icon -->
     <string name="high_soc_warning_title">高电量状态</string>
     <string name="high_soc_warning_message">长时间将电池保持在 100% 或接近满电状态可能会加速电池老化。\n\n• NCM 电池（大多数 Tesla 车型）：日常使用建议充电至 80–90%。仅在长途出行前充至 100%。\n• LFP 电池（标准续航版 Model 3/Y）：可以经常充至 100%——Tesla 建议定期满充以校准电池。\n\n请尽量避免车辆长时间停放在满电状态。</string>
+    <!-- Footer of the same dialog, pointing at the setting that changes or hides the warning -->
+    <string name="high_soc_warning_settings_hint">你可以在「设置 → 显示」中调整该提示出现的电量，或将其关闭。</string>
 
     <!-- Location card section title -->
     <string name="location">位置</string>
@@ -231,8 +233,17 @@
     <string name="settings_threshold_value_mi">%1$s mi</string>
     <string name="settings_threshold_value_kwh">%1$s kWh</string>
 
+    <!-- Configurable level for the dashboard high-charge warning (Display section) -->
+    <string name="settings_high_soc_hint">当车辆停放且电量高于此水平时，主界面会标记高电量状态。LFP 电池（标准续航版）本就适合保持满电，如果你的车是这种电池，请选择「从不」。</string>
+    <string name="settings_high_soc_threshold_label">高于此电量时提醒</string>
+    <!-- Shown when the high-charge warning is switched off -->
+    <string name="settings_high_soc_never">从不</string>
+    <!-- A high-charge warning level, e.g. "Above 90%" -->
+    <string name="settings_high_soc_value">高于 %1$d%%</string>
+
     <string name="settings_group_costs">费用</string>
     <string name="settings_group_lists">列表</string>
+    <string name="settings_group_battery">电池</string>
     <string name="settings_group_channels">通知渠道</string>
     <string name="settings_group_maintenance">维护</string>
     <string name="settings_group_support">支持</string>

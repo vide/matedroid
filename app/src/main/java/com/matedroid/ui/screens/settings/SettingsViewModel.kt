@@ -18,6 +18,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
@@ -46,6 +47,7 @@ data class SettingsUiState(
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+    val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -112,6 +114,7 @@ class SettingsViewModel @Inject constructor(
                 shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
                 shortDriveMinDistance = settings.shortDriveMinDistance,
                 shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
+                highSocWarningThreshold = settings.highSocWarningThreshold,
                 isLoading = false
             )
         }
@@ -200,6 +203,13 @@ class SettingsViewModel @Inject constructor(
     fun updateShortChargeMinEnergy(energyKwh: Double) {
         _uiState.value = _uiState.value.copy(shortChargeMinEnergyKwh = energyKwh)
         persistShortEntryThresholds()
+    }
+
+    fun updateHighSocWarningThreshold(threshold: Int) {
+        _uiState.value = _uiState.value.copy(highSocWarningThreshold = threshold)
+        viewModelScope.launch {
+            settingsDataStore.saveHighSocWarningThreshold(threshold)
+        }
     }
 
     /**

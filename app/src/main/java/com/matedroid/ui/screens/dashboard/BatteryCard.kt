@@ -51,6 +51,7 @@ import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.ChargingDetails
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.CarImageOverride
+import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.model.BatteryTypeHelper
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.calculateAcGaugeProgress
@@ -78,6 +79,7 @@ internal fun BatteryCard(
     carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     isCurrentChargeAvailable: Boolean = false,
     sentryEventCount: Int = 0,
+    highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
     onNavigateToBattery: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToCurrentCharge: () -> Unit = {},
@@ -107,10 +109,20 @@ internal fun BatteryCard(
                 )
             },
             text = {
-                Text(
-                    text = stringResource(R.string.high_soc_warning_message),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.high_soc_warning_message),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // The LFP owners this warning does not apply to are exactly the people
+                    // reading this dialog, so point them at the setting that turns it off.
+                    Text(
+                        text = stringResource(R.string.high_soc_warning_settings_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = { showHighSocDialog = false }) {
@@ -198,7 +210,7 @@ internal fun BatteryCard(
                             )
                         }
                     }
-                    if (batteryLevel > 90 && !status.isCharging) {
+                    if (HighSocWarning.shouldWarn(batteryLevel, status.isCharging, highSocWarningThreshold)) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Icon(
                             imageVector = Icons.Filled.Warning,
@@ -639,6 +651,28 @@ private fun BatteryCardDcChargingLfpPreview() {
             ),
             units = null,
             carTrimBadging = "50"  // LFP battery, max 170kW
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Parked Full - Warning Off")
+@Composable
+private fun BatteryCardFullWarningDisabledPreview() {
+    MateDroidTheme {
+        BatteryCard(
+            status = CarStatus(
+                displayName = "My Tesla",
+                state = "asleep",
+                batteryDetails = BatteryDetails(
+                    batteryLevel = 100,
+                    ratedBatteryRange = 400.0
+                ),
+                chargingDetails = ChargingDetails(chargeLimitSoc = 100)
+            ),
+            units = null,
+            carTrimBadging = "50",
+            // What an LFP owner sees once the warning is turned off (issue #310)
+            highSocWarningThreshold = HighSocWarning.DISABLED
         )
     }
 }
