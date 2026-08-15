@@ -72,9 +72,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -510,7 +512,7 @@ private data class DriveTile(val label: String, val value: String, val warning: 
  * number has a caveat", the dialog says which one.
  */
 @Composable
-private fun ElevationWarningIcon(size: Dp = 16.dp, onClick: (() -> Unit)? = null) {
+private fun ElevationWarningIcon(size: Dp = WARNING_ICON_SIZE, onClick: (() -> Unit)? = null) {
     Icon(
         imageVector = Icons.Filled.Warning,
         contentDescription = stringResource(R.string.elevation_partial_warning),
@@ -555,6 +557,14 @@ private fun DriveStatTile(
     onWarningClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Both rows are given the height their text would take at full size, so tiles in a row stay
+    // the same height whatever they hold: a value shrunk by autoSize draws a shorter line, and a
+    // label paired with the warning icon a taller one, and either would otherwise resize the tile.
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val valueStyle = MaterialTheme.typography.titleLarge
+    val labelHeight = labelStyle.lineHeightDp().coerceAtLeast(WARNING_ICON_SIZE)
+    val valueHeight = valueStyle.lineHeightDp()
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
@@ -563,10 +573,13 @@ private fun DriveStatTile(
             .padding(vertical = 12.dp, horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.height(labelHeight)
+        ) {
             Text(
                 text = label.uppercase(java.util.Locale.getDefault()),
-                style = MaterialTheme.typography.labelSmall,
+                style = labelStyle,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
@@ -576,20 +589,41 @@ private fun DriveStatTile(
                 ElevationWarningIcon()
             }
         }
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-            // The elevation tile packs climb and descent into one line, which is far wider than
-            // the other tiles' values: shrink it to fit instead of truncating it.
-            maxLines = 1,
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = 13.sp,
-                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
-                stepSize = 0.5.sp
+        Box(
+            modifier = Modifier.height(valueHeight),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = value,
+                style = valueStyle,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                // The elevation tile packs climb and descent into one line, which is far wider
+                // than the other tiles' values: shrink it to fit instead of truncating it.
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 13.sp,
+                    maxFontSize = valueStyle.fontSize,
+                    stepSize = 0.5.sp
+                )
             )
-        )
+        }
+    }
+}
+
+/** Size of the warning icon inside a stat tile's label row. */
+private val WARNING_ICON_SIZE = 16.dp
+
+/**
+ * The style's line height in dp, so a row can reserve the space its text takes at full size.
+ * Converted through the current density, so it still follows the display and font-size settings.
+ */
+@Composable
+private fun TextStyle.lineHeightDp(): Dp = with(LocalDensity.current) {
+    when {
+        lineHeight.isSp -> lineHeight.toDp()
+        fontSize.isSp -> fontSize.toDp() * 1.25f
+        else -> 0.dp
     }
 }
 
