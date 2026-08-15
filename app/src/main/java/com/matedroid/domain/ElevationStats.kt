@@ -24,13 +24,14 @@ object ElevationStats {
     const val THRESHOLD_M = 5
 
     /**
-     * Share of a drive that must carry elevation samples before its elevation figures mean
-     * anything. Only polled positions carry an elevation, streaming ones don't, so a drive
-     * whose polling dropped out can end up with elevation for a small slice of its route and
-     * nothing for the rest. Every figure derived from that slice (climb, descent, net, min,
-     * max, the profile chart) then describes the slice while looking like it describes the
-     * drive: one real 92 min descent of ~910 m carried elevation for its first 11 min only and
-     * reported a 110 m descent. Below this share the caller should show nothing at all.
+     * Share of a drive that must carry elevation samples before its elevation figures can be
+     * read as describing the whole drive. Only polled positions carry an elevation, streaming
+     * ones don't, so a drive whose polling dropped out can end up with elevation for a small
+     * slice of its route and nothing for the rest. Every figure derived from that slice (climb,
+     * descent, net, min, max, the profile chart) then describes the slice while looking like it
+     * describes the drive: one real 92 min descent of ~910 m carried elevation for its first
+     * 11 min only and reported a 110 m descent. Below this share the figures are still shown,
+     * but every surface showing them has to say which share of the drive they cover.
      */
     const val MIN_COVERAGE = 0.8
 

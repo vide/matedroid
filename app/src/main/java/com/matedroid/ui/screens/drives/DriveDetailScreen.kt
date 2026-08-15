@@ -445,12 +445,21 @@ private fun DriveStatTiles(
 ) {
     val efficiencyLabel = stringResource(R.string.efficiency)
     val temperatureLabel = stringResource(R.string.temperature)
-    val elevationLabel = stringResource(R.string.elevation)
+    // A partial drive says so right in the tile label ("ELEVATION · 12%"): the figure next to
+    // efficiency and temperature has to carry its own caveat, there is no room for a caption.
+    val elevationLabel = if (stats.isElevationPartial) {
+        stringResource(
+            R.string.elevation_partial_label,
+            stringResource(R.string.elevation),
+            stats.elevationCoveragePercent
+        )
+    } else {
+        stringResource(R.string.elevation)
+    }
 
     // Climb and descent are shown together: on a downhill drive the climb alone says nothing
     // about where the drive actually went.
-    val hasElevation = stats.hasReliableElevation &&
-        (stats.elevationClimb > 0 || stats.elevationDescent > 0)
+    val hasElevation = stats.elevationClimb > 0 || stats.elevationDescent > 0
     val elevationValue = if (hasElevation) {
         stringResource(
             R.string.elevation_climb_descent,
@@ -656,10 +665,15 @@ private fun DriveMoreDetails(
                         StatItem(stringResource(R.string.average), "%.1f kW".format(stats.powerAvg))
                     )
                 )
-                if (stats.hasReliableElevation && (stats.elevationMax > 0 || stats.elevationMin > 0)) {
+                if (stats.elevationMax > 0 || stats.elevationMin > 0) {
                     StatsSectionCard(
                         title = stringResource(R.string.elevation),
                         icon = Icons.Default.Landscape,
+                        note = if (stats.isElevationPartial) {
+                            stringResource(R.string.elevation_partial_note, stats.elevationCoveragePercent)
+                        } else {
+                            null
+                        },
                         stats = listOf(
                             StatItem(stringResource(R.string.maximum), UnitFormatter.formatElevation(stats.elevationMax, units)),
                             StatItem(stringResource(R.string.minimum), UnitFormatter.formatElevation(stats.elevationMin, units)),
@@ -699,11 +713,16 @@ private fun DriveMoreDetails(
                     val hasElevationData = remember(positions) {
                         positions.any { it.elevation != null && it.elevation != 0 }
                     }
-                    if (hasElevationData && stats.hasReliableElevation) {
+                    if (hasElevationData) {
                         ElevationChartCard(
                             positions = positions,
                             timeLabels = timeLabels,
                             units = units,
+                            note = if (stats.isElevationPartial) {
+                                stringResource(R.string.elevation_partial_note, stats.elevationCoveragePercent)
+                            } else {
+                                null
+                            },
                             externalSelectedFraction = sharedXFraction,
                             onXSelected = onXSelected,
                             fractionToTimeLabel = fractionToTimeLabel
@@ -802,7 +821,8 @@ data class StatItem(val label: String, val value: String)
 private fun StatsSectionCard(
     title: String,
     icon: ImageVector,
-    stats: List<StatItem>
+    stats: List<StatItem>,
+    note: String? = null
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
@@ -864,6 +884,15 @@ private fun StatsSectionCard(
                 if (index < chunked.size - 1) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+            }
+
+            note?.let {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -978,6 +1007,7 @@ private fun ElevationChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
     units: Units?,
+    note: String? = null,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
@@ -1001,6 +1031,7 @@ private fun ElevationChartCard(
         data = elevations,
         color = Color(0xFF8B4513),
         unit = UnitFormatter.getElevationUnit(units),
+        note = note,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
@@ -1015,6 +1046,7 @@ private fun ChartCard(
     data: List<Float>,
     color: Color,
     unit: String,
+    note: String? = null,
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
@@ -1047,6 +1079,15 @@ private fun ChartCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
+                )
+            }
+
+            note?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
 

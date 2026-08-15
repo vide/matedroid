@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.ZoneOffset
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class DriveDetailUiState(
     val isLoading: Boolean = true,
@@ -54,11 +55,11 @@ data class DriveDetailStats(
     /** End elevation minus start elevation: negative on a net-downhill drive. */
     val elevationNet: Int,
     /**
-     * False when the drive carries elevation for too little of its route for any of the figures
-     * above to describe the drive as a whole. The screen hides every elevation surface (tile,
-     * stats card and profile chart) when this is false — see [ElevationStats.MIN_COVERAGE].
+     * Share of the drive's duration that actually carries elevation samples, 0..1. Below
+     * [ElevationStats.MIN_COVERAGE] every figure above describes only part of the route, and
+     * the screen says so on each elevation surface — see [isElevationPartial].
      */
-    val hasReliableElevation: Boolean,
+    val elevationCoverage: Double,
     val batteryStart: Int,
     val batteryEnd: Int,
     val batteryUsed: Int,
@@ -69,7 +70,16 @@ data class DriveDetailStats(
     val avgSpeedFromDistance: Double,
     val outsideTempAvg: Double?,
     val insideTempAvg: Double?
-)
+) {
+    /**
+     * True when the elevation figures describe only part of the route, so every elevation
+     * surface has to say which part rather than passing them off as the whole drive.
+     */
+    val isElevationPartial: Boolean get() = elevationCoverage < ElevationStats.MIN_COVERAGE
+
+    /** [elevationCoverage] as a whole percentage, for display alongside the partial figures. */
+    val elevationCoveragePercent: Int get() = (elevationCoverage * 100).roundToInt()
+}
 
 @HiltViewModel
 class DriveDetailViewModel @Inject constructor(
@@ -215,8 +225,7 @@ class DriveDetailViewModel @Inject constructor(
         val elevationMin = elevations.minOrNull() ?: 0
         val elevationChange = ElevationStats.of(elevations)
         val elevationNet = if (elevations.size >= 2) elevations.last() - elevations.first() else 0
-        val hasReliableElevation = elevations.size >= 2 &&
-            elevationCoverage(positions) >= ElevationStats.MIN_COVERAGE
+        val coverage = if (elevations.size >= 2) elevationCoverage(positions) else 0.0
 
         // Battery stats
         val batteryLevels = positions.mapNotNull { it.batteryLevel }
@@ -245,7 +254,7 @@ class DriveDetailViewModel @Inject constructor(
             elevationClimb = elevationChange.climb,
             elevationDescent = elevationChange.descent,
             elevationNet = elevationNet,
-            hasReliableElevation = hasReliableElevation,
+            elevationCoverage = coverage,
             batteryStart = batteryStart,
             batteryEnd = batteryEnd,
             batteryUsed = batteryUsed,
