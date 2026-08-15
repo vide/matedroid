@@ -453,8 +453,12 @@
     <string name="energy">Energy</string>
     <string name="max_accel">Max (accel)</string>
     <string name="min_regen">Min (regen)</string>
-    <string name="gain">Gain</string>
-    <string name="loss">Loss</string>
+    <!-- Drive elevation: total metres climbed over the whole drive, counting every uphill stretch -->
+    <string name="elevation_climb">Climb</string>
+    <!-- Drive elevation: total metres descended over the whole drive, counting every downhill stretch -->
+    <string name="elevation_descent">Descent</string>
+    <!-- Drive elevation: difference between the end and start elevation of the drive -->
+    <string name="elevation_net">Net</string>
     <string name="outside">Outside</string>
     <string name="inside">Inside</string>
 

@@ -449,8 +449,9 @@
     <string name="energy">能量</string>
     <string name="max_accel">最大（加速）</string>
     <string name="min_regen">最小（回收）</string>
-    <string name="gain">增加</string>
-    <string name="loss">损耗</string>
+    <string name="elevation_climb">爬升</string>
+    <string name="elevation_descent">下降</string>
+    <string name="elevation_net">净变化</string>
     <string name="outside">车外</string>
     <string name="inside">车内</string>
 

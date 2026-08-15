@@ -21,6 +21,7 @@ import com.matedroid.data.local.entity.SchemaVersion
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ElevationStats
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -387,21 +388,14 @@ class SyncRepository @Inject constructor(
         var maxPower: Int? = null
         var minPower: Int? = null
         var climateOnCount = 0
-        var elevationGain = 0
-        var elevationLoss = 0
-        var prevElevation: Int? = null
+        val elevationChange = ElevationStats.Accumulator()
 
         for (pos in positions) {
             // Elevation
             pos.elevation?.let { elev ->
                 maxElevation = maxOf(maxElevation ?: elev, elev)
                 minElevation = minOf(minElevation ?: elev, elev)
-                prevElevation?.let { prev ->
-                    val diff = elev - prev
-                    if (diff > 0) elevationGain += diff
-                    else elevationLoss += -diff
-                }
-                prevElevation = elev
+                elevationChange.add(elev)
             }
 
             // Temperature
@@ -426,8 +420,10 @@ class SyncRepository @Inject constructor(
 
         val firstPosition = positions.firstOrNull()
         val lastPosition = positions.lastOrNull()
-        val startElevation = firstPosition?.elevation
-        val endElevation = lastPosition?.elevation
+        // The first and last few positions of a drive often carry no elevation yet, so scan for
+        // the outermost ones that do instead of reading straight off the edges.
+        val startElevation = positions.firstNotNullOfOrNull { it.elevation }
+        val endElevation = positions.lastOrNull { it.elevation != null }?.elevation
         val hasElevationData = maxElevation != null
 
         // Extract start/end coordinates for geocoding and trip country resolution
@@ -446,8 +442,8 @@ class SyncRepository @Inject constructor(
             minElevation = minElevation,
             startElevation = startElevation,
             endElevation = endElevation,
-            elevationGain = if (hasElevationData) elevationGain else null,
-            elevationLoss = if (hasElevationData) elevationLoss else null,
+            elevationGain = if (hasElevationData) elevationChange.change.climb else null,
+            elevationLoss = if (hasElevationData) elevationChange.change.descent else null,
             hasElevationData = hasElevationData,
 
             maxInsideTemp = maxInsideTemp,

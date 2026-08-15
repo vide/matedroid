@@ -39,10 +39,10 @@ data class DriveDetailAggregate(
     // === Elevation ===
     val maxElevation: Int?,         // meters
     val minElevation: Int?,         // meters
-    val startElevation: Int?,       // meters - first position elevation (V2)
-    val endElevation: Int?,         // meters - last position elevation (V2)
-    val elevationGain: Int?,        // Total meters climbed (accumulated)
-    val elevationLoss: Int?,        // Total meters descended (accumulated)
+    val startElevation: Int?,       // meters - first position with an elevation (V2)
+    val endElevation: Int?,         // meters - last position with an elevation (V2)
+    val elevationGain: Int?,        // Total meters climbed (accumulated, noise-filtered by ElevationStats)
+    val elevationLoss: Int?,        // Total meters descended (accumulated, noise-filtered by ElevationStats)
     val hasElevationData: Boolean,  // False if all positions had null elevation
 
     // === Temperature extremes ===

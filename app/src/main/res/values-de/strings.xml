@@ -450,8 +450,9 @@
     <string name="energy">Energie</string>
     <string name="max_accel">Max (Beschl.)</string>
     <string name="min_regen">Min (Reku)</string>
-    <string name="gain">Gewinn</string>
-    <string name="loss">Verlust</string>
+    <string name="elevation_climb">Anstieg</string>
+    <string name="elevation_descent">Abstieg</string>
+    <string name="elevation_net">Netto</string>
     <string name="outside">Außen</string>
     <string name="inside">Innen</string>
 
