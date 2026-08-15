@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **The "short drives / charges" thresholds are now configurable** (Settings → Display) — pick the minimum drive duration, minimum drive distance and minimum charge energy that count as worth listing, instead of the previously fixed 1 min / 1 km / 0.1 kWh. Each can also be set to "no minimum". As before, hidden entries are still counted in every total, average and statistic, so changing a threshold only affects what the lists show — no resync needed.
+
 ### Changed
 - **Settings are now split into sections** — instead of one long scrolling page, Settings opens a list of categories (Connection, Display, Notifications, Data & sync, About) that each open their own page. The new Notifications page links straight to Android's per-channel settings for charging, sentry and tire-pressure alerts, and the first-run setup now shows only the connection form. Connection settings still have an explicit Save; everything else applies as soon as you change it.
 - **Connection settings are no longer hidden behind "Advanced network settings"** — the secondary server URL, API token, HTTP Basic Auth and certificate options are now laid out in plain view under Server, Authentication and Security headings. If you use MyTeslaMate, the Basic Auth fields you need are visible as soon as you open the page.

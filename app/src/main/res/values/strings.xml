@@ -219,6 +219,21 @@
     <string name="settings_group_server">Server</string>
     <string name="settings_group_authentication">Authentication</string>
     <string name="settings_group_security">Security</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">Drives and charges below these values are hidden from lists. They are always counted in totals and statistics.</string>
+    <string name="settings_threshold_drive_duration_label">Minimum drive duration</string>
+    <string name="settings_threshold_drive_distance_label">Minimum drive distance</string>
+    <string name="settings_threshold_charge_energy_label">Minimum charge energy</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">No minimum</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">Select value</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
     <string name="settings_group_costs">Costs</string>
     <string name="settings_group_lists">Lists</string>
     <string name="settings_group_channels">Notification channels</string>
@@ -296,7 +311,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Short drives &amp; charges</string>
-    <string name="settings_short_dialog_text">When disabled (default), the following are hidden from the lists:\n\n• Drives under 1 minute or less than 1 km\n• Charges of 0.1 kWh or less\n\nThese entries are still included in totals, averages, and statistics. Enable this setting to see all entries in the lists.</string>
+    <string name="settings_short_dialog_text">When disabled (default), drives and charges below the minimum values set below are hidden from the lists.\n\nThese entries are still included in totals, averages, and statistics. Enable this setting to see all entries in the lists.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Force Full Resync</string>

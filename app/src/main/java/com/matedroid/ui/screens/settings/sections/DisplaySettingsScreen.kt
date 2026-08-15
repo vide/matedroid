@@ -29,12 +29,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.model.Currency
+import com.matedroid.domain.ShortEntryFilter
+import com.matedroid.domain.UnitSystem
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
 import com.matedroid.ui.screens.settings.SettingsSwitchRow
 import com.matedroid.ui.screens.settings.SettingsViewModel
 import com.matedroid.ui.theme.MateDroidTheme
+import java.util.Locale
+import kotlin.math.floor
 
 /**
  * How data is presented: currency for costs, and which entries the lists include.
@@ -51,10 +55,16 @@ fun DisplaySettingsScreen(
     DisplaySettingsContent(
         currencyCode = uiState.currencyCode,
         showShortDrivesCharges = uiState.showShortDrivesCharges,
+        shortDriveMinDurationMin = uiState.shortDriveMinDurationMin,
+        shortDriveMinDistance = uiState.shortDriveMinDistance,
+        shortChargeMinEnergyKwh = uiState.shortChargeMinEnergyKwh,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onCurrencyChange = viewModel::updateCurrency,
-        onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges
+        onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
+        onShortDriveMinDurationChange = viewModel::updateShortDriveMinDuration,
+        onShortDriveMinDistanceChange = viewModel::updateShortDriveMinDistance,
+        onShortChargeMinEnergyChange = viewModel::updateShortChargeMinEnergy
     )
 }
 
@@ -62,10 +72,16 @@ fun DisplaySettingsScreen(
 private fun DisplaySettingsContent(
     currencyCode: String,
     showShortDrivesCharges: Boolean,
+    shortDriveMinDurationMin: Int,
+    shortDriveMinDistance: Double,
+    shortChargeMinEnergyKwh: Double,
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
     onCurrencyChange: (String) -> Unit,
-    onShowShortDrivesChargesChange: (Boolean) -> Unit
+    onShowShortDrivesChargesChange: (Boolean) -> Unit,
+    onShortDriveMinDurationChange: (Int) -> Unit,
+    onShortDriveMinDistanceChange: (Double) -> Unit,
+    onShortChargeMinEnergyChange: (Double) -> Unit
 ) {
     var currencyDropdownExpanded by remember { mutableStateOf(false) }
     var showShortDrivesChargesInfoDialog by remember { mutableStateOf(false) }
@@ -151,8 +167,141 @@ private fun DisplaySettingsContent(
                 }
             )
         }
+
+        // The thresholds only do anything while short entries are being hidden, so they are
+        // disabled (not removed) when the switch is on — leaving them visible keeps the rule
+        // discoverable and stops the section from reflowing as the switch is toggled.
+        val thresholdsEnabled = !showShortDrivesCharges
+
+        SettingsSpacer()
+
+        Text(
+            text = stringResource(R.string.settings_thresholds_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SettingsSpacer()
+
+        ThresholdPicker(
+            label = stringResource(R.string.settings_threshold_drive_duration_label),
+            value = shortDriveMinDurationMin,
+            options = ShortEntryFilter.DRIVE_DURATION_PRESETS_MIN,
+            enabled = thresholdsEnabled,
+            optionLabel = { minutes ->
+                if (minutes <= 0) {
+                    stringResource(R.string.settings_threshold_no_minimum)
+                } else {
+                    stringResource(R.string.settings_threshold_value_minutes, minutes)
+                }
+            },
+            onValueChange = onShortDriveMinDurationChange
+        )
+
+        SettingsSpacer()
+
+        ThresholdPicker(
+            label = stringResource(R.string.settings_threshold_drive_distance_label),
+            value = shortDriveMinDistance,
+            options = ShortEntryFilter.DRIVE_DISTANCE_PRESETS,
+            enabled = thresholdsEnabled,
+            optionLabel = { distance ->
+                if (distance <= 0.0) {
+                    stringResource(R.string.settings_threshold_no_minimum)
+                } else {
+                    stringResource(
+                        if (UnitSystem.isImperial) {
+                            R.string.settings_threshold_value_mi
+                        } else {
+                            R.string.settings_threshold_value_km
+                        },
+                        formatThreshold(distance)
+                    )
+                }
+            },
+            onValueChange = onShortDriveMinDistanceChange
+        )
+
+        SettingsSpacer()
+
+        ThresholdPicker(
+            label = stringResource(R.string.settings_threshold_charge_energy_label),
+            value = shortChargeMinEnergyKwh,
+            options = ShortEntryFilter.CHARGE_ENERGY_PRESETS_KWH,
+            enabled = thresholdsEnabled,
+            optionLabel = { energy ->
+                if (energy <= 0.0) {
+                    stringResource(R.string.settings_threshold_no_minimum)
+                } else {
+                    stringResource(R.string.settings_threshold_value_kwh, formatThreshold(energy))
+                }
+            },
+            onValueChange = onShortChargeMinEnergyChange
+        )
     }
 }
+
+/**
+ * Read-only field opening a dropdown of preset values. Generic over the value type so the
+ * minute (Int) and distance/energy (Double) pickers share one implementation.
+ */
+@Composable
+private fun <T> ThresholdPicker(
+    label: String,
+    value: T,
+    options: List<T>,
+    enabled: Boolean,
+    optionLabel: @Composable (T) -> String,
+    onValueChange: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedTextField(
+            value = optionLabel(value),
+            onValueChange = {},
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            readOnly = true,
+            enabled = enabled,
+            trailingIcon = {
+                IconButton(onClick = { expanded = true }, enabled = enabled) {
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = stringResource(R.string.settings_threshold_select)
+                    )
+                }
+            }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.fillMaxWidth(0.9f)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(optionLabel(option)) },
+                    onClick = {
+                        onValueChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Formats a threshold for display, dropping the decimal on whole values ("1" not "1.0") and
+ * using the device locale's decimal separator ("0,5" in Italian/Spanish/Catalan).
+ */
+private fun formatThreshold(value: Double): String =
+    if (value == floor(value)) {
+        value.toInt().toString()
+    } else {
+        String.format(Locale.getDefault(), "%.1f", value)
+    }
 
 @Preview(showBackground = true)
 @Composable
@@ -161,10 +310,16 @@ private fun DisplaySettingsPreview() {
         DisplaySettingsContent(
             currencyCode = "EUR",
             showShortDrivesCharges = false,
+            shortDriveMinDurationMin = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+            shortDriveMinDistance = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+            shortChargeMinEnergyKwh = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onCurrencyChange = {},
-            onShowShortDrivesChargesChange = {}
+            onShowShortDrivesChargesChange = {},
+            onShortDriveMinDurationChange = {},
+            onShortDriveMinDistanceChange = {},
+            onShortChargeMinEnergyChange = {}
         )
     }
 }

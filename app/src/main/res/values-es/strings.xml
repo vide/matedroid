@@ -216,6 +216,21 @@
     <string name="settings_group_server">Servidor</string>
     <string name="settings_group_authentication">Autenticación</string>
     <string name="settings_group_security">Seguridad</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">Los trayectos y las cargas por debajo de estos valores se ocultan de las listas. Siempre se incluyen en los totales y las estadísticas.</string>
+    <string name="settings_threshold_drive_duration_label">Duración mínima del trayecto</string>
+    <string name="settings_threshold_drive_distance_label">Distancia mínima del trayecto</string>
+    <string name="settings_threshold_charge_energy_label">Energía mínima de la carga</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">Sin mínimo</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">Seleccionar valor</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
     <string name="settings_group_costs">Costes</string>
     <string name="settings_group_lists">Listas</string>
     <string name="settings_group_channels">Canales de notificación</string>
@@ -293,7 +308,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Trayectos y cargas cortos</string>
-    <string name="settings_short_dialog_text">Cuando está desactivado (por defecto), los siguientes elementos están ocultos de las listas:\n\n• Trayectos de menos de 1 minuto o menos de 1 km\n• Cargas de 0,1 kWh o menos\n\nEstos elementos siguen incluidos en totales, promedios y estadísticas. Activa este ajuste para ver todos los elementos en las listas.</string>
+    <string name="settings_short_dialog_text">Cuando está desactivado (por defecto), los trayectos y las cargas por debajo de los valores mínimos configurados abajo están ocultos de las listas.\n\nEstos elementos siguen incluidos en totales, promedios y estadísticas. Activa este ajuste para ver todos los elementos en las listas.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Forzar resincronización completa</string>

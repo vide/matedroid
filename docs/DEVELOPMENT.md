@@ -114,8 +114,12 @@ same word in a locale, or the Drives/Trips navigation and stats become ambiguous
 #### Hiding short drives / charges
 
 The "Show short drives / charges" setting (`showShortDrivesCharges`, default off) hides trivial
-entries — drives under 1 min or 1 km, and charges of 0.1 kWh or less — from **list-like
+entries — by default drives under 1 min or 1 km, and charges of 0.1 kWh or less — from **list-like
 surfaces** while still counting them in totals, averages and statistics.
+
+This filter is **purely presentational**. Short entries are always fetched, always stored, and
+always counted; nothing in the data layer filters on these thresholds, so changing one is a
+re-render and never needs a resync.
 
 The rule lives in **one place**: `domain/ShortEntryFilter.kt`. It exposes the thresholds plus
 `isSignificant()` helpers for every drive/charge model (`DriveData`, `ChargeData`, `DriveSummary`,
@@ -125,6 +129,18 @@ consistent (it previously diverged: the trip timeline shipped without the filter
 legs). Current call sites: `DrivesViewModel`, `ChargesViewModel`, `TripTimelineBuilder` and the
 trip leg list / counts in `TripsScreen` + `TripDetailScreen`. Add a new model? Add its
 `isSignificant()` helper in `ShortEntryFilter.kt`.
+
+**The thresholds are user-configurable** (Settings → Display), chosen from presets defined in
+`ShortEntryFilter.*_PRESETS`. Like `UnitSystem`, the object is a process-wide mirror of the stored
+preference: restored at app start by `MateDroidApp` and written through by `SettingsViewModel` the
+moment the user picks a value. That mirror is what lets the `isSignificant()` helpers stay
+zero-argument — no call site has to thread thresholds through its own state. A threshold of `0`
+means "no minimum" for that dimension.
+
+The distance threshold is compared **in the user's display unit, not km**. TeslamateAPI
+pre-converts every distance it returns and the presets are labelled in the active unit, so both
+sides of the comparison already match — do not scale it through `UnitSystem.thresholdKmToUserUnits`
+(that helper remains for genuinely km-defined constants such as the trip-detection minimum).
 
 #### Adding/Modifying Translations
 

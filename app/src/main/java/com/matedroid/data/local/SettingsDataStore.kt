@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.matedroid.domain.ShortEntryFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -53,6 +55,9 @@ data class AppSettings(
     val acceptInvalidCerts: Boolean = false,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
+    val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+    val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+    val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
     val teslamateBaseUrl: String = "",
     val lastSelectedCarId: Int? = null
 ) {
@@ -75,6 +80,9 @@ class SettingsDataStore @Inject constructor(
     private val acceptInvalidCertsKey = booleanPreferencesKey("accept_invalid_certs")
     private val currencyCodeKey = stringPreferencesKey("currency_code")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
+    private val shortDriveMinDurationKey = intPreferencesKey("short_drive_min_duration_min")
+    private val shortDriveMinDistanceKey = doublePreferencesKey("short_drive_min_distance")
+    private val shortChargeMinEnergyKey = doublePreferencesKey("short_charge_min_energy_kwh")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
@@ -106,6 +114,12 @@ class SettingsDataStore @Inject constructor(
             acceptInvalidCerts = preferences[acceptInvalidCertsKey] ?: false,
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
+            shortDriveMinDurationMin = preferences[shortDriveMinDurationKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+            shortDriveMinDistance = preferences[shortDriveMinDistanceKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+            shortChargeMinEnergyKwh = preferences[shortChargeMinEnergyKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
             lastSelectedCarId = preferences[lastSelectedCarIdKey]
         )
@@ -197,6 +211,22 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveShowShortDrivesCharges(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[showShortDrivesChargesKey] = show
+        }
+    }
+
+    /**
+     * Thresholds behind the "short drive / charge" rule. Distance is stored in the user's
+     * display unit — see [ShortEntryFilter] for why it is not normalised to km.
+     */
+    suspend fun saveShortEntryThresholds(
+        driveMinDurationMin: Int,
+        driveMinDistance: Double,
+        chargeMinEnergyKwh: Double
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[shortDriveMinDurationKey] = driveMinDurationMin
+            preferences[shortDriveMinDistanceKey] = driveMinDistance
+            preferences[shortChargeMinEnergyKey] = chargeMinEnergyKwh
         }
     }
 

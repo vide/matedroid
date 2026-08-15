@@ -216,6 +216,21 @@
     <string name="settings_group_server">Server</string>
     <string name="settings_group_authentication">Autenticazione</string>
     <string name="settings_group_security">Sicurezza</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">I tragitti e le ricariche sotto questi valori vengono nascosti dagli elenchi. Sono sempre inclusi nei totali e nelle statistiche.</string>
+    <string name="settings_threshold_drive_duration_label">Durata minima del tragitto</string>
+    <string name="settings_threshold_drive_distance_label">Distanza minima del tragitto</string>
+    <string name="settings_threshold_charge_energy_label">Energia minima della ricarica</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">Nessun minimo</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">Seleziona valore</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
     <string name="settings_group_costs">Costi</string>
     <string name="settings_group_lists">Elenchi</string>
     <string name="settings_group_channels">Canali di notifica</string>
@@ -293,7 +308,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Tragitti e ricariche brevi</string>
-    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i seguenti elementi sono nascosti dalle liste:\n\n• Tragitti sotto 1 minuto o meno di 1 km\n• Ricariche di 0,1 kWh o meno\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
+    <string name="settings_short_dialog_text">Quando disabilitato (predefinito), i tragitti e le ricariche sotto i valori minimi impostati qui sotto sono nascosti dalle liste.\n\nQuesti elementi sono comunque inclusi nei totali, medie e statistiche. Abilita questa impostazione per vedere tutti gli elementi nelle liste.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Forza risincronizzazione completa</string>
