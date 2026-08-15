@@ -1,6 +1,7 @@
 package com.matedroid.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ElevationStatsTest {
@@ -60,6 +61,42 @@ class ElevationStatsTest {
         // A 2 m dip mid-climb is noise, so the climb is counted end to end.
         val elevations = listOf(100, 110, 108, 120, 130)
         assertEquals(ElevationStats.Change(30, 0), ElevationStats.of(elevations))
+    }
+
+    @Test
+    fun coverage_isFullWhenSamplesSpanTheDrive() {
+        // A sample every 10 s across a 10 minute drive.
+        val samples = (0L..600L step 10L).map { it * 1000L }
+        assertEquals(1.0, ElevationStats.coverage(samples, 0L, 600_000L), 0.001)
+    }
+
+    @Test
+    fun coverage_isZeroWithoutSamples() {
+        assertEquals(0.0, ElevationStats.coverage(emptyList(), 0L, 600_000L), 0.001)
+    }
+
+    @Test
+    fun coverage_countsATrailingDropout() {
+        // Drive 8482 from issue #338: 92 minutes, elevation for the first 11.3 only.
+        val driveMs = 92 * 60_000L
+        val samples = (0L..(11.3 * 60_000L).toLong() step 5_000L).toList()
+        val coverage = ElevationStats.coverage(samples, 0L, driveMs)
+        assertEquals(0.12, coverage, 0.01)
+        assertTrue(coverage < ElevationStats.MIN_COVERAGE)
+    }
+
+    @Test
+    fun coverage_countsAHoleInTheMiddle() {
+        // 10 minute drive, nothing logged between minute 2 and minute 7.
+        val samples = ((0L..120L step 10L) + (420L..600L step 10L)).map { it * 1000L }
+        assertEquals(0.5, ElevationStats.coverage(samples, 0L, 600_000L), 0.01)
+    }
+
+    @Test
+    fun coverage_ignoresNormalGapsBetweenPolledPositions() {
+        // Polled positions are seconds apart; a handful of 30 s gaps is not a dropout.
+        val samples = (0L..600L step 30L).map { it * 1000L }
+        assertEquals(1.0, ElevationStats.coverage(samples, 0L, 600_000L), 0.001)
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.drives
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.DriveDetail
+import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.local.entity.SavedTripLeg
@@ -15,12 +16,14 @@ import com.matedroid.domain.ElevationStats
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
+import com.matedroid.util.parseIsoDateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 data class DriveDetailUiState(
@@ -50,6 +53,12 @@ data class DriveDetailStats(
     val elevationDescent: Int,
     /** End elevation minus start elevation: negative on a net-downhill drive. */
     val elevationNet: Int,
+    /**
+     * False when the drive carries elevation for too little of its route for any of the figures
+     * above to describe the drive as a whole. The screen hides every elevation surface (tile,
+     * stats card and profile chart) when this is false — see [ElevationStats.MIN_COVERAGE].
+     */
+    val hasReliableElevation: Boolean,
     val batteryStart: Int,
     val batteryEnd: Int,
     val batteryUsed: Int,
@@ -198,12 +207,16 @@ class DriveDetailViewModel @Inject constructor(
         val powerMin = powers.minOrNull() ?: detail.powerMin ?: 0
         val powerAvg = if (powers.isNotEmpty()) powers.average() else 0.0
 
-        // Elevation stats
+        // Elevation stats. Only positions polled from the car carry an elevation, so a drive can
+        // hold elevation for part of its route and nothing for the rest; every figure below then
+        // describes that part only, which is why they are all gated on the coverage check.
         val elevations = positions.mapNotNull { it.elevation }
         val elevationMax = elevations.maxOrNull() ?: 0
         val elevationMin = elevations.minOrNull() ?: 0
         val elevationChange = ElevationStats.of(elevations)
         val elevationNet = if (elevations.size >= 2) elevations.last() - elevations.first() else 0
+        val hasReliableElevation = elevations.size >= 2 &&
+            elevationCoverage(positions) >= ElevationStats.MIN_COVERAGE
 
         // Battery stats
         val batteryLevels = positions.mapNotNull { it.batteryLevel }
@@ -232,6 +245,7 @@ class DriveDetailViewModel @Inject constructor(
             elevationClimb = elevationChange.climb,
             elevationDescent = elevationChange.descent,
             elevationNet = elevationNet,
+            hasReliableElevation = hasReliableElevation,
             batteryStart = batteryStart,
             batteryEnd = batteryEnd,
             batteryUsed = batteryUsed,
@@ -244,4 +258,18 @@ class DriveDetailViewModel @Inject constructor(
             insideTempAvg = detail.insideTempAvg
         )
     }
+
+    /** Share of the drive's duration that carries elevation samples, 0..1. */
+    private fun elevationCoverage(positions: List<DrivePosition>): Double {
+        val driveStart = positions.firstNotNullOfOrNull { positionMillis(it) } ?: return 0.0
+        val driveEnd = positions.lastOrNull { positionMillis(it) != null }
+            ?.let { positionMillis(it) } ?: return 0.0
+        val sampleTimes = positions.mapNotNull { position ->
+            position.elevation?.let { positionMillis(position) }
+        }
+        return ElevationStats.coverage(sampleTimes, driveStart, driveEnd)
+    }
+
+    private fun positionMillis(position: DrivePosition): Long? =
+        parseIsoDateTime(position.date)?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
 }

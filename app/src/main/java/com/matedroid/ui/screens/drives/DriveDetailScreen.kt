@@ -449,7 +449,8 @@ private fun DriveStatTiles(
 
     // Climb and descent are shown together: on a downhill drive the climb alone says nothing
     // about where the drive actually went.
-    val hasElevation = stats.elevationClimb > 0 || stats.elevationDescent > 0
+    val hasElevation = stats.hasReliableElevation &&
+        (stats.elevationClimb > 0 || stats.elevationDescent > 0)
     val elevationValue = if (hasElevation) {
         stringResource(
             R.string.elevation_climb_descent,
@@ -655,7 +656,7 @@ private fun DriveMoreDetails(
                         StatItem(stringResource(R.string.average), "%.1f kW".format(stats.powerAvg))
                     )
                 )
-                if (stats.elevationMax > 0 || stats.elevationMin > 0) {
+                if (stats.hasReliableElevation && (stats.elevationMax > 0 || stats.elevationMin > 0)) {
                     StatsSectionCard(
                         title = stringResource(R.string.elevation),
                         icon = Icons.Default.Landscape,
@@ -698,10 +699,11 @@ private fun DriveMoreDetails(
                     val hasElevationData = remember(positions) {
                         positions.any { it.elevation != null && it.elevation != 0 }
                     }
-                    if (hasElevationData) {
+                    if (hasElevationData && stats.hasReliableElevation) {
                         ElevationChartCard(
                             positions = positions,
                             timeLabels = timeLabels,
+                            units = units,
                             externalSelectedFraction = sharedXFraction,
                             onXSelected = onXSelected,
                             fractionToTimeLabel = fractionToTimeLabel
@@ -975,11 +977,22 @@ private fun BatteryChartCard(
 private fun ElevationChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
+    units: Units?,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val elevations = remember(positions) { positions.mapNotNull { it.elevation?.toFloat() } }
+    // One sample per position, so the profile lines up with the time axis that timeLabels and
+    // fractionToTimeLabel are built from. Positions without an elevation carry the last known
+    // one forward (and the first known one backwards) instead of being dropped: dropping them
+    // squeezed the profile into a shorter axis and misplaced every point on it.
+    val elevations = remember(positions, units) {
+        val samples = positions.map { it.elevation }
+        var last = samples.firstNotNullOfOrNull { it } ?: return@remember emptyList<Float>()
+        samples.map { sample ->
+            sample?.also { last = it } ?: last
+        }.map { UnitFormatter.getElevationValue(it.toFloat(), units) }
+    }
     if (elevations.size < 2) return
 
     ChartCard(
@@ -987,7 +1000,7 @@ private fun ElevationChartCard(
         icon = Icons.Default.Landscape,
         data = elevations,
         color = Color(0xFF8B4513),
-        unit = "m",
+        unit = UnitFormatter.getElevationUnit(units),
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
