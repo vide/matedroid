@@ -452,6 +452,10 @@
     <string name="elevation_climb">Salita</string>
     <string name="elevation_descent">Discesa</string>
     <string name="elevation_net">Netto</string>
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
+    <string name="elevation_partial_warning">Dati di altitudine incompleti</string>
+    <string name="elevation_partial_title">Dati di altitudine incompleti</string>
+    <string name="elevation_partial_message">L\'auto registra l\'altitudine solo mentre TeslaMate la interroga. In questo viaggio è successo solo per il %1$d%% del percorso, quindi per il resto non c\'è alcuna altitudine.\n\nTutti i valori qui (salita, discesa, netto, minimo, massimo e il grafico del profilo) sono calcolati solo su quella parte, quindi possono essere molto lontani dal viaggio reale. Un viaggio che finisce quasi sul livello del mare può mostrare comunque un minimo alto, per esempio.\n\nÈ una lacuna nei dati registrati, non qualcosa che l\'app possa ricalcolare.</string>
     <string name="outside">Esterna</string>
     <string name="inside">Interna</string>
 

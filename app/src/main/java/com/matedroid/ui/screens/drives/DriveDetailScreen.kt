@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +37,8 @@ import androidx.compose.material.icons.filled.LocationOn
 import com.matedroid.ui.icons.CustomIcons
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +50,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -68,11 +72,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
@@ -90,6 +98,7 @@ import com.matedroid.ui.components.extractTimeLabels
 import com.matedroid.ui.screens.trips.displayName
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import com.matedroid.ui.theme.StatusWarning
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Polyline
 import com.matedroid.util.formatDurationCompact
@@ -434,7 +443,7 @@ private fun HeroStat(
     }
 }
 
-/** A row of accent tiles for efficiency and its main confounders (temperature, elevation gain). */
+/** A row of accent tiles for efficiency and its main confounders (temperature, elevation). */
 @Composable
 private fun DriveStatTiles(
     stats: DriveDetailStats,
@@ -443,13 +452,37 @@ private fun DriveStatTiles(
 ) {
     val efficiencyLabel = stringResource(R.string.efficiency)
     val temperatureLabel = stringResource(R.string.temperature)
-    val climbLabel = stringResource(R.string.elevation_climb)
+    val elevationLabel = stringResource(R.string.elevation)
+
+    // Climb and descent are shown together: on a downhill drive the climb alone says nothing
+    // about where the drive actually went.
+    val hasElevation = stats.elevationClimb > 0 || stats.elevationDescent > 0
+    val elevationValue = if (hasElevation) {
+        stringResource(
+            R.string.elevation_climb_descent,
+            UnitFormatter.getElevationValue(stats.elevationClimb.toFloat(), units).toInt(),
+            UnitFormatter.getElevationValue(stats.elevationDescent.toFloat(), units).toInt(),
+            UnitFormatter.getElevationUnit(units)
+        )
+    } else {
+        null
+    }
+
+    var showElevationInfo by remember { mutableStateOf(false) }
+    if (showElevationInfo) {
+        ElevationPartialDialog(
+            coveragePercent = stats.elevationCoveragePercent,
+            onDismiss = { showElevationInfo = false }
+        )
+    }
 
     val tiles = buildList {
-        add(efficiencyLabel to UnitFormatter.formatEfficiency(stats.efficiency, units))
-        stats.outsideTempAvg?.let { add(temperatureLabel to UnitFormatter.formatTemperature(it, units)) }
-        if (stats.elevationClimb > 0) {
-            add(climbLabel to UnitFormatter.formatSignedElevation(stats.elevationClimb, units))
+        add(DriveTile(efficiencyLabel, UnitFormatter.formatEfficiency(stats.efficiency, units)))
+        stats.outsideTempAvg?.let {
+            add(DriveTile(temperatureLabel, UnitFormatter.formatTemperature(it, units)))
+        }
+        elevationValue?.let {
+            add(DriveTile(elevationLabel, it, warning = stats.isElevationPartial))
         }
     }
     if (tiles.isEmpty()) return
@@ -458,10 +491,61 @@ private fun DriveStatTiles(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        tiles.forEach { (label, value) ->
-            DriveStatTile(label = label, value = value, accent = palette.accent, modifier = Modifier.weight(1f))
+        tiles.forEach { tile ->
+            DriveStatTile(
+                label = tile.label,
+                value = tile.value,
+                accent = palette.accent,
+                warning = tile.warning,
+                onWarningClick = { showElevationInfo = true },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
+}
+
+private data class DriveTile(val label: String, val value: String, val warning: Boolean = false)
+
+/**
+ * Marks an elevation figure that only describes part of the drive. Tapping the surface it sits
+ * on opens [ElevationPartialDialog], which is where the explanation lives: the icon says "this
+ * number has a caveat", the dialog says which one.
+ */
+@Composable
+private fun ElevationWarningIcon(size: Dp = WARNING_ICON_SIZE, onClick: (() -> Unit)? = null) {
+    Icon(
+        imageVector = Icons.Filled.Warning,
+        contentDescription = stringResource(R.string.elevation_partial_warning),
+        modifier = Modifier
+            .size(size)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        tint = StatusWarning
+    )
+}
+
+@Composable
+private fun ElevationPartialDialog(coveragePercent: Int, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.elevation_partial_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.elevation_partial_message, coveragePercent),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.got_it))
+            }
+        }
+    )
 }
 
 @Composable
@@ -469,29 +553,77 @@ private fun DriveStatTile(
     label: String,
     value: String,
     accent: Color,
+    warning: Boolean = false,
+    onWarningClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Both rows are given the height their text would take at full size, so tiles in a row stay
+    // the same height whatever they hold: a value shrunk by autoSize draws a shorter line, and a
+    // label paired with the warning icon a taller one, and either would otherwise resize the tile.
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val valueStyle = MaterialTheme.typography.titleLarge
+    val labelHeight = labelStyle.lineHeightDp().coerceAtLeast(WARNING_ICON_SIZE)
+    val valueHeight = valueStyle.lineHeightDp()
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(accent.copy(alpha = 0.12f))
+            .then(if (warning) Modifier.clickable(onClick = onWarningClick) else Modifier)
             .padding(vertical = 12.dp, horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(
-            text = label.uppercase(java.util.Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-            maxLines = 1
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.height(labelHeight)
+        ) {
+            Text(
+                text = label.uppercase(java.util.Locale.getDefault()),
+                style = labelStyle,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            if (warning) {
+                Spacer(modifier = Modifier.width(4.dp))
+                ElevationWarningIcon()
+            }
+        }
+        Box(
+            modifier = Modifier.height(valueHeight),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = value,
+                style = valueStyle,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                // The elevation tile packs climb and descent into one line, which is far wider
+                // than the other tiles' values: shrink it to fit instead of truncating it.
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 13.sp,
+                    maxFontSize = valueStyle.fontSize,
+                    stepSize = 0.5.sp
+                )
+            )
+        }
+    }
+}
+
+/** Size of the warning icon inside a stat tile's label row. */
+private val WARNING_ICON_SIZE = 16.dp
+
+/**
+ * The style's line height in dp, so a row can reserve the space its text takes at full size.
+ * Converted through the current density, so it still follows the display and font-size settings.
+ */
+@Composable
+private fun TextStyle.lineHeightDp(): Dp = with(LocalDensity.current) {
+    when {
+        lineHeight.isSp -> lineHeight.toDp()
+        fontSize.isSp -> fontSize.toDp() * 1.25f
+        else -> 0.dp
     }
 }
 
@@ -592,6 +724,14 @@ private fun DriveMoreDetails(
             )
         }
 
+        var showElevationInfo by remember { mutableStateOf(false) }
+        if (showElevationInfo) {
+            ElevationPartialDialog(
+                coveragePercent = stats.elevationCoveragePercent,
+                onDismiss = { showElevationInfo = false }
+            )
+        }
+
         AnimatedVisibility(visible = expanded) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -638,6 +778,8 @@ private fun DriveMoreDetails(
                     StatsSectionCard(
                         title = stringResource(R.string.elevation),
                         icon = Icons.Default.Landscape,
+                        warning = stats.isElevationPartial,
+                        onWarningClick = { showElevationInfo = true },
                         stats = listOf(
                             StatItem(stringResource(R.string.maximum), UnitFormatter.formatElevation(stats.elevationMax, units)),
                             StatItem(stringResource(R.string.minimum), UnitFormatter.formatElevation(stats.elevationMin, units)),
@@ -681,6 +823,9 @@ private fun DriveMoreDetails(
                         ElevationChartCard(
                             positions = positions,
                             timeLabels = timeLabels,
+                            units = units,
+                            warning = stats.isElevationPartial,
+                            onWarningClick = { showElevationInfo = true },
                             externalSelectedFraction = sharedXFraction,
                             onXSelected = onXSelected,
                             fractionToTimeLabel = fractionToTimeLabel
@@ -779,7 +924,9 @@ data class StatItem(val label: String, val value: String)
 private fun StatsSectionCard(
     title: String,
     icon: ImageVector,
-    stats: List<StatItem>
+    stats: List<StatItem>,
+    warning: Boolean = false,
+    onWarningClick: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
@@ -791,7 +938,9 @@ private fun StatsSectionCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (warning) Modifier.clickable(onClick = onWarningClick) else Modifier),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
@@ -815,6 +964,10 @@ private fun StatsSectionCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                if (warning) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    ElevationWarningIcon(size = 18.dp)
+                }
             }
 
             val chunked = stats.chunked(columnCount)
@@ -954,11 +1107,24 @@ private fun BatteryChartCard(
 private fun ElevationChartCard(
     positions: List<DrivePosition>,
     timeLabels: List<String>,
+    units: Units?,
+    warning: Boolean = false,
+    onWarningClick: () -> Unit = {},
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val elevations = remember(positions) { positions.mapNotNull { it.elevation?.toFloat() } }
+    // One sample per position, so the profile lines up with the time axis that timeLabels and
+    // fractionToTimeLabel are built from. Positions without an elevation carry the last known
+    // one forward (and the first known one backwards) instead of being dropped: dropping them
+    // squeezed the profile into a shorter axis and misplaced every point on it.
+    val elevations = remember(positions, units) {
+        val samples = positions.map { it.elevation }
+        var last = samples.firstNotNullOfOrNull { it } ?: return@remember emptyList<Float>()
+        samples.map { sample ->
+            sample?.also { last = it } ?: last
+        }.map { UnitFormatter.getElevationValue(it.toFloat(), units) }
+    }
     if (elevations.size < 2) return
 
     ChartCard(
@@ -966,7 +1132,9 @@ private fun ElevationChartCard(
         icon = Icons.Default.Landscape,
         data = elevations,
         color = Color(0xFF8B4513),
-        unit = "m",
+        unit = UnitFormatter.getElevationUnit(units),
+        warning = warning,
+        onWarningClick = onWarningClick,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
@@ -981,6 +1149,8 @@ private fun ChartCard(
     data: List<Float>,
     color: Color,
     unit: String,
+    warning: Boolean = false,
+    onWarningClick: () -> Unit = {},
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
@@ -1014,6 +1184,11 @@ private fun ChartCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                if (warning) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    // The card itself owns the chart's drag gestures, so only the icon is tappable here.
+                    ElevationWarningIcon(size = 18.dp, onClick = onWarningClick)
+                }
             }
 
             FullscreenLineChart(

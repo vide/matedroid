@@ -459,6 +459,16 @@
     <string name="elevation_descent">Descent</string>
     <!-- Drive elevation: difference between the end and start elevation of the drive -->
     <string name="elevation_net">Net</string>
+    <!-- Drive elevation headline tile: climb and descent on one line, e.g. "↑120 ↓227 m".
+         %1$d is the metres/feet climbed, %2$d the metres/feet descended, %3$s the unit label. -->
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
+    <!-- Content description for the warning icon shown next to elevation figures that only
+         cover part of a drive -->
+    <string name="elevation_partial_warning">Incomplete elevation data</string>
+    <!-- Title and message for the dialog shown when tapping the incomplete-elevation warning.
+         %1$d is the percentage of the drive that has elevation data. -->
+    <string name="elevation_partial_title">Incomplete elevation data</string>
+    <string name="elevation_partial_message">Your car only records elevation while TeslaMate is polling it. On this drive that happened for just %1$d%% of the route, so the rest has no elevation at all.\n\nEvery figure here (climb, descent, net, minimum, maximum and the profile chart) is calculated from that part alone, so it can be far off the real drive. A drive that ends near sea level can still show a high minimum, for example.\n\nThis is a gap in the recorded data, not something the app can recalculate.</string>
     <string name="outside">Outside</string>
     <string name="inside">Inside</string>
 
