@@ -11,6 +11,7 @@ import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.data.repository.WeatherRepository
 import com.matedroid.domain.DriveComparison
 import com.matedroid.domain.DriveComparisonRepository
+import com.matedroid.domain.ElevationStats
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
@@ -43,8 +44,12 @@ data class DriveDetailStats(
     val powerAvg: Double,
     val elevationMax: Int,
     val elevationMin: Int,
-    val elevationGain: Int,
-    val elevationLoss: Int,
+    /** Cumulative metres climbed over the drive, noise-filtered by [ElevationStats]. */
+    val elevationClimb: Int,
+    /** Cumulative metres descended over the drive, noise-filtered by [ElevationStats]. */
+    val elevationDescent: Int,
+    /** End elevation minus start elevation: negative on a net-downhill drive. */
+    val elevationNet: Int,
     val batteryStart: Int,
     val batteryEnd: Int,
     val batteryUsed: Int,
@@ -197,7 +202,8 @@ class DriveDetailViewModel @Inject constructor(
         val elevations = positions.mapNotNull { it.elevation }
         val elevationMax = elevations.maxOrNull() ?: 0
         val elevationMin = elevations.minOrNull() ?: 0
-        val (elevationGain, elevationLoss) = calculateElevationChange(elevations)
+        val elevationChange = ElevationStats.of(elevations)
+        val elevationNet = if (elevations.size >= 2) elevations.last() - elevations.first() else 0
 
         // Battery stats
         val batteryLevels = positions.mapNotNull { it.batteryLevel }
@@ -223,8 +229,9 @@ class DriveDetailViewModel @Inject constructor(
             powerAvg = powerAvg,
             elevationMax = elevationMax,
             elevationMin = elevationMin,
-            elevationGain = elevationGain,
-            elevationLoss = elevationLoss,
+            elevationClimb = elevationChange.climb,
+            elevationDescent = elevationChange.descent,
+            elevationNet = elevationNet,
             batteryStart = batteryStart,
             batteryEnd = batteryEnd,
             batteryUsed = batteryUsed,
@@ -236,20 +243,5 @@ class DriveDetailViewModel @Inject constructor(
             outsideTempAvg = detail.outsideTempAvg,
             insideTempAvg = detail.insideTempAvg
         )
-    }
-
-    private fun calculateElevationChange(elevations: List<Int>): Pair<Int, Int> {
-        if (elevations.size < 2) return Pair(0, 0)
-
-        var gain = 0
-        var loss = 0
-
-        for (i in 1 until elevations.size) {
-            val diff = elevations[i] - elevations[i - 1]
-            if (diff > 0) gain += diff
-            else loss += -diff
-        }
-
-        return Pair(gain, loss)
     }
 }

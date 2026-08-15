@@ -28,6 +28,15 @@ object UnitFormatter {
     }
 
     /**
+     * Format an elevation *change* with an explicit sign, so a climb reads "+120 m" and a
+     * descent "-107 m". Negative values already carry their sign from the number formatting.
+     */
+    fun formatSignedElevation(value: Int?, units: Units?): String {
+        val formatted = formatElevation(value, units)
+        return if ((value ?: 0) > 0) "+$formatted" else formatted
+    }
+
+    /**
      * Get the elevation value
      */
     fun getElevationValue(value: Float, units: Units?): Float {

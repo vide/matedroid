@@ -443,12 +443,14 @@ private fun DriveStatTiles(
 ) {
     val efficiencyLabel = stringResource(R.string.efficiency)
     val temperatureLabel = stringResource(R.string.temperature)
-    val gainLabel = stringResource(R.string.gain)
+    val climbLabel = stringResource(R.string.elevation_climb)
 
     val tiles = buildList {
         add(efficiencyLabel to UnitFormatter.formatEfficiency(stats.efficiency, units))
         stats.outsideTempAvg?.let { add(temperatureLabel to UnitFormatter.formatTemperature(it, units)) }
-        if (stats.elevationGain > 0) add(gainLabel to "+%,d m".format(stats.elevationGain))
+        if (stats.elevationClimb > 0) {
+            add(climbLabel to UnitFormatter.formatSignedElevation(stats.elevationClimb, units))
+        }
     }
     if (tiles.isEmpty()) return
 
@@ -637,10 +639,11 @@ private fun DriveMoreDetails(
                         title = stringResource(R.string.elevation),
                         icon = Icons.Default.Landscape,
                         stats = listOf(
-                            StatItem(stringResource(R.string.maximum), "%,d m".format(stats.elevationMax)),
-                            StatItem(stringResource(R.string.minimum), "%,d m".format(stats.elevationMin)),
-                            StatItem(stringResource(R.string.gain), "+%,d m".format(stats.elevationGain)),
-                            StatItem(stringResource(R.string.loss), "-%,d m".format(stats.elevationLoss))
+                            StatItem(stringResource(R.string.maximum), UnitFormatter.formatElevation(stats.elevationMax, units)),
+                            StatItem(stringResource(R.string.minimum), UnitFormatter.formatElevation(stats.elevationMin, units)),
+                            StatItem(stringResource(R.string.elevation_climb), UnitFormatter.formatSignedElevation(stats.elevationClimb, units)),
+                            StatItem(stringResource(R.string.elevation_descent), UnitFormatter.formatSignedElevation(-stats.elevationDescent, units)),
+                            StatItem(stringResource(R.string.elevation_net), UnitFormatter.formatSignedElevation(stats.elevationNet, units))
                         )
                     )
                 }

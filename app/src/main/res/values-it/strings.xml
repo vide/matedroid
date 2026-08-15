@@ -449,8 +449,9 @@
     <string name="energy">Energia</string>
     <string name="max_accel">Max (accel)</string>
     <string name="min_regen">Min (regen)</string>
-    <string name="gain">Guadagno</string>
-    <string name="loss">Perdita</string>
+    <string name="elevation_climb">Salita</string>
+    <string name="elevation_descent">Discesa</string>
+    <string name="elevation_net">Netto</string>
     <string name="outside">Esterna</string>
     <string name="inside">Interna</string>
 
