@@ -1,5 +1,6 @@
 package com.matedroid.domain
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,8 +44,16 @@ class HighSocWarningTest {
     }
 
     @Test
-    fun `presets offer the disabled option first`() {
-        assertTrue(HighSocWarning.PRESETS.first() == HighSocWarning.DISABLED)
+    fun `presets ascend with the disabled option last`() {
+        assertTrue(HighSocWarning.PRESETS.last() == HighSocWarning.DISABLED)
         assertTrue(HighSocWarning.PRESETS.contains(HighSocWarning.DEFAULT_THRESHOLD))
+        val levels = HighSocWarning.PRESETS.dropLast(1)
+        assertEquals(levels.sorted(), levels)
+    }
+
+    @Test
+    fun `warning still fires one point below a full charge`() {
+        assertTrue(HighSocWarning.shouldWarn(batteryLevel = 100, isCharging = false, threshold = 99))
+        assertFalse(HighSocWarning.shouldWarn(batteryLevel = 99, isCharging = false, threshold = 99))
     }
 }

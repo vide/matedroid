@@ -17,8 +17,8 @@ object HighSocWarning {
     /** Warn above 90%, the fixed behaviour the app had before this was configurable. */
     const val DEFAULT_THRESHOLD = 90
 
-    /** Values offered in the Settings picker. [DISABLED] is offered first, as "Never". */
-    val PRESETS = listOf(DISABLED, 70, 75, 80, 85, 90, 95)
+    /** Values offered in the Settings picker, ascending, with [DISABLED] last as "Never". */
+    val PRESETS = listOf(70, 75, 80, 85, 90, 99, DISABLED)
 
     /**
      * True when the dashboard should flag the current charge level.
