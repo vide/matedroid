@@ -459,6 +459,9 @@
     <string name="elevation_descent">Descent</string>
     <!-- Drive elevation: difference between the end and start elevation of the drive -->
     <string name="elevation_net">Net</string>
+    <!-- Drive elevation headline tile: climb and descent on one line, e.g. "↑120 ↓227 m".
+         %1$d is the metres/feet climbed, %2$d the metres/feet descended, %3$s the unit label. -->
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
     <string name="outside">Outside</string>
     <string name="inside">Inside</string>
 

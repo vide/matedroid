@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -73,6 +74,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
@@ -434,7 +436,7 @@ private fun HeroStat(
     }
 }
 
-/** A row of accent tiles for efficiency and its main confounders (temperature, elevation gain). */
+/** A row of accent tiles for efficiency and its main confounders (temperature, elevation). */
 @Composable
 private fun DriveStatTiles(
     stats: DriveDetailStats,
@@ -443,14 +445,26 @@ private fun DriveStatTiles(
 ) {
     val efficiencyLabel = stringResource(R.string.efficiency)
     val temperatureLabel = stringResource(R.string.temperature)
-    val climbLabel = stringResource(R.string.elevation_climb)
+    val elevationLabel = stringResource(R.string.elevation)
+
+    // Climb and descent are shown together: on a downhill drive the climb alone says nothing
+    // about where the drive actually went.
+    val hasElevation = stats.elevationClimb > 0 || stats.elevationDescent > 0
+    val elevationValue = if (hasElevation) {
+        stringResource(
+            R.string.elevation_climb_descent,
+            UnitFormatter.getElevationValue(stats.elevationClimb.toFloat(), units).toInt(),
+            UnitFormatter.getElevationValue(stats.elevationDescent.toFloat(), units).toInt(),
+            UnitFormatter.getElevationUnit(units)
+        )
+    } else {
+        null
+    }
 
     val tiles = buildList {
         add(efficiencyLabel to UnitFormatter.formatEfficiency(stats.efficiency, units))
         stats.outsideTempAvg?.let { add(temperatureLabel to UnitFormatter.formatTemperature(it, units)) }
-        if (stats.elevationClimb > 0) {
-            add(climbLabel to UnitFormatter.formatSignedElevation(stats.elevationClimb, units))
-        }
+        elevationValue?.let { add(elevationLabel to it) }
     }
     if (tiles.isEmpty()) return
 
@@ -490,7 +504,14 @@ private fun DriveStatTile(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = accent,
-            maxLines = 1
+            // The elevation tile packs climb and descent into one line, which is far wider than
+            // the other tiles' values: shrink it to fit instead of truncating it.
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = 13.sp,
+                maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                stepSize = 0.5.sp
+            )
         )
     }
 }

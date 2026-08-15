@@ -453,6 +453,7 @@
     <string name="elevation_climb">Anstieg</string>
     <string name="elevation_descent">Abstieg</string>
     <string name="elevation_net">Netto</string>
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
     <string name="outside">Außen</string>
     <string name="inside">Innen</string>
 

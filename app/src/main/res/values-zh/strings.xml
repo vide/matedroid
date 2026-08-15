@@ -452,6 +452,7 @@
     <string name="elevation_climb">爬升</string>
     <string name="elevation_descent">下降</string>
     <string name="elevation_net">净变化</string>
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
     <string name="outside">车外</string>
     <string name="inside">车内</string>
 

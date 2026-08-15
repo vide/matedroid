@@ -452,6 +452,7 @@
     <string name="elevation_climb">Salita</string>
     <string name="elevation_descent">Discesa</string>
     <string name="elevation_net">Netto</string>
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
     <string name="outside">Esterna</string>
     <string name="inside">Interna</string>
 
