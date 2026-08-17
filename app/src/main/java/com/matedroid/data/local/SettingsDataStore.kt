@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -55,6 +56,7 @@ data class AppSettings(
     val httpBasicAuthUsername: String = "",
     val httpBasicAuthPassword: String = "",
     val acceptInvalidCerts: Boolean = false,
+    val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
@@ -82,6 +84,7 @@ class SettingsDataStore @Inject constructor(
     private val httpBasicAuthUsernameKey = stringPreferencesKey("http_basic_auth_username")
     private val httpBasicAuthPasswordKey = stringPreferencesKey("http_basic_auth_password")
     private val acceptInvalidCertsKey = booleanPreferencesKey("accept_invalid_certs")
+    private val connectTimeoutSecondsKey = intPreferencesKey("connect_timeout_seconds")
     private val currencyCodeKey = stringPreferencesKey("currency_code")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
     private val shortDriveMinDurationKey = intPreferencesKey("short_drive_min_duration_min")
@@ -118,6 +121,7 @@ class SettingsDataStore @Inject constructor(
             httpBasicAuthUsername = preferences[httpBasicAuthUsernameKey] ?: "",
             httpBasicAuthPassword = preferences[httpBasicAuthPasswordKey] ?: "",
             acceptInvalidCerts = preferences[acceptInvalidCertsKey] ?: false,
+            connectTimeoutSeconds = preferences[connectTimeoutSecondsKey] ?: ConnectionTimeout.AUTO,
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             shortDriveMinDurationMin = preferences[shortDriveMinDurationKey]
@@ -203,6 +207,16 @@ class SettingsDataStore @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[httpBasicAuthUsernameKey] = username
             preferences[httpBasicAuthPasswordKey] = password
+        }
+    }
+
+    /**
+     * Seconds OkHttp may spend establishing a connection, or [ConnectionTimeout.AUTO] to let
+     * the presence of a fallback server decide — see [ConnectionTimeout].
+     */
+    suspend fun saveConnectTimeoutSeconds(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[connectTimeoutSecondsKey] = seconds
         }
     }
 

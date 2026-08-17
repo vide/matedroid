@@ -18,6 +18,7 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -43,6 +44,7 @@ data class SettingsUiState(
     val httpBasicAuthUsername: String = "",
     val httpBasicAuthPassword: String = "",
     val acceptInvalidCerts: Boolean = false,
+    val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
     val showShortDrivesCharges: Boolean = false,
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
@@ -111,6 +113,7 @@ class SettingsViewModel @Inject constructor(
                 httpBasicAuthUsername = settings.httpBasicAuthUsername,
                 httpBasicAuthPassword = settings.httpBasicAuthPassword,
                 acceptInvalidCerts = settings.acceptInvalidCerts,
+                connectTimeoutSeconds = settings.connectTimeoutSeconds,
                 currencyCode = settings.currencyCode,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
                 shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
@@ -177,6 +180,21 @@ class SettingsViewModel @Inject constructor(
             testResult = null,
             error = null
         )
+    }
+
+    /**
+     * Saved eagerly, unlike the rest of the connection form: Test Connection builds its client
+     * from the stored settings, so the timeout has to be on disk for the test to exercise it.
+     */
+    fun updateConnectTimeoutSeconds(seconds: Int) {
+        _uiState.value = _uiState.value.copy(
+            connectTimeoutSeconds = seconds,
+            testResult = null,
+            error = null
+        )
+        viewModelScope.launch {
+            settingsDataStore.saveConnectTimeoutSeconds(seconds)
+        }
     }
 
     fun updateCurrency(currencyCode: String) {

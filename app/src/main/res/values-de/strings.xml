@@ -218,6 +218,7 @@
     <string name="settings_group_server">Server</string>
     <string name="settings_group_authentication">Authentifizierung</string>
     <string name="settings_group_security">Sicherheit</string>
+    <string name="settings_group_network">Netzwerk</string>
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">Fahrten und Ladevorgänge unterhalb dieser Werte werden in Listen ausgeblendet. In Summen und Statistiken zählen sie immer mit.</string>
     <string name="settings_threshold_drive_duration_label">Mindestdauer einer Fahrt</string>
@@ -306,6 +307,14 @@
     <string name="settings_accept_invalid_certs">Ungültige Zertifikate akzeptieren</string>
     <string name="settings_accept_invalid_certs_hint">Für selbstsignierte Zertifikate aktivieren</string>
     <string name="settings_accept_invalid_certs_warning">Das Deaktivieren der Zertifikatsprüfung macht Verbindungen anfällig für Man-in-the-Middle-Angriffe. Nur in vertrauenswürdigen Netzwerken verwenden.</string>
+
+    <!-- Connect timeout picker (Connection section) -->
+    <string name="settings_connect_timeout_label">Verbindungs-Timeout</string>
+    <string name="settings_connect_timeout_hint">Wie lange auf die Verbindung zum Server gewartet wird, einschließlich TLS-Handshake. Automatisch verwendet 1 Sekunde, wenn ein Zweitserver eingerichtet ist, damit die App schnell darauf ausweicht, und 5 Sekunden, wenn es nur einen Server gibt. Erhöhe den Wert, wenn dein Server hinter einem langsamen HTTPS-Tunnel wie Tailscale Funnel liegt, wo allein der Handshake ein paar Sekunden dauern kann.</string>
+    <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_automatic">Automatisch (%1$d s)</string>
+    <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_value">%1$d s</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Anzeigeeinstellungen</string>
