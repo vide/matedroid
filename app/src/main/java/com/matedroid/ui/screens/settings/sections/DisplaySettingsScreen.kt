@@ -34,6 +34,7 @@ import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.domain.UnitSystem
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
+import com.matedroid.ui.screens.settings.SettingsPresetPicker
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
 import com.matedroid.ui.screens.settings.SettingsSwitchRow
@@ -193,7 +194,7 @@ private fun DisplaySettingsContent(
 
         SettingsSpacer()
 
-        ThresholdPicker(
+        SettingsPresetPicker(
             label = stringResource(R.string.settings_threshold_drive_duration_label),
             value = shortDriveMinDurationMin,
             options = ShortEntryFilter.DRIVE_DURATION_PRESETS_MIN,
@@ -210,7 +211,7 @@ private fun DisplaySettingsContent(
 
         SettingsSpacer()
 
-        ThresholdPicker(
+        SettingsPresetPicker(
             label = stringResource(R.string.settings_threshold_drive_distance_label),
             value = shortDriveMinDistance,
             options = ShortEntryFilter.DRIVE_DISTANCE_PRESETS,
@@ -234,7 +235,7 @@ private fun DisplaySettingsContent(
 
         SettingsSpacer()
 
-        ThresholdPicker(
+        SettingsPresetPicker(
             label = stringResource(R.string.settings_threshold_charge_energy_label),
             value = shortChargeMinEnergyKwh,
             options = ShortEntryFilter.CHARGE_ENERGY_PRESETS_KWH,
@@ -261,7 +262,7 @@ private fun DisplaySettingsContent(
 
         SettingsSpacer()
 
-        ThresholdPicker(
+        SettingsPresetPicker(
             label = stringResource(R.string.settings_high_soc_threshold_label),
             value = highSocWarningThreshold,
             options = HighSocWarning.PRESETS,
@@ -286,7 +287,7 @@ private fun DisplaySettingsContent(
 
         SettingsSpacer()
 
-        ThresholdPicker(
+        SettingsPresetPicker(
             label = stringResource(R.string.settings_low_soc_threshold_label),
             value = lowSocWarningThreshold,
             options = LowSocWarning.PRESETS,
@@ -300,57 +301,6 @@ private fun DisplaySettingsContent(
             },
             onValueChange = onLowSocWarningThresholdChange
         )
-    }
-}
-
-/**
- * Read-only field opening a dropdown of preset values. Generic over the value type so the
- * minute (Int) and distance/energy (Double) pickers share one implementation.
- */
-@Composable
-private fun <T> ThresholdPicker(
-    label: String,
-    value: T,
-    options: List<T>,
-    enabled: Boolean,
-    optionLabel: @Composable (T) -> String,
-    onValueChange: (T) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        OutlinedTextField(
-            value = optionLabel(value),
-            onValueChange = {},
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
-            readOnly = true,
-            enabled = enabled,
-            trailingIcon = {
-                IconButton(onClick = { expanded = true }, enabled = enabled) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowDropDown,
-                        contentDescription = stringResource(R.string.settings_threshold_select)
-                    )
-                }
-            }
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.9f)
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
-                    onClick = {
-                        onValueChange(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
     }
 }
 

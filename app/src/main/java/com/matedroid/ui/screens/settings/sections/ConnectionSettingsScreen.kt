@@ -48,8 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
+import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.ui.screens.settings.ServerTestResult
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
+import com.matedroid.ui.screens.settings.SettingsPresetPicker
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
 import com.matedroid.ui.screens.settings.SettingsUiState
@@ -62,12 +64,13 @@ import com.matedroid.ui.theme.StatusWarning
 
 /**
  * Server connection settings, laid out as flat groups (Server / Authentication /
- * Security) rather than hiding the optional fields behind a disclosure. Reaching this
+ * Security / Network) rather than hiding the optional fields behind a disclosure. Reaching this
  * page is already one level of disclosure; nesting another inside it is what used to
  * make HTTP Basic Auth hard to find. Each optional field says so in its own label.
  *
  * The only section with an explicit save: URL and credentials need validating together,
- * so a half-typed URL must not be committed.
+ * so a half-typed URL must not be committed. The timeout picker sits outside that form and
+ * applies as soon as it is picked, so Test Connection exercises the value just chosen.
  *
  * During first-run onboarding ([isOnboarding]) there is no back arrow and saving
  * continues to the dashboard; afterwards saving stays put and confirms with a snackbar.
@@ -108,6 +111,7 @@ fun ConnectionSettingsScreen(
         onHttpBasicAuthUsernameChange = viewModel::updateHttpBasicAuthUsername,
         onHttpBasicAuthPasswordChange = viewModel::updateHttpBasicAuthPassword,
         onAcceptInvalidCertsChange = viewModel::updateAcceptInvalidCerts,
+        onConnectTimeoutChange = viewModel::updateConnectTimeoutSeconds,
         onTestConnection = viewModel::testConnection,
         onSave = {
             viewModel.saveSettings {
@@ -133,6 +137,7 @@ private fun ConnectionSettingsContent(
     onHttpBasicAuthUsernameChange: (String) -> Unit,
     onHttpBasicAuthPasswordChange: (String) -> Unit,
     onAcceptInvalidCertsChange: (Boolean) -> Unit,
+    onConnectTimeoutChange: (Int) -> Unit,
     onTestConnection: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -323,6 +328,34 @@ private fun ConnectionSettingsContent(
             }
         }
 
+        SettingsSpacer(24)
+
+        // ==================== Network ====================
+        SettingsGroupHeader(stringResource(R.string.settings_group_network))
+
+        SettingsPresetPicker(
+            label = stringResource(R.string.settings_connect_timeout_label),
+            value = uiState.connectTimeoutSeconds,
+            options = ConnectionTimeout.PRESETS,
+            enabled = fieldsEnabled,
+            optionLabel = { seconds ->
+                if (seconds == ConnectionTimeout.AUTO) {
+                    stringResource(
+                        R.string.settings_connect_timeout_automatic,
+                        ConnectionTimeout.resolveSeconds(
+                            setting = ConnectionTimeout.AUTO,
+                            hasFallbackServer = uiState.secondaryServerUrl.isNotBlank()
+                        )
+                    )
+                } else {
+                    stringResource(R.string.settings_connect_timeout_value, seconds)
+                }
+            },
+            onValueChange = onConnectTimeoutChange
+        )
+
+        FieldHint(stringResource(R.string.settings_connect_timeout_hint))
+
         uiState.testResult?.let { result ->
             SettingsSpacer(24)
             TestResultCard(result = result)
@@ -510,6 +543,7 @@ private fun ConnectionSettingsPreview() {
             onHttpBasicAuthUsernameChange = {},
             onHttpBasicAuthPasswordChange = {},
             onAcceptInvalidCertsChange = {},
+            onConnectTimeoutChange = {},
             onTestConnection = {},
             onSave = {}
         )
@@ -531,6 +565,7 @@ private fun ConnectionSettingsOnboardingPreview() {
             onHttpBasicAuthUsernameChange = {},
             onHttpBasicAuthPasswordChange = {},
             onAcceptInvalidCertsChange = {},
+            onConnectTimeoutChange = {},
             onTestConnection = {},
             onSave = {}
         )
@@ -561,6 +596,7 @@ private fun ConnectionSettingsWithResultPreview() {
             onHttpBasicAuthUsernameChange = {},
             onHttpBasicAuthPasswordChange = {},
             onAcceptInvalidCertsChange = {},
+            onConnectTimeoutChange = {},
             onTestConnection = {},
             onSave = {}
         )

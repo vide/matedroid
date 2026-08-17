@@ -218,6 +218,7 @@
     <string name="settings_group_server">服务器</string>
     <string name="settings_group_authentication">身份验证</string>
     <string name="settings_group_security">安全</string>
+    <string name="settings_group_network">网络</string>
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">低于这些数值的行程和充电将不在列表中显示，但始终会计入总计和统计数据。</string>
     <string name="settings_threshold_drive_duration_label">最短行程时长</string>
@@ -306,6 +307,14 @@
     <string name="settings_accept_invalid_certs">接受无效证书</string>
     <string name="settings_accept_invalid_certs_hint">为自签名证书启用此选项</string>
     <string name="settings_accept_invalid_certs_warning">禁用证书验证会使连接容易受到中间人攻击。请仅在可信网络上使用。</string>
+
+    <!-- Connect timeout picker (Connection section) -->
+    <string name="settings_connect_timeout_label">连接超时</string>
+    <string name="settings_connect_timeout_hint">等待连接服务器的时长，包含 TLS 握手。「自动」在配置了备用服务器时使用 1 秒，以便快速切换到备用服务器；只有一个服务器时使用 5 秒。如果服务器位于速度较慢的 HTTPS 隧道（如 Tailscale Funnel）之后，仅握手就可能需要几秒钟，请调高此值。</string>
+    <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_automatic">自动（%1$d s）</string>
+    <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_value">%1$d s</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">显示设置</string>

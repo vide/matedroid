@@ -6,6 +6,7 @@ import com.matedroid.data.api.NominatimApi
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.TeslamateApi
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.domain.ConnectionTimeout
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
@@ -97,7 +98,8 @@ private data class ApiCacheKey(
     val acceptInvalidCerts: Boolean,
     val apiToken: String,
     val httpBasicAuthUsername: String,
-    val httpBasicAuthPassword: String
+    val httpBasicAuthPassword: String,
+    val connectTimeoutSeconds: Int
 )
 
 /**
@@ -127,14 +129,33 @@ class TeslamateApiFactory(
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername
         val basicAuthPassword = settings.httpBasicAuthPassword
+        val connectTimeoutSeconds = ConnectionTimeout.resolveSeconds(
+            setting = settings.connectTimeoutSeconds,
+            hasFallbackServer = settings.hasSecondaryServer
+        )
 
-        val cacheKey = ApiCacheKey(normalizedUrl, useInsecure, apiToken, basicAuthUsername, basicAuthPassword)
+        // The timeout is part of the key so changing it in Settings takes effect on the next
+        // request rather than on the next app start.
+        val cacheKey = ApiCacheKey(
+            normalizedUrl,
+            useInsecure,
+            apiToken,
+            basicAuthUsername,
+            basicAuthPassword,
+            connectTimeoutSeconds
+        )
 
         // Return cached API if available
         apiCache[cacheKey]?.let { return it }
 
         // Create new API instance
-        val okHttpClient = createOkHttpClient(apiToken, useInsecure, basicAuthUsername, basicAuthPassword)
+        val okHttpClient = createOkHttpClient(
+            apiToken,
+            useInsecure,
+            basicAuthUsername,
+            basicAuthPassword,
+            connectTimeoutSeconds
+        )
 
         val api = Retrofit.Builder()
             .baseUrl(normalizedUrl)
@@ -167,7 +188,8 @@ class TeslamateApiFactory(
         apiToken: String,
         acceptInvalidCerts: Boolean,
         basicAuthUsername: String = "",
-        basicAuthPassword: String = ""
+        basicAuthPassword: String = "",
+        connectTimeoutSeconds: Int = ConnectionTimeout.WITHOUT_FALLBACK_SECONDS
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
@@ -185,11 +207,11 @@ class TeslamateApiFactory(
                 }
                 chain.proceed(requestBuilder.build())
             }
-            // Deliberately aggressive: executeWithFallback tries the primary server on EVERY
-            // request, and dual-address setups (local IP + VPN IP) hit this timeout on each
-            // call while on the other network before falling back to the secondary. Raising
-            // it makes every operation that much slower for those users — don't.
-            .connectTimeout(1, TimeUnit.SECONDS)
+            // User-configurable, and short by default when a fallback server is configured:
+            // executeWithFallback tries the primary server on EVERY request, so dual-address
+            // setups (local IP + VPN IP) hit this timeout on each call while on the other
+            // network before falling back. See ConnectionTimeout for the whole trade-off.
+            .connectTimeout(connectTimeoutSeconds.toLong(), TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
 

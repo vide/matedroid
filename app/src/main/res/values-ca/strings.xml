@@ -218,6 +218,7 @@
     <string name="settings_group_server">Servidor</string>
     <string name="settings_group_authentication">Autenticació</string>
     <string name="settings_group_security">Seguretat</string>
+    <string name="settings_group_network">Xarxa</string>
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">Els trajectes i les càrregues per sota d\'aquests valors s\'amaguen de les llistes. Sempre es compten en els totals i les estadístiques.</string>
     <string name="settings_threshold_drive_duration_label">Durada mínima del trajecte</string>
@@ -306,6 +307,14 @@
     <string name="settings_accept_invalid_certs">Accepta certificats no vàlids</string>
     <string name="settings_accept_invalid_certs_hint">Activa per a certificats autofirmats</string>
     <string name="settings_accept_invalid_certs_warning">Desactivar la validació de certificats fa les connexions vulnerables a atacs man-in-the-middle. Usa només en xarxes de confiança.</string>
+
+    <!-- Connect timeout picker (Connection section) -->
+    <string name="settings_connect_timeout_label">Temps d\'espera de connexió</string>
+    <string name="settings_connect_timeout_hint">Quant s\'espera la connexió amb el servidor, handshake TLS inclòs. Automàtic usa 1 segon quan hi ha un servidor secundari configurat, perquè l\'app recorri de pressa al de reserva, i 5 segons quan només hi ha un servidor. Augmenta\'l si el teu servidor és darrere d\'un túnel HTTPS lent com Tailscale Funnel, on només l\'handshake pot trigar un parell de segons.</string>
+    <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_automatic">Automàtic (%1$d s)</string>
+    <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_value">%1$d s</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Configuració de pantalla</string>

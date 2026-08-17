@@ -218,6 +218,7 @@
     <string name="settings_group_server">Servidor</string>
     <string name="settings_group_authentication">Autenticación</string>
     <string name="settings_group_security">Seguridad</string>
+    <string name="settings_group_network">Red</string>
     <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
     <string name="settings_thresholds_hint">Los trayectos y las cargas por debajo de estos valores se ocultan de las listas. Siempre se incluyen en los totales y las estadísticas.</string>
     <string name="settings_threshold_drive_duration_label">Duración mínima del trayecto</string>
@@ -306,6 +307,14 @@
     <string name="settings_accept_invalid_certs">Aceptar certificados inválidos</string>
     <string name="settings_accept_invalid_certs_hint">Activar para certificados autofirmados</string>
     <string name="settings_accept_invalid_certs_warning">Desactivar la validación de certificados hace las conexiones vulnerables a ataques man-in-the-middle. Usa solo en redes de confianza.</string>
+
+    <!-- Connect timeout picker (Connection section) -->
+    <string name="settings_connect_timeout_label">Tiempo de espera de conexión</string>
+    <string name="settings_connect_timeout_hint">Cuánto esperar la conexión con el servidor, incluido el handshake TLS. Automático usa 1 segundo cuando hay un servidor secundario configurado, para que la app recurra rápido al de reserva, y 5 segundos cuando solo hay un servidor. Auméntalo si tu servidor está detrás de un túnel HTTPS lento como Tailscale Funnel, donde el handshake por sí solo puede tardar un par de segundos.</string>
+    <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_automatic">Automático (%1$d s)</string>
+    <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_value">%1$d s</string>
 
     <!-- Display settings section -->
     <string name="settings_display_title">Ajustes de pantalla</string>
