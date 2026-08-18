@@ -18,9 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocationOn
@@ -35,10 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -58,7 +54,8 @@ import org.osmdroid.util.GeoPoint
 // and the map's rendered center is shifted to the SAME point via setMapCenterOffset so the
 // dot marks the car's true position — centering the map on the car while drawing the dot
 // higher up made the car appear ~30 m north of reality (always just off the road).
-private val MAP_HEIGHT = 172.dp
+// The height is shared with every other page of the dashboard carousel.
+private val MAP_HEIGHT = DASHBOARD_CAROUSEL_HEIGHT
 private val PIN_GLOW_SIZE = 46.dp
 
 /** Vertical center of the pin overlay, measured from the top of the map box. */
@@ -285,13 +282,13 @@ internal fun LocationCard(
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (elevation != null) {
-                        LocationChip(
+                        CarouselChip(
                             icon = Icons.Filled.Terrain,
                             text = UnitFormatter.formatElevation(elevation, units)
                         )
                     }
                     if (latitude != null && longitude != null) {
-                        LocationChip(
+                        CarouselChip(
                             icon = Icons.Filled.LocationOn,
                             text = "%.4f, %.4f".format(latitude, longitude)
                         )
@@ -329,31 +326,3 @@ internal fun LocationCard(
     }
 }
 
-/** A small translucent chip used on the immersive Location card's map overlay. */
-@Composable
-private fun LocationChip(icon: ImageVector, text: String) {
-    val dark = isSystemInDarkTheme()
-    val content = if (dark) Color.White else Color(0xFF0E1216)
-    val bg = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(9.dp))
-            .background(bg)
-            .padding(horizontal = 9.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = content.copy(alpha = 0.9f),
-            modifier = Modifier.size(13.dp)
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = content.copy(alpha = 0.92f),
-            maxLines = 1
-        )
-    }
-}

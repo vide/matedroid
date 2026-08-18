@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
+import com.matedroid.domain.SinceLastChargeStats
 import com.matedroid.domain.model.Trip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -270,6 +271,7 @@ fun DashboardScreen(
                         isCurrentChargeAvailable = uiState.isCurrentChargeAvailable,
                         sentryEventCount = uiState.sentryEventCount,
                         dcFinishedPluggedIn = uiState.dcFinishedPluggedIn,
+                        sinceLastCharge = uiState.sinceLastCharge,
                         highSocWarningThreshold = uiState.highSocWarningThreshold,
                         lowSocWarningThreshold = uiState.lowSocWarningThreshold,
                         onNavigateToCharges = {
@@ -567,6 +569,7 @@ private fun DashboardContent(
     isCurrentChargeAvailable: Boolean = false,
     sentryEventCount: Int = 0,
     dcFinishedPluggedIn: Boolean = false,
+    sinceLastCharge: SinceLastChargeStats? = null,
     highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
     lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
     onNavigateToCharges: () -> Unit = {},
@@ -640,15 +643,16 @@ private fun DashboardContent(
             DcUnplugWarningBanner(dcFinishedSince = status.stateSince)
         }
 
-        // Location Section - show if we have coordinates
-        if (status.latitude != null && status.longitude != null) {
-            LocationCard(
-                status = status,
-                units = units,
-                resolvedAddress = resolvedAddress,
-                palette = palette
-            )
-        }
+        // Swipeable slot: current position map + "Since last charge" (issue #339).
+        // Renders nothing when neither page has data.
+        DashboardCarousel(
+            status = status,
+            units = units,
+            resolvedAddress = resolvedAddress,
+            sinceLastCharge = sinceLastCharge,
+            palette = palette,
+            onNavigateToDrives = onNavigateToDrives
+        )
 
         // Activity card — Trips hero + counters bento
         VehicleInfoCard(

@@ -12,6 +12,8 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
+import com.matedroid.domain.SinceLastChargeRepository
+import com.matedroid.domain.SinceLastChargeStats
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import com.matedroid.data.repository.ApiResult
@@ -52,6 +54,8 @@ data class DashboardUiState(
     /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
     val latestTrip: Trip? = null,
     val dcFinishedPluggedIn: Boolean = false,
+    /** Consumption since the last energy-adding charge; null hides the carousel page. */
+    val sinceLastCharge: SinceLastChargeStats? = null,
     /** Battery level above which a parked car is flagged; see [HighSocWarning]. */
     val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
     /** Battery level below which the percentage reads as low; see [LowSocWarning]. */
@@ -87,7 +91,8 @@ class DashboardViewModel @Inject constructor(
     private val sentryStateRepository: SentryStateRepository,
     private val tripRepository: TripRepository,
     private val tripCountCache: TripCountCache,
-    private val chargeSessionStateDataStore: ChargeSessionStateDataStore
+    private val chargeSessionStateDataStore: ChargeSessionStateDataStore,
+    private val sinceLastChargeRepository: SinceLastChargeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -195,6 +200,7 @@ class DashboardViewModel @Inject constructor(
                 totalDrives = null,
                 carImageOverride = currentOverrides[carId],
                 isCurrentChargeAvailable = false,
+                sinceLastCharge = null,
                 // Clear any error from a previously-selected car so switching to a
                 // working car doesn't keep showing the stale error (issue #272).
                 error = null,
@@ -233,6 +239,7 @@ class DashboardViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val status = result.data.status
                     val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
@@ -250,6 +257,7 @@ class DashboardViewModel @Inject constructor(
 
             // Pull-to-refresh also re-reads the trip count + latest trip.
             loadTripCount(carId)
+            loadSinceLastCharge(carId)
 
             _uiState.update { it.copy(isRefreshing = false) }
         }
@@ -261,6 +269,7 @@ class DashboardViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val status = result.data.status
                     val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
@@ -280,7 +289,31 @@ class DashboardViewModel @Inject constructor(
             }
         }
         loadCounts(carId)
+        loadSinceLastCharge(carId)
         startAutoRefresh(carId)
+    }
+
+    // Charging state seen by the last status update, per car — a true→false
+    // transition means a charge cycle just ended and the stats must re-anchor.
+    private var lastObservedCharging: Pair<Int, Boolean>? = null
+
+    /** Reload the since-last-charge stats when a charge finishes while the dashboard polls. */
+    private fun detectChargeCycleEnd(carId: Int, status: CarStatus) {
+        val wasCharging = lastObservedCharging?.takeIf { it.first == carId }?.second
+        lastObservedCharging = carId to status.isCharging
+        if (wasCharging == true && !status.isCharging) {
+            loadSinceLastCharge(carId)
+        }
+    }
+
+    private fun loadSinceLastCharge(carId: Int) {
+        viewModelScope.launch {
+            val stats = sinceLastChargeRepository.getStats(carId)
+            // Guard against a car switch while the two API calls were in flight.
+            if (_uiState.value.selectedCarId == carId) {
+                _uiState.update { it.copy(sinceLastCharge = stats) }
+            }
+        }
     }
 
     /**
@@ -359,6 +392,7 @@ class DashboardViewModel @Inject constructor(
                     is ApiResult.Success -> {
                         val status = result.data.status
                         val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                         _uiState.update {
                             it.copy(
                                 carStatus = status,

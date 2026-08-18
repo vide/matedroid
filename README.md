@@ -52,7 +52,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 
 #### Dashboard
 
-Your car at a glance: live status, battery level, location on a map, tire pressures, and quick access to all the other sections. The 3D car image matches your actual color, trim, and wheels — tap it for stats, long-press to change the angle. When charging, the battery card comes alive with real-time power and ETA.
+Your car at a glance: live status, battery level, location on a map (swipe it for the energy consumed since your last charge), tire pressures, and quick access to all the other sections. The 3D car image matches your actual color, trim, and wheels — tap it for stats, long-press to change the angle. When charging, the battery card comes alive with real-time power and ETA.
 
 #### Charges & Drives
 
