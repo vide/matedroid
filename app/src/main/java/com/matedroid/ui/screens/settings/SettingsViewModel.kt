@@ -300,15 +300,34 @@ class SettingsViewModel @Inject constructor(
                 return@launch
             }
 
+            // Test what the form says, not what is on disk: neither the timeout picker's
+            // "Automatic" resolution nor the secondary URL it depends on are saved yet.
+            val timeoutSeconds = ConnectionTimeout.resolveSeconds(
+                setting = _uiState.value.connectTimeoutSeconds,
+                hasFallbackServer = secondaryUrl.isNotBlank()
+            )
+
             // Test primary server
-            val primaryResult = when (val result = repository.testConnection(primaryUrl, _uiState.value.acceptInvalidCerts)) {
+            val primaryResult = when (
+                val result = repository.testConnection(
+                    primaryUrl,
+                    _uiState.value.acceptInvalidCerts,
+                    timeoutSeconds
+                )
+            ) {
                 is ApiResult.Success -> ServerTestResult.Success
                 is ApiResult.Error -> ServerTestResult.Failure(result.message)
             }
 
             // Test secondary server if configured
             val secondaryResult = if (secondaryUrl.isNotBlank()) {
-                when (val result = repository.testConnection(secondaryUrl, _uiState.value.acceptInvalidCerts)) {
+                when (
+                    val result = repository.testConnection(
+                        secondaryUrl,
+                        _uiState.value.acceptInvalidCerts,
+                        timeoutSeconds
+                    )
+                ) {
                     is ApiResult.Success -> ServerTestResult.Success
                     is ApiResult.Error -> ServerTestResult.Failure(result.message)
                 }
