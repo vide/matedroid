@@ -120,16 +120,22 @@ class TeslamateApiFactory(
      *
      * @param baseUrl The base URL for the API
      * @param acceptInvalidCerts Override for accepting invalid certificates. If null, uses the setting from DataStore.
+     * @param connectTimeoutSeconds Override for the connect timeout, already resolved. If null,
+     *   it is resolved from the settings in DataStore — see [ConnectionTimeout].
      * @return A TeslamateApi instance configured for the given URL
      */
-    suspend fun create(baseUrl: String, acceptInvalidCerts: Boolean? = null): TeslamateApi {
+    suspend fun create(
+        baseUrl: String,
+        acceptInvalidCerts: Boolean? = null,
+        connectTimeoutSeconds: Int? = null
+    ): TeslamateApi {
         val normalizedUrl = baseUrl.trimEnd('/') + "/"
         val settings = settingsDataStore.settings.first()
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername
         val basicAuthPassword = settings.httpBasicAuthPassword
-        val connectTimeoutSeconds = ConnectionTimeout.resolveSeconds(
+        val timeoutSeconds = connectTimeoutSeconds ?: ConnectionTimeout.resolveSeconds(
             setting = settings.connectTimeoutSeconds,
             hasFallbackServer = settings.hasSecondaryServer
         )
@@ -142,7 +148,7 @@ class TeslamateApiFactory(
             apiToken,
             basicAuthUsername,
             basicAuthPassword,
-            connectTimeoutSeconds
+            timeoutSeconds
         )
 
         // Return cached API if available
@@ -154,7 +160,7 @@ class TeslamateApiFactory(
             useInsecure,
             basicAuthUsername,
             basicAuthPassword,
-            connectTimeoutSeconds
+            timeoutSeconds
         )
 
         val api = Retrofit.Builder()
@@ -184,7 +190,11 @@ class TeslamateApiFactory(
         apiCache.clear()
     }
 
-    private fun createOkHttpClient(
+    /**
+     * Internal rather than private so a unit test can assert that the configured timeout
+     * really reaches OkHttp, in the unit OkHttp expects.
+     */
+    internal fun createOkHttpClient(
         apiToken: String,
         acceptInvalidCerts: Boolean,
         basicAuthUsername: String = "",
