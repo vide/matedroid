@@ -135,6 +135,15 @@
 
     <!-- Activity card section title (bottom dashboard card) -->
     <string name="activity_title">Attività</string>
+    <!-- "Since last charge" dashboard carousel page: title label -->
+    <string name="since_last_charge_title">Dall\'ultima ricarica</string>
+    <!-- "Since last charge" card: sub-line under the kWh hero; %1$d is the number of drives -->
+    <plurals name="since_last_charge_drives">
+        <item quantity="one">consumati in %1$d tragitto</item>
+        <item quantity="other">consumati in %1$d tragitti</item>
+    </plurals>
+    <!-- "Since last charge" card: battery percentage points used this cycle; "SoC" is technical, do not translate -->
+    <string name="since_last_charge_soc_used">−%1$d%% SoC</string>
     <!-- Content description for the top-right overflow/hamburger menu button -->
     <string name="menu">Menu</string>
     <!-- Menu entry: opens the Sentry events / history screen -->
