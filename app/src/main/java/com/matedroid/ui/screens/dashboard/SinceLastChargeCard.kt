@@ -101,7 +101,8 @@ internal fun SinceLastChargeCard(
             Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = 16.dp, top = 14.dp, end = 48.dp),
+                    // End inset keeps the label clear of the pager dots pill.
+                    .padding(start = 16.dp, top = 14.dp, end = 72.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(

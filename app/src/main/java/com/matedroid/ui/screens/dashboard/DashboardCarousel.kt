@@ -83,13 +83,14 @@ internal fun DashboardCarousel(
             }
         }
 
-        // Dots overlaid top-center, translucent pill like the map card's chips.
+        // Dots overlaid top-right (top-center collides with the "Since last
+        // charge" label text), translucent pill like the map card's chips.
         if (pages.size > 1) {
             val dark = isSystemInDarkTheme()
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 10.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 12.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
                         if (dark) Color.Black.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.55f)
