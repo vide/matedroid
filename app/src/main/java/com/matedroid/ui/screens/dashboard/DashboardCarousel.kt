@@ -2,7 +2,9 @@ package com.matedroid.ui.screens.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,7 +63,7 @@ internal fun DashboardCarousel(
 
     val pagerState = rememberPagerState { pages.size }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxWidth()
@@ -83,29 +85,24 @@ internal fun DashboardCarousel(
             }
         }
 
-        // Dots overlaid top-right (top-center collides with the "Since last
-        // charge" label text), translucent pill like the map card's chips.
+        // Dots below the cards, matching the multi-car selector pager — overlaying
+        // them on the cards either covered the map or collided with the label text.
         if (pages.size > 1) {
-            val dark = isSystemInDarkTheme()
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 10.dp, end = 12.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (dark) Color.Black.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.55f)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.Center
             ) {
                 repeat(pages.size) { index ->
-                    if (index > 0) Spacer(modifier = Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .padding(horizontal = 4.dp)
+                            .size(8.dp)
                             .clip(CircleShape)
                             .background(
                                 if (pagerState.currentPage == index) palette.accent
-                                else palette.onSurfaceVariant.copy(alpha = 0.45f)
+                                else palette.onSurfaceVariant.copy(alpha = 0.3f)
                             )
                     )
                 }
