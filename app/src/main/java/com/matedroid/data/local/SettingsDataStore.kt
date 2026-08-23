@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -58,6 +59,7 @@ data class AppSettings(
     val acceptInvalidCerts: Boolean = false,
     val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
+    val costPerKwhBasis: CostPerKwhBasis = CostPerKwhBasis.DEFAULT,
     val showShortDrivesCharges: Boolean = false,
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
@@ -86,6 +88,7 @@ class SettingsDataStore @Inject constructor(
     private val acceptInvalidCertsKey = booleanPreferencesKey("accept_invalid_certs")
     private val connectTimeoutSecondsKey = intPreferencesKey("connect_timeout_seconds")
     private val currencyCodeKey = stringPreferencesKey("currency_code")
+    private val costPerKwhBasisKey = stringPreferencesKey("cost_per_kwh_basis")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
     private val shortDriveMinDurationKey = intPreferencesKey("short_drive_min_duration_min")
     private val shortDriveMinDistanceKey = doublePreferencesKey("short_drive_min_distance")
@@ -123,6 +126,7 @@ class SettingsDataStore @Inject constructor(
             acceptInvalidCerts = preferences[acceptInvalidCertsKey] ?: false,
             connectTimeoutSeconds = preferences[connectTimeoutSecondsKey] ?: ConnectionTimeout.AUTO,
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
+            costPerKwhBasis = CostPerKwhBasis.fromId(preferences[costPerKwhBasisKey]),
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
             shortDriveMinDurationMin = preferences[shortDriveMinDurationKey]
                 ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
@@ -229,6 +233,12 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveCurrency(currencyCode: String) {
         context.dataStore.edit { preferences ->
             preferences[currencyCodeKey] = currencyCode
+        }
+    }
+
+    suspend fun saveCostPerKwhBasis(basis: CostPerKwhBasis) {
+        context.dataStore.edit { preferences ->
+            preferences[costPerKwhBasisKey] = basis.id
         }
     }
 

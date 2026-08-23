@@ -6,6 +6,7 @@ import com.matedroid.data.local.dao.DateBounds
 import com.matedroid.data.local.dao.DriveSummaryDao
 import com.matedroid.data.local.entity.SchemaVersion
 import com.matedroid.data.sync.SyncManager
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.CarStats
 import com.matedroid.domain.model.ChargePowerRecord
 import com.matedroid.domain.model.ChargeTempRecord
@@ -67,6 +68,7 @@ class StatsRepository @Inject constructor(
     suspend fun getQuickStats(carId: Int, yearFilter: YearFilter): QuickStats {
         val (startDate, endDate) = yearFilter.toDateBounds()
         val allTime = yearFilter is YearFilter.AllTime
+        val useEnergyUsedBasis = CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED
 
         return QuickStats(
             totalDrives = driveSummaryDao.count(carId, startDate, endDate),
@@ -80,7 +82,7 @@ class StatsRepository @Inject constructor(
             totalCharges = chargeSummaryDao.count(carId, startDate, endDate),
             totalEnergyAddedKwh = chargeSummaryDao.sumEnergyAdded(carId, startDate, endDate),
             totalCost = chargeSummaryDao.sumCost(carId, startDate, endDate).takeIf { it > 0 },
-            avgCostPerKwh = chargeSummaryDao.avgCostPerKwh(carId, startDate, endDate).takeIf { it > 0 },
+            avgCostPerKwh = chargeSummaryDao.avgCostPerKwh(carId, startDate, endDate, useEnergyUsedBasis).takeIf { it > 0 },
             avgChargeMinutes = if (allTime) chargeSummaryDao.avgDuration(carId) else null, // Not critical for year view
 
             longestDrive = driveSummaryDao.longestDrive(carId, startDate, endDate),
@@ -89,7 +91,7 @@ class StatsRepository @Inject constructor(
             leastEfficientDrive = driveSummaryDao.leastEfficientDrive(carId, startDate, endDate),
             biggestCharge = chargeSummaryDao.biggestCharge(carId, startDate, endDate),
             mostExpensiveCharge = chargeSummaryDao.mostExpensiveCharge(carId, startDate, endDate),
-            mostExpensivePerKwhCharge = chargeSummaryDao.mostExpensivePerKwhCharge(carId, startDate, endDate),
+            mostExpensivePerKwhCharge = chargeSummaryDao.mostExpensivePerKwhCharge(carId, startDate, endDate, useEnergyUsedBasis),
 
             firstDriveDate = driveSummaryDao.firstDriveDate(carId), // Always show first ever
             firstChargeDate = chargeSummaryDao.firstChargeDate(carId), // Always show first ever

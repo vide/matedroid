@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.DeepStats
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
 import com.matedroid.domain.model.QuickStats
@@ -100,7 +101,13 @@ internal fun RecordsCard(
     val labelBiggestCharge = stringResource(R.string.record_biggest_charge)
     val labelPeakPower = stringResource(R.string.record_peak_power)
     val labelMostExpensive = stringResource(R.string.record_most_expensive)
-    val labelPriciestKwh = stringResource(R.string.record_priciest_kwh)
+    val labelPriciestKwh = stringResource(
+        if (CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED) {
+            R.string.record_priciest_kwh_used
+        } else {
+            R.string.record_priciest_kwh_added
+        }
+    )
     val labelHighestPoint = stringResource(R.string.record_highest_point)
     val labelMostClimbing = stringResource(R.string.record_most_climbing)
     val labelHottestDrive = stringResource(R.string.record_hottest_drive)
@@ -171,8 +178,9 @@ internal fun RecordsCard(
         }
         quickStats.mostExpensivePerKwhCharge?.let { charge ->
             charge.cost?.let { cost ->
-                if (charge.energyAdded > 0) {
-                    batteryRecords.add(RecordData("📈", labelPriciestKwh, UnitFormatter.formatCost(cost / charge.energyAdded, currencySymbol, perKwh = true), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
+                val energyBasis = CostPerKwhBasis.energyFor(charge.energyAdded, charge.energyUsed)
+                if (energyBasis > 0) {
+                    batteryRecords.add(RecordData("📈", labelPriciestKwh, UnitFormatter.formatCost(cost / energyBasis, currencySymbol, perKwh = true), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
                 }
             }
         }

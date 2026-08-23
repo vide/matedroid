@@ -57,16 +57,20 @@ interface ChargeSummaryDao {
     """)
     suspend fun sumCost(carId: Int, startDate: String, endDate: String): Double
 
-    // Average cost per kWh
+    // Average cost per kWh. The divisor follows the user's cost basis
+    // (com.matedroid.domain.CostPerKwhBasis): energy added, or energy used with a
+    // per-row fallback to energy added when usage was never synced.
     @Query("""
-        SELECT COALESCE(SUM(cost) / NULLIF(SUM(energyAdded), 0), 0)
+        SELECT COALESCE(SUM(cost) / NULLIF(SUM(
+            CASE WHEN :useEnergyUsed THEN COALESCE(NULLIF(energyUsed, 0), energyAdded) ELSE energyAdded END
+        ), 0), 0)
         FROM charges_summary
         WHERE carId = :carId
         AND startDate >= :startDate
         AND startDate < :endDate
         AND cost IS NOT NULL
     """)
-    suspend fun avgCostPerKwh(carId: Int, startDate: String, endDate: String): Double
+    suspend fun avgCostPerKwh(carId: Int, startDate: String, endDate: String, useEnergyUsed: Boolean): Double
 
     // Biggest single charge (by energy added)
     @Query("""
@@ -86,14 +90,16 @@ interface ChargeSummaryDao {
     """)
     suspend fun mostExpensiveCharge(carId: Int, startDate: String, endDate: String): ChargeSummary?
 
-    // Most expensive per kWh charge
+    // Most expensive per kWh charge, ranked under the same cost basis as avgCostPerKwh
     @Query("""
         SELECT * FROM charges_summary
-        WHERE carId = :carId AND cost IS NOT NULL AND energyAdded > 0
+        WHERE carId = :carId AND cost IS NOT NULL
+        AND (CASE WHEN :useEnergyUsed THEN COALESCE(NULLIF(energyUsed, 0), energyAdded) ELSE energyAdded END) > 0
         AND startDate >= :startDate AND startDate < :endDate
-        ORDER BY (cost / energyAdded) DESC LIMIT 1
+        ORDER BY (cost / (CASE WHEN :useEnergyUsed THEN COALESCE(NULLIF(energyUsed, 0), energyAdded) ELSE energyAdded END)) DESC
+        LIMIT 1
     """)
-    suspend fun mostExpensivePerKwhCharge(carId: Int, startDate: String, endDate: String): ChargeSummary?
+    suspend fun mostExpensivePerKwhCharge(carId: Int, startDate: String, endDate: String, useEnergyUsed: Boolean): ChargeSummary?
 
     // Average charge duration
     @Query("SELECT AVG(durationMin) FROM charges_summary WHERE carId = :carId")

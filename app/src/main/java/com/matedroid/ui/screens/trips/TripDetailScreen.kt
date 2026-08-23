@@ -92,6 +92,7 @@ import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
@@ -588,8 +589,10 @@ private fun ChargeCostCard(
 
                 // Per-kWh cost pill below the donut — the "at-a-glance verdict" on how expensive
                 // the energy was. (Cost per 100 km now lives in the map vitals bar.)
-                val perKwh = trip.totalChargeCost?.takeIf { trip.totalEnergyCharged > 0.0 }
-                    ?.let { it / trip.totalEnergyCharged }
+                // Divides by the user's chosen cost basis (energy added vs energy used).
+                val energyBasis = trip.charges.sumOf { CostPerKwhBasis.energyFor(it.energyAdded, it.energyUsed) }
+                val perKwh = trip.totalChargeCost?.takeIf { energyBasis > 0.0 }
+                    ?.let { it / energyBasis }
                 if (perKwh != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -597,7 +600,13 @@ private fun ChargeCostCard(
                     ) {
                         EfficiencyPill(
                             value = UnitFormatter.formatCost(perKwh, currencySymbol),
-                            unit = "/ kWh",
+                            unit = stringResource(
+                                if (CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED) {
+                                    R.string.per_kwh_suffix_used
+                                } else {
+                                    R.string.per_kwh_suffix_added
+                                }
+                            ),
                             palette = palette
                         )
                     }

@@ -709,7 +709,9 @@ private fun ChargeMoreDetails(
                     )
                 }
 
-                // Cost section — tappable to edit in TeslaMate when configured.
+                // Cost section — tappable to edit in TeslaMate when configured. Both per-kWh
+                // bases are shown here regardless of the Settings choice: this is the one
+                // surface with room to disambiguate energy added vs energy used (issue #257).
                 val cost = stats.cost ?: 0.0
                 if (cost > 0) {
                     StatsSectionCard(
@@ -717,7 +719,8 @@ private fun ChargeMoreDetails(
                         icon = Icons.Default.Paid,
                         stats = listOf(
                             StatItem(stringResource(R.string.total), "$currencySymbol%.2f".format(cost)),
-                            StatItem(stringResource(R.string.per_kwh), "$currencySymbol%.3f".format(cost / stats.energyAdded.coerceAtLeast(0.001)))
+                            StatItem(stringResource(R.string.per_kwh_added), "$currencySymbol%.3f".format(cost / stats.energyAdded.coerceAtLeast(0.001))),
+                            StatItem(stringResource(R.string.per_kwh_used), "$currencySymbol%.3f".format(cost / stats.energyUsed.coerceAtLeast(0.001)))
                         ),
                         onClick = onEditCost
                     )

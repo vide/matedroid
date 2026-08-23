@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.model.Currency
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -57,6 +58,7 @@ fun DisplaySettingsScreen(
 
     DisplaySettingsContent(
         currencyCode = uiState.currencyCode,
+        costPerKwhBasis = uiState.costPerKwhBasis,
         showShortDrivesCharges = uiState.showShortDrivesCharges,
         shortDriveMinDurationMin = uiState.shortDriveMinDurationMin,
         shortDriveMinDistance = uiState.shortDriveMinDistance,
@@ -66,6 +68,7 @@ fun DisplaySettingsScreen(
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onCurrencyChange = viewModel::updateCurrency,
+        onCostPerKwhBasisChange = viewModel::updateCostPerKwhBasis,
         onShowShortDrivesChargesChange = viewModel::updateShowShortDrivesCharges,
         onShortDriveMinDurationChange = viewModel::updateShortDriveMinDuration,
         onShortDriveMinDistanceChange = viewModel::updateShortDriveMinDistance,
@@ -78,6 +81,7 @@ fun DisplaySettingsScreen(
 @Composable
 private fun DisplaySettingsContent(
     currencyCode: String,
+    costPerKwhBasis: CostPerKwhBasis,
     showShortDrivesCharges: Boolean,
     shortDriveMinDurationMin: Int,
     shortDriveMinDistance: Double,
@@ -87,6 +91,7 @@ private fun DisplaySettingsContent(
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
     onCurrencyChange: (String) -> Unit,
+    onCostPerKwhBasisChange: (CostPerKwhBasis) -> Unit,
     onShowShortDrivesChargesChange: (Boolean) -> Unit,
     onShortDriveMinDurationChange: (Int) -> Unit,
     onShortDriveMinDistanceChange: (Double) -> Unit,
@@ -141,6 +146,29 @@ private fun DisplaySettingsContent(
                 }
             }
         }
+
+        SettingsSpacer()
+
+        Text(
+            text = stringResource(R.string.settings_cost_basis_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        SettingsSpacer()
+
+        SettingsPresetPicker(
+            label = stringResource(R.string.settings_cost_basis_label),
+            value = costPerKwhBasis,
+            options = CostPerKwhBasis.entries,
+            optionLabel = { basis ->
+                when (basis) {
+                    CostPerKwhBasis.ENERGY_ADDED -> stringResource(R.string.settings_cost_basis_added)
+                    CostPerKwhBasis.ENERGY_USED -> stringResource(R.string.settings_cost_basis_used)
+                }
+            },
+            onValueChange = onCostPerKwhBasisChange
+        )
 
         SettingsSpacer(24)
 
@@ -321,6 +349,7 @@ private fun DisplaySettingsPreview() {
     MateDroidTheme {
         DisplaySettingsContent(
             currencyCode = "EUR",
+            costPerKwhBasis = CostPerKwhBasis.DEFAULT,
             showShortDrivesCharges = false,
             shortDriveMinDurationMin = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
             shortDriveMinDistance = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
@@ -330,6 +359,7 @@ private fun DisplaySettingsPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onCurrencyChange = {},
+            onCostPerKwhBasisChange = {},
             onShowShortDrivesChargesChange = {},
             onShortDriveMinDurationChange = {},
             onShortDriveMinDistanceChange = {},

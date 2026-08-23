@@ -18,6 +18,7 @@ data class ComparableCharge(
     val brand: String?,
     val peakKw: Int?,
     val energyAdded: Double,
+    val energyUsed: Double?,
     val durationMin: Int,
     val durationSeconds: Int,
     val cost: Double?,
@@ -28,12 +29,16 @@ data class ComparableCharge(
     val isBase: Boolean
 ) {
     /**
-     * Cost per kWh. A charge with no cost set is treated as free (0), since that usually means free
-     * credits (Tesla or another provider) rather than unknown — so it counts as the cheapest, not as
-     * missing. Null only when there's no energy to divide by.
+     * Cost per kWh, divided by the user's chosen basis ([CostPerKwhBasis]). A charge with no cost
+     * set is treated as free (0), since that usually means free credits (Tesla or another provider)
+     * rather than unknown — so it counts as the cheapest, not as missing. Null only when there's no
+     * energy to divide by.
      */
     val costPerKwh: Double?
-        get() = if (energyAdded > 0) (cost ?: 0.0).coerceAtLeast(0.0) / energyAdded else null
+        get() {
+            val energy = CostPerKwhBasis.energyFor(energyAdded, energyUsed)
+            return if (energy > 0) (cost ?: 0.0).coerceAtLeast(0.0) / energy else null
+        }
 }
 
 /** Reference figures averaged across every charge in the comparison set. */
@@ -119,6 +124,7 @@ class ChargeComparisonRepository @Inject constructor(
                 brand = agg?.fastChargerBrand,
                 peakKw = agg?.maxChargerPower,
                 energyAdded = s.energyAdded,
+                energyUsed = s.energyUsed,
                 durationMin = s.durationMin,
                 durationSeconds = durationSeconds(s.startDate, s.endDate, s.durationMin),
                 cost = s.cost,
