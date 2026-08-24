@@ -24,7 +24,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 - **Software Updates** - Track update history
 - **Visited countries stats** - Show your friends all the places you visited with your car!
 - **Car color based themes** - Light/dark themes with palette based on the car color
-- **Multi-language** - Available in English, Italian, Spanish, and Catalan
+- **Multi-language** - Available in English, Italian, Spanish, Catalan, German, and Chinese (Simplified)
 
 ### Gallery
 

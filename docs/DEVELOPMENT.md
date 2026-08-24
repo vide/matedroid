@@ -401,7 +401,9 @@ fastlane/metadata/android/
 │       └── {versionCode}.txt
 ├── it-IT/           # Italian
 ├── es-ES/           # Spanish
-└── ca-ES/           # Catalan
+├── ca-ES/           # Catalan
+├── de-DE/           # German
+└── zh-CN/           # Chinese (Simplified)
 ```
 
 Each release requires a changelog file named `{versionCode}.txt` (e.g., `24.txt`) in all locale directories. The `/release` skill automatically creates translated changelogs for all supported languages.

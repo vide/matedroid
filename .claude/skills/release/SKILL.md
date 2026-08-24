@@ -81,6 +81,7 @@ Automatically translate the English changelog and write the translations to:
 - `fastlane/metadata/android/it-IT/changelogs/{versionCode}.txt` (Italian)
 - `fastlane/metadata/android/es-ES/changelogs/{versionCode}.txt` (Spanish)
 - `fastlane/metadata/android/ca-ES/changelogs/{versionCode}.txt` (Catalan)
+- `fastlane/metadata/android/de-DE/changelogs/{versionCode}.txt` (German)
 - `fastlane/metadata/android/zh-CN/changelogs/{versionCode}.txt` (Chinese Simplified)
 
 Do this immediately after creating the English changelog - no user interaction needed.
