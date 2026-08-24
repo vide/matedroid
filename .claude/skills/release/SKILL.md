@@ -12,6 +12,15 @@ Create a new release for MateDroid.
 
 1. Ensure you're on the `main` branch with no uncommitted changes
 2. Verify the `[Unreleased]` section in `CHANGELOG.md` has content to release
+3. **Beta-first check (MANDATORY for stable minor/major releases)**: if the requested
+   release is a stable minor or major version (e.g. `1.11.0`, `2.0.0` — anything that is
+   not a patch and not itself a `-beta`), check whether at least one beta of that version
+   was released first: `git tag -l "vX.Y.0-beta*"`. If no beta tag exists, STOP and ask
+   the user with AskUserQuestion whether they are sure they want to release straight to
+   stable, offering "Release vX.Y.0-betaN first (Recommended)" as the first option and
+   "Go straight to stable vX.Y.0" as the second. Only proceed to stable after they
+   explicitly pick the stable option — even if they named the stable version in the
+   request. Patch releases (`X.Y.1`, `X.Y.2`, …) and beta releases skip this check.
 
 ## Release Process
 
