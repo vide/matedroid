@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-24
+
 ### Added
 - **Choose what "cost per kWh" means** (#257) (Settings → Display → Costs) — per-kWh figures were always the cost divided by the energy that ended up in the battery, which includes charging losses in the price and so reads higher than the tariff you actually pay. You can now base them on the energy drawn from the charger instead, matching TeslaMate's own numbers and your electricity bill. The default is unchanged (energy added — the effective price of the energy you drive on), every per-kWh label now says which basis it uses, and the charge detail screen simply shows both.
 - **"Since last charge" on the dashboard** (#339) — the position card now swipes: the second page shows the energy consumed since the last charge that actually added something, with distance, average consumption and battery percentage used, mirroring the car's own trip meter. Handy for judging whether one night of home charging will be enough. Tapping it opens the Drives list; brief plug-ins that added no energy don't reset the count.
@@ -789,7 +791,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/vide/matedroid/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/vide/matedroid/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0
 [1.10.0-beta2]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...v1.10.0-beta2

@@ -1,0 +1,13 @@
+Ajustes a tu medida: esta versión de MateDroid se adapta a ti.
+
+Añadido:
+- Elige qué significa "coste por kWh": energía añadida o usada (con pérdidas)
+- Contador "desde la última carga" en el panel
+- Tiempo de espera de conexión, avisos de batería y umbrales de trayectos/cargas cortos configurables
+
+Cambiado:
+- Ajustes reorganizados en secciones
+- Elevación más clara: subida, bajada y neto
+
+Corregido:
+- Subida/bajada ya no infladas por el ruido GPS

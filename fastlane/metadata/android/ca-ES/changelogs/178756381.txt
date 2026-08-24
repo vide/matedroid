@@ -1,0 +1,13 @@
+Configuració a mida: aquesta versió de MateDroid s'adapta a tu.
+
+Afegit:
+- Tria què vol dir "cost per kWh": energia afegida o usada (amb pèrdues)
+- Comptador "des de l'última càrrega" al tauler
+- Temps d'espera de connexió, avisos de bateria i llindars de trajectes/càrregues curts configurables
+
+Canviat:
+- Configuració reorganitzada en seccions
+- Elevació més clara: pujada, baixada i net
+
+Corregit:
+- Pujada/baixada ja no inflades pel soroll GPS
