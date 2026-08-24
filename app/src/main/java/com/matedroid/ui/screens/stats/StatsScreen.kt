@@ -71,6 +71,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.data.repository.GeocodeProgressInfo
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.CarStats
 import com.matedroid.domain.model.DeepStats
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
@@ -695,7 +696,13 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
-                    label = stringResource(R.string.stats_avg_cost_kwh),
+                    label = stringResource(
+                        if (CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED) {
+                            R.string.stats_avg_cost_kwh_used
+                        } else {
+                            R.string.stats_avg_cost_kwh_added
+                        }
+                    ),
                     value = quickStats.avgCostPerKwh?.let { UnitFormatter.formatCost(it, currencySymbol, perKwh = true) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )

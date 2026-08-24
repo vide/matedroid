@@ -334,6 +334,11 @@
     <!-- Currency selector -->
     <string name="settings_currency_label">Currency for costs</string>
     <string name="settings_currency_select">Select currency</string>
+    <!-- Cost-per-kWh basis setting (issue #257): "energy added" = what ended up in the battery, "energy used" = what was drawn from the charger incl. losses -->
+    <string name="settings_cost_basis_label">Cost per kWh based on</string>
+    <string name="settings_cost_basis_added">Energy added (into the battery)</string>
+    <string name="settings_cost_basis_used">Energy used (from the charger, incl. losses)</string>
+    <string name="settings_cost_basis_hint">Charging losses make the energy drawn from the charger higher than what ends up in the battery. Choose which figure per-kWh costs are divided by. Charge details always show both.</string>
 
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Extra settings</string>
@@ -583,7 +588,12 @@
 
     <!-- Cost stats labels -->
     <string name="total">Total</string>
-    <string name="per_kwh">Per kWh</string>
+    <!-- Cost-per-kWh labels qualified by basis: "added" = into the battery, "used" = from the charger incl. losses -->
+    <string name="per_kwh_added">Per kWh added</string>
+    <string name="per_kwh_used">Per kWh used</string>
+    <!-- Compact unit suffixes shown next to a cost value in pills/chips -->
+    <string name="per_kwh_suffix_added">/kWh added</string>
+    <string name="per_kwh_suffix_used">/kWh used</string>
 
     <!-- Chart card titles -->
     <string name="voltage_profile">Voltage Profile</string>
@@ -726,7 +736,8 @@
     <string name="stats_total_charges">Total Charges</string>
 
     <!-- Label for average cost per kWh of energy -->
-    <string name="stats_avg_cost_kwh">Avg Cost/kWh</string>
+    <string name="stats_avg_cost_kwh_added">Avg Cost/kWh added</string>
+    <string name="stats_avg_cost_kwh_used">Avg Cost/kWh used</string>
 
     <!-- Section: Records - personal bests and extremes -->
     <string name="stats_records">Records</string>
@@ -777,7 +788,8 @@
     <string name="record_most_expensive">Most Expensive</string>
 
     <!-- Record: highest cost per kWh for a charge -->
-    <string name="record_priciest_kwh">Priciest/kWh</string>
+    <string name="record_priciest_kwh_added">Priciest/kWh added</string>
+    <string name="record_priciest_kwh_used">Priciest/kWh used</string>
 
     <!-- Record: highest elevation reached while driving -->
     <string name="record_highest_point">Highest Point</string>

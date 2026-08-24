@@ -19,6 +19,7 @@ import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -46,6 +47,7 @@ data class SettingsUiState(
     val acceptInvalidCerts: Boolean = false,
     val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
+    val costPerKwhBasis: CostPerKwhBasis = CostPerKwhBasis.DEFAULT,
     val showShortDrivesCharges: Boolean = false,
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
@@ -115,6 +117,7 @@ class SettingsViewModel @Inject constructor(
                 acceptInvalidCerts = settings.acceptInvalidCerts,
                 connectTimeoutSeconds = settings.connectTimeoutSeconds,
                 currencyCode = settings.currencyCode,
+                costPerKwhBasis = settings.costPerKwhBasis,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
                 shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
                 shortDriveMinDistance = settings.shortDriveMinDistance,
@@ -201,6 +204,18 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currencyCode = currencyCode)
         viewModelScope.launch {
             settingsDataStore.saveCurrency(currencyCode)
+        }
+    }
+
+    /**
+     * The process-wide mirror is updated synchronously so per-kWh figures pick up the new
+     * basis on the way back from Settings rather than on the next app start.
+     */
+    fun updateCostPerKwhBasis(basis: CostPerKwhBasis) {
+        _uiState.value = _uiState.value.copy(costPerKwhBasis = basis)
+        CostPerKwhBasis.current = basis
+        viewModelScope.launch {
+            settingsDataStore.saveCostPerKwhBasis(basis)
         }
     }
 

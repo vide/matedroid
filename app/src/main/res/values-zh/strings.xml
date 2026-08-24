@@ -331,6 +331,10 @@
     <!-- Currency selector -->
     <string name="settings_currency_label">费用货币</string>
     <string name="settings_currency_select">选择货币</string>
+    <string name="settings_cost_basis_label">每 kWh 费用计算依据</string>
+    <string name="settings_cost_basis_added">已充电量（进入电池）</string>
+    <string name="settings_cost_basis_used">已用电量（来自充电桩，含损耗）</string>
+    <string name="settings_cost_basis_hint">由于充电损耗，从充电桩获取的电量高于实际进入电池的电量。选择每 kWh 费用以哪个电量为准。充电详情始终同时显示两者。</string>
 
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">附加设置</string>
@@ -570,7 +574,10 @@
 
     <!-- Cost stats labels -->
     <string name="total">总计</string>
-    <string name="per_kwh">每 kWh</string>
+    <string name="per_kwh_added">每已充 kWh</string>
+    <string name="per_kwh_used">每已用 kWh</string>
+    <string name="per_kwh_suffix_added">/已充 kWh</string>
+    <string name="per_kwh_suffix_used">/已用 kWh</string>
 
     <!-- Chart card titles -->
     <string name="voltage_profile">电压曲线</string>
@@ -713,7 +720,8 @@
     <string name="stats_total_charges">总充电次数</string>
 
     <!-- Label for average cost per kWh of energy -->
-    <string name="stats_avg_cost_kwh">平均费用/kWh</string>
+    <string name="stats_avg_cost_kwh_added">平均费用/已充 kWh</string>
+    <string name="stats_avg_cost_kwh_used">平均费用/已用 kWh</string>
 
     <!-- Section: Records - personal bests and extremes -->
     <string name="stats_records">纪录</string>
@@ -764,7 +772,8 @@
     <string name="record_most_expensive">最贵充电</string>
 
     <!-- Record: highest cost per kWh for a charge -->
-    <string name="record_priciest_kwh">最高单价/kWh</string>
+    <string name="record_priciest_kwh_added">最高单价/已充 kWh</string>
+    <string name="record_priciest_kwh_used">最高单价/已用 kWh</string>
 
     <!-- Record: highest elevation reached while driving -->
     <string name="record_highest_point">最高海拔</string>

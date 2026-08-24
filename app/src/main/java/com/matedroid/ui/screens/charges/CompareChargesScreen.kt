@@ -56,6 +56,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ChargeAverage
 import com.matedroid.domain.ComparableCharge
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.ComparisonVerdict
 import com.matedroid.ui.components.DeltaChip
@@ -363,7 +364,7 @@ private fun CompareRow(
     onClick: (() -> Unit)?
 ) {
     val bg = if (charge.isBase) palette.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    val (value, unit) = valueFor(charge, sort, currencySymbol, stringResource(R.string.charge_free))
+    val (value, unit) = valueFor(charge, sort, currencySymbol, stringResource(R.string.charge_free), perKwhSuffix())
 
     Row(
         modifier = Modifier
@@ -444,11 +445,22 @@ private fun chargeAvgMetricValue(a: ChargeAverage, sort: CompareSort): Double? =
 private fun chargeHigherIsBetter(sort: CompareSort): Boolean = sort == CompareSort.PEAK
 
 
+/** Basis-qualified "/kWh" suffix so the compared figure is never ambiguous (issue #257). */
+@Composable
+private fun perKwhSuffix(): String = stringResource(
+    if (CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED) {
+        R.string.per_kwh_suffix_used
+    } else {
+        R.string.per_kwh_suffix_added
+    }
+)
+
 private fun valueFor(
     charge: ComparableCharge,
     sort: CompareSort,
     currencySymbol: String,
-    freeLabel: String
+    freeLabel: String,
+    perKwhSuffix: String
 ): Pair<String, String> =
     when (sort) {
         CompareSort.PEAK -> (charge.peakKw?.let { "$it" } ?: "—") to "kW"
@@ -458,7 +470,7 @@ private fun valueFor(
             when {
                 cpk == null -> "—" to ""
                 cpk <= 0.0 -> freeLabel to ""
-                else -> "$currencySymbol${"%.3f".format(cpk)}" to "/kWh"
+                else -> "$currencySymbol${"%.3f".format(cpk)}" to perKwhSuffix
             }
         }
     }

@@ -331,6 +331,10 @@
     <!-- Currency selector -->
     <string name="settings_currency_label">Moneda per als costos</string>
     <string name="settings_currency_select">Selecciona moneda</string>
+    <string name="settings_cost_basis_label">Cost per kWh basat en</string>
+    <string name="settings_cost_basis_added">Energia afegida (a la bateria)</string>
+    <string name="settings_cost_basis_used">Energia usada (del carregador, amb pèrdues)</string>
+    <string name="settings_cost_basis_hint">Les pèrdues de càrrega fan que l\'energia presa del carregador sigui més gran que la que arriba a la bateria. Tria entre quin valor dividir els costos per kWh. El detall de la càrrega sempre mostra tots dos.</string>
 
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Configuració extra</string>
@@ -570,7 +574,10 @@
 
     <!-- Cost stats labels -->
     <string name="total">Total</string>
-    <string name="per_kwh">Per kWh</string>
+    <string name="per_kwh_added">Per kWh afegit</string>
+    <string name="per_kwh_used">Per kWh usat</string>
+    <string name="per_kwh_suffix_added">/kWh afegit</string>
+    <string name="per_kwh_suffix_used">/kWh usat</string>
 
     <!-- Chart card titles -->
     <string name="voltage_profile">Perfil de voltatge</string>
@@ -713,7 +720,8 @@
     <string name="stats_total_charges">Càrregues Totals</string>
 
     <!-- Label for average cost per kWh of energy -->
-    <string name="stats_avg_cost_kwh">Cost Mitjà/kWh</string>
+    <string name="stats_avg_cost_kwh_added">Cost Mitjà/kWh afegit</string>
+    <string name="stats_avg_cost_kwh_used">Cost Mitjà/kWh usat</string>
 
     <!-- Section: Records - personal bests and extremes -->
     <string name="stats_records">Rècords</string>
@@ -764,7 +772,8 @@
     <string name="record_most_expensive">Més car</string>
 
     <!-- Record: highest cost per kWh for a charge -->
-    <string name="record_priciest_kwh">Preu màx/kWh</string>
+    <string name="record_priciest_kwh_added">Preu màx/kWh afegit</string>
+    <string name="record_priciest_kwh_used">Preu màx/kWh usat</string>
 
     <!-- Record: highest elevation reached while driving -->
     <string name="record_highest_point">Punt més alt</string>
