@@ -1,0 +1,35 @@
+# Configuration for `bundle exec fastlane screengrab`.
+# See https://docs.fastlane.tools/actions/screengrab/
+
+# Locales to capture. Start with en-US for the PoC; expand later by adding
+# 'it-IT', 'es-ES', 'ca-ES', 'zh-CN' once the en-US flow is solid.
+locales(['en-US'])
+
+# Wipe previous PNGs so stale ones don't linger when a screen is renamed.
+clear_previous_screenshots(true)
+
+# Output to fastlane/metadata/android/<locale>/images/phoneScreenshots/ —
+# the path F-Droid + Play Store both already read from.
+output_directory('fastlane/metadata/android')
+
+# Match the test runner declared in app/build.gradle.kts.
+test_instrumentation_runner('androidx.test.runner.AndroidJUnitRunner')
+
+# Limit to the screenshot test class — the project also has widget tests in
+# androidTest/ that would otherwise be picked up and fail (they expect specific
+# device state).
+use_tests_in_classes(['com.matedroid.screenshots.ScreenshotsTest'])
+
+# AGP names the test APK package <applicationId>.test by default.
+app_package_name('com.matedroid')
+tests_package_name('com.matedroid.test')
+
+# Pin the APKs explicitly. Without this screengrab scans for any app-*.apk
+# under app/build/outputs/apk/ and prompts interactively when it finds more
+# than one (e.g. release + debug); inside the container there is no TTY, so
+# the prompt crashes the run.
+app_apk_path('app/build/outputs/apk/debug/app-debug.apk')
+tests_apk_path('app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk')
+
+# Skip the build step — scripts/screengrab.sh assembles the APKs first.
+skip_open_summary(true)

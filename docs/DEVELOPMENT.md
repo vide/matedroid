@@ -376,6 +376,13 @@ The `-n` flag (explicit component) is required on Android 14+ since implicit bro
 ./gradlew connectedAndroidTest
 ```
 
+### Screenshots
+
+Store-listing and README screenshots are generated automatically via Fastlane
+[screengrab](https://docs.fastlane.tools/actions/screengrab/). See
+[`SCREENSHOTS.md`](SCREENSHOTS.md) for the workflow and how to add a new
+screen. The driver is `./scripts/take-screenshots.sh`.
+
 ### Releasing
 
 Releases are automated via GitHub Actions. When a release is published, the workflow builds the APK and attaches it to the release, and deploys to Google Play.

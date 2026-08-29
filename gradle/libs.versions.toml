@@ -25,6 +25,8 @@ workManager = "2.10.5"
 hiltWork = "1.3.0"
 glance = "1.1.1"
 detekt = "1.23.8"
+screengrab = "2.1.1"
+uiautomator = "2.3.0"
 
 [libraries]
 # Core Android
@@ -88,6 +90,9 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+screengrab = { group = "tools.fastlane", name = "screengrab", version.ref = "screengrab" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+androidx-test-core = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
