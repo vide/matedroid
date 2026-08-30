@@ -285,6 +285,16 @@
     <string name="settings_connect_title">连接 TeslamateApi</string>
     <string name="settings_connect_description">输入你的 TeslamateApi 服务器 URL 以连接。</string>
 
+    <string name="settings_demo_title">还没有服务器？</string>
+    <string name="settings_demo_description">用演示车辆一年的示例数据浏览 MateDroid。你可以稍后再连接自己的 TeslaMate。</string>
+    <string name="settings_demo_action">试用演示</string>
+
+    <string name="settings_demo_active_title">演示模式</string>
+    <string name="settings_demo_active_description">你看到的是演示车辆的示例数据，并非真实车辆。退出演示即可连接你自己的 TeslamateApi 服务器。</string>
+    <string name="settings_demo_exit_action">退出演示模式</string>
+    <string name="settings_demo_summary">演示模式 — 示例数据</string>
+    <string name="demo_mode_badge">演示</string>
+
     <!-- Server URL field -->
     <string name="settings_server_url_label">服务器 URL</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>

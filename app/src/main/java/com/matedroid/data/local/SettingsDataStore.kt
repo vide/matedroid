@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.matedroid.data.demo.DemoMode
 import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.HighSocWarning
@@ -71,6 +72,14 @@ data class AppSettings(
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
+
+    /**
+     * True while the app is showing the built-in sample dataset instead of talking to a
+     * server. Derived from [serverUrl] rather than stored separately, so the two can never
+     * disagree — see [DemoMode.SERVER_URL].
+     */
+    val isDemoMode: Boolean
+        get() = DemoMode.isDemoUrl(serverUrl)
 
     val hasSecondaryServer: Boolean
         get() = secondaryServerUrl.isNotBlank()
@@ -221,6 +230,36 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveConnectTimeoutSeconds(seconds: Int) {
         context.dataStore.edit { preferences ->
             preferences[connectTimeoutSecondsKey] = seconds
+        }
+    }
+
+    /**
+     * Enter demo mode, replacing whatever connection was configured.
+     *
+     * The previous server URL and credentials are cleared rather than parked somewhere for
+     * later: demo mode is entered from onboarding, where there is nothing to preserve, and
+     * keeping a shadow copy of someone's API token around for a restore that may never come
+     * is not a trade worth making. Leaving demo mode returns to onboarding.
+     */
+    suspend fun enterDemoMode() {
+        context.dataStore.edit { preferences ->
+            preferences[serverUrlKey] = DemoMode.SERVER_URL
+            preferences[secondaryServerUrlKey] = ""
+            preferences[apiTokenKey] = ""
+            preferences[httpBasicAuthUsernameKey] = ""
+            preferences[httpBasicAuthPasswordKey] = ""
+            preferences[teslamateBaseUrlKey] = ""
+            preferences.remove(lastSelectedCarIdKey)
+        }
+    }
+
+    /** Leave demo mode, putting the app back in its unconfigured first-run state. */
+    suspend fun exitDemoMode() {
+        context.dataStore.edit { preferences ->
+            preferences[serverUrlKey] = ""
+            preferences[teslamateBaseUrlKey] = ""
+            preferences.remove(lastSelectedCarIdKey)
+            preferences.remove(carImageOverridesKey)
         }
     }
 

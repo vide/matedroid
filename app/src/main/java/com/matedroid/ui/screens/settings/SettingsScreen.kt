@@ -97,10 +97,15 @@ private fun SettingsHubContent(
 @Composable
 private fun sectionSummary(section: SettingsSection, settings: AppSettings): String =
     when (section) {
-        SettingsSection.CONNECTION -> settings.serverUrl.takeIf { it.isNotBlank() }
-            ?.removePrefix("https://")
-            ?.removePrefix("http://")
-            ?: stringResource(R.string.settings_not_configured)
+        // The demo's server URL is a sentinel, not an address — showing it raw would put
+        // "demo://matedroid" on the hub as if it were something the user had typed.
+        SettingsSection.CONNECTION -> when {
+            settings.isDemoMode -> stringResource(R.string.settings_demo_summary)
+            settings.serverUrl.isNotBlank() -> settings.serverUrl
+                .removePrefix("https://")
+                .removePrefix("http://")
+            else -> stringResource(R.string.settings_not_configured)
+        }
 
         SettingsSection.DISPLAY -> Currency.findByCode(settings.currencyCode).let {
             "${it.symbol} ${it.code}"

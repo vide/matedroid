@@ -49,6 +49,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -155,19 +156,28 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = uiState.selectedCarName ?: "MateDroid",
-                        modifier = if (BuildConfig.DEBUG) {
-                            Modifier.combinedClickable(
-                                onClick = {},
-                                onDoubleClick = {
-                                    uiState.selectedCarId?.let { carId ->
-                                        onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = uiState.selectedCarName ?: "MateDroid",
+                            modifier = if (BuildConfig.DEBUG) {
+                                Modifier.combinedClickable(
+                                    onClick = {},
+                                    onDoubleClick = {
+                                        uiState.selectedCarId?.let { carId ->
+                                            onNavigateToSentryHistory(carId, uiState.selectedCarExterior?.exteriorColor)
+                                        }
                                     }
-                                }
-                            )
-                        } else Modifier
-                    )
+                                )
+                            } else Modifier
+                        )
+                        // Sample data is convincing enough that it has to say so somewhere
+                        // permanent. Next to the car name is where the eye already is, and
+                        // it travels with the name into every screenshot.
+                        if (uiState.isDemoMode) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            DemoBadge()
+                        }
+                    }
                 },
                 actions = {
                     val carSelected = uiState.selectedCarId != null
@@ -781,6 +791,28 @@ private fun DashboardPreview() {
                 )
             ),
             carTrimBadging = "74D"
+        )
+    }
+}
+
+/**
+ * The "Demo" marker beside the car name.
+ *
+ * Deliberately always on screen while the sample data is in use, rather than a dismissible
+ * banner: the demo is convincing enough that a screenshot of it would otherwise pass for a
+ * real car, and nobody should be left wondering whose Tesla they are looking at.
+ */
+@Composable
+private fun DemoBadge() {
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            text = stringResource(R.string.demo_mode_badge),
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
         )
     }
 }
