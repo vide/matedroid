@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-08-30
+
 ### Added
 - **Demo mode** — a **Try the demo** button on the first setup screen fills the app with a year of realistic sample data from a demonstration car, so you can see what MateDroid does before deciding whether to set up Teslamate. Drives, charges, a live charging session, statistics, battery health and three countries visited, all of it working exactly as it would against your own server. A **Demo** badge next to the car name means sample data is never mistaken for your own, and you can leave the demo at any time from Settings → Connection.
 
@@ -794,7 +796,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/vide/matedroid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/vide/matedroid/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/vide/matedroid/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0
