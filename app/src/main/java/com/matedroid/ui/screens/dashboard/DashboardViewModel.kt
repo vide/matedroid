@@ -49,6 +49,8 @@ data class DashboardUiState(
     val carImageOverride: CarImageOverride? = null,
     val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     val isCurrentChargeAvailable: Boolean = false,
+    /** True while the dashboard is showing the built-in sample data rather than a real car. */
+    val isDemoMode: Boolean = false,
     val sentryEventCount: Int = 0,
     val totalTrips: Int? = null,
     /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
@@ -131,6 +133,13 @@ class DashboardViewModel @Inject constructor(
                         it.copy(highSocWarningThreshold = high, lowSocWarningThreshold = low)
                     }
                 }
+        }
+
+        viewModelScope.launch {
+            settingsDataStore.settings
+                .map { it.isDemoMode }
+                .distinctUntilChanged()
+                .collect { demo -> _uiState.update { it.copy(isDemoMode = demo) } }
         }
     }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -105,6 +107,8 @@ fun ConnectionSettingsScreen(
         isOnboarding = isOnboarding,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack.takeIf { !isOnboarding },
+        onTryDemo = { viewModel.enterDemoMode(onNavigateToDashboard) },
+        onExitDemo = { viewModel.exitDemoMode(onNavigateBack) },
         onServerUrlChange = viewModel::updateServerUrl,
         onSecondaryServerUrlChange = viewModel::updateSecondaryServerUrl,
         onApiTokenChange = viewModel::updateApiToken,
@@ -131,6 +135,8 @@ private fun ConnectionSettingsContent(
     isOnboarding: Boolean,
     snackbarHostState: SnackbarHostState,
     onNavigateBack: (() -> Unit)?,
+    onTryDemo: () -> Unit,
+    onExitDemo: () -> Unit,
     onServerUrlChange: (String) -> Unit,
     onSecondaryServerUrlChange: (String) -> Unit,
     onApiTokenChange: (String) -> Unit,
@@ -150,19 +156,36 @@ private fun ConnectionSettingsContent(
         onBack = onNavigateBack,
         snackbarHostState = snackbarHostState,
         bottomBar = {
-            ConnectionActionBar(
-                uiState = uiState,
-                isOnboarding = isOnboarding,
-                onTestConnection = onTestConnection,
-                onSave = onSave
-            )
+            if (uiState.isDemoMode) {
+                ExitDemoActionBar(isBusy = uiState.isSaving, onExitDemo = onExitDemo)
+            } else {
+                ConnectionActionBar(
+                    uiState = uiState,
+                    isOnboarding = isOnboarding,
+                    onTestConnection = onTestConnection,
+                    onSave = onSave
+                )
+            }
         }
     ) {
+        // While the demo owns the connection there is nothing on this page to configure, so
+        // the form is replaced rather than disabled: a greyed-out server field next to live
+        // sample data only invites the question of which one the app is actually using.
+        if (uiState.isDemoMode) {
+            DemoModeActiveCard()
+            return@SettingsSectionScaffold
+        }
+
         Text(
             text = stringResource(R.string.settings_connect_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        if (isOnboarding) {
+            SettingsSpacer(20)
+            DemoOfferCard(enabled = fieldsEnabled, onTryDemo = onTryDemo)
+        }
 
         SettingsSpacer(24)
 
@@ -365,6 +388,121 @@ private fun ConnectionSettingsContent(
     }
 }
 
+/**
+ * The way past the connection wall for someone who has no TeslaMate server to type in.
+ *
+ * It sits directly under the page description, above the first field, because that is the
+ * only place it is certain to be seen: the form below it is long enough that the buttons at
+ * the bottom are off-screen on a small phone, and anyone who has nothing to enter has no
+ * reason to scroll down to find them.
+ */
+@Composable
+private fun DemoOfferCard(enabled: Boolean, onTryDemo: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.Science,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_demo_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            SettingsSpacer(8)
+            Text(
+                text = stringResource(R.string.settings_demo_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            SettingsSpacer(12)
+            Button(
+                onClick = onTryDemo,
+                enabled = enabled,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .testTag("tryDemoButton")
+            ) {
+                Text(stringResource(R.string.settings_demo_action))
+            }
+        }
+    }
+}
+
+/** Replaces the connection form while the sample dataset is in use. */
+@Composable
+private fun DemoModeActiveCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.Science,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_demo_active_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            SettingsSpacer(8)
+            Text(
+                text = stringResource(R.string.settings_demo_active_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExitDemoActionBar(isBusy: Boolean, onExitDemo: () -> Unit) {
+    Surface(tonalElevation = 3.dp) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(16.dp)
+        ) {
+            Button(
+                onClick = onExitDemo,
+                enabled = !isBusy,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("exitDemoButton")
+            ) {
+                if (isBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(stringResource(R.string.settings_demo_exit_action))
+            }
+        }
+    }
+}
+
 /** Test and Save pinned to the bottom so they stay reachable with the form scrolled. */
 @Composable
 private fun ConnectionActionBar(
@@ -537,6 +675,8 @@ private fun ConnectionSettingsPreview() {
             isOnboarding = false,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
+            onTryDemo = {},
+            onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
             onApiTokenChange = {},
@@ -559,6 +699,32 @@ private fun ConnectionSettingsOnboardingPreview() {
             isOnboarding = true,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = null,
+            onTryDemo = {},
+            onExitDemo = {},
+            onServerUrlChange = {},
+            onSecondaryServerUrlChange = {},
+            onApiTokenChange = {},
+            onHttpBasicAuthUsernameChange = {},
+            onHttpBasicAuthPasswordChange = {},
+            onAcceptInvalidCertsChange = {},
+            onConnectTimeoutChange = {},
+            onTestConnection = {},
+            onSave = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ConnectionSettingsDemoModePreview() {
+    MateDroidTheme {
+        ConnectionSettingsContent(
+            uiState = SettingsUiState(isLoading = false, isDemoMode = true),
+            isOnboarding = false,
+            snackbarHostState = remember { SnackbarHostState() },
+            onNavigateBack = {},
+            onTryDemo = {},
+            onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
             onApiTokenChange = {},
@@ -590,6 +756,8 @@ private fun ConnectionSettingsWithResultPreview() {
             isOnboarding = false,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
+            onTryDemo = {},
+            onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
             onApiTokenChange = {},

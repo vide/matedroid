@@ -343,6 +343,98 @@ Pre-configured profiles include:
 3. For `/api/v1/cars/*` endpoints, the response JSON is modified to include the overrides from the selected car profile (deep-merged into `car_details` and `car_exterior`)
 4. Other endpoints are passed through unchanged
 
+### Demo Mode
+
+Demo mode runs the whole app against a self-contained sample dataset, with no server of any
+kind. It exists for two audiences: someone deciding whether Teslamate is worth setting up,
+and app-store reviewers, who have no server to point the connection form at and would
+otherwise never get past onboarding — Google Play rejected a release for exactly that.
+
+Entered from **Try the demo** on the first-run connection screen; left from
+Settings → Connection. The offer is shown during onboarding only, so it can never trample a
+configured server.
+
+#### How it is wired
+
+| File | Role |
+|---|---|
+| `data/demo/DemoMode.kt` | The `demo://matedroid` sentinel stored as the server URL, and the demo car id |
+| `data/demo/DemoGeography.kt` | Route polylines through real places, and the charger sites |
+| `data/demo/DemoDataSet.kt` | Generates the history and serves the live status |
+| `data/demo/DemoTeslamateApi.kt` | A `TeslamateApi` implementation answering from the dataset |
+
+Demo mode is a `TeslamateApi` implementation, injected at `TeslamateApiFactory.create()`,
+which every caller already goes through. Nothing downstream knows the server is missing, so
+every screen, worker, widget and notification path runs exactly the code it runs against a
+real server — including query parameters, pagination, and the "no active charge" reply that
+is a 200 with an `error` field rather than a failure.
+
+`AppSettings.isDemoMode` derives from the server URL rather than being stored separately, so
+the two can never disagree. Because the sentinel is a non-blank URL, every existing
+"is the app configured?" gate treats demo mode as configured with no extra condition.
+
+#### The dataset
+
+Generated against the current date rather than shipped as a JSON fixture. A bundled dataset
+would be visibly stale the first time someone opened the demo a year after the release that
+contained it, and every "last 30 days" filter would come back empty. Generating it means the
+newest drive is always yesterday's and the year filters always have two years to choose from.
+
+It is a simulation, not a pile of independent random rows: one running state-of-charge and
+one running odometer are carried through the whole year, drives spend energy and charges put
+it back. That is what keeps the derived screens honest — battery levels line up end to end
+between consecutive drives, the odometer only increases, and charge costs follow from the
+energy actually delivered.
+
+- **Car**: Model Y Juniper, Ultra Red, Crossflow 19" — a colour with a real entry in
+  `CarColorPalettes`, so the palette theming is visible in the demo.
+- **History**: a year of Girona-based driving — the Barcelona commute, the Costa Brava, and
+  trips over the border to Perpignan and up to Andorra. The border runs are the point of
+  those routes: Visited Countries has nothing to show from a dataset that never leaves one
+  country.
+- **Charging**: home AC (11 kW three-phase), Supercharger DC stops with a real taper curve,
+  and a free hotel charger in Andorra.
+- **Live session**: runs on a four-hour wall-clock cycle — charging for the first ~2h20m,
+  then parked at its 80% limit. Both states have to be reachable, or which one you got would
+  depend on when the release was built.
+- **Determinism**: a fixed seed, so the same day produces the same history and drive ids stay
+  stable while the process lives. The dataset is built once per process.
+
+Everything is metric. TeslamateAPI converts server-side and the app never converts (see
+`UnitFormatter`), so the demo does what a metric Teslamate would: it reports km / bar / °C and
+says so in its `units` block. Making it follow the device locale would mean converting every
+distance, speed, temperature, pressure and consumption figure at generation time, and one
+missed field is a wrong number on screen.
+
+Geocoding is *not* faked: the demo's coordinates are real places and go through Nominatim
+like any other data, which is what fills in Visited Countries. Drive start points land on a
+handful of fixed coordinates, so the grid-cell dedup in `GeocodingRepository` collapses them
+to about a dozen lookups.
+
+`DemoDataSetTest` covers the invariants the derived screens depend on: the odometer only
+moves forward, each drive resumes where the last one stopped, nothing is dated in the future,
+and the live session appears in exactly one of `/charges` and `/charges/current`.
+
+#### What to put in Play Console → App access
+
+Google rejected 1.11.0 for not providing "an active demo/guest account", having got stuck on
+the connection screen with nothing to type into it. Demo mode is the answer, but the reviewer
+still has to be told the button exists. Under **App content → App access**, choose
+**All functionality is available without special access** and paste:
+
+> MateDroid reads data from the user's own self-hosted Teslamate server, so there is no
+> account, login or password of any kind — nothing is transmitted to us and there is nothing
+> to sign in to.
+>
+> To review the app without a server, use the built-in demo:
+> 1. Launch the app. The first screen is "Connection".
+> 2. Tap "Try the demo" in the card at the top of that screen.
+>
+> The app then loads a year of sample vehicle data and every feature is reachable. No
+> credentials, network access to a private server, or configuration are required.
+
+Keep that text in step with the button label if it is ever renamed.
+
 ### Debug API Endpoint Switching
 
 In debug builds, the Teslamate API endpoint can be changed via ADB broadcast without opening the app. This is useful for switching between the real server and the mock server during testing.

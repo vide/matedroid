@@ -5,6 +5,7 @@ import com.matedroid.BuildConfig
 import com.matedroid.data.api.NominatimApi
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.TeslamateApi
+import com.matedroid.data.demo.DemoTeslamateApi
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.domain.ConnectionTimeout
 import com.squareup.moshi.Moshi
@@ -116,6 +117,12 @@ class TeslamateApiFactory(
     private val apiCache = mutableMapOf<ApiCacheKey, TeslamateApi>()
 
     /**
+     * Kept outside [apiCache] on purpose: it holds a generated dataset whose drive and charge
+     * ids screens are already holding, so it must survive [invalidateCache].
+     */
+    private val demoApi: TeslamateApi by lazy { DemoTeslamateApi() }
+
+    /**
      * Creates or returns a cached TeslamateApi instance for the given URL.
      *
      * @param baseUrl The base URL for the API
@@ -129,8 +136,14 @@ class TeslamateApiFactory(
         acceptInvalidCerts: Boolean? = null,
         connectTimeoutSeconds: Int? = null
     ): TeslamateApi {
-        val normalizedUrl = baseUrl.trimEnd('/') + "/"
         val settings = settingsDataStore.settings.first()
+
+        // Demo mode answers every request in-process. Checked before anything is built so
+        // that Test Connection, the workers and the widget all take the same path as the
+        // screens, and no URL derived from the sentinel is ever dialled.
+        if (settings.isDemoMode) return demoApi
+
+        val normalizedUrl = baseUrl.trimEnd('/') + "/"
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername

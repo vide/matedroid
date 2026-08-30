@@ -25,6 +25,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 - **Visited countries stats** - Show your friends all the places you visited with your car!
 - **Car color based themes** - Light/dark themes with palette based on the car color
 - **Multi-language** - Available in English, Italian, Spanish, Catalan, German, and Chinese (Simplified)
+- **Demo mode** - Try the whole app on a year of sample data before setting up Teslamate
 
 ### Gallery
 
@@ -77,6 +78,10 @@ Update history with installation dates, time between updates, and a chart of upd
 #### Visited Countries
 
 Every country you've driven through, with flags, distance, energy, and charge count. Sort however you like and tap a country to see its regions.
+
+#### Demo Mode
+
+No Teslamate server yet? Tap **Try the demo** on the first setup screen and the app fills itself with a year of realistic sample data from a demonstration car — drives, charges, a live charging session, statistics, battery health and three countries visited. Everything works exactly as it would against a real server, because it runs the same code; a **Demo** badge sits next to the car name so sample data is never mistaken for your own. Leave it any time from Settings → Connection.
 
 #### Theming & Notifications
 

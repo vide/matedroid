@@ -285,6 +285,16 @@
     <string name="settings_connect_title">Connecta a TeslamateApi</string>
     <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
 
+    <string name="settings_demo_title">No tens cap servidor?</string>
+    <string name="settings_demo_description">Explora MateDroid amb un any de dades d\'exemple d\'un cotxe de demostració. Podràs connectar el teu TeslaMate més endavant.</string>
+    <string name="settings_demo_action">Prova la demo</string>
+
+    <string name="settings_demo_active_title">Mode demo</string>
+    <string name="settings_demo_active_description">Estàs veient dades d\'exemple d\'un cotxe de demostració, no d\'un vehicle real. Surt de la demo per connectar el teu servidor TeslamateApi.</string>
+    <string name="settings_demo_exit_action">Surt del mode demo</string>
+    <string name="settings_demo_summary">Mode demo — dades d\'exemple</string>
+    <string name="demo_mode_badge">Demo</string>
+
     <!-- Server URL field -->
     <string name="settings_server_url_label">URL del servidor</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>

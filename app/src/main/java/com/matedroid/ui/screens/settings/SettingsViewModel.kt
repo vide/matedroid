@@ -14,6 +14,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.matedroid.R
+import com.matedroid.data.demo.DemoMode
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
@@ -54,6 +55,7 @@ data class SettingsUiState(
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
     val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
     val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
+    val isDemoMode: Boolean = false,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -124,6 +126,7 @@ class SettingsViewModel @Inject constructor(
                 shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
                 highSocWarningThreshold = settings.highSocWarningThreshold,
                 lowSocWarningThreshold = settings.lowSocWarningThreshold,
+                isDemoMode = settings.isDemoMode,
                 isLoading = false
             )
         }
@@ -379,6 +382,57 @@ class SettingsViewModel @Inject constructor(
             is ApiResult.Error -> {
                 // Silent fail - this is optional functionality
                 // Older Teslamate API versions may not have this endpoint
+            }
+        }
+    }
+
+    /**
+     * Switch to the built-in sample dataset and go straight to the dashboard.
+     *
+     * Offered only from first-run onboarding, so there is no configured server to trample
+     * and no cached data to clear on the way in — the reset below is there for the case
+     * where someone reaches this from a half-finished setup.
+     */
+    fun enterDemoMode(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            try {
+                syncManager.fullResetSync(DemoMode.CAR_ID)
+                settingsDataStore.enterDemoMode()
+                loadSettings()
+                triggerImmediateSync()
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    error = e.message ?: context.getString(R.string.settings_error_save_failed)
+                )
+            }
+        }
+    }
+
+    /**
+     * Leave the demo and return to onboarding.
+     *
+     * The sample drives and charges are deleted rather than left in place: they are keyed by
+     * the same car id a real TeslaMate would use, so anything left behind would be merged
+     * into the real car's history the moment a server is configured.
+     */
+    fun exitDemoMode(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            try {
+                syncManager.fullResetSync(DemoMode.CAR_ID)
+                settingsDataStore.exitDemoMode()
+                loadSettings()
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    error = e.message ?: context.getString(R.string.settings_error_save_failed)
+                )
             }
         }
     }

@@ -288,6 +288,21 @@
     <string name="settings_connect_title">Connect to TeslamateApi</string>
     <string name="settings_connect_description">Enter your TeslamateApi server URL to connect.</string>
 
+    <!-- Demo mode offer, shown during first-run setup for people with no TeslaMate server
+         to point the form at (evaluating the app, or reviewing it for a store). -->
+    <string name="settings_demo_title">No server to hand?</string>
+    <string name="settings_demo_description">Look around MateDroid with a year of sample data from a demonstration car. You can connect your own TeslaMate later.</string>
+    <string name="settings_demo_action">Try the demo</string>
+
+    <!-- Shown on the connection screen while the sample data is in use -->
+    <string name="settings_demo_active_title">Demo mode</string>
+    <string name="settings_demo_active_description">You are looking at sample data from a demonstration car, not a real vehicle. Leave the demo to connect your own TeslamateApi server.</string>
+    <string name="settings_demo_exit_action">Leave demo mode</string>
+    <!-- Summary line on the settings hub while demo mode is active -->
+    <string name="settings_demo_summary">Demo mode — sample data</string>
+    <!-- Badge next to the car name while demo mode is active -->
+    <string name="demo_mode_badge">Demo</string>
+
     <!-- Server URL field -->
     <string name="settings_server_url_label">Server URL</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
