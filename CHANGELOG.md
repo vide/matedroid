@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Demo mode** — a **Try the demo** button on the first setup screen fills the app with a year of realistic sample data from a demonstration car, so you can see what MateDroid does before deciding whether to set up Teslamate. Drives, charges, a live charging session, statistics, battery health and three countries visited, all of it working exactly as it would against your own server. A **Demo** badge next to the car name means sample data is never mistaken for your own, and you can leave the demo at any time from Settings → Connection.
+
 ## [1.11.0] - 2026-08-24
 
 ### Added
