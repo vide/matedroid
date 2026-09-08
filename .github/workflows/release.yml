@@ -173,6 +173,13 @@ jobs:
           track: ${{ steps.play-track.outputs.track }}
           status: completed
           whatsNewDirectory: fastlane/metadata/android
+          # Google refuses to auto-submit an edit for review while the app has an
+          # unresolved review or policy issue, and answers "Changes cannot be sent for
+          # review automatically" — which fails the commit and *discards the upload*, so
+          # the bundle never lands at all (this is what silently dropped v1.11.1). With
+          # this set, the bundle uploads and sits on the track awaiting a manual
+          # "Send for review" in the Play Console.
+          changesNotSentForReview: true
 
       - name: Assign to track (if bundle already uploaded)
         if: steps.play-upload.outcome == 'failure'
@@ -209,6 +216,8 @@ jobs:
                   'status': 'completed'
               }]}
           ).execute()
-          service.edits().commit(packageName=pkg, editId=edit_id).execute()
+          service.edits().commit(
+              packageName=pkg, editId=edit_id, changesNotSentForReview=True
+          ).execute()
           print(f'Assigned version code {version_code} to {track} track')
           PYEOF

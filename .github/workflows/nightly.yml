@@ -114,3 +114,6 @@ jobs:
           status: completed
           releaseName: ${{ steps.version.outputs.name }}
           whatsNewDirectory: fastlane/metadata/android
+          # Same reason as in release.yml: without this, a commit made while the app has
+          # an unresolved review fails and takes the upload down with it.
+          changesNotSentForReview: true
