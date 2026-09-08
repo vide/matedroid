@@ -419,21 +419,41 @@ and the live session appears in exactly one of `/charges` and `/charges/current`
 
 Google rejected 1.11.0 for not providing "an active demo/guest account", having got stuck on
 the connection screen with nothing to type into it. Demo mode is the answer, but the reviewer
-still has to be told the button exists. Under **App content → App access**, choose
-**All functionality is available without special access** and paste:
+still has to be told the button exists.
 
-> MateDroid reads data from the user's own self-hosted Teslamate server, so there is no
-> account, login or password of any kind — nothing is transmitted to us and there is nothing
-> to sign in to.
->
-> To review the app without a server, use the built-in demo:
-> 1. Launch the app. The first screen is "Connection".
-> 2. Tap "Try the demo" in the card at the top of that screen.
->
-> The app then loads a year of sample vehicle data and every feature is reachable. No
-> credentials, network access to a private server, or configuration are required.
+**Where:** Play Console → the app → **Policy and programmes → App content → App access →
+Manage** (some Console layouts shorten the sidebar entry to **Policy → App content**). This is
+an app-level declaration, set once — it is *not* part of the "Create new release" flow, and
+nothing prompts you for it while publishing.
 
-Keep that text in step with the button label if it is ever renamed.
+**Which option:** the page offers two, and they are mutually exclusive:
+
+- *All functionality is available without special access* — accurate now that demo mode
+  exists, and it removes the credential demand at its root. But it gives you **no text field
+  at all**, so the reviewer is told nothing and may get stuck on the connection screen exactly
+  as before.
+- *All or some functionality is restricted* → **Add new instructions** — gives a flow name,
+  username, password and an "Any other instructions" free-text box. The free text is the only
+  durable channel to a reviewer; replying to a rejection only reaches the reviewer handling
+  that one submission.
+
+Prefer the **restricted** option, for the durability. The username and password fields are not
+applicable here — say so in them rather than inventing credentials — and put the real content
+in "Any other instructions":
+
+> MateDroid has no login, user accounts or authentication of any kind, so there are no
+> credentials to supply. It is a read-only viewer for Teslamate, an open-source vehicle-data
+> logger that users install on their own hardware, and no data reaches us.
+>
+> To reach the app's full functionality without a server:
+> 1. Launch the app. The first screen is titled "Connection".
+> 2. Tap "Try the demo" in the card near the top of that screen.
+>
+> A full year of sample vehicle data loads and every feature becomes reachable. No
+> credentials, no access to a private server and no configuration are required.
+
+Keep that text in step with the button label if it is ever renamed — the label is
+`settings_demo_action` in `res/values/strings.xml`.
 
 ### Debug API Endpoint Switching
 
