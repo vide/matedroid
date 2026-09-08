@@ -20,6 +20,10 @@ See your Tesla's real-time status on a stunning dashboard featuring a 3D model t
 
 MateDroid syncs your data locally so you can browse your drives and charges even without an internet connection. Perfect for checking your trip history while on the road.
 
+<b>Try It First, No Setup Needed</b>
+
+No Teslamate server yet? Tap "Try the demo" on the first screen and explore the whole app with a year of realistic sample data — drives, charges, a live charging session, statistics and battery health. No account, no credentials, nothing to install. Connect your own server whenever you are ready.
+
 <b>Requirements</b>
 
 This app requires a working Teslamate + TeslamateApi setup:
