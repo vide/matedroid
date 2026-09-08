@@ -415,31 +415,30 @@ to about a dozen lookups.
 moves forward, each drive resumes where the last one stopped, nothing is dated in the future,
 and the live session appears in exactly one of `/charges` and `/charges/current`.
 
-#### What to put in Play Console → App access
+#### What to declare in Play Console → Sign in details
 
 Google rejected 1.11.0 for not providing "an active demo/guest account", having got stuck on
-the connection screen with nothing to type into it. Demo mode is the answer, but the reviewer
-still has to be told the button exists.
+the connection screen with nothing to type into it. Demo mode is the answer.
 
-**Where:** Play Console → the app → **Policy and programmes → App content → App access →
-Manage** (some Console layouts shorten the sidebar entry to **Policy → App content**). This is
-an app-level declaration, set once — it is *not* part of the "Create new release" flow, and
-nothing prompts you for it while publishing.
+**Where:** Play Console → the app → **Policy and programmes → App content → Sign in details**
+(previously called "App access"). This is an app-level declaration, set once — it is *not*
+part of the "Create new release" flow, and nothing prompts you for it while publishing.
 
-**Which option:** the page offers two, and they are mutually exclusive:
+**What to answer: No.**
 
-- *All functionality is available without special access* — accurate now that demo mode
-  exists, and it removes the credential demand at its root. But it gives you **no text field
-  at all**, so the reviewer is told nothing and may get stuck on the connection screen exactly
-  as before.
-- *All or some functionality is restricted* → **Add new instructions** — gives a flow name,
-  username, password and an "Any other instructions" free-text box. The free text is the only
-  durable channel to a reviewer; replying to a rejection only reaches the reviewer handling
-  that one submission.
+The question is "Is any part of your app restricted?", and **Yes** is defined by an explicit
+enumeration — account sign in details, payments, referral or QR codes, one-time PINs or
+2-step verification, biometric authentication, actions carried out on another device.
+MateDroid has none of them. **No** covers "no account sign in required in any country /
+region", which is simply true: there is no login, no account and no backend of ours.
 
-Prefer the **restricted** option, for the durability. The username and password fields are not
-applicable here — say so in them rather than inventing credentials — and put the real content
-in "Any other instructions":
+Do **not** answer Yes in the hope of reaching its free-text instructions box. Yes obliges you
+to supply credentials that must be valid and reusable, and there are none to supply —
+entering "n/a" or similar reads as invalid credentials, which is precisely what got 1.11.0
+rejected.
+
+Answering No means there is no field in which to tell a reviewer about the demo button, so
+that has to travel in the reply to a rejection or appeal. Keep this text to hand for that:
 
 > MateDroid has no login, user accounts or authentication of any kind, so there are no
 > credentials to supply. It is a read-only viewer for Teslamate, an open-source vehicle-data
@@ -452,8 +451,12 @@ in "Any other instructions":
 > A full year of sample vehicle data loads and every feature becomes reachable. No
 > credentials, no access to a private server and no configuration are required.
 
-Keep that text in step with the button label if it is ever renamed — the label is
-`settings_demo_action` in `res/values/strings.xml`.
+This is the reason the demo offer sits directly under the page description on the connection
+screen, above the first field, rather than next to the buttons at the bottom: with no
+reviewer-instructions field anywhere in the Console, being visible without scrolling is the
+only thing that reliably gets a reviewer past onboarding. Keep the text above in step with
+the button label if it is ever renamed — the label is `settings_demo_action` in
+`res/values/strings.xml`.
 
 ### Debug API Endpoint Switching
 
