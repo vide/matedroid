@@ -508,6 +508,25 @@ The `-n` flag (explicit component) is required on Android 14+ since implicit bro
 
 Releases are automated via GitHub Actions. When a release is published, the workflow builds the APK and attaches it to the release, and deploys to Google Play.
 
+**Publishing to Play, and the one way it can go wrong.** The upload normally commits the edit
+*and* sends it for review, so cutting a tag is the only manual step. But Google refuses to
+auto-submit while the app has an unresolved review or policy issue — it answers "Changes
+cannot be sent for review automatically", and because a failed commit discards the whole edit,
+the upload goes with it. That is how v1.11.2's predecessor vanished: the job logged
+"Successfully uploaded 1 artifacts" and left nothing behind.
+
+The workflow therefore does three things rather than one:
+
+1. Upload with `changesNotSentForReview: false` — auto-submit, no attention needed.
+2. If that fails, re-upload with `changesNotSentForReview: true`. The bundle lands on the
+   track and waits for **Publishing overview → Send for review** in the Console. Degrading to
+   one click beats losing the release.
+3. Ask the Play API what is actually on the track and fail if the version code isn't there —
+   a green upload step is not by itself proof that anything persisted.
+
+The job summary says which path ran, so "do I need to click anything?" is answered without
+reading logs.
+
 The recommended way to create releases is using the `/release` skill in Claude Code, which automates:
 1. Version bumping in `app/build.gradle.kts` (versionCode and versionName)
 2. Updating `CHANGELOG.md` with the release date
