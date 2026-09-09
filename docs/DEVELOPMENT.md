@@ -454,9 +454,22 @@ that has to travel in the reply to a rejection or appeal. Keep this text to hand
 This is the reason the demo offer sits directly under the page description on the connection
 screen, above the first field, rather than next to the buttons at the bottom: with no
 reviewer-instructions field anywhere in the Console, being visible without scrolling is the
-only thing that reliably gets a reviewer past onboarding. Keep the text above in step with
-the button label if it is ever renamed — the label is `settings_demo_action` in
-`res/values/strings.xml`.
+only thing that reliably gets a reviewer past onboarding.
+
+The store listing is the other half of that. `full_description.txt` carries a "Try It First,
+No Setup Needed" section immediately above **Requirements** — deliberately just above the
+line that says you need a server of your own, so the answer arrives with the objection. It is
+also the only durable channel to a reviewer, who always reads the listing, whereas a rejection
+reply reaches one person once.
+
+**The button label therefore appears in three places, and they have to agree**, or the
+instruction sends someone hunting for a button that isn't there:
+
+1. `settings_demo_action` in `res/values*/strings.xml` — the button itself, 6 locales
+2. `fastlane/metadata/android/*/full_description.txt` — quoted in the listing, 6 locales
+3. The reply text above, for a rejection or a support case
+
+Renaming the button means updating all three, in every language.
 
 ### Debug API Endpoint Switching
 
