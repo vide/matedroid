@@ -158,7 +158,6 @@ jobs:
         run: |
           VERSION_CODE=$(grep 'versionCode' app/build.gradle.kts | sed 's/[^0-9]*//g')
           echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
-
       - name: Upload to Google Play
         id: play-upload
         continue-on-error: true
@@ -173,28 +172,44 @@ jobs:
           track: ${{ steps.play-track.outputs.track }}
           status: completed
           whatsNewDirectory: fastlane/metadata/android
-          # Google refuses to auto-submit an edit for review while the app has an
-          # unresolved review or policy issue, and answers "Changes cannot be sent for
-          # review automatically" — which fails the commit and *discards the upload*, so
-          # the bundle never lands at all (this is what silently dropped v1.11.1). With
-          # this set, the bundle uploads and sits on the track awaiting a manual
-          # "Send for review" in the Play Console.
+          # The happy path: commit the edit *and* send it for review, so cutting a tag is
+          # the only manual step in a release.
+          changesNotSentForReview: false
+
+      # Google refuses to auto-submit while the app has an unresolved review or policy
+      # issue, answering "Changes cannot be sent for review automatically". That fails the
+      # commit, and a failed commit discards the edit *including the upload* — which is how
+      # v1.11.1 vanished without a trace. Re-uploading with the flag set lands the bundle on
+      # the track, where it waits for a manual "Send for review". Degrading to one manual
+      # click beats losing the release.
+      - name: Re-upload without auto-submit (Google blocked the review)
+        id: play-upload-deferred
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        if: env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' && steps.play-upload.outcome == 'failure'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.matedroid
+          releaseFiles: release/app-release.aab
+          track: ${{ steps.play-track.outputs.track }}
+          status: completed
+          whatsNewDirectory: fastlane/metadata/android
           changesNotSentForReview: true
 
-      - name: Assign to track (if bundle already uploaded)
-        if: steps.play-upload.outcome == 'failure'
+      # A green upload step is not proof the bundle is there: the v1.11.1 upload reported
+      # "Successfully uploaded 1 artifacts" and then threw it away on commit. Ask Play what
+      # is actually on the track, and fail loudly if the answer is "nothing".
+      - name: Verify the bundle is on the track
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           TRACK: ${{ steps.play-track.outputs.track }}
           VERSION_CODE: ${{ steps.version.outputs.code }}
+        if: env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
         run: |
-          if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
-            echo "No Google Play service account JSON found, skipping"
-            exit 0
-          fi
           pip install -q google-auth google-api-python-client
           python3 << 'PYEOF'
-          import json, os
+          import json, os, sys
           from google.oauth2 import service_account
           from googleapiclient.discovery import build
 
@@ -205,19 +220,43 @@ jobs:
           service = build('androidpublisher', 'v3', credentials=creds)
           pkg = 'com.matedroid'
           track = os.environ['TRACK']
-          version_code = os.environ['VERSION_CODE']
+          wanted = os.environ['VERSION_CODE']
 
-          edit = service.edits().insert(packageName=pkg).execute()
-          edit_id = edit['id']
-          service.edits().tracks().update(
-              packageName=pkg, editId=edit_id, track=track,
-              body={'track': track, 'releases': [{
-                  'versionCodes': [version_code],
-                  'status': 'completed'
-              }]}
-          ).execute()
-          service.edits().commit(
-              packageName=pkg, editId=edit_id, changesNotSentForReview=True
-          ).execute()
-          print(f'Assigned version code {version_code} to {track} track')
+          edit = service.edits().insert(packageName=pkg).execute()['id']
+          try:
+              info = service.edits().tracks().get(
+                  packageName=pkg, editId=edit, track=track
+              ).execute()
+          finally:
+              # Read-only check: never commit this edit.
+              service.edits().delete(packageName=pkg, editId=edit).execute()
+
+          found = {c for r in info.get('releases', []) for c in r.get('versionCodes', [])}
+          if wanted not in found:
+              sys.exit(
+                  f"Version code {wanted} is NOT on the '{track}' track "
+                  f"(found: {sorted(found) or 'nothing'}). The upload did not persist."
+              )
+          print(f"Verified: version code {wanted} is on the '{track}' track.")
           PYEOF
+
+      - name: Say whether a manual "Send for review" is needed
+        if: always() && env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ "${{ steps.play-upload-deferred.outcome }}" = "success" ]; then
+            {
+              echo "### :warning: Manual step required"
+              echo
+              echo "Google would not accept the release for review automatically, which"
+              echo "normally means an unresolved review or policy issue on the app."
+              echo "The bundle **is** uploaded and on the \`${{ steps.play-track.outputs.track }}\` track,"
+              echo "but it will not go anywhere until you open Play Console and click"
+              echo "**Publishing overview → Send for review**."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Uploaded without auto-submit. Press 'Send for review' in Play Console."
+          elif [ "${{ steps.play-upload.outcome }}" = "success" ]; then
+            echo "### :white_check_mark: Submitted for review automatically" >> "$GITHUB_STEP_SUMMARY"
+            echo "No manual action needed." >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -114,6 +114,29 @@ jobs:
           status: completed
           releaseName: ${{ steps.version.outputs.name }}
           whatsNewDirectory: fastlane/metadata/android
-          # Same reason as in release.yml: without this, a commit made while the app has
-          # an unresolved review fails and takes the upload down with it.
+          # Auto-submit, so a nightly needs no attention at all.
+          changesNotSentForReview: false
+
+      # Same fallback as release.yml: if Google will not accept the review automatically,
+      # a failed commit discards the upload along with it. Re-upload with the flag set so
+      # the build at least lands on the alpha track.
+      - name: Re-upload without auto-submit (Google blocked the review)
+        id: play-upload-deferred
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        if: env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' && steps.play-upload.outcome == 'failure'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.matedroid
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: alpha
+          status: completed
+          releaseName: ${{ steps.version.outputs.name }}
+          whatsNewDirectory: fastlane/metadata/android
           changesNotSentForReview: true
+
+      - name: Warn if the nightly needs a manual "Send for review"
+        if: always() && steps.play-upload-deferred.outcome == 'success'
+        run: |
+          echo "::warning::Nightly uploaded without auto-submit. Press 'Send for review' in Play Console."
