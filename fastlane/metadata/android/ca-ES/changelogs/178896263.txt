@@ -1,0 +1,6 @@
+Encara no tens servidor Teslamate? Ara pots veure què fa MateDroid abans de muntar-lo.
+
+Afegit:
+- Mode demo: toca "Prova la demo" a la primera pantalla de configuració i l'app s'omple amb un any de dades d'exemple — trajectes, càrregues, una càrrega en directe, estadístiques, estat de la bateria i països visitats
+- Un distintiu "Demo" al costat del nom del cotxe, per no confondre les dades d'exemple amb les teves
+- Surt de la demo quan vulguis des d'Ajustos > Connexió

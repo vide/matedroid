@@ -1,0 +1,6 @@
+No Teslamate server yet? Now you can see what MateDroid does before setting one up.
+
+Added:
+- Demo mode: tap "Try the demo" on the first setup screen and the app fills itself with a year of sample data — drives, charges, a live charging session, statistics, battery health and countries visited
+- A "Demo" badge next to the car name, so sample data is never mistaken for your own
+- Leave the demo any time from Settings > Connection

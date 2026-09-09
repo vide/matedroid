@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.2] - 2026-09-09
+
+### Changed
+- **Re-released under a new version code, with no changes to the app itself.** The 1.11.1 build never reached Google Play — its upload was blocked before publication — so this is the version that carries demo mode to Play Store users. If you already have 1.11.1 from F-Droid or GitHub, there is nothing new here.
+
 ## [1.11.1] - 2026-08-30
 
 ### Added
@@ -796,7 +801,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.2...HEAD
+[1.11.2]: https://github.com/vide/matedroid/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/vide/matedroid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/vide/matedroid/compare/v1.10.1...v1.11.0
 [1.10.1]: https://github.com/vide/matedroid/compare/v1.10.0...v1.10.1
