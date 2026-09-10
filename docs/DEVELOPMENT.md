@@ -547,7 +547,17 @@ the screen has loaded. List screens hand over to their detail screens with `tapF
 taps the first clickable row; Visited Countries uses `waitStable` because its rows arrive one
 Nominatim answer at a time.
 
-The canonical images come from the CI emulator; a local run against a phone is a preview, and
+**CI.** The `Screenshots` workflow (`.github/workflows/screenshots.yml`, run by hand from the
+Actions tab or with `gh workflow run screenshots.yml`) boots a headless API 35 `google_apis`
+emulator on a hosted runner, runs the same script, and opens a pull request on
+`chore/refresh-screenshots` with the changed images and README. That image is rootable, so both
+clocks are pinned there and a same-day re-run is pixel-identical. Inputs: `screens` (subset),
+`clock` (override the pinned instant), `dry_run` (artifacts only). Every run uploads the suite's
+output directory as an artifact, which on failure contains a hierarchy dump and a raw frame per
+failed screen. The PR is opened with the workflow token, so CI does not run on it, and the
+repository setting *Allow GitHub Actions to create and approve pull requests* must stay on.
+
+The canonical images come from that workflow; a local run against a phone is a preview, and
 its content-area height differs by a few dozen pixels because of the phone's own bars.
 
 ### Remote builds on the homelab cluster
