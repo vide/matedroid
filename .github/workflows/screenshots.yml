@@ -89,7 +89,9 @@ jobs:
           force-avd-creation: false
           emulator-options: ${{ env.EMULATOR_OPTIONS }}
           disable-animations: false
-          script: echo "AVD snapshot generated"
+          # The cold boot under software rendering tends to raise "isn't responding" dialogs
+          # for the launcher; make sure the saved snapshot will not raise new ones.
+          script: adb shell settings put global hide_error_dialogs 1
 
       # The action runs each script line with /bin/sh, hence the single-line call into a bash
       # helper that holds the retry and the logcat dump.

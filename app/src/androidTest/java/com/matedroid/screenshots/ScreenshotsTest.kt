@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
@@ -90,6 +91,7 @@ class ScreenshotsTest(private val spec: ScreenshotSpec) {
         device.executeShellCommand("wm dismiss-keyguard")
         device.executeShellCommand("svc power stayon true")
         device.waitForIdle()
+        dismissSystemDialogs()
     }
 
     @Test
@@ -132,6 +134,7 @@ class ScreenshotsTest(private val spec: ScreenshotSpec) {
         val deadline = SystemClock.uptimeMillis() + timeoutMs
         while (SystemClock.uptimeMillis() < deadline) {
             if (selectors.any { device.hasObject(it) }) return
+            dismissSystemDialogs()
             SystemClock.sleep(POLL_MS)
         }
         error("$spec: none of ${selectors.size} ready marker(s) appeared within ${timeoutMs / 1000}s")
@@ -164,6 +167,7 @@ class ScreenshotsTest(private val spec: ScreenshotSpec) {
     private fun tapFirstRow(selector: BySelector) {
         var row: UiObject2? = null
         for (attempt in 0..MAX_SCROLLS) {
+            dismissSystemDialogs()
             device.wait(Until.hasObject(selector), spec.timeoutMs / (MAX_SCROLLS + 1))
             row = device.findObjects(selector).firstOrNull()
             if (row != null) break
@@ -178,6 +182,23 @@ class ScreenshotsTest(private val spec: ScreenshotSpec) {
         val h = device.displayHeight
         device.swipe(w / 2, h * 3 / 4, w / 2, h / 4, SWIPE_STEPS)
         device.waitForIdle()
+    }
+
+    /**
+     * Taps away an "isn't responding" or "keeps stopping" dialog if one is up. A software-rendered
+     * emulator under load raises them for the launcher or System UI, and while such a dialog is
+     * showing the app's window is not in the accessibility tree at all, so no marker can match.
+     * Matched by the system's button ids, which do not depend on the device locale. "Wait" is
+     * preferred so the stalled process is kept; "Close" is the fallback for crash dialogs.
+     */
+    private fun dismissSystemDialogs() {
+        for (id in SYSTEM_DIALOG_BUTTONS) {
+            val button = device.findObject(By.res(id)) ?: continue
+            Log.w(TAG, "$spec: dismissing system error dialog via $id")
+            button.click()
+            device.waitForIdle()
+            return
+        }
     }
 
     /**
@@ -243,6 +264,7 @@ class ScreenshotsTest(private val spec: ScreenshotSpec) {
         private const val DEFAULT_WIDTH = 576
         private const val JPEG_QUALITY = 85
         private const val POLL_MS = 500L
+        private val SYSTEM_DIALOG_BUTTONS = listOf("android:id/aerr_wait", "android:id/aerr_close")
         private const val STABLE_INTERVAL_MS = 5_000L
         private const val MAX_SCROLLS = 3
         private const val SWIPE_STEPS = 20
