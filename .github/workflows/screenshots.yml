@@ -21,9 +21,6 @@ on:
         description: Capture and upload artifacts only, no pull request
         type: boolean
         default: false
-  # TEMP: validation runs on the PR branch, removed before merge.
-  push:
-    branches: [feat/screenshots-workflow]
 
 # One refresh at a time; a second dispatch queues behind the first.
 concurrency:
