@@ -17,6 +17,7 @@ osmdroid = "6.1.20"
 junit = "4.13.2"
 junitExt = "1.2.1"
 espresso = "3.6.1"
+uiautomator = "2.3.0"
 coroutinesTest = "1.10.2"
 mockk = "1.14.9"
 turbine = "1.2.1"
@@ -85,6 +86,7 @@ osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "o
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }

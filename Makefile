@@ -1,4 +1,4 @@
-.PHONY: build install run build-release install-release run-release clean test help mock-list
+.PHONY: build install run build-release install-release run-release clean test screenshots remote-check help mock-list
 
 # Default target
 help:
@@ -11,6 +11,8 @@ help:
 	@echo "  run-release     - Build, install, and launch the app (release)"
 	@echo "  clean           - Clean build artifacts"
 	@echo "  test            - Run unit tests"
+	@echo "  screenshots     - Regenerate README screenshots from demo mode on the connected device"
+	@echo "  remote-check    - Lint + unit tests in the build pod on the homelab cluster"
 	@echo "  mock-list       - List available mock server car profiles"
 	@echo ""
 	@echo "Mock server (requires UPSTREAM and CAR):"
@@ -47,6 +49,15 @@ clean:
 # Run unit tests
 test:
 	./gradlew testDebugUnitTest
+
+# Lint and unit tests on the cluster build pod (see scripts/remote-gradle.sh --setup)
+remote-check:
+	./scripts/remote-gradle.sh lintDebug testDebugUnitTest
+
+# Regenerate docs/screenshots/ and the README gallery from demo mode.
+# Optional: SCREENS=main-dashboard,charges to capture a subset (see scripts/screenshots.sh)
+screenshots:
+	./scripts/screenshots.sh $(if $(SCREENS),--screens $(SCREENS),)
 
 # List available mock server car profiles
 mock-list:
