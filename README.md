@@ -29,6 +29,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 
 ### Gallery
 
+<!-- screenshots:start -->
 <p>
 <img src="docs/screenshots/main-dashboard.jpg" alt="Main dashboard" height="300">
 <img src="docs/screenshots/battery-health.jpg" alt="Battery health" height="300">
@@ -42,9 +43,11 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 <img src="docs/screenshots/charge-details.jpg" alt="Charge details" height="300">
 </p>
 <p>
+<img src="docs/screenshots/current-charge.jpg" alt="Current charge" height="300">
 <img src="docs/screenshots/stats-for-nerds.jpg" alt="Stats for nerds" height="300">
 <img src="docs/screenshots/visited-countries.jpg" alt="Visited countries" height="300">
 </p>
+<!-- screenshots:end -->
 <p>
 <img src="app/src/main/res/drawable-nodpi/widget_preview.png" alt="Home screen widget" height="200">
 </p>

@@ -504,6 +504,84 @@ The `-n` flag (explicit component) is required on Android 14+ since implicit bro
 ./gradlew connectedAndroidTest
 ```
 
+### Screenshots
+
+The README gallery is generated, not hand-taken. `ScreenshotsTest` (in
+`app/src/androidTest/java/com/matedroid/screenshots/`) puts the app into demo mode by writing
+the settings directly, launches each screen through the same `EXTRA_NAVIGATE_TO` intent extras
+the notification and widget deep links use, waits for a marker that only exists once the data
+is on screen, and saves a cropped, scaled JPEG. The crop uses the window's real system-bar
+insets, so any device or emulator profile works. Demo data is fictional, so nothing needs
+blurring.
+
+```bash
+# Everything: prepare the device, capture, copy to docs/screenshots/, rewrite the README gallery
+make screenshots
+
+# A subset (ids are in ScreenshotSpecs.kt); the README keeps the other images
+make screenshots SCREENS=main-dashboard,charges
+
+# Leave the device clock alone (see below)
+SCREENSHOT_CLOCK=off ./scripts/screenshots.sh
+```
+
+`scripts/screenshots.sh` picks the device (`ANDROID_SERIAL` when several are connected), sets
+light theme, 24h clock and animations off for the run and restores them afterwards, runs the
+suite through `connectedDebugAndroidTest`, and copies whatever the suite produced. The images
+land in AGP's additional-test-output directory and are pulled to the host automatically.
+
+**Clock.** The demo dataset is anchored to the current day and its live charging session cycles
+on wall-clock time, so the dashboard shows a different car depending on the hour. On a rootable
+device (an emulator image without Play Store) the script pins the device clock *and* the demo
+clock (`DemoMode.clock`, via the `screenshotClock` runner argument) to the same instant, by
+default today at 09:00 UTC, which is inside a charging phase. Both have to move together: the
+dashboard's "since" durations are computed against the device clock. On a device that cannot be
+rooted the script warns and runs on the real clock; the Current Charge spec then skips itself
+outside a charging phase rather than committing a "not charging" picture.
+
+**Gallery.** The suite writes `manifest.tsv` (file, alt text, README row) from the full spec
+list, and the script regenerates the block between `<!-- screenshots:start -->` and
+`<!-- screenshots:end -->` in `README.md` from it. Adding a screen is one `ScreenshotSpec`
+entry: pick the intent route, a palette colour, and a string resource that appears only once
+the screen has loaded. List screens hand over to their detail screens with `tapFirst`, which
+taps the first clickable row; Visited Countries uses `waitStable` because its rows arrive one
+Nominatim answer at a time.
+
+The canonical images come from the CI emulator; a local run against a phone is a preview, and
+its content-area height differs by a few dozen pixels because of the phone's own bars.
+
+### Remote builds on the homelab cluster
+
+Gradle plus the Kotlin daemon peak at several gigabytes, and on a laptop that is also running
+an emulator the kernel's OOM killer takes the build down. `scripts/remote-gradle.sh` moves the
+heavy part to a long-lived pod on the Kubernetes cluster instead:
+
+```bash
+# One-off: create namespace, PVC and the build pod (pulls a few GB of SDK image the first time)
+./scripts/remote-gradle.sh --setup
+
+# Then use it like ./gradlew
+./scripts/remote-gradle.sh lintDebug testDebugUnitTest
+./scripts/remote-gradle.sh assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Poke around in the pod's copy of the tree
+./scripts/remote-gradle.sh --shell
+```
+
+Each run rsyncs the working tree into the pod (git-ignored files, `.git/` and build directories
+excluded, so `local.properties` and `.env` never leave the machine), runs `./gradlew` there,
+then syncs `app/build/outputs`, `app/build/reports` and `app/build/test-results` back. The
+pod's Gradle user home and workspace sit on one PVC, so the second build is warm.
+
+The manifests are in `util/k8s-build/matedroid-build.yaml`. This is developer tooling, not an
+ArgoCD application: it is applied by hand and removed with `kubectl delete namespace
+matedroid-build`. JVM sizes for the pod live in the `gradle.properties` the container writes
+into its `GRADLE_USER_HOME`, which take precedence over the repository's; adjust them together
+with the container's memory limit.
+
+Tasks that talk to a device (`connected*AndroidTest`, `install*`, the screenshot suite) still
+run locally, since adb and the emulator are here.
+
 ### Releasing
 
 Releases are automated via GitHub Actions. When a release is published, the workflow builds the APK and attaches it to the release, and deploys to Google Play.
