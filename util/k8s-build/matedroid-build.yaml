@@ -1,0 +1,85 @@
+# A long-lived Android build box on the homelab cluster, driven by scripts/remote-gradle.sh.
+#
+# Not an ArgoCD application on purpose: it is developer tooling for this repository, applied
+# by hand with `./scripts/remote-gradle.sh --setup` and removed with
+# `kubectl delete namespace matedroid-build`. Nothing else in the cluster refers to it.
+#
+# The image ships the Android SDK, platform-tools and a JDK; AGP downloads any missing SDK
+# component on first use (licences are pre-accepted in the image). Gradle's user home and the
+# synced working tree live on one PVC, so dependency and build caches survive pod restarts and
+# the second build is warm.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: matedroid-build
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matedroid-build-data
+  namespace: matedroid-build
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matedroid-build
+  namespace: matedroid-build
+  labels:
+    app: matedroid-build
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: matedroid-build
+  template:
+    metadata:
+      labels:
+        app: matedroid-build
+    spec:
+      containers:
+        - name: sdk
+          image: ghcr.io/cirruslabs/android-sdk:36
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              # rsync is the transport scripts/remote-gradle.sh uses to sync the tree in and out.
+              if ! command -v rsync >/dev/null; then
+                apt-get update -qq && apt-get install -y -qq --no-install-recommends rsync >/dev/null
+              fi
+              mkdir -p /data/gradle /data/workspace
+              # Sizes the JVMs to the container limit below. GRADLE_USER_HOME properties win
+              # over the ones in the repository, so the laptop keeps its own settings.
+              cat > /data/gradle/gradle.properties <<'EOP'
+              org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+              kotlin.daemon.jvmargs=-Xmx2g
+              org.gradle.workers.max=6
+              org.gradle.daemon.idletimeout=10800000
+              EOP
+              echo "build box ready"
+              exec sleep infinity
+          env:
+            - name: GRADLE_USER_HOME
+              value: /data/gradle
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "12"
+              memory: 11Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: matedroid-build-data
