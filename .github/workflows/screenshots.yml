@@ -91,9 +91,12 @@ jobs:
           disable-animations: false
           script: echo "AVD snapshot generated"
 
+      # The action runs each script line with /bin/sh, hence the single-line call into a bash
+      # helper that holds the retry and the logcat dump.
       - name: Capture screenshots
         uses: reactivecircus/android-emulator-runner@v2
         env:
+          SCREENS: ${{ inputs.screens }}
           # Empty means the script's default (today 09:00 UTC).
           SCREENSHOT_CLOCK: ${{ inputs.clock }}
         with:
@@ -104,14 +107,7 @@ jobs:
           force-avd-creation: false
           emulator-options: ${{ env.EMULATOR_OPTIONS }} -no-snapshot-save
           disable-animations: true
-          script: |
-            args=()
-            if [ -n "${{ inputs.screens }}" ]; then args+=(--screens "${{ inputs.screens }}"); fi
-            if ./scripts/screenshots.sh "${args[@]}"; then exit 0; fi
-            echo "::warning::Capture failed, retrying once"
-            if ./scripts/screenshots.sh "${args[@]}"; then exit 0; fi
-            adb logcat -d > logcat.txt || true
-            exit 1
+          script: bash .github/scripts/capture-screenshots.sh
 
       # The suite's output directory holds the images and, for failed screens, a hierarchy dump
       # and a raw frame: the first thing to read when a marker stops matching.
