@@ -1,5 +1,8 @@
 package com.matedroid.data.demo
 
+import java.time.Clock
+import java.time.Instant
+
 /**
  * Demo mode: the app running against a self-contained sample dataset instead of a
  * TeslaMate server.
@@ -28,4 +31,17 @@ object DemoMode {
     const val CAR_ID: Int = 1
 
     fun isDemoUrl(url: String?): Boolean = url?.trim()?.trimEnd('/') == SERVER_URL
+
+    /**
+     * The clock the demo dataset reads "now" from.
+     *
+     * The dataset is anchored to the current day and the live session cycles on wall-clock
+     * time, so two runs at different hours show a different car. The screenshot suite pins
+     * this to a fixed instant so the pictures it takes are reproducible; nothing else touches
+     * it and the app always runs on the system clock.
+     */
+    @Volatile
+    internal var clock: Clock = Clock.systemUTC()
+
+    internal fun now(): Instant = clock.instant()
 }

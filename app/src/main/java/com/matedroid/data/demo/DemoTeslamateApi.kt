@@ -51,7 +51,7 @@ internal class DemoTeslamateApi : TeslamateApi {
      * would be confusing.
      */
     private val data: DemoDataSet by lazy {
-        DemoDataSet(Instant.now(), ZoneId.systemDefault())
+        DemoDataSet(DemoMode.now(), ZoneId.systemDefault())
     }
 
     private val carRef get() = DriveDetailCar(carId = data.car.carId, carName = data.car.name)
@@ -71,7 +71,7 @@ internal class DemoTeslamateApi : TeslamateApi {
         if (carId != DemoMode.CAR_ID) return notFound()
         return Response.success(
             CarStatusResponse(
-                CarStatusData(status = data.status(Instant.now()), units = data.units)
+                CarStatusData(status = data.status(DemoMode.now()), units = data.units)
             )
         )
     }
@@ -84,7 +84,7 @@ internal class DemoTeslamateApi : TeslamateApi {
         show: Int?
     ): Response<ChargesResponse> {
         if (carId != DemoMode.CAR_ID) return notFound()
-        val charges = data.charges(Instant.now())
+        val charges = data.charges(DemoMode.now())
             .filter { inRange(it.startDate, startDate, endDate) }
             .paginate(page, show)
         return Response.success(ChargesResponse(ChargesData(charges = charges)))
@@ -92,7 +92,7 @@ internal class DemoTeslamateApi : TeslamateApi {
 
     override suspend fun getChargeDetail(carId: Int, chargeId: Int): Response<ChargeDetailResponse> {
         if (carId != DemoMode.CAR_ID) return notFound()
-        val charge = data.chargeDetail(chargeId, Instant.now()) ?: return notFound()
+        val charge = data.chargeDetail(chargeId, DemoMode.now()) ?: return notFound()
         return Response.success(
             ChargeDetailResponse(
                 ChargeDetailData(
@@ -105,7 +105,7 @@ internal class DemoTeslamateApi : TeslamateApi {
 
     override suspend fun getCurrentCharge(carId: Int): Response<ChargeDetailResponse> {
         if (carId != DemoMode.CAR_ID) return notFound()
-        val charge = data.currentCharge(Instant.now())
+        val charge = data.currentCharge(DemoMode.now())
             // TeslamateAPI answers 200 with an error field, not a 4xx, when nothing is
             // plugged in. The repository relies on that to tell "idle" from "unreachable".
             ?: return Response.success(
