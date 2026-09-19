@@ -380,20 +380,36 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    /** Whether the dashboard is on screen. The status poll only runs while it is. */
+    private var dashboardVisible = false
+
     /** Resume polling after the dashboard becomes visible again (see [pauseAutoRefresh]). */
     fun resumeAutoRefresh() {
+        dashboardVisible = true
         autoRefreshCarId?.let { startAutoRefresh(it) }
     }
 
     /** Stop polling while the dashboard is not visible, to avoid off-screen network/CPU/battery cost. */
     fun pauseAutoRefresh() {
+        dashboardVisible = false
         autoRefreshJob?.cancel()
         autoRefreshJob = null
     }
 
+    /**
+     * (Re)arm the 5 s status poll for [carId], but only actually poll while the dashboard is
+     * visible. This is reached from the car-loading path, which completes whether or not the
+     * dashboard is still on screen: opening the app from the charging notification jumps
+     * straight past it to the live charge screen, so its pause hook has already fired before
+     * the poll existed, and the poll then ran for as long as the ViewModel lived — every 5 s,
+     * in the background, for the whole charge. When not visible only the car is remembered,
+     * for [resumeAutoRefresh] to start the poll later.
+     */
     private fun startAutoRefresh(carId: Int) {
         autoRefreshCarId = carId
         autoRefreshJob?.cancel()
+        autoRefreshJob = null
+        if (!dashboardVisible) return
         autoRefreshJob = viewModelScope.launch {
             while (isActive) {
                 delay(AUTO_REFRESH_INTERVAL_MS)
