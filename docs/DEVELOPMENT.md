@@ -70,7 +70,22 @@ Settings is a **category list → detail page** structure (the pattern Android a
 
 **First run**: when no server is configured, `StartDestinationViewModel` starts directly on the Connection page with `onboarding = true`. That hides the back arrow, skips the hub entirely (the other sections are meaningless without a server), and makes Save continue to the dashboard instead of staying put.
 
-**Notifications** deep-link into the Android per-channel settings rather than duplicating toggles in-app, so sound/importance/DND stay owned by the OS. A channel only exists once its first notification has fired, so the intent falls back to the app-level notification page.
+**Notifications** deep-link into the Android per-channel settings rather than duplicating toggles in-app, so sound/importance/DND stay owned by the OS. A channel only exists once its first notification has fired, so the intent falls back to the app-level notification page — the sentry and navigation channels sidestep that by being created in `MateDroidApp.onCreate`, so they are listed before the car has ever triggered one.
+
+#### Notification channels
+
+| Channel | Id | Owner | Importance |
+|---------|----|-------|------------|
+| Charging | `charging_session_channel` | `ChargingNotificationManager` | Default |
+| Sentry Alerts | `sentry_alerts_channel` | `SentryNotificationManager` | High (sound + heads-up) |
+| Navigation | `navigation_route_channel` | `NavigationNotificationManager` | Low (silent, refreshes every poll) |
+| Tyre pressure | `tire_pressure_channel` | `TpmsPressureWorker` | Default |
+
+Notification id bases are spaced a thousand apart and offset by car id: charging `3000 + carId`, sentry `4000 + carId`, navigation `5000 + carId`.
+
+The navigation notification is driven from `ChargingCheckUseCase`, the check both the background worker and the foreground monitor service run, so it works the same whichever of the two happens to be polling. A null `CarStatus.activeRoute` cancels it, which is what clears it on arrival.
+
+Its map is stitched from OpenStreetMap raster tiles by `StaticMapRenderer`, framed by the pure geometry in `SlippyMap` (unit-tested in `SlippyMapTest`). Two things keep that polite to the public tile server: the tile client has its own OkHttp disk cache (`NetworkModule.provideMapTileClient`), and the picture is only redrawn when the frame has actually shifted and at most once a minute, however often the status is polled.
 
 #### Adding a new settings section
 

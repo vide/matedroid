@@ -11,6 +11,7 @@ import com.matedroid.data.sync.TpmsPressureWorker
 import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.domain.UnitSystem
+import com.matedroid.notification.NavigationNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -28,6 +29,9 @@ class MateDroidApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var sentryNotificationManager: SentryNotificationManager
+
+    @Inject
+    lateinit var navigationNotificationManager: NavigationNotificationManager
 
     @Inject
     lateinit var settingsDataStore: SettingsDataStore
@@ -75,7 +79,9 @@ class MateDroidApp : Application(), Configuration.Provider {
         TpmsPressureWorker.schedulePeriodicWork(this)
         ChargingNotificationWorker.ensureScheduled(this)
 
-        // Create sentry notification channel eagerly so it appears in Android settings
+        // Create the sentry and navigation channels eagerly so they appear in Android
+        // settings, and can be turned off, before the car has ever triggered one.
         sentryNotificationManager.ensureChannelExists()
+        navigationNotificationManager.ensureChannelExists()
     }
 }

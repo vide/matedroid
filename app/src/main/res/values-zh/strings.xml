@@ -1191,6 +1191,17 @@
     <!-- Notification channel description -->
     <string name="sentry_channel_description">哨兵模式检测到车辆附近异常时发出提醒</string>
 
+    <!-- Notification channel name for the live navigation notification -->
+    <string name="navigation_channel_name">导航</string>
+    <!-- Notification channel description -->
+    <string name="navigation_channel_description">车辆前往目的地时显示目的地、剩余距离和到达时间</string>
+    <!-- Navigation notification, main line; %1$s is the time left such as "23m", %2$s the clock time of arrival -->
+    <string name="navigation_notification_eta">%1$s · %2$s 到达</string>
+    <!-- Navigation notification, main line when traffic is adding time; %1$s is the time left, %2$s the traffic delay, %3$s the clock time of arrival -->
+    <string name="navigation_notification_eta_traffic">%1$s（交通延误 +%2$s）· %3$s 到达</string>
+    <!-- Navigation notification, header line; %1$s is the distance left, %2$d the battery percentage predicted on arrival -->
+    <string name="navigation_notification_remaining_energy">%1$s · 到达时 %2$d%%</string>
+
     <!-- Notification title for sentry alert. %s is car name -->
     <string name="sentry_notification_title">%s - 哨兵警报</string>
 

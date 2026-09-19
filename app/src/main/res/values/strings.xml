@@ -1212,6 +1212,17 @@
     <!-- Notification channel description -->
     <string name="sentry_channel_description">Alerts when sentry mode detects an event near your car</string>
 
+    <!-- Notification channel name for the live navigation notification -->
+    <string name="navigation_channel_name">Navigation</string>
+    <!-- Notification channel description -->
+    <string name="navigation_channel_description">Destination, distance and arrival time while the car is driving to a destination</string>
+    <!-- Navigation notification, main line; %1$s is the time left such as "23m", %2$s the clock time of arrival -->
+    <string name="navigation_notification_eta">%1$s · arriving at %2$s</string>
+    <!-- Navigation notification, main line when traffic is adding time; %1$s is the time left, %2$s the traffic delay, %3$s the clock time of arrival -->
+    <string name="navigation_notification_eta_traffic">%1$s (+%2$s traffic) · arriving at %3$s</string>
+    <!-- Navigation notification, header line; %1$s is the distance left, %2$d the battery percentage predicted on arrival -->
+    <string name="navigation_notification_remaining_energy">%1$s · %2$d%% on arrival</string>
+
     <!-- Notification title for sentry alert. %s is car name -->
     <string name="sentry_notification_title">%s - Sentry Alert</string>
 
