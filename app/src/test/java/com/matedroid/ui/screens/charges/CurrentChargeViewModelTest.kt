@@ -172,4 +172,107 @@ class CurrentChargeViewModelTest {
         assertFalse(vm.uiState.value.isNotCharging)
         stopRefreshLoop()
     }
+
+    /** Counts live-charge fetches so the tests below can assert on polling cadence. */
+    private fun countFetches(outcome: CurrentChargeOutcome): () -> Int {
+        var fetches = 0
+        coEvery { repository.getCurrentCharge(1) } coAnswers {
+            fetches++
+            ApiResult.Success(outcome)
+        }
+        return { fetches }
+    }
+
+    @Test
+    fun `charge starting - fast polling gives up after the window and falls back to 30s`() = runTest(testDispatcher.scheduler) {
+        val fetches = countFetches(CurrentChargeOutcome.NoActiveCharge)
+        coEvery { repository.getCarStatus(1) } returns statusResult(chargingStatus)
+        val maxFast = CurrentChargeViewModel.CHARGE_STARTING_MAX_FAST_POLLS
+
+        val vm = viewModel()
+        vm.loadCurrentCharge(1)
+        runCurrent()
+        assertEquals(1, fetches())
+
+        // One fetch every 4 s for the whole window
+        advanceTimeBy(4_000L * maxFast)
+        runCurrent()
+        assertEquals(1 + maxFast, fetches())
+        assertTrue("still waiting for the charge", vm.uiState.value.isChargeStarting)
+
+        // Past the window the next fetch is 30 s away, not 4 s
+        advanceTimeBy(4_000L)
+        runCurrent()
+        assertEquals("no fast poll past the window", 1 + maxFast, fetches())
+        advanceTimeBy(26_000L)
+        runCurrent()
+        assertEquals(2 + maxFast, fetches())
+        stopRefreshLoop()
+    }
+
+    @Test
+    fun `pause stops polling and resume restarts it with an immediate fetch`() = runTest(testDispatcher.scheduler) {
+        val fetches = countFetches(CurrentChargeOutcome.Active(activeDetail))
+        coEvery { repository.getCarStatus(1) } returns statusResult(chargingStatus)
+
+        val vm = viewModel()
+        vm.loadCurrentCharge(1)
+        runCurrent()
+        assertEquals(1, fetches())
+
+        vm.pauseRefresh()
+        advanceTimeBy(90_000L)
+        runCurrent()
+        assertEquals("nothing fetched while paused", 1, fetches())
+
+        vm.resumeRefresh()
+        runCurrent()
+        assertEquals("resume fetches right away", 2, fetches())
+        advanceTimeBy(30_000L)
+        runCurrent()
+        assertEquals("and then keeps the normal cadence", 3, fetches())
+        stopRefreshLoop()
+    }
+
+    @Test
+    fun `resume is a no-op before load and while the loop is already running`() = runTest(testDispatcher.scheduler) {
+        val fetches = countFetches(CurrentChargeOutcome.Active(activeDetail))
+        coEvery { repository.getCarStatus(1) } returns statusResult(chargingStatus)
+
+        val vm = viewModel()
+        vm.resumeRefresh() // the screen's lifecycle effect fires before loadCurrentCharge
+        runCurrent()
+        assertEquals(0, fetches())
+
+        vm.loadCurrentCharge(1)
+        runCurrent()
+        assertEquals(1, fetches())
+
+        vm.resumeRefresh()
+        runCurrent()
+        assertEquals("no second loop", 1, fetches())
+        advanceTimeBy(30_000L)
+        runCurrent()
+        assertEquals("one fetch per interval, not two", 2, fetches())
+        stopRefreshLoop()
+    }
+
+    @Test
+    fun `resume after the charge ended does not restart polling`() = runTest(testDispatcher.scheduler) {
+        val fetches = countFetches(CurrentChargeOutcome.NoActiveCharge)
+        coEvery { repository.getCarStatus(1) } returns statusResult(idleStatus)
+
+        val vm = viewModel()
+        vm.loadCurrentCharge(1)
+        runCurrent()
+        assertTrue(vm.uiState.value.isNotCharging)
+        assertEquals(1, fetches())
+
+        vm.pauseRefresh()
+        vm.resumeRefresh()
+        advanceTimeBy(60_000L)
+        runCurrent()
+        assertEquals("the loop stays finished", 1, fetches())
+        stopRefreshLoop()
+    }
 }

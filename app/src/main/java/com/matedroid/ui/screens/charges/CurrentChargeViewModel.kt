@@ -51,6 +51,14 @@ class CurrentChargeViewModel @Inject constructor(
 
         /** Poll quickly while waiting for a just-started charge to appear in the API. */
         private const val CHARGE_STARTING_REFRESH_INTERVAL_MS = 4_000L
+
+        /**
+         * How many fast polls are made before dropping back to the normal interval: 30 × 4 s,
+         * about two minutes. TeslaMate normally materializes the charge within a minute; if it
+         * still hasn't after this, something else is going on and polling every 4 s only burns
+         * battery.
+         */
+        internal const val CHARGE_STARTING_MAX_FAST_POLLS = 30
     }
 
     private val _uiState = MutableStateFlow(CurrentChargeUiState())
@@ -59,9 +67,39 @@ class CurrentChargeViewModel @Inject constructor(
     private var carId: Int? = null
     private var refreshJob: Job? = null
 
+    /** Fast polls made in the current "charge starting" wait, against [CHARGE_STARTING_MAX_FAST_POLLS]. */
+    private var chargeStartingFastPolls = 0
+
+    /**
+     * Set once the loop has reached a terminal state (charge over, endpoint unsupported), so
+     * a later [resumeRefresh] doesn't start it again while the screen is navigating away.
+     */
+    private var refreshFinished = false
+
     fun loadCurrentCharge(carId: Int) {
         this.carId = carId
+        refreshFinished = false
         startRefreshLoop()
+    }
+
+    /**
+     * Restart polling when the screen comes back on screen (see [pauseRefresh]). A no-op
+     * before [loadCurrentCharge], while the loop is already running, and after it finished.
+     */
+    fun resumeRefresh() {
+        if (carId == null || refreshFinished || refreshJob?.isActive == true) return
+        startRefreshLoop()
+    }
+
+    /**
+     * Stop polling while the screen is not visible. Left alone, the loop outlives the screen
+     * being on: the ViewModel stays in the back stack with the phone locked and keeps
+     * downloading the whole session's charge points every 30 s, on top of the monitor
+     * service that is already tracking the charge for the notification.
+     */
+    fun pauseRefresh() {
+        refreshJob?.cancel()
+        refreshJob = null
     }
 
     private fun startRefreshLoop() {
@@ -69,14 +107,29 @@ class CurrentChargeViewModel @Inject constructor(
         refreshJob = viewModelScope.launch {
             while (true) {
                 fetchData()
-                val interval = if (_uiState.value.isChargeStarting) {
-                    CHARGE_STARTING_REFRESH_INTERVAL_MS
-                } else {
-                    REFRESH_INTERVAL_MS
-                }
-                delay(interval)
+                delay(nextRefreshDelayMs())
             }
         }
+    }
+
+    /**
+     * The fast cadence applies only while the charge is starting, and only for the first
+     * [CHARGE_STARTING_MAX_FAST_POLLS] polls of that wait.
+     */
+    private fun nextRefreshDelayMs(): Long {
+        if (!_uiState.value.isChargeStarting) {
+            chargeStartingFastPolls = 0
+            return REFRESH_INTERVAL_MS
+        }
+        if (chargeStartingFastPolls >= CHARGE_STARTING_MAX_FAST_POLLS) return REFRESH_INTERVAL_MS
+        chargeStartingFastPolls++
+        return CHARGE_STARTING_REFRESH_INTERVAL_MS
+    }
+
+    /** The loop has nothing left to poll for; the screen navigates away on these states. */
+    private fun finishRefresh() {
+        refreshFinished = true
+        refreshJob?.cancel()
     }
 
     private suspend fun fetchData() {
@@ -192,7 +245,7 @@ class CurrentChargeViewModel @Inject constructor(
                                 error = null
                             )
                         }
-                        refreshJob?.cancel()
+                        finishRefresh()
                     }
                 }
             }
@@ -202,7 +255,7 @@ class CurrentChargeViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(isLoading = false, isUnsupportedApi = true, error = null)
                         }
-                        refreshJob?.cancel()
+                        finishRefresh()
                     }
                     else -> {
                         // Network problem or server error — never treat as "not charging".
