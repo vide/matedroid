@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Tracking a charge uses less battery** — two leaks around the live-charge view. The check for whether your TeslaMate has the live-charge endpoint used to be repeated on every poll (every 5 seconds from the dashboard, every 30 from the charging notification) whenever the server answered anything other than a clean yes or no — a proxy error or a timeout, for instance; a failed check is now remembered for five minutes, and any successful live-charge fetch counts as a yes. And the live charge screen kept polling with the phone locked: opening it from the charging notification and pocketing the phone meant downloading the whole session's data every 30 seconds for as long as the charge lasted, on top of the notification's own updates. It now stops while off screen and resumes when you come back, and the fast 4-second "charge starting" poll gives up after two minutes instead of running indefinitely.
+
 ## [1.11.2] - 2026-09-09
 
 ### Changed
