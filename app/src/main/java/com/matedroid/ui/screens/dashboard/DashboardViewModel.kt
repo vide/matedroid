@@ -422,12 +422,19 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    private var currentChargeProbeJob: Job? = null
+
+    /**
+     * Find out whether the live-charge screen can be offered. The repository rate-limits the
+     * actual probe; this only avoids stacking a new coroutine on every 5 s tick while the
+     * previous one is still waiting for an answer.
+     */
     private fun checkCurrentChargeAvailability(carId: Int, status: CarStatus) {
-        if (status.isCharging && !_uiState.value.isCurrentChargeAvailable) {
-            viewModelScope.launch {
-                val available = repository.isCurrentChargeAvailable(carId)
-                _uiState.update { it.copy(isCurrentChargeAvailable = available) }
-            }
+        if (!status.isCharging || _uiState.value.isCurrentChargeAvailable) return
+        if (currentChargeProbeJob?.isActive == true) return
+        currentChargeProbeJob = viewModelScope.launch {
+            val available = repository.isCurrentChargeAvailable(carId)
+            _uiState.update { it.copy(isCurrentChargeAvailable = available) }
         }
     }
 
