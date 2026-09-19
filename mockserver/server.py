@@ -45,6 +45,16 @@ config = {
         "materialize_delay": 0,
         "current_latency": 0.0,
     },
+    "navigation": {
+        "enabled": False,
+        "destination": "",
+        "minutes": 0.0,
+        "distance": 0.0,
+        "energy": 0,
+        "traffic_delay": 0.0,
+        "latitude": 0.0,
+        "longitude": 0.0,
+    },
 }
 
 # Approximate usable battery capacity in kWh (used for SOC progression calculation)
@@ -407,13 +417,49 @@ def _build_charging_status_response(car_id: int) -> dict:
     }
 
 
+def _inject_active_route(data: dict) -> dict:
+    """Put a synthetic active_route into a /status payload, as a navigating car reports it."""
+    nav = config["navigation"]
+    status = data.get("data", {}).get("status")
+    if not isinstance(status, dict):
+        return data
+
+    driving = status.setdefault("driving_details", {})
+    driving["active_route"] = {
+        "destination": nav["destination"],
+        "energy_at_arrival": nav["energy"],
+        "distance_to_arrival": nav["distance"],
+        "minutes_to_arrival": nav["minutes"],
+        "traffic_minutes_delay": nav["traffic_delay"],
+        "location": {
+            "latitude": nav["latitude"],
+            "longitude": nav["longitude"],
+        },
+    }
+    # The flat duplicates TeslamateAPI also emits, kept in step with the nested object.
+    driving["active_route_destination"] = nav["destination"]
+    driving["active_route_latitude"] = nav["latitude"]
+    driving["active_route_longitude"] = nav["longitude"]
+    return data
+
+
 @app.route("/api/v1/cars/<int:car_id>/status", methods=["GET"])
 def car_status(car_id: int):
     """Return a mock charging status when --charging is active; otherwise proxy."""
     if config["charging"]["enabled"]:
         data = _build_charging_status_response(car_id)
+        if config["navigation"]["enabled"]:
+            data = _inject_active_route(data)
         return Response(json.dumps(data), status=200, content_type="application/json")
-    return proxy(f"api/v1/cars/{car_id}/status")
+
+    response = proxy(f"api/v1/cars/{car_id}/status")
+    if not config["navigation"]["enabled"]:
+        return response
+    try:
+        data = _inject_active_route(json.loads(response.get_data()))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return response
+    return Response(json.dumps(data), status=response.status_code, content_type="application/json")
 
 
 @app.route("/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
@@ -572,6 +618,47 @@ def main():
         help="Artificial time-to-first-byte added to /charges/current responses",
     )
 
+    nav_group = parser.add_argument_group("navigation simulation")
+    nav_group.add_argument(
+        "--navigating",
+        metavar="DESTINATION",
+        help="Inject an active navigation route into /status with this destination name",
+    )
+    nav_group.add_argument(
+        "--navigating-minutes",
+        type=float,
+        default=35.0,
+        metavar="MIN",
+        help="Minutes left to arrival (default: 35)",
+    )
+    nav_group.add_argument(
+        "--navigating-distance",
+        type=float,
+        default=50.0,
+        metavar="DIST",
+        help="Distance left to arrival, in the upstream's unit system (default: 50)",
+    )
+    nav_group.add_argument(
+        "--navigating-energy",
+        type=int,
+        default=32,
+        metavar="PCT",
+        help="Predicted charge level on arrival (default: 32)",
+    )
+    nav_group.add_argument(
+        "--navigating-traffic-delay",
+        type=float,
+        default=0.0,
+        metavar="MIN",
+        help="Minutes of the estimate that traffic is responsible for (default: 0)",
+    )
+    nav_group.add_argument(
+        "--navigating-location",
+        default="41.970389,3.150913",
+        metavar="LAT,LON",
+        help="Destination coordinates (default: 41.970389,3.150913)",
+    )
+
     args = parser.parse_args()
 
     # Load cars configuration
@@ -623,6 +710,23 @@ def main():
         "current_latency": args.charging_current_latency,
     }
 
+    if args.navigating:
+        try:
+            nav_lat, nav_lon = (float(v) for v in args.navigating_location.split(","))
+        except ValueError:
+            print("Error: --navigating-location must be 'LAT,LON'", file=sys.stderr)
+            sys.exit(1)
+        config["navigation"] = {
+            "enabled": True,
+            "destination": args.navigating,
+            "minutes": args.navigating_minutes,
+            "distance": args.navigating_distance,
+            "energy": args.navigating_energy,
+            "traffic_delay": args.navigating_traffic_delay,
+            "latitude": nav_lat,
+            "longitude": nav_lon,
+        }
+
     effective_power = args.charging_power or (150 if args.charging_dc else 11)
 
     print("Starting Teslamate Mock Server")
@@ -632,6 +736,12 @@ def main():
     if args.charging:
         charger_type = f"DC {effective_power} kW" if args.charging_dc else f"AC 3-phase {effective_power} kW"
         print(f"  Charging simulation: {args.charging_start_soc}% → {args.charging_limit_soc}% ({charger_type})")
+    if args.navigating:
+        print(
+            f"  Navigation simulation: → {args.navigating} "
+            f"({args.navigating_minutes:g} min, {args.navigating_distance:g}, "
+            f"{args.navigating_energy}% on arrival)"
+        )
     print(f"  Listening on: http://{args.host}:{args.port}")
     print()
 

@@ -156,6 +156,9 @@ data class CarStatus(
     val power: Int? get() = drivingDetails?.power
     val heading: Int? get() = drivingDetails?.heading
     val elevation: Int? get() = drivingDetails?.elevation
+
+    /** The route the car is navigating, or null when no destination is set. */
+    val activeRoute: ActiveRoute? get() = drivingDetails?.activeRoute?.takeIf { it.isActive }
 }
 
 @JsonClass(generateAdapter = true)
@@ -191,7 +194,53 @@ data class DrivingDetails(
     @Json(name = "power") val power: Int? = null,
     @Json(name = "speed") val speed: Int? = null,
     @Json(name = "heading") val heading: Int? = null,
-    @Json(name = "elevation") val elevation: Int? = null
+    @Json(name = "elevation") val elevation: Int? = null,
+    @Json(name = "active_route") val activeRoute: ActiveRoute? = null
+)
+
+/**
+ * The navigation route currently set in the car, as reported by TeslaMate.
+ *
+ * Every figure comes pre-converted to the user's unit system, like the rest of
+ * the API: [distanceToArrival] is already km or mi.
+ */
+@Immutable
+@JsonClass(generateAdapter = true)
+data class ActiveRoute(
+    @Json(name = "destination") val destination: String? = null,
+    @Json(name = "energy_at_arrival") val energyAtArrival: Int? = null,
+    @Json(name = "distance_to_arrival") val distanceToArrival: Double? = null,
+    @Json(name = "minutes_to_arrival") val minutesToArrival: Double? = null,
+    @Json(name = "traffic_minutes_delay") val trafficMinutesDelay: Double? = null,
+    @Json(name = "location") val location: ActiveRouteLocation? = null
+) {
+    /**
+     * True when the car is really on its way somewhere.
+     *
+     * TeslaMate carries the route columns over into later position rows, so a
+     * finished trip can still report a destination name with nothing left to
+     * drive — requiring both a distance and a time left keeps that stale row
+     * from lighting the card up after arrival.
+     */
+    val isActive: Boolean
+        get() = !destination.isNullOrBlank() &&
+            (minutesToArrival ?: 0.0) > 0.0 &&
+            (distanceToArrival ?: 0.0) > 0.0
+
+    /** Minutes to arrival rounded to whole minutes, as the car itself shows them. */
+    val minutesToArrivalRounded: Int?
+        get() = minutesToArrival?.let { Math.round(it).toInt() }
+
+    /** Traffic delay in whole minutes, or null when traffic is not costing anything. */
+    val trafficDelayMinutes: Int?
+        get() = trafficMinutesDelay?.let { Math.round(it).toInt() }?.takeIf { it > 0 }
+}
+
+@Immutable
+@JsonClass(generateAdapter = true)
+data class ActiveRouteLocation(
+    @Json(name = "latitude") val latitude: Double? = null,
+    @Json(name = "longitude") val longitude: Double? = null
 )
 
 @JsonClass(generateAdapter = true)

@@ -111,9 +111,18 @@ internal fun DashboardCarousel(
     }
 }
 
-/** A small translucent chip used on the carousel cards (map overlay, consumption stats). */
+/**
+ * A small translucent chip used on the carousel cards (map overlay, consumption stats).
+ *
+ * [contentDescription] names what the figure is for screen readers — the icon alone
+ * cannot say whether "17:42" is a clock time or something else.
+ */
 @Composable
-internal fun CarouselChip(icon: ImageVector, text: String) {
+internal fun CarouselChip(
+    icon: ImageVector,
+    text: String,
+    contentDescription: String? = null
+) {
     val dark = isSystemInDarkTheme()
     val content = if (dark) Color.White else Color(0xFF0E1216)
     val bg = if (dark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
@@ -126,7 +135,7 @@ internal fun CarouselChip(icon: ImageVector, text: String) {
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = content.copy(alpha = 0.9f),
             modifier = Modifier.size(13.dp)
         )

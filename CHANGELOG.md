@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **The dashboard map shows where the car is going** — when a destination is set in the car, a banner across the top of the location card names it and counts down the time left, with the minutes traffic is costing called out in amber next to it. The chips below swap from elevation and coordinates to the distance still to drive, the clock time you are due to arrive, and the battery level you will arrive with. The card goes back to showing only the current position as soon as the route ends.
+
 ## [1.11.3] - 2026-09-19
 
 ### Fixed

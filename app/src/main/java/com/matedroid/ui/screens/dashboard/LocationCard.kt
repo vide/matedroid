@@ -18,10 +18,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Battery5Bar
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,25 +36,33 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
+import com.matedroid.data.api.models.ActiveRoute
 import com.matedroid.data.api.models.CarStatus
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.MapGestureMode
 import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.util.formatDuration
+import com.matedroid.util.formatTime
 import org.osmdroid.util.GeoPoint
+import java.time.LocalDateTime
 
 // Map card geometry. The pin overlay sits in the upper third (clear of the place-name text),
 // and the map's rendered center is shifted to the SAME point via setMapCenterOffset so the
@@ -60,6 +74,11 @@ private val PIN_GLOW_SIZE = 46.dp
 
 /** Vertical center of the pin overlay, measured from the top of the map box. */
 private val PIN_CENTER_Y = 64.dp
+
+// Navigation banner (shown only while the car has a destination set). It sits above the
+// pin: 8dp of margin plus its own ~30dp of content ends at ~38dp, clear of the pin glow,
+// which starts at PIN_CENTER_Y - PIN_GLOW_SIZE / 2 = 41dp.
+private val ROUTE_BANNER_MARGIN = 8.dp
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +93,7 @@ internal fun LocationCard(
     val longitude = status.longitude
     val geofence = status.geofence
     val elevation = status.elevation
+    val route = status.activeRoute
 
     val headline = geofence?.takeIf { it.isNotBlank() }
         ?: resolvedAddress?.takeIf { it.isNotBlank() }
@@ -99,6 +119,9 @@ internal fun LocationCard(
     val scrimColor = if (dark) Color(0xF00A0C10) else Color(0xF2F8F9FB)
     val tintColor = if (dark) Color.Black.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.10f)
     val pinBorder = if (dark) Color.White else Color(0xFF0E1216)
+    // Traffic delay is the one figure on this card that is bad news, so it gets its own
+    // amber rather than the car palette's accent.
+    val delayColor = if (dark) Color(0xFFFFA726) else Color(0xFFB4620A)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -189,6 +212,21 @@ internal fun LocationCard(
                         )
                     )
             )
+            // Matching scrim at the top, so the navigation banner never has to sit on
+            // bare map tiles. Only drawn when there is a banner to protect.
+            if (route != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to scrimColor,
+                                0.30f to Color.Transparent,
+                                1f to Color.Transparent
+                            )
+                        )
+                )
+            }
 
             // Glowing pin in the upper third so the place name below it never overlaps.
             // Its center must match PIN_CENTER_Y — the map's rendered center is shifted there.
@@ -216,6 +254,19 @@ internal fun LocationCard(
                             .border(2.dp, pinBorder, CircleShape)
                     )
                 }
+            }
+
+            // Navigation banner: where the car is heading and how long is left.
+            if (route != null) {
+                RouteBanner(
+                    route = route,
+                    palette = palette,
+                    onMap = onMap,
+                    delayColor = delayColor,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(horizontal = 12.dp, vertical = ROUTE_BANNER_MARGIN)
+                )
             }
 
             // Overlay: place name, address and detail chips.
@@ -281,17 +332,47 @@ internal fun LocationCard(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (elevation != null) {
-                        CarouselChip(
-                            icon = Icons.Filled.Terrain,
-                            text = UnitFormatter.formatElevation(elevation, units)
-                        )
-                    }
-                    if (latitude != null && longitude != null) {
-                        CarouselChip(
-                            icon = Icons.Filled.LocationOn,
-                            text = "%.4f, %.4f".format(latitude, longitude)
-                        )
+                    if (route != null) {
+                        // While navigating the route figures earn the space: the raw
+                        // coordinates and the elevation are the least useful things on
+                        // the card, and four chips do not fit on a narrow phone.
+                        val distance = route.distanceToArrival
+                        if (distance != null) {
+                            CarouselChip(
+                                icon = Icons.Filled.Route,
+                                text = UnitFormatter.formatDistance(distance, units),
+                                contentDescription = stringResource(R.string.location_distance_remaining)
+                            )
+                        }
+                        val arrival = rememberArrivalTime(route.minutesToArrivalRounded)
+                        if (arrival != null) {
+                            CarouselChip(
+                                icon = Icons.Filled.Schedule,
+                                text = arrival,
+                                contentDescription = stringResource(R.string.location_arrival_time)
+                            )
+                        }
+                        val energy = route.energyAtArrival
+                        if (energy != null) {
+                            CarouselChip(
+                                icon = Icons.Filled.Battery5Bar,
+                                text = "$energy%",
+                                contentDescription = stringResource(R.string.location_battery_on_arrival)
+                            )
+                        }
+                    } else {
+                        if (elevation != null) {
+                            CarouselChip(
+                                icon = Icons.Filled.Terrain,
+                                text = UnitFormatter.formatElevation(elevation, units)
+                            )
+                        }
+                        if (latitude != null && longitude != null) {
+                            CarouselChip(
+                                icon = Icons.Filled.LocationOn,
+                                text = "%.4f, %.4f".format(latitude, longitude)
+                            )
+                        }
                     }
                 }
             }
@@ -326,3 +407,89 @@ internal fun LocationCard(
     }
 }
 
+/**
+ * The strip across the top of the location card while the car is navigating:
+ * destination, time left, and the slice of that time traffic is responsible for.
+ */
+@Composable
+private fun RouteBanner(
+    route: ActiveRoute,
+    palette: CarColorPalette,
+    onMap: Color,
+    delayColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val destination = route.destination ?: return
+    val dark = isSystemInDarkTheme()
+    val bannerBg = if (dark) Color.Black.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.72f)
+    val resources = LocalContext.current.resources
+    val remaining = route.minutesToArrivalRounded
+    val delay = route.trafficDelayMinutes
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(bannerBg)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Navigation,
+            contentDescription = stringResource(R.string.location_navigating_to, destination),
+            tint = palette.accent,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        Text(
+            text = destination,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = onMap,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (remaining != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = formatDuration(resources, remaining),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = palette.accent,
+                maxLines = 1
+            )
+        }
+        if (delay != null) {
+            val delayText = formatDuration(resources, delay)
+            val delayLabel = stringResource(R.string.location_traffic_delay, delayText)
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "+$delayText",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = delayColor,
+                maxLines = 1,
+                modifier = Modifier.semantics { contentDescription = delayLabel }
+            )
+        }
+    }
+}
+
+/**
+ * Clock time the car is due to arrive, or null when the API gave no time left.
+ *
+ * Keyed on the minute count so the wall clock is only re-read when the estimate
+ * itself moves — the dashboard polls every few seconds and the answer would
+ * otherwise jitter by a minute for no reason.
+ */
+@Composable
+private fun rememberArrivalTime(minutesToArrival: Int?): String? {
+    if (minutesToArrival == null) return null
+    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
+    return remember(minutesToArrival, is24Hour) {
+        LocalDateTime.now()
+            .plusMinutes(minutesToArrival.toLong())
+            .formatTime(java.util.Locale.getDefault(), is24Hour)
+    }
+}
