@@ -1,6 +1,7 @@
 package com.matedroid.data.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -9,6 +10,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.io.IOException
@@ -42,6 +44,29 @@ class DataSyncWorker @AssistedInject constructor(
         const val WORK_NAME = "data_sync_work"
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "sync_channel"
+
+        /**
+         * Start a sync because the user opened the app. REPLACE so a stuck or backoff-waiting
+         * worker gets a fresh start; an interrupted sync loses little (unprocessed-ID queries
+         * resume where it left off). Deliberately not called from Application.onCreate: that
+         * runs on every process start, including the ones WorkManager triggers for background
+         * jobs, and each one used to cost a sync.
+         */
+        fun enqueueOnAppOpen(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<DataSyncWorker>()
+                .setConstraints(constraints)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .addTag(TAG)
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+            Log.d(TAG, "Enqueued launch sync")
+        }
     }
 
     private fun log(message: String) = logCollector.log(TAG, message)

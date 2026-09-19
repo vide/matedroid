@@ -19,6 +19,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -80,6 +81,10 @@ class SettingsViewModelTest {
         // removed @JvmStatic, so mockkStatic(WorkManager::class) no longer intercepts).
         mockkObject(WorkManager.Companion)
         every { WorkManager.getInstance(any()) } returns workManager
+
+        // Saving the connection settings kicks the charging check, which logs.
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any(), any()) } returns 0
     }
 
     @After

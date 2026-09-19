@@ -27,6 +27,7 @@ import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.notification.SentryNotificationManager
+import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import com.matedroid.data.sync.TpmsPressureWorker
@@ -465,6 +466,10 @@ class SettingsViewModel @Inject constructor(
 
                 // Trigger sync after settings are saved (handles first-time setup)
                 triggerImmediateSync()
+
+                // The charging/sentry chain drops itself while no server is configured, so
+                // start it again now instead of waiting for the 15-minute backstop.
+                ChargingNotificationWorker.runNow(context)
 
                 _uiState.value = _uiState.value.copy(isSaving = false)
                 onSuccess()
