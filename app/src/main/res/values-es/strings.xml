@@ -1498,4 +1498,9 @@
     <string name="backup_error_not_a_backup">Ese archivo no es una copia de seguridad de MateDroid.</string>
     <string name="backup_error_too_new">Esa copia de seguridad la hizo una versión más reciente de MateDroid. Actualiza la app e inténtalo de nuevo.</string>
     <string name="backup_error_restore">Algo ha salido mal al restaurar. Puede que parte del archivo ya se haya restaurado.</string>
+
+    <string name="backup_cars_header">Coches</string>
+    <string name="backup_cars_hint">Los viajes, los avisos de Centinela y los trayectos se guardan para los coches que marques.</string>
+    <string name="backup_car_unnamed">Coche %1$d</string>
+    <string name="backup_car_no_vin">Sin VIN registrado</string>
 </resources>

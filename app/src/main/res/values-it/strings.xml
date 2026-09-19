@@ -1498,4 +1498,9 @@
     <string name="backup_error_not_a_backup">Quel file non è un backup di MateDroid.</string>
     <string name="backup_error_too_new">Quel backup è stato creato da una versione più recente di MateDroid. Aggiorna l\'app e riprova.</string>
     <string name="backup_error_restore">Qualcosa è andato storto durante il ripristino. Una parte del file potrebbe essere già stata rimessa a posto.</string>
+
+    <string name="backup_cars_header">Auto</string>
+    <string name="backup_cars_hint">I viaggi, gli avvisi Sentinella e i tragitti vengono salvati per le auto che selezioni.</string>
+    <string name="backup_car_unnamed">Auto %1$d</string>
+    <string name="backup_car_no_vin">Nessun VIN registrato</string>
 </resources>

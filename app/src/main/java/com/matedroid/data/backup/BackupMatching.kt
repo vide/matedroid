@@ -40,6 +40,22 @@ class BackupCarMap private constructor(private val byExportedId: Map<Int, Int>) 
     }
 }
 
+/**
+ * The cars a backup covers: the ones its header names, plus any the header forgot but whose
+ * rows are in the file anyway.
+ *
+ * The header is written from what the app knew about its cars at export time, which can be
+ * less than what the file holds — a car the server had stopped listing, or an export made
+ * before the app had ever reached the server. Those still deserve a row in the import
+ * preview, even if all it can say is the id.
+ */
+fun mergeBackupCars(headerCars: List<BackupCar>, seenCarIds: Set<Int>): List<BackupCar> {
+    val named = headerCars.associateBy { it.carId }
+    return (named.keys + seenCarIds).sorted().map { carId ->
+        named[carId] ?: BackupCar(carId = carId)
+    }
+}
+
 /** What a restore can ask about the drives and charges already on this phone. */
 interface LegIndex {
     /** Teslamate start timestamp of the drive or charge with this id, or null if unknown here. */

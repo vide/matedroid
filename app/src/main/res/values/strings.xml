@@ -1669,4 +1669,11 @@
     <string name="backup_error_not_a_backup">That file is not a MateDroid backup.</string>
     <string name="backup_error_too_new">That backup was made by a newer version of MateDroid. Update the app and try again.</string>
     <string name="backup_error_restore">Something went wrong while restoring. Part of the file may already have been put back.</string>
+
+    <!-- Backup: which cars go into a file, and which come back out of one -->
+    <string name="backup_cars_header">Cars</string>
+    <string name="backup_cars_hint">Trips, sentry alerts and drives are saved for the cars you tick.</string>
+    <!-- Fallback name for a car the app has never seen on the server; %1$d is its id -->
+    <string name="backup_car_unnamed">Car %1$d</string>
+    <string name="backup_car_no_vin">No VIN recorded</string>
 </resources>

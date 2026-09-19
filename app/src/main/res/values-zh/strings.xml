@@ -1517,4 +1517,9 @@
     <string name="backup_error_not_a_backup">该文件不是 MateDroid 备份。</string>
     <string name="backup_error_too_new">该备份由更新版本的 MateDroid 创建。请更新应用后重试。</string>
     <string name="backup_error_restore">恢复时出错。文件的一部分可能已经恢复。</string>
+
+    <string name="backup_cars_header">车辆</string>
+    <string name="backup_cars_hint">旅程、哨兵警报和行程会为你勾选的车辆保存。</string>
+    <string name="backup_car_unnamed">车辆 %1$d</string>
+    <string name="backup_car_no_vin">未记录 VIN</string>
 </resources>

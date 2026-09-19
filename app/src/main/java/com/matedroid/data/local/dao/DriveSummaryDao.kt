@@ -32,6 +32,9 @@ interface DriveSummaryDao {
     @Query("SELECT COUNT(*) FROM drives_summary")
     suspend fun countAll(): Int
 
+    @Query("SELECT COUNT(*) FROM drives_summary WHERE carId IN (:carIds)")
+    suspend fun countForCars(carIds: List<Int>): Int
+
     @Query("SELECT COUNT(*) FROM drives_summary WHERE carId = :carId")
     suspend fun countForCar(carId: Int): Int
 

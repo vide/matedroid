@@ -1613,4 +1613,9 @@
     <string name="backup_error_not_a_backup">Diese Datei ist kein MateDroid-Backup.</string>
     <string name="backup_error_too_new">Dieses Backup stammt aus einer neueren MateDroid-Version. Aktualisiere die App und versuche es erneut.</string>
     <string name="backup_error_restore">Beim Zurückholen ist etwas schiefgegangen. Ein Teil der Datei wurde möglicherweise schon zurückgeholt.</string>
+
+    <string name="backup_cars_header">Autos</string>
+    <string name="backup_cars_hint">Trips, Sentry-Warnungen und Fahrten werden für die angehakten Autos gesichert.</string>
+    <string name="backup_car_unnamed">Auto %1$d</string>
+    <string name="backup_car_no_vin">Keine VIN hinterlegt</string>
 </resources>

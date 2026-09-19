@@ -127,6 +127,29 @@ class BackupMatchingTest {
     }
 
     @Test
+    fun `cars the header forgot still get a row from the rows in the file`() {
+        val cars = mergeBackupCars(
+            headerCars = listOf(BackupCar(carId = 2, vin = "5YJ...2", name = "Bandit")),
+            seenCarIds = setOf(1, 2)
+        )
+
+        assertEquals(listOf(1, 2), cars.map { it.carId })
+        assertEquals(null, cars.first().name)
+        assertEquals("Bandit", cars.last().name)
+    }
+
+    @Test
+    fun `a car named in the header counts even with nothing of its own in the file`() {
+        val cars = mergeBackupCars(
+            headerCars = listOf(BackupCar(carId = 4, name = "Kitt")),
+            seenCarIds = emptySet()
+        )
+
+        assertEquals(listOf(4), cars.map { it.carId })
+        assertEquals("Kitt", cars.single().name)
+    }
+
+    @Test
     fun `the same drives in a different order are the same trip`() {
         val one = tripSignature(1, listOf(savedLeg(drive, 3, 0), savedLeg("CHARGE", 9, 1)))
         val other = tripSignature(1, listOf(savedLeg("CHARGE", 9, 0), savedLeg(drive, 3, 1)))

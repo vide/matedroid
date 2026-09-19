@@ -27,13 +27,11 @@ import com.matedroid.data.local.entity.SentryAlertLog
 import com.matedroid.data.local.entity.SyncState
 import com.matedroid.data.local.entity.TripCountryCache
 import com.matedroid.data.local.entity.TripRouteCache
-import com.matedroid.data.repository.ApiResult
-import com.matedroid.data.repository.TeslamateRepository
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import okio.buffer
 import okio.source
 import java.io.File
@@ -41,14 +39,21 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** What a backup file turned out to contain, shown before anything is restored. */
+/**
+ * What a backup file turned out to contain, shown before anything is restored.
+ *
+ * The per-car tallies are what let the preview answer the only question that matters when a
+ * file holds more than one car — how much of this belongs to which car — and let its numbers
+ * follow the cars the user ticks.
+ */
 data class BackupPreview(
     val header: BackupHeader,
-    val trips: Int = 0,
-    val sentryEvents: Int = 0,
+    val cars: List<BackupCar> = emptyList(),
+    val tripsByCar: Map<Int, Int> = emptyMap(),
+    val sentryByCar: Map<Int, Int> = emptyMap(),
+    val statsByCar: Map<Int, Int> = emptyMap(),
     val places: Int = 0,
     val tripMaps: Int = 0,
-    val drivesAndCharges: Int = 0,
     val hasSettings: Boolean = false,
     /**
      * False when the file's drives and charges were written against a different version of
@@ -57,24 +62,40 @@ data class BackupPreview(
      */
     val statsReadable: Boolean = true
 ) {
-    /** Sections worth offering as checkboxes: the ones this file actually carries. */
+    /**
+     * Sections worth offering as checkboxes: the ones this file carries at all.
+     *
+     * Deliberately measured across every car, not the ticked ones, so unticking a car
+     * shrinks the numbers rather than making whole rows appear and disappear.
+     */
     val availableSections: Set<BackupSection> = buildSet {
-        if (trips > 0) add(BackupSection.TRIPS)
+        if (tripsByCar.values.sum() > 0) add(BackupSection.TRIPS)
         if (hasSettings) add(BackupSection.SETTINGS)
-        if (sentryEvents > 0) add(BackupSection.SENTRY)
+        if (sentryByCar.values.sum() > 0) add(BackupSection.SENTRY)
         if (places > 0) add(BackupSection.PLACES)
         if (tripMaps > 0) add(BackupSection.TRIP_MAPS)
-        if (drivesAndCharges > 0 && statsReadable) add(BackupSection.STATS)
+        if (statsByCar.values.sum() > 0 && statsReadable) add(BackupSection.STATS)
     }
 
-    fun countOf(section: BackupSection): Int = when (section) {
-        BackupSection.TRIPS -> trips
+    /** True when the file holds drives and charges this build cannot read. */
+    val hasUnreadableStats: Boolean = statsByCar.values.sum() > 0 && !statsReadable
+
+    /** How much of [section] the ticked [carIds] account for. */
+    fun countOf(section: BackupSection, carIds: Set<Int>): Int = when (section) {
+        BackupSection.TRIPS -> tripsByCar.sumFor(carIds)
         BackupSection.SETTINGS -> 0
-        BackupSection.SENTRY -> sentryEvents
+        BackupSection.SENTRY -> sentryByCar.sumFor(carIds)
         BackupSection.PLACES -> places
         BackupSection.TRIP_MAPS -> tripMaps
-        BackupSection.STATS -> drivesAndCharges
+        BackupSection.STATS -> statsByCar.sumFor(carIds)
     }
+
+    /** Everything this file holds for one car, for the count beside its name. */
+    fun countOfCar(carId: Int): Int =
+        (tripsByCar[carId] ?: 0) + (sentryByCar[carId] ?: 0) + (statsByCar[carId] ?: 0)
+
+    private fun Map<Int, Int>.sumFor(carIds: Set<Int>): Int =
+        entries.filter { it.key in carIds }.sumOf { it.value }
 }
 
 /** What a restore actually did, for the summary shown when it finishes. */
@@ -98,8 +119,8 @@ class NotABackupException(cause: Throwable? = null) : IOException("Not a MateDro
 class NewerBackupException(val format: Int) : IOException("Backup format $format is too new")
 
 /**
- * Reads a backup back in: first to describe it, then — once the user has said which parts
- * to take and whether to add or replace — to apply it.
+ * Reads a backup back in: first to describe it, then — once the user has said which cars and
+ * which parts to take, and whether to add or replace — to apply it.
  *
  * The picked file is copied into the cache before either pass, so neither depends on a
  * content:// grant outliving the screen, and both can stream the same bytes twice.
@@ -110,7 +131,6 @@ class BackupImporter @Inject constructor(
     private val moshi: Moshi,
     private val database: StatsDatabase,
     private val settingsDataStore: SettingsDataStore,
-    private val repository: TeslamateRepository,
     private val savedTripDao: SavedTripDao,
     private val sentryAlertLogDao: SentryAlertLogDao,
     private val geocodeCacheDao: GeocodeCacheDao,
@@ -146,30 +166,37 @@ class BackupImporter @Inject constructor(
         val header = counter.header ?: throw NotABackupException()
         BackupPreview(
             header = header,
-            trips = counter.trips,
-            sentryEvents = counter.sentryEvents,
+            cars = mergeBackupCars(header.cars, counter.carIds),
+            tripsByCar = counter.tripsByCar,
+            sentryByCar = counter.sentryByCar,
+            statsByCar = counter.statsByCar,
             places = counter.places,
             tripMaps = counter.tripKeys.size,
-            drivesAndCharges = counter.drives + counter.charges,
             hasSettings = counter.hasSettings,
             statsReadable = header.databaseVersion == StatsDatabase.SCHEMA_VERSION
         )
     }
 
-    /** Restore [selection] out of [file]. Everything else in the file is left alone. */
+    /**
+     * Restore [selection] for [carIds] out of [file]. Everything else is left alone.
+     *
+     * [carIds] are the ids as the file numbers them — the ones the preview showed — not the
+     * ids they will land on here.
+     */
     suspend fun restore(
         file: File,
         selection: Set<BackupSection>,
+        carIds: Set<Int>,
         mode: ImportMode
     ): ImportReport = withContext(Dispatchers.IO) {
         val header = readHeader(file)
         val carMap = BackupCarMap.of(header.cars, localCars())
-        val visitor = RestoringVisitor(selection, carMap)
+        val visitor = RestoringVisitor(selection, carIds, carMap)
         // Replacing empties tables before the file has been read. One transaction around
         // both means a file that turns out to be truncated half-way leaves the phone with
         // what it had, rather than with the hole the clear just made.
         database.withTransaction {
-            if (mode == ImportMode.REPLACE) clear(selection)
+            if (mode == ImportMode.REPLACE) clear(selection, carIds.map { carMap[it] })
             read(file, visitor)
         }
         visitor.report
@@ -203,30 +230,25 @@ class BackupImporter @Inject constructor(
         return header
     }
 
-    /** Best-effort, for matching cars by VIN. An unreachable server just means id-for-id. */
-    private suspend fun localCars(): List<BackupCar> = runCatching {
-        withTimeoutOrNull(CAR_LOOKUP_TIMEOUT_MS) {
-            when (val result = repository.getCars()) {
-                is ApiResult.Success -> result.data.map {
-                    BackupCar(carId = it.carId, vin = it.carDetails?.vin, name = it.name)
-                }
+    /** The cars this phone knows, for matching the file's by VIN. */
+    private suspend fun localCars(): List<BackupCar> =
+        settingsDataStore.knownCars.first().map { BackupCar(it.carId, it.vin, it.name) }
 
-                is ApiResult.Error -> emptyList()
-            }
+    private suspend fun clear(selection: Set<BackupSection>, localCarIds: List<Int>) {
+        if (BackupSection.TRIPS in selection) {
+            localCarIds.forEach { savedTripDao.deleteAllForCar(it) }
         }
-    }.getOrNull().orEmpty()
-
-    private suspend fun clear(selection: Set<BackupSection>) {
-        if (BackupSection.TRIPS in selection) savedTripDao.deleteAllTrips()
-        if (BackupSection.SENTRY in selection) sentryAlertLogDao.deleteAll()
+        if (BackupSection.SENTRY in selection) {
+            localCarIds.forEach { sentryAlertLogDao.deleteAllForCar(it) }
+        }
         if (BackupSection.TRIP_MAPS in selection) {
+            // Route and country caches are keyed by trip, not by car, so there is no
+            // per-car half to clear. They are a cache either way: the app rebuilds them.
             tripRouteCacheDao.deleteAll()
             tripCountryCacheDao.deleteAll()
         }
         if (BackupSection.STATS in selection) {
-            val carIds = (driveSummaryDao.getAllCarIds() + chargeSummaryDao.getAllCarIds())
-                .distinct()
-            carIds.forEach { carId ->
+            localCarIds.forEach { carId ->
                 driveSummaryDao.deleteAllForCar(carId)
                 chargeSummaryDao.deleteAllForCar(carId)
                 aggregateDao.deleteDriveAggregatesForCar(carId)
@@ -240,12 +262,15 @@ class BackupImporter @Inject constructor(
     private class CountingVisitor : BackupVisitor {
         var header: BackupHeader? = null
         var hasSettings = false
-        var trips = 0
-        var sentryEvents = 0
         var places = 0
-        var drives = 0
-        var charges = 0
+        val tripsByCar = mutableMapOf<Int, Int>()
+        val sentryByCar = mutableMapOf<Int, Int>()
+        val statsByCar = mutableMapOf<Int, Int>()
         val tripKeys = mutableSetOf<String>()
+
+        /** Every car id the file mentions anywhere, header or rows. */
+        val carIds: Set<Int>
+            get() = tripsByCar.keys + sentryByCar.keys + statsByCar.keys
 
         override suspend fun onHeader(header: BackupHeader) {
             this.header = header
@@ -257,11 +282,11 @@ class BackupImporter @Inject constructor(
         }
 
         override suspend fun onTrips(batch: List<BackupTrip>) {
-            trips += batch.size
+            batch.forEach { tripsByCar.increment(it.carId) }
         }
 
         override suspend fun onSentryEvents(batch: List<BackupSentryEvent>) {
-            sentryEvents += batch.size
+            batch.forEach { sentryByCar.increment(it.carId) }
         }
 
         override suspend fun onPlaces(batch: List<BackupPlace>) {
@@ -273,17 +298,22 @@ class BackupImporter @Inject constructor(
         }
 
         override suspend fun onDrives(batch: List<DriveSummary>) {
-            drives += batch.size
+            batch.forEach { statsByCar.increment(it.carId) }
         }
 
         override suspend fun onCharges(batch: List<ChargeSummary>) {
-            charges += batch.size
+            batch.forEach { statsByCar.increment(it.carId) }
+        }
+
+        private fun MutableMap<Int, Int>.increment(carId: Int) {
+            this[carId] = (this[carId] ?: 0) + 1
         }
     }
 
     /** Writes each batch into the database as it arrives. */
     private inner class RestoringVisitor(
         private val selection: Set<BackupSection>,
+        private val carIds: Set<Int>,
         private val carMap: BackupCarMap
     ) : BackupVisitor {
 
@@ -292,8 +322,8 @@ class BackupImporter @Inject constructor(
 
         private val legResolver = BackupLegResolver(DaoLegIndex())
         private var existingTripSignatures: MutableSet<String>? = null
-        private val restoredTripMapKeys = mutableSetOf<String>()
         private var existingSentryKeys: MutableSet<String>? = null
+        private val restoredTripMapKeys = mutableSetOf<String>()
         private var statsReadable = true
 
         override suspend fun onHeader(header: BackupHeader) {
@@ -318,12 +348,14 @@ class BackupImporter @Inject constructor(
                     shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
                     highSocWarningThreshold = settings.highSocWarningThreshold,
                     lowSocWarningThreshold = settings.lowSocWarningThreshold,
-                    lastSelectedCarId = settings.lastSelectedCarId?.let { carMap[it] },
+                    lastSelectedCarId = settings.lastSelectedCarId
+                        ?.takeIf { it in carIds }
+                        ?.let { carMap[it] },
                     carImageOverrides = settings.carImageOverrides
                         .mapNotNull { (carId, image) ->
-                            carId.toIntOrNull()?.let {
-                                carMap[it] to CarImageOverride(image.variant, image.wheelCode)
-                            }
+                            carId.toIntOrNull()
+                                ?.takeIf { it in carIds }
+                                ?.let { carMap[it] to CarImageOverride(image.variant, image.wheelCode) }
                         }
                         .toMap()
                         .takeIf { it.isNotEmpty() }
@@ -335,7 +367,7 @@ class BackupImporter @Inject constructor(
         override suspend fun onTrips(batch: List<BackupTrip>) {
             if (BackupSection.TRIPS !in selection) return
             val signatures = existingTripSignatures ?: loadTripSignatures()
-            batch.forEach { backupTrip ->
+            batch.filter { it.carId in carIds }.forEach { backupTrip ->
                 val carId = carMap[backupTrip.carId]
                 val resolved = resolveLegs(carId, backupTrip.legs)
                 if (resolved.legs.isEmpty()) {
@@ -404,7 +436,8 @@ class BackupImporter @Inject constructor(
             if (BackupSection.SENTRY !in selection) return
             val known = existingSentryKeys ?: sentryAlertLogDao.getAllKeys().toMutableSet()
                 .also { existingSentryKeys = it }
-            val fresh = batch.mapNotNull { event ->
+            val wanted = batch.filter { it.carId in carIds }
+            val fresh = wanted.mapNotNull { event ->
                 val carId = carMap[event.carId]
                 if (!known.add(sentryKey(carId, event.detectedAt))) return@mapNotNull null
                 SentryAlertLog(
@@ -419,7 +452,7 @@ class BackupImporter @Inject constructor(
             if (fresh.isNotEmpty()) sentryAlertLogDao.insertAll(fresh)
             report = report.copy(
                 sentryRestored = report.sentryRestored + fresh.size,
-                sentryAlreadyHere = report.sentryAlreadyHere + (batch.size - fresh.size)
+                sentryAlreadyHere = report.sentryAlreadyHere + (wanted.size - fresh.size)
             )
         }
 
@@ -466,35 +499,46 @@ class BackupImporter @Inject constructor(
         }
 
         override suspend fun onSyncStates(batch: List<SyncState>) {
-            if (!statsSelected()) return
-            batch.forEach { syncStateDao.upsert(it.copy(carId = carMap[it.carId])) }
+            statsRows(batch) { it.carId }.forEach {
+                syncStateDao.upsert(it.copy(carId = carMap[it.carId]))
+            }
         }
 
         override suspend fun onDrives(batch: List<DriveSummary>) {
-            if (!statsSelected()) return
-            driveSummaryDao.upsertAll(batch.map { it.copy(carId = carMap[it.carId]) })
+            val rows = statsRows(batch) { it.carId }
+            if (rows.isEmpty()) return
+            driveSummaryDao.upsertAll(rows.map { it.copy(carId = carMap[it.carId]) })
             report = report.copy(
-                drivesAndChargesRestored = report.drivesAndChargesRestored + batch.size
+                drivesAndChargesRestored = report.drivesAndChargesRestored + rows.size
             )
         }
 
         override suspend fun onCharges(batch: List<ChargeSummary>) {
-            if (!statsSelected()) return
-            chargeSummaryDao.upsertAll(batch.map { it.copy(carId = carMap[it.carId]) })
+            val rows = statsRows(batch) { it.carId }
+            if (rows.isEmpty()) return
+            chargeSummaryDao.upsertAll(rows.map { it.copy(carId = carMap[it.carId]) })
             report = report.copy(
-                drivesAndChargesRestored = report.drivesAndChargesRestored + batch.size
+                drivesAndChargesRestored = report.drivesAndChargesRestored + rows.size
             )
         }
 
         override suspend fun onDriveAggregates(batch: List<DriveDetailAggregate>) {
-            if (!statsSelected()) return
-            aggregateDao.upsertDriveAggregates(batch.map { it.copy(carId = carMap[it.carId]) })
+            val rows = statsRows(batch) { it.carId }
+            if (rows.isNotEmpty()) {
+                aggregateDao.upsertDriveAggregates(rows.map { it.copy(carId = carMap[it.carId]) })
+            }
         }
 
         override suspend fun onChargeAggregates(batch: List<ChargeDetailAggregate>) {
-            if (!statsSelected()) return
-            aggregateDao.upsertChargeAggregates(batch.map { it.copy(carId = carMap[it.carId]) })
+            val rows = statsRows(batch) { it.carId }
+            if (rows.isNotEmpty()) {
+                aggregateDao.upsertChargeAggregates(rows.map { it.copy(carId = carMap[it.carId]) })
+            }
         }
+
+        /** The rows of a stats batch worth writing: only if wanted, only ticked cars. */
+        private fun <T> statsRows(batch: List<T>, carIdOf: (T) -> Int): List<T> =
+            if (statsSelected()) batch.filter { carIdOf(it) in carIds } else emptyList()
 
         private fun statsSelected() = BackupSection.STATS in selection && statsReadable
     }
@@ -539,6 +583,5 @@ class BackupImporter @Inject constructor(
 
     companion object {
         const val STAGING_DIR = "imports"
-        private const val CAR_LOOKUP_TIMEOUT_MS = 5_000L
     }
 }

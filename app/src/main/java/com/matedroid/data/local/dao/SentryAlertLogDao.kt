@@ -35,6 +35,12 @@ interface SentryAlertLogDao {
     @Query("SELECT COUNT(*) FROM sentry_alert_log")
     suspend fun count(): Int
 
+    @Query("SELECT * FROM sentry_alert_log WHERE carId IN (:carIds) ORDER BY detectedAt ASC")
+    suspend fun getAllForCars(carIds: List<Int>): List<SentryAlertLog>
+
+    @Query("SELECT COUNT(*) FROM sentry_alert_log WHERE carId IN (:carIds)")
+    suspend fun countForCars(carIds: List<Int>): Int
+
     @Query("DELETE FROM sentry_alert_log")
     suspend fun deleteAll()
 

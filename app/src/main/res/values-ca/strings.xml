@@ -1498,4 +1498,9 @@
     <string name="backup_error_not_a_backup">Aquest fitxer no és una còpia de seguretat de MateDroid.</string>
     <string name="backup_error_too_new">Aquesta còpia de seguretat l\'ha feta una versió més recent de MateDroid. Actualitza l\'aplicació i torna-ho a provar.</string>
     <string name="backup_error_restore">Alguna cosa ha anat malament en restaurar. És possible que una part del fitxer ja s\'hagi restaurat.</string>
+
+    <string name="backup_cars_header">Cotxes</string>
+    <string name="backup_cars_hint">Els viatges, els avisos de Sentinella i els trajectes es desen per als cotxes que marquis.</string>
+    <string name="backup_car_unnamed">Cotxe %1$d</string>
+    <string name="backup_car_no_vin">Sense VIN registrat</string>
 </resources>

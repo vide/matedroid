@@ -20,14 +20,11 @@ import com.matedroid.data.local.entity.DriveDetailAggregate
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.local.entity.SyncState
-import com.matedroid.data.repository.ApiResult
-import com.matedroid.data.repository.TeslamateRepository
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import okio.buffer
 import okio.sink
 import java.io.File
@@ -35,7 +32,12 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** How much of each optional section there is to export, for the checkboxes to show. */
+/**
+ * How much of each section there is to export, for the checkboxes to show.
+ *
+ * The car-scoped numbers follow whichever cars are ticked; [places] and [tripMaps] do not,
+ * because those caches are keyed by map grid and by trip, not by car.
+ */
 data class BackupCounts(
     val trips: Int = 0,
     val sentryEvents: Int = 0,
@@ -56,7 +58,6 @@ class BackupExporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val moshi: Moshi,
     private val settingsDataStore: SettingsDataStore,
-    private val repository: TeslamateRepository,
     private val savedTripDao: SavedTripDao,
     private val sentryAlertLogDao: SentryAlertLogDao,
     private val geocodeCacheDao: GeocodeCacheDao,
@@ -68,24 +69,51 @@ class BackupExporter @Inject constructor(
     private val aggregateDao: AggregateDao
 ) {
 
-    suspend fun counts(): BackupCounts = withContext(Dispatchers.IO) {
+    /**
+     * The cars this backup could cover, named where the app knows who they are.
+     *
+     * Identities come from the store the repository fills on every successful car fetch, so
+     * they survive an export made away from a Teslamate that only answers on the home LAN.
+     * Ids found in the local tables are included too: a car the server has stopped listing
+     * still has drives and trips here, and leaving it out would quietly drop them.
+     */
+    suspend fun cars(): List<BackupCar> = withContext(Dispatchers.IO) {
+        val known = settingsDataStore.knownCars.first().associateBy { it.carId }
+        (known.keys + localCarIds()).distinct().sorted().map { carId ->
+            BackupCar(carId = carId, vin = known[carId]?.vin, name = known[carId]?.name)
+        }
+    }
+
+    suspend fun counts(carIds: Set<Int>): BackupCounts = withContext(Dispatchers.IO) {
+        val ids = carIds.sorted()
         BackupCounts(
-            trips = savedTripDao.countAll(),
-            sentryEvents = sentryAlertLogDao.count(),
+            trips = savedTripDao.countForCars(ids),
+            sentryEvents = sentryAlertLogDao.countForCars(ids),
             places = geocodeCacheDao.count(),
             tripMaps = tripRouteCacheDao.countTrips(),
-            drivesAndCharges = driveSummaryDao.countAll() + chargeSummaryDao.countAll()
+            drivesAndCharges = driveSummaryDao.countForCars(ids) + chargeSummaryDao.countForCars(ids)
         )
     }
 
-    /** Write a backup holding [sections], returning the staged file. */
-    suspend fun export(sections: Set<BackupSection>): File = withContext(Dispatchers.IO) {
-        val file = stagingFile()
-        file.sink().buffer().use { sink ->
-            BackupFile.write(sink, moshi, DatabaseSource(sections, cars()))
+    /** Write a backup holding [sections] for [carIds], returning the staged file. */
+    suspend fun export(sections: Set<BackupSection>, carIds: Set<Int>): File =
+        withContext(Dispatchers.IO) {
+            val ids = carIds.sorted()
+            val selectedCars = cars().filter { it.carId in carIds }
+            val file = stagingFile()
+            file.sink().buffer().use { sink ->
+                BackupFile.write(sink, moshi, DatabaseSource(sections, ids, selectedCars))
+            }
+            file
         }
-        file
-    }
+
+    private suspend fun localCarIds(): List<Int> = (
+        syncStateDao.getAll().map { it.carId } +
+            driveSummaryDao.getAllCarIds() +
+            chargeSummaryDao.getAllCarIds() +
+            savedTripDao.getAllCarIds() +
+            sentryAlertLogDao.getAllCarIds()
+        ).distinct()
 
     private fun stagingFile(): File {
         val dir = File(context.cacheDir, STAGING_DIR)
@@ -94,26 +122,10 @@ class BackupExporter @Inject constructor(
         return File(dir, "matedroid-backup-${LocalDate.now()}.json")
     }
 
-    /**
-     * The cars behind the ids in this backup, so a restore onto a rebuilt Teslamate can match
-     * them by VIN. Best-effort by design: a server that cannot be reached must not stop
-     * someone backing up their phone, and the ids alone are enough for the usual restore.
-     */
-    private suspend fun cars(): List<BackupCar> = runCatching {
-        withTimeoutOrNull(CAR_LOOKUP_TIMEOUT_MS) {
-            when (val result = repository.getCars()) {
-                is ApiResult.Success -> result.data.map {
-                    BackupCar(carId = it.carId, vin = it.carDetails?.vin, name = it.name)
-                }
-
-                is ApiResult.Error -> emptyList()
-            }
-        }
-    }.getOrNull().orEmpty()
-
     /** Reads each section straight out of the database, one at a time. */
     private inner class DatabaseSource(
         private val sections: Set<BackupSection>,
+        private val carIds: List<Int>,
         private val cars: List<BackupCar>
     ) : BackupSource {
 
@@ -149,10 +161,15 @@ class BackupExporter @Inject constructor(
                 shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
                 highSocWarningThreshold = settings.highSocWarningThreshold,
                 lowSocWarningThreshold = settings.lowSocWarningThreshold,
-                lastSelectedCarId = settings.lastSelectedCarId,
-                carImageOverrides = overrides.entries.associate { (carId, override) ->
-                    carId.toString() to BackupCarImage(override.variant, override.wheelCode)
-                }
+                lastSelectedCarId = settings.lastSelectedCarId?.takeIf { it in carIds },
+                // Only for the cars going into this file: an override names a picture for a
+                // car id, and an id nobody exported is an id nobody can make sense of.
+                carImageOverrides = overrides
+                    .filterKeys { it in carIds }
+                    .entries
+                    .associate { (carId, override) ->
+                        carId.toString() to BackupCarImage(override.variant, override.wheelCode)
+                    }
             )
         }
 
@@ -160,7 +177,7 @@ class BackupExporter @Inject constructor(
             if (BackupSection.TRIPS !in sections) return emptyList()
             val fingerprintsByTrip = savedTripDao.getAllConsumedFingerprints()
                 .groupBy({ it.savedTripId }, { it.fingerprint })
-            return savedTripDao.getAllTripsWithLegs().map { saved ->
+            return savedTripDao.getTripsWithLegsForCars(carIds).map { saved ->
                 BackupTrip(
                     carId = saved.trip.carId,
                     name = saved.trip.name,
@@ -190,7 +207,7 @@ class BackupExporter @Inject constructor(
 
         override suspend fun sentryEvents(): List<BackupSentryEvent> {
             if (BackupSection.SENTRY !in sections) return emptyList()
-            return sentryAlertLogDao.getAll().map {
+            return sentryAlertLogDao.getAllForCars(carIds).map {
                 BackupSentryEvent(
                     carId = it.carId,
                     detectedAt = it.detectedAt,
@@ -202,6 +219,8 @@ class BackupExporter @Inject constructor(
             }
         }
 
+        // Place names and trip maps are keyed by map grid and by trip, not by car, so they
+        // go in whole whenever their section is ticked.
         override suspend fun places(): List<BackupPlace> {
             if (BackupSection.PLACES !in sections) return emptyList()
             return geocodeCacheDao.getAll().map {
@@ -237,7 +256,11 @@ class BackupExporter @Inject constructor(
         }
 
         override suspend fun syncStates(): List<SyncState> =
-            if (BackupSection.STATS in sections) syncStateDao.getAll() else emptyList()
+            if (BackupSection.STATS in sections) {
+                syncStateDao.getAll().filter { it.carId in carIds }
+            } else {
+                emptyList()
+            }
 
         override suspend fun drives(): List<DriveSummary> =
             perCar { driveSummaryDao.getAllForCar(it) }
@@ -253,18 +276,12 @@ class BackupExporter @Inject constructor(
 
         private suspend fun <T> perCar(load: suspend (Int) -> List<T>): List<T> {
             if (BackupSection.STATS !in sections) return emptyList()
-            return statsCarIds().flatMap { load(it) }
+            return carIds.flatMap { load(it) }
         }
-
-        private suspend fun statsCarIds(): List<Int> =
-            (syncStateDao.getAll().map { it.carId } +
-                driveSummaryDao.getAllCarIds() +
-                chargeSummaryDao.getAllCarIds()).distinct().sorted()
     }
 
     companion object {
         const val STAGING_DIR = "backups"
         const val MIME_TYPE = "application/json"
-        private const val CAR_LOOKUP_TIMEOUT_MS = 5_000L
     }
 }

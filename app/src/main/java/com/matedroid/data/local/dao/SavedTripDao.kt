@@ -42,6 +42,17 @@ abstract class SavedTripDao {
     @Query("SELECT COUNT(*) FROM saved_trips")
     abstract suspend fun countAll(): Int
 
+    @Transaction
+    @Query("SELECT * FROM saved_trips WHERE carId IN (:carIds) ORDER BY id ASC")
+    abstract suspend fun getTripsWithLegsForCars(carIds: List<Int>): List<SavedTripWithLegs>
+
+    @Query("SELECT COUNT(*) FROM saved_trips WHERE carId IN (:carIds)")
+    abstract suspend fun countForCars(carIds: List<Int>): Int
+
+    /** Wipes one car's saved trips; legs and consumed fingerprints follow by cascade. */
+    @Query("DELETE FROM saved_trips WHERE carId = :carId")
+    abstract suspend fun deleteAllForCar(carId: Int)
+
     /** Wipes every saved trip; legs and consumed fingerprints follow by cascade. */
     @Query("DELETE FROM saved_trips")
     abstract suspend fun deleteAllTrips()

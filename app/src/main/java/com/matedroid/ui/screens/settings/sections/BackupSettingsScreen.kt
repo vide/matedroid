@@ -9,6 +9,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
+import com.matedroid.data.backup.BackupCar
 import com.matedroid.data.backup.BackupCounts
 import com.matedroid.data.backup.BackupExporter
 import com.matedroid.data.backup.BackupHeader
@@ -105,9 +107,11 @@ fun BackupSettingsScreen(
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onToggleExportSection = viewModel::toggleExportSection,
+        onToggleExportCar = viewModel::toggleExportCar,
         onExport = viewModel::export,
         onPickFile = { filePicker.launch(arrayOf("*/*")) },
         onToggleImportSection = viewModel::toggleImportSection,
+        onToggleImportCar = viewModel::toggleImportCar,
         onImportModeChange = viewModel::setImportMode,
         onRestore = viewModel::restore,
         onDismissPreview = viewModel::dismissPreview,
@@ -121,9 +125,11 @@ private fun BackupSettingsContent(
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
     onToggleExportSection: (BackupSection) -> Unit,
+    onToggleExportCar: (Int) -> Unit,
     onExport: () -> Unit,
     onPickFile: () -> Unit,
     onToggleImportSection: (BackupSection) -> Unit,
+    onToggleImportCar: (Int) -> Unit,
     onImportModeChange: (ImportMode) -> Unit,
     onRestore: () -> Unit,
     onDismissPreview: () -> Unit,
@@ -147,8 +153,27 @@ private fun BackupSettingsContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        SettingsSpacer(8)
 
+        if (state.cars.isNotEmpty()) {
+            SettingsSpacer(20)
+            SettingsGroupHeader(stringResource(R.string.backup_cars_header))
+            Text(
+                text = stringResource(R.string.backup_cars_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SettingsSpacer(8)
+            state.cars.forEach { car ->
+                SettingsSwitchRow(
+                    title = car.displayName(),
+                    hint = car.vinLine(),
+                    checked = car.carId in state.exportCarIds,
+                    onCheckedChange = { onToggleExportCar(car.carId) }
+                )
+            }
+        }
+
+        SettingsSpacer(20)
         BackupSection.optional.forEach { section ->
             SettingsSwitchRow(
                 title = stringResource(section.titleRes()),
@@ -225,9 +250,11 @@ private fun BackupSettingsContent(
         ImportPreviewDialog(
             preview = preview,
             selection = state.importSelection,
+            carIds = state.importCarIds,
             mode = state.importMode,
             isRestoring = state.isRestoring,
             onToggleSection = onToggleImportSection,
+            onToggleCar = onToggleImportCar,
             onModeChange = onImportModeChange,
             onRestore = onRestore,
             onDismiss = onDismissPreview
@@ -255,9 +282,11 @@ private fun CountBadge(count: Int) {
 private fun ImportPreviewDialog(
     preview: BackupPreview,
     selection: Set<BackupSection>,
+    carIds: Set<Int>,
     mode: ImportMode,
     isRestoring: Boolean,
     onToggleSection: (BackupSection) -> Unit,
+    onToggleCar: (Int) -> Unit,
     onModeChange: (ImportMode) -> Unit,
     onRestore: () -> Unit,
     onDismiss: () -> Unit
@@ -272,31 +301,49 @@ private fun ImportPreviewDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                SettingsSpacer(12)
 
-                preview.availableSections.sortedBy { it.ordinal }.forEach { section ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = !isRestoring) { onToggleSection(section) }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = section in selection,
-                            onCheckedChange = { onToggleSection(section) },
-                            enabled = !isRestoring
-                        )
-                        Text(
-                            text = stringResource(section.titleRes()),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        CountBadge(preview.countOf(section))
+                if (preview.cars.isNotEmpty()) {
+                    SettingsSpacer(16)
+                    Text(
+                        text = stringResource(R.string.backup_cars_header),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    preview.cars.forEach { car ->
+                        CheckRow(
+                            checked = car.carId in carIds,
+                            enabled = !isRestoring,
+                            onToggle = { onToggleCar(car.carId) },
+                            count = preview.countOfCar(car.carId)
+                        ) {
+                            Text(
+                                text = car.displayName(),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = car.vinLine(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
-                if (preview.drivesAndCharges > 0 && !preview.statsReadable) {
+                SettingsSpacer(16)
+                preview.availableSections.sortedBy { it.ordinal }.forEach { section ->
+                    CheckRow(
+                        checked = section in selection,
+                        enabled = !isRestoring,
+                        onToggle = { onToggleSection(section) },
+                        count = preview.countOf(section, carIds)
+                    ) {
+                        Text(
+                            text = stringResource(section.titleRes()),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
+                if (preview.hasUnreadableStats) {
                     SettingsSpacer(8)
                     Text(
                         text = stringResource(R.string.backup_preview_stats_unusable),
@@ -353,6 +400,28 @@ private fun ImportPreviewDialog(
             }
         }
     )
+}
+
+/** One tickable line in the import dialog: box, label block, and how much it stands for. */
+@Composable
+private fun CheckRow(
+    checked: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    count: Int,
+    label: @Composable ColumnScope.() -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled) { onToggle() }
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() }, enabled = enabled)
+        Column(modifier = Modifier.weight(1f), content = label)
+        CountBadge(count)
+    }
 }
 
 @Composable
@@ -440,6 +509,15 @@ private fun ImportReport.rows(): List<Pair<Int, String>> = buildList {
     addRow(R.string.backup_section_stats, drivesAndChargesRestored)
 }
 
+/** The car's name on the server, or its id when the app has never been told one. */
+@Composable
+private fun BackupCar.displayName(): String =
+    name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.backup_car_unnamed, carId)
+
+@Composable
+private fun BackupCar.vinLine(): String =
+    vin?.takeIf { it.isNotBlank() } ?: stringResource(R.string.backup_car_no_vin)
+
 @Composable
 private fun BackupPreview.savedOnText(): String {
     val date = Instant.ofEpochMilli(header.exportedAt)
@@ -506,12 +584,19 @@ private fun BackupCounts.of(section: BackupSection): Int = when (section) {
     BackupSection.STATS -> drivesAndCharges
 }
 
+private val previewCars = listOf(
+    BackupCar(carId = 1, vin = "5YJ3E1EA7KF000001", name = "Kitt"),
+    BackupCar(carId = 2, vin = "7SAYGDEF9NF000002", name = "Bandit")
+)
+
 @Preview(showBackground = true)
 @Composable
 private fun BackupSettingsPreview() {
     MateDroidTheme {
         BackupSettingsContent(
             state = BackupUiState(
+                cars = previewCars,
+                exportCarIds = setOf(1, 2),
                 counts = BackupCounts(
                     trips = 14,
                     sentryEvents = 342,
@@ -523,9 +608,11 @@ private fun BackupSettingsPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onToggleExportSection = {},
+            onToggleExportCar = {},
             onExport = {},
             onPickFile = {},
             onToggleImportSection = {},
+            onToggleImportCar = {},
             onImportModeChange = {},
             onRestore = {},
             onDismissPreview = {},
@@ -542,17 +629,21 @@ private fun ImportPreviewDialogPreview() {
             preview = BackupPreview(
                 header = BackupHeader(
                     exportedAt = System.currentTimeMillis(),
-                    appVersionName = "1.11.3"
+                    appVersionName = "1.11.3",
+                    cars = previewCars
                 ),
-                trips = 14,
-                sentryEvents = 342,
+                cars = previewCars,
+                tripsByCar = mapOf(1 to 12, 2 to 2),
+                sentryByCar = mapOf(1 to 342),
                 places = 1204,
                 hasSettings = true
             ),
             selection = setOf(BackupSection.TRIPS, BackupSection.SETTINGS),
+            carIds = setOf(1, 2),
             mode = ImportMode.MERGE,
             isRestoring = false,
             onToggleSection = {},
+            onToggleCar = {},
             onModeChange = {},
             onRestore = {},
             onDismiss = {}

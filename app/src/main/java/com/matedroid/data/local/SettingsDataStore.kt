@@ -49,6 +49,20 @@ data class CarImageOverride(
     }
 }
 
+/**
+ * A car as this phone last saw it on the server.
+ *
+ * Teslamate numbers cars per database, so an id on its own says nothing about which car it
+ * is. Remembering the VIN and the name against that id lets the app name its cars while the
+ * server is out of reach — which, for a Teslamate only reachable on the home LAN, is most of
+ * the time — and lets a backup carry an identity a restore can match on.
+ */
+data class KnownCar(
+    val carId: Int,
+    val vin: String? = null,
+    val name: String? = null
+)
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "matedroid_settings")
 
 data class AppSettings(
@@ -107,6 +121,7 @@ class SettingsDataStore @Inject constructor(
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
+    private val knownCarsKey = stringPreferencesKey("known_cars")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
     private val isImperialKey = booleanPreferencesKey("is_imperial")
 
@@ -185,6 +200,58 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    /** Every car this phone has seen on the server, oldest id first. */
+    val knownCars: Flow<List<KnownCar>> = context.dataStore.data.map { preferences ->
+        parseKnownCarsJson(preferences[knownCarsKey] ?: "{}")
+    }
+
+    /**
+     * Remember these cars. Merged rather than replaced: a car the server has stopped
+     * listing may still have drives and trips on this phone, and they should keep their name.
+     */
+    suspend fun saveKnownCars(cars: List<KnownCar>) {
+        if (cars.isEmpty()) return
+        context.dataStore.edit { preferences ->
+            val merged = parseKnownCarsJson(preferences[knownCarsKey] ?: "{}")
+                .associateBy { it.carId }
+                .toMutableMap()
+            cars.forEach { merged[it.carId] = it }
+            preferences[knownCarsKey] = knownCarsToJson(merged.values.sortedBy { it.carId })
+        }
+    }
+
+    private fun parseKnownCarsJson(jsonString: String): List<KnownCar> {
+        return try {
+            val obj = JSONObject(jsonString)
+            buildList {
+                for (key in obj.keys()) {
+                    val carId = key.toIntOrNull() ?: continue
+                    val car = obj.getJSONObject(key)
+                    add(
+                        KnownCar(
+                            carId = carId,
+                            vin = car.optString("vin").takeIf { it.isNotBlank() },
+                            name = car.optString("name").takeIf { it.isNotBlank() }
+                        )
+                    )
+                }
+            }.sortedBy { it.carId }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun knownCarsToJson(cars: Collection<KnownCar>): String {
+        val obj = JSONObject()
+        for (car in cars) {
+            val carObj = JSONObject()
+            car.vin?.let { carObj.put("vin", it) }
+            car.name?.let { carObj.put("name", it) }
+            obj.put(car.carId.toString(), carObj)
+        }
+        return obj.toString()
+    }
+
     private fun overridesToJson(overrides: Map<Int, CarImageOverride>): String {
         val obj = JSONObject()
         for ((carId, override) in overrides) {
@@ -250,6 +317,7 @@ class SettingsDataStore @Inject constructor(
             preferences[httpBasicAuthPasswordKey] = ""
             preferences[teslamateBaseUrlKey] = ""
             preferences.remove(lastSelectedCarIdKey)
+            preferences.remove(knownCarsKey)
         }
     }
 
@@ -260,6 +328,7 @@ class SettingsDataStore @Inject constructor(
             preferences[teslamateBaseUrlKey] = ""
             preferences.remove(lastSelectedCarIdKey)
             preferences.remove(carImageOverridesKey)
+            preferences.remove(knownCarsKey)
         }
     }
 

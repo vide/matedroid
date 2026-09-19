@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.data.backup.BackupCar
 import com.matedroid.data.backup.BackupCounts
 import com.matedroid.data.backup.BackupExporter
 import com.matedroid.data.backup.BackupImporter
@@ -31,6 +32,8 @@ enum class BackupError {
 }
 
 data class BackupUiState(
+    val cars: List<BackupCar> = emptyList(),
+    val exportCarIds: Set<Int> = emptySet(),
     val counts: BackupCounts = BackupCounts(),
     val exportSelection: Set<BackupSection> = BackupSection.exportDefaults,
     val isExporting: Boolean = false,
@@ -40,6 +43,7 @@ data class BackupUiState(
     val fileToShare: Uri? = null,
     val preview: BackupPreview? = null,
     val importSelection: Set<BackupSection> = emptySet(),
+    val importCarIds: Set<Int> = emptySet(),
     val importMode: ImportMode = ImportMode.MERGE,
     val report: ImportReport? = null,
     val error: BackupError? = null
@@ -60,7 +64,13 @@ class BackupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(counts = exporter.counts())
+            val cars = exporter.cars()
+            val carIds = cars.map { it.carId }.toSet()
+            _uiState.value = _uiState.value.copy(
+                cars = cars,
+                exportCarIds = carIds,
+                counts = exporter.counts(carIds)
+            )
         }
     }
 
@@ -72,12 +82,26 @@ class BackupViewModel @Inject constructor(
         )
     }
 
+    /** Ticking a car off drops its share of every count the export screen shows. */
+    fun toggleExportCar(carId: Int) {
+        val current = _uiState.value.exportCarIds
+        val updated = if (carId in current) current - carId else current + carId
+        _uiState.value = _uiState.value.copy(exportCarIds = updated)
+        viewModelScope.launch {
+            val counts = exporter.counts(updated)
+            if (_uiState.value.exportCarIds == updated) {
+                _uiState.value = _uiState.value.copy(counts = counts)
+            }
+        }
+    }
+
     fun export() {
         if (_uiState.value.isExporting) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isExporting = true, error = null)
+            val state = _uiState.value
+            _uiState.value = state.copy(isExporting = true, error = null)
             _uiState.value = try {
-                val file = exporter.export(_uiState.value.exportSelection)
+                val file = exporter.export(state.exportSelection, state.exportCarIds)
                 _uiState.value.copy(isExporting = false, fileToShare = file.toShareUri())
             } catch (e: Exception) {
                 _uiState.value.copy(isExporting = false, error = BackupError.EXPORT_FAILED)
@@ -103,6 +127,7 @@ class BackupViewModel @Inject constructor(
                     isReadingFile = false,
                     preview = preview,
                     importSelection = preview.availableSections,
+                    importCarIds = preview.cars.map { it.carId }.toSet(),
                     importMode = ImportMode.MERGE
                 )
             } catch (e: NewerBackupException) {
@@ -120,6 +145,13 @@ class BackupViewModel @Inject constructor(
         )
     }
 
+    fun toggleImportCar(carId: Int) {
+        val current = _uiState.value.importCarIds
+        _uiState.value = _uiState.value.copy(
+            importCarIds = if (carId in current) current - carId else current + carId
+        )
+    }
+
     fun setImportMode(mode: ImportMode) {
         _uiState.value = _uiState.value.copy(importMode = mode)
     }
@@ -131,7 +163,12 @@ class BackupViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = state.copy(isRestoring = true, error = null)
             _uiState.value = try {
-                val report = importer.restore(file, state.importSelection, state.importMode)
+                val report = importer.restore(
+                    file = file,
+                    selection = state.importSelection,
+                    carIds = state.importCarIds,
+                    mode = state.importMode
+                )
                 _uiState.value.copy(isRestoring = false, preview = null, report = report)
             } catch (e: Exception) {
                 _uiState.value.copy(
@@ -149,11 +186,17 @@ class BackupViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(preview = null)
     }
 
-    /** Counts are stale once a restore has added to them. */
+    /** A restore can have added cars as well as rows, so both lists are stale afterwards. */
     fun dismissReport() {
         _uiState.value = _uiState.value.copy(report = null)
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(counts = exporter.counts())
+            val cars = exporter.cars()
+            val carIds = _uiState.value.exportCarIds + cars.map { it.carId }
+            _uiState.value = _uiState.value.copy(
+                cars = cars,
+                exportCarIds = carIds,
+                counts = exporter.counts(carIds)
+            )
         }
     }
 
