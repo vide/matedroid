@@ -130,6 +130,17 @@
     <!-- Elevation label in location card -->
     <string name="elevation">海拔</string>
 
+    <!-- Location card, navigation banner: spoken label for the destination the car is driving to; %1$s is the destination name -->
+    <string name="location_navigating_to">正在前往 %1$s</string>
+    <!-- Location card, navigation chip: spoken label for the estimated time of arrival -->
+    <string name="location_arrival_time">到达时间</string>
+    <!-- Location card, navigation chip: spoken label for the distance still to drive -->
+    <string name="location_distance_remaining">剩余距离</string>
+    <!-- Location card, navigation chip: spoken label for the predicted charge level when the car reaches the destination -->
+    <string name="location_battery_on_arrival">到达时电量</string>
+    <!-- Location card, navigation banner: spoken label for the extra time traffic is adding; %1$s is a duration such as "8m" -->
+    <string name="location_traffic_delay">交通延误 %1$s</string>
+
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">车辆信息</string>
 

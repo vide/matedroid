@@ -315,6 +315,8 @@ Then configure the app to connect to `http://localhost:4001` (or your chosen por
 | `--cars-file` | Path to cars config JSON (default: cars.json) |
 | `--list-cars` | List available car profiles and exit |
 
+The server can also simulate states the real car rarely happens to be in when you need them: `--charging` (with `--charging-dc`, `--charging-start-soc`, `--charging-limit-soc`, `--charging-power`) fakes an ongoing charge session on `/status`, and `--navigating DESTINATION` (with `--navigating-minutes`, `--navigating-distance`, `--navigating-energy`, `--navigating-traffic-delay`, `--navigating-location`) injects an active route so the location card's navigation banner shows up. See `mockserver/README.md` for the full list.
+
 #### Car Profiles
 
 Car profiles are defined in `mockserver/cars.json`. Each profile specifies overrides that get deep-merged into the API response for `/api/v1/cars/*` endpoints:
