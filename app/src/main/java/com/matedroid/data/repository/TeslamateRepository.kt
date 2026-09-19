@@ -17,11 +17,14 @@ import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
 import com.matedroid.domain.UnitSystem
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLException
@@ -80,35 +83,80 @@ class TeslamateRepository @Inject constructor(
 ) {
     companion object {
         private const val TAG = "TeslamateRepository"
+
+        /**
+         * How long a probe that got no definitive answer keeps [isCurrentChargeAvailable]
+         * answering false before the endpoint is tried again.
+         */
+        internal const val CURRENT_CHARGE_PROBE_RETRY_MS = 5 * 60_000L
     }
 
     // Cache: true = endpoint exists (API 1.24+), false = 404 (older API)
-    private val currentChargeApiAvailable = mutableMapOf<Int, Boolean>()
+    private val currentChargeApiAvailable = ConcurrentHashMap<Int, Boolean>()
+
+    // When the last probe for a car ended without a definitive answer, so the next one can
+    // wait out CURRENT_CHARGE_PROBE_RETRY_MS instead of firing on every poll.
+    private val currentChargeProbeFailedAt = ConcurrentHashMap<Int, Long>()
+
+    // One probe in flight at a time. The dashboard asks every 5 s while a car is charging and
+    // the monitor service every 30 s; without this each tick started its own request while
+    // the previous one was still waiting on the server.
+    private val currentChargeProbeMutex = Mutex()
 
     /**
      * Check whether the current charge endpoint is available for the given car.
-     * Makes a dedicated HTTP call and checks only the status code: 200 means the endpoint
-     * exists, 404 means an old TM version without it. Only those two definitive answers are
-     * cached for the app session — a transient failure (timeout, DNS, 5xx) must not disable
-     * the live-charge UI until process death, so it leaves the cache unset and is retried.
+     *
+     * Only a definitive answer is remembered for the app session: a 2xx means the endpoint
+     * exists (204 or 200 with an error body is what it answers when nothing is charging),
+     * 404 means an old TM version without it. Anything else — timeout, DNS, 5xx, a proxy's
+     * 401/403 — must not disable the live-charge UI until process death, but it must not be
+     * re-probed on every poll either: the probe is a full `charges/current` request, and
+     * while a car is charging it is asked for every 5 s by the dashboard and every 30 s by
+     * the monitor service. A failed probe therefore answers false for
+     * [CURRENT_CHARGE_PROBE_RETRY_MS] before the next attempt.
+     *
+     * Every [getCurrentCharge] call feeds the same cache, so once the live screen has fetched
+     * the charge no probe is needed at all.
      */
     suspend fun isCurrentChargeAvailable(carId: Int): Boolean {
         currentChargeApiAvailable[carId]?.let { return it }
-        val result = executeWithFallback { api ->
-            val response = api.getCurrentCharge(carId)
-            if (response.code() == 200) ApiResult.Success(true)
-            else ApiResult.Error("Not available", response.code())
+        return currentChargeProbeMutex.withLock {
+            // A probe that finished while we were waiting for the lock may have answered.
+            currentChargeApiAvailable[carId]?.let { return@withLock it }
+            val failedAt = currentChargeProbeFailedAt[carId]
+            if (failedAt != null && System.currentTimeMillis() - failedAt < CURRENT_CHARGE_PROBE_RETRY_MS) {
+                return@withLock false
+            }
+            val result = executeWithFallback { api ->
+                val response = api.getCurrentCharge(carId)
+                recordCurrentChargeAvailability(carId, response.code())
+                if (response.isSuccessful) ApiResult.Success(true)
+                else ApiResult.Error("Not available", response.code())
+            }
+            if (result is ApiResult.Error && result.code == null) {
+                // No response was seen (network failure), so nothing was recorded yet.
+                recordCurrentChargeAvailability(carId, null)
+            }
+            currentChargeApiAvailable[carId] ?: false
         }
-        return when {
-            result is ApiResult.Success -> {
+    }
+
+    /**
+     * Remember what an HTTP status from `charges/current` says about the endpoint: 2xx and
+     * 404 are definitive, anything else (including a network failure, [code] null) only
+     * postpones the next probe.
+     */
+    private fun recordCurrentChargeAvailability(carId: Int, code: Int?) {
+        when {
+            code != null && code in 200..299 -> {
                 currentChargeApiAvailable[carId] = true
-                true
+                currentChargeProbeFailedAt.remove(carId)
             }
-            result is ApiResult.Error && result.code == 404 -> {
+            code == 404 -> {
                 currentChargeApiAvailable[carId] = false
-                false
+                currentChargeProbeFailedAt.remove(carId)
             }
-            else -> false // transient — don't cache, probe again next time
+            else -> currentChargeProbeFailedAt[carId] = System.currentTimeMillis()
         }
     }
 
@@ -298,6 +346,8 @@ class TeslamateRepository @Inject constructor(
     suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
         return executeWithFallback { api ->
             val response = api.getCurrentCharge(carId)
+            // The live screen's own fetch is the best probe there is — see isCurrentChargeAvailable.
+            recordCurrentChargeAvailability(carId, response.code())
             if (response.isSuccessful) {
                 val body = response.body()
                 val detail = body?.data?.charge

@@ -44,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -92,6 +93,13 @@ fun CurrentChargeScreen(
 
     LaunchedEffect(carId) {
         viewModel.loadCurrentCharge(carId)
+    }
+
+    // Only poll while the screen is actually on screen: the ViewModel outlives ON_STOP, and the
+    // monitor service already follows the charge for the notification while the phone is locked.
+    LifecycleStartEffect(Unit) {
+        viewModel.resumeRefresh()
+        onStopOrDispose { viewModel.pauseRefresh() }
     }
 
     LaunchedEffect(uiState.error) {

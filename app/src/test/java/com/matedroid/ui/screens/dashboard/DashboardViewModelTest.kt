@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -300,5 +301,61 @@ class DashboardViewModelTest {
 
         assertNull(viewModel!!.uiState.value.error)
         assertEquals(testStatus, viewModel!!.uiState.value.carStatus)
+    }
+
+    // --- 5 s status poll and dashboard visibility -----------------------------------------
+
+    private fun givenOneCar() {
+        coEvery { repository.getCars() } returns ApiResult.Success(listOf(testCar))
+        coEvery { repository.getCarStatus(1) } returns ApiResult.Success(testStatusWithUnits)
+    }
+
+    @Test
+    fun `status polling does not start while the dashboard is not visible`() = runTest {
+        givenOneCar()
+
+        // The car loads (one status fetch) but nothing has said the dashboard is on screen:
+        // opened from the charging notification, the app has already moved on to the live view.
+        viewModel = createViewModel()
+        runCurrent()
+        coVerify(exactly = 1) { repository.getCarStatus(1) }
+
+        advanceTimeBy(30_000)
+        runCurrent()
+        coVerify(exactly = 1) { repository.getCarStatus(1) }
+        cancelViewModelCoroutines()
+    }
+
+    @Test
+    fun `status polling starts on resume and stops on pause`() = runTest {
+        givenOneCar()
+        viewModel = createViewModel()
+        runCurrent()
+        coVerify(exactly = 1) { repository.getCarStatus(1) }
+
+        viewModel!!.resumeAutoRefresh()
+        advanceTimeBy(10_000)
+        runCurrent()
+        coVerify(exactly = 3) { repository.getCarStatus(1) }
+
+        viewModel!!.pauseAutoRefresh()
+        advanceTimeBy(30_000)
+        runCurrent()
+        coVerify(exactly = 3) { repository.getCarStatus(1) }
+        cancelViewModelCoroutines()
+    }
+
+    @Test
+    fun `a dashboard already visible when the car loads polls right away`() = runTest {
+        givenOneCar()
+        viewModel = createViewModel()
+        // The screen's lifecycle hook fires at first composition, before the cars arrive.
+        viewModel!!.resumeAutoRefresh()
+        runCurrent()
+
+        advanceTimeBy(10_000)
+        runCurrent()
+        coVerify(exactly = 3) { repository.getCarStatus(1) }
+        cancelViewModelCoroutines()
     }
 }
