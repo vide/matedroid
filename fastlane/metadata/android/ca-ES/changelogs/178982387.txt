@@ -1,0 +1,8 @@
+Seguir una càrrega ja no esgota la bateria del mòbil.
+
+Corregit:
+- Oberta des de la notificació de càrrega, el tauler consultava el servidor cada 5 segons en segon pla i la càrrega en directe seguia amb el mòbil bloquejat. Ara tots dos paren fora de pantalla
+- Un control fallit de la càrrega en directe es repetia a cada consulta
+
+Canviat:
+- Els controls en segon pla s'espaien amb el monitor de la notificació actiu o el servidor sense respondre, i ja no es reinicien a cada arrencada del procés

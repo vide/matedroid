@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.3] - 2026-09-19
+
 ### Fixed
 - **Tracking a charge uses much less battery** — three leaks, all hit by the most common way of following a charge: tapping the charging notification and pocketing the phone. The dashboard's 5-second status refresh kept running in the background for as long as the app stayed open, because opening the app straight onto the live charge screen skipped past the dashboard before its "stop when off screen" hook had anything to stop; it now polls only while the dashboard is actually on screen. The live charge screen itself also kept polling with the phone locked, downloading the whole session's data every 30 seconds for the entire charge on top of the notification's own updates; it now stops while off screen and resumes when you come back, and its fast 4-second "charge starting" poll gives up after two minutes instead of running indefinitely. Finally, the check for whether your TeslaMate has the live-charge endpoint was repeated on every poll whenever the server answered anything other than a clean yes or no (a proxy error or a timeout, for instance); a failed check is now remembered for five minutes, and any successful live-charge fetch counts as a yes.
 
@@ -807,7 +809,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.2...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.3...HEAD
+[1.11.3]: https://github.com/vide/matedroid/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/vide/matedroid/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/vide/matedroid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/vide/matedroid/compare/v1.10.1...v1.11.0

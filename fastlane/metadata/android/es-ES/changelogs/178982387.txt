@@ -1,0 +1,8 @@
+Seguir una carga ya no agota la batería del móvil.
+
+Corregido:
+- Al abrirse desde la notificación de carga, el panel consultaba el servidor cada 5 s en segundo plano y la carga en vivo seguía con el móvil bloqueado. Ahora ambos paran fuera de pantalla
+- Un chequeo fallido de la carga en vivo se repetía en cada consulta
+
+Cambiado:
+- Los chequeos en segundo plano se espacian con el monitor de la notificación activo o el servidor sin responder, y ya no se reinician en cada arranque del proceso
