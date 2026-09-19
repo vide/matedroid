@@ -226,6 +226,8 @@
     <string name="settings_section_notifications_summary">Lade-, Sentry- und Reifenwarnungen</string>
     <string name="settings_section_data">Daten &amp; Synchronisierung</string>
     <string name="settings_section_data_summary">Wartung der gespeicherten Daten</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_section_backup_summary">Eine Kopie deiner Trips und Einstellungen sichern</string>
     <string name="settings_section_about">Über</string>
     <string name="settings_section_about_summary">Version und Support</string>
     <string name="settings_section_debug">Debug-Werkzeuge</string>
@@ -1569,4 +1571,46 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">k. A.</string>
+
+    <string name="backup_intro">Ein paar Dinge gibt es nur auf diesem Telefon: die Trips, die du selbst zusammengestellt hast, die Sentry-Warnungen, die MateDroid gesehen hat, und wie du die App eingerichtet hast. Ein Backup bewahrt sie auf. MateDroid legt die Datei nirgends ab — sie wird dir übergeben, und du entscheidest, wohin sie geht.</string>
+    <string name="backup_export_header">Kopie sichern</string>
+    <string name="backup_export_always">Deine gespeicherten Trips und deine Einstellungen sind immer dabei.</string>
+    <string name="backup_export_no_secrets">Dein API-Token und dein Server-Passwort landen nie in der Datei.</string>
+    <string name="backup_export_button">Sichern und teilen</string>
+    <string name="backup_export_preparing">Datei wird vorbereitet…</string>
+    <string name="backup_section_trips">Gespeicherte Trips</string>
+    <string name="backup_section_settings">Einstellungen</string>
+    <string name="backup_section_sentry">Sentry-Warnungen</string>
+    <string name="backup_section_sentry_hint">Teslamate führt darüber kein Protokoll. Einmal weg, für immer weg.</string>
+    <string name="backup_section_places">Ortsnamen</string>
+    <string name="backup_section_places_hint">Die Namen der Orte, an denen du warst. Sie alle erneut nachzuschlagen dauert Stunden.</string>
+    <string name="backup_section_trip_maps">Trip-Karten</string>
+    <string name="backup_section_trip_maps_hint">Die Kartenlinien deiner Trips. Sie lassen sich erneut laden und machen die Datei deutlich größer.</string>
+    <string name="backup_section_stats">Fahrten und Ladevorgänge</string>
+    <string name="backup_section_stats_hint">Alles, was schon von Teslamate geladen wurde. Spart später einen langen Download, macht die Datei aber deutlich größer.</string>
+    <string name="backup_import_header">Eine Kopie zurückholen</string>
+    <string name="backup_import_hint">Wähle eine Backup-Datei. Du siehst, was darin steckt, bevor sich etwas ändert.</string>
+    <string name="backup_import_button">Datei auswählen</string>
+    <string name="backup_import_reading">Datei wird gelesen…</string>
+    <string name="backup_preview_title">Was in dieser Datei steckt</string>
+    <string name="backup_preview_saved_on">Gesichert am %1$s</string>
+    <string name="backup_preview_saved_on_version">Gesichert am %1$s mit MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">Die Fahrten und Ladevorgänge in dieser Datei stammen aus einer anderen MateDroid-Version und bleiben deshalb außen vor. Die App lädt sie erneut.</string>
+    <string name="backup_preview_mode">Und was schon auf diesem Telefon ist?</string>
+    <string name="backup_preview_mode_merge">Behalten und Fehlendes ergänzen</string>
+    <string name="backup_preview_mode_replace">Durch den Inhalt der Datei ersetzen</string>
+    <string name="backup_preview_restore">Zurückholen</string>
+    <string name="backup_preview_restoring">Alles wird zurückgeholt…</string>
+    <string name="backup_result_title">Zurückgeholt</string>
+    <string name="backup_result_already_here">Schon vorhanden</string>
+    <string name="backup_result_trips_incomplete">Trips, denen eine Fahrt fehlt</string>
+    <string name="backup_result_trips_unmatched">Trips ohne Zuordnung</string>
+    <string name="backup_result_restored">Zurückgeholt</string>
+    <string name="backup_result_nothing">Es gab nichts Neues zurückzuholen.</string>
+    <string name="backup_result_note_unmatched">Diese Trips zeigen auf Fahrten, die dieses Telefon nicht hat. Nach der nächsten Synchronisierung tauchen sie vielleicht auf.</string>
+    <string name="backup_result_note_token">Ein Backup enthält nie dein API-Token. Wenn die Verbindung nicht mehr klappt, gib es unter Verbindung erneut ein.</string>
+    <string name="backup_error_export">Das Backup konnte nicht erstellt werden.</string>
+    <string name="backup_error_not_a_backup">Diese Datei ist kein MateDroid-Backup.</string>
+    <string name="backup_error_too_new">Dieses Backup stammt aus einer neueren MateDroid-Version. Aktualisiere die App und versuche es erneut.</string>
+    <string name="backup_error_restore">Beim Zurückholen ist etwas schiefgegangen. Ein Teil der Datei wurde möglicherweise schon zurückgeholt.</string>
 </resources>

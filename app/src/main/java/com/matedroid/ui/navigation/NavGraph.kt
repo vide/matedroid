@@ -34,6 +34,7 @@ import com.matedroid.ui.screens.mileage.MileageScreen
 import com.matedroid.ui.screens.settings.SettingsScreen
 import com.matedroid.ui.screens.settings.SettingsSection
 import com.matedroid.ui.screens.settings.sections.AboutSettingsScreen
+import com.matedroid.ui.screens.settings.sections.BackupSettingsScreen
 import com.matedroid.ui.screens.settings.sections.ConnectionSettingsScreen
 import com.matedroid.ui.screens.settings.sections.DataSyncSettingsScreen
 import com.matedroid.ui.screens.settings.sections.DebugSettingsScreen
@@ -243,6 +244,8 @@ fun NavGraph(
                 SettingsSection.NOTIFICATIONS -> NotificationSettingsScreen(onNavigateBack = onBack)
 
                 SettingsSection.DATA -> DataSyncSettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.BACKUP -> BackupSettingsScreen(onNavigateBack = onBack)
 
                 SettingsSection.ABOUT -> AboutSettingsScreen(onNavigateBack = onBack)
 

@@ -25,6 +25,12 @@
 -keep class com.matedroid.data.api.models.** { *; }
 -keep class com.matedroid.domain.model.** { *; }
 
+# Backup files: the DTOs and the database entities that ship inside one are serialised by
+# Moshi, which resolves each generated adapter from the class name at runtime. A restore
+# reads files written by other builds, so these names have to survive R8 unchanged.
+-keep class com.matedroid.data.backup.** { *; }
+-keep class com.matedroid.data.local.entity.** { *; }
+
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**

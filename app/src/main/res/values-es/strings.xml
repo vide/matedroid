@@ -226,6 +226,8 @@
     <string name="settings_section_notifications_summary">Alertas de carga, Centinela y neumáticos</string>
     <string name="settings_section_data">Datos y sincronización</string>
     <string name="settings_section_data_summary">Mantenimiento de los datos guardados</string>
+    <string name="settings_section_backup">Copia de seguridad</string>
+    <string name="settings_section_backup_summary">Guarda una copia de tus viajes y ajustes</string>
     <string name="settings_section_about">Acerca de</string>
     <string name="settings_section_about_summary">Versión y soporte</string>
     <string name="settings_section_debug">Herramientas de depuración</string>
@@ -1454,4 +1456,46 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">N/D</string>
+
+    <string name="backup_intro">Algunas cosas solo existen en este teléfono: los viajes que has montado tú, los avisos de Centinela que MateDroid ha visto y cómo tienes configurada la app. Una copia de seguridad los pone a salvo. MateDroid no guarda el archivo en ningún sitio: te lo entrega y tú decides dónde acaba.</string>
+    <string name="backup_export_header">Guardar una copia</string>
+    <string name="backup_export_always">Tus viajes guardados y tus ajustes van siempre incluidos.</string>
+    <string name="backup_export_no_secrets">Tu token API y la contraseña del servidor nunca se meten en el archivo.</string>
+    <string name="backup_export_button">Guardar y compartir</string>
+    <string name="backup_export_preparing">Preparando el archivo…</string>
+    <string name="backup_section_trips">Viajes guardados</string>
+    <string name="backup_section_settings">Ajustes</string>
+    <string name="backup_section_sentry">Avisos de Centinela</string>
+    <string name="backup_section_sentry_hint">Teslamate no guarda ningún registro de esto. Si los pierdes, los pierdes para siempre.</string>
+    <string name="backup_section_places">Nombres de lugares</string>
+    <string name="backup_section_places_hint">Los nombres de los sitios donde has estado. Volver a buscarlos todos tarda horas.</string>
+    <string name="backup_section_trip_maps">Mapas de los viajes</string>
+    <string name="backup_section_trip_maps_hint">Las líneas en el mapa de tus viajes. Se pueden volver a descargar y hacen el archivo mucho más grande.</string>
+    <string name="backup_section_stats">Trayectos y cargas</string>
+    <string name="backup_section_stats_hint">Todo lo que ya se ha descargado de Teslamate. Evita una descarga larga más adelante, pero hace el archivo mucho más grande.</string>
+    <string name="backup_import_header">Restaurar una copia</string>
+    <string name="backup_import_hint">Elige un archivo de copia de seguridad. Verás lo que contiene antes de que cambie nada.</string>
+    <string name="backup_import_button">Elegir un archivo</string>
+    <string name="backup_import_reading">Leyendo el archivo…</string>
+    <string name="backup_preview_title">Qué hay en este archivo</string>
+    <string name="backup_preview_saved_on">Guardada el %1$s</string>
+    <string name="backup_preview_saved_on_version">Guardada el %1$s por MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">Los trayectos y las cargas de este archivo los guardó otra versión de MateDroid, así que se dejan fuera. La app volverá a descargarlos.</string>
+    <string name="backup_preview_mode">¿Y lo que ya hay en este teléfono?</string>
+    <string name="backup_preview_mode_merge">Consérvalo y añade lo que falte</string>
+    <string name="backup_preview_mode_replace">Sustitúyelo por lo que hay en el archivo</string>
+    <string name="backup_preview_restore">Restaurar</string>
+    <string name="backup_preview_restoring">Restaurando todo…</string>
+    <string name="backup_result_title">Restaurado</string>
+    <string name="backup_result_already_here">Ya estaban aquí</string>
+    <string name="backup_result_trips_incomplete">Viajes a los que les falta un trayecto</string>
+    <string name="backup_result_trips_unmatched">Viajes que no se han podido emparejar</string>
+    <string name="backup_result_restored">Restaurados</string>
+    <string name="backup_result_nothing">No había nada nuevo que restaurar.</string>
+    <string name="backup_result_note_unmatched">Esos viajes apuntan a trayectos que este teléfono no tiene. Puede que aparezcan tras la próxima sincronización.</string>
+    <string name="backup_result_note_token">Una copia de seguridad nunca contiene tu token API. Si la conexión deja de funcionar, vuelve a escribirlo en Conexión.</string>
+    <string name="backup_error_export">No se ha podido crear la copia de seguridad.</string>
+    <string name="backup_error_not_a_backup">Ese archivo no es una copia de seguridad de MateDroid.</string>
+    <string name="backup_error_too_new">Esa copia de seguridad la hizo una versión más reciente de MateDroid. Actualiza la app e inténtalo de nuevo.</string>
+    <string name="backup_error_restore">Algo ha salido mal al restaurar. Puede que parte del archivo ya se haya restaurado.</string>
 </resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup files are staged in the cache and handed to the share sheet as content:// URIs.
+    Nothing else is ever shared, so this is the only path exposed.
+-->
+<paths>
+    <cache-path
+        name="backups"
+        path="backups/" />
+</paths>

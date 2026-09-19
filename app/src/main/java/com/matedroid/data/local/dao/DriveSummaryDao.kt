@@ -24,6 +24,25 @@ interface DriveSummaryDao {
     @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate ASC")
     suspend fun getAllForCar(carId: Int): List<DriveSummary>
 
+    // === Backup export/import ===
+
+    @Query("SELECT DISTINCT carId FROM drives_summary")
+    suspend fun getAllCarIds(): List<Int>
+
+    @Query("SELECT COUNT(*) FROM drives_summary")
+    suspend fun countAll(): Int
+
+    @Query("SELECT COUNT(*) FROM drives_summary WHERE carId = :carId")
+    suspend fun countForCar(carId: Int): Int
+
+    /** Start timestamp of one drive, used to check a restored trip still points at it. */
+    @Query("SELECT startDate FROM drives_summary WHERE driveId = :driveId AND carId = :carId")
+    suspend fun getStartDate(carId: Int, driveId: Int): String?
+
+    /** The drive that starts at this exact moment, for re-finding one whose id has moved. */
+    @Query("SELECT driveId FROM drives_summary WHERE carId = :carId AND startDate = :startDate LIMIT 1")
+    suspend fun findIdByStartDate(carId: Int, startDate: String): Int?
+
     @Query("DELETE FROM drives_summary WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)
 

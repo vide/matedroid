@@ -362,6 +362,55 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    /**
+     * The slice of settings a backup file can put back.
+     *
+     * Every field is nullable and a null means "the file did not carry this", so a restore
+     * never blanks out something it has nothing to say about. The API token and the HTTP
+     * Basic Auth credentials are absent on purpose: backups are shared through whatever app
+     * the user picks, so they are never written into one and never overwritten by one.
+     */
+    data class RestorableSettings(
+        val serverUrl: String? = null,
+        val secondaryServerUrl: String? = null,
+        val teslamateBaseUrl: String? = null,
+        val acceptInvalidCerts: Boolean? = null,
+        val connectTimeoutSeconds: Int? = null,
+        val currencyCode: String? = null,
+        val costPerKwhBasisId: String? = null,
+        val isImperial: Boolean? = null,
+        val showShortDrivesCharges: Boolean? = null,
+        val shortDriveMinDurationMin: Int? = null,
+        val shortDriveMinDistance: Double? = null,
+        val shortChargeMinEnergyKwh: Double? = null,
+        val highSocWarningThreshold: Int? = null,
+        val lowSocWarningThreshold: Int? = null,
+        val lastSelectedCarId: Int? = null,
+        val carImageOverrides: Map<Int, CarImageOverride>? = null
+    )
+
+    /** Apply everything a restored backup had to say, in one write. */
+    suspend fun restoreFromBackup(values: RestorableSettings) {
+        context.dataStore.edit { preferences ->
+            values.serverUrl?.let { preferences[serverUrlKey] = it }
+            values.secondaryServerUrl?.let { preferences[secondaryServerUrlKey] = it }
+            values.teslamateBaseUrl?.let { preferences[teslamateBaseUrlKey] = it }
+            values.acceptInvalidCerts?.let { preferences[acceptInvalidCertsKey] = it }
+            values.connectTimeoutSeconds?.let { preferences[connectTimeoutSecondsKey] = it }
+            values.currencyCode?.let { preferences[currencyCodeKey] = it }
+            values.costPerKwhBasisId?.let { preferences[costPerKwhBasisKey] = it }
+            values.isImperial?.let { preferences[isImperialKey] = it }
+            values.showShortDrivesCharges?.let { preferences[showShortDrivesChargesKey] = it }
+            values.shortDriveMinDurationMin?.let { preferences[shortDriveMinDurationKey] = it }
+            values.shortDriveMinDistance?.let { preferences[shortDriveMinDistanceKey] = it }
+            values.shortChargeMinEnergyKwh?.let { preferences[shortChargeMinEnergyKey] = it }
+            values.highSocWarningThreshold?.let { preferences[highSocWarningThresholdKey] = it }
+            values.lowSocWarningThreshold?.let { preferences[lowSocWarningThresholdKey] = it }
+            values.lastSelectedCarId?.let { preferences[lastSelectedCarIdKey] = it }
+            values.carImageOverrides?.let { preferences[carImageOverridesKey] = overridesToJson(it) }
+        }
+    }
+
     suspend fun clearSettings() {
         context.dataStore.edit { preferences ->
             preferences.clear()

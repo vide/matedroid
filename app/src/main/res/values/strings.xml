@@ -229,6 +229,9 @@
     <string name="settings_section_notifications_summary">Charging, sentry and tire alerts</string>
     <string name="settings_section_data">Data &amp; sync</string>
     <string name="settings_section_data_summary">Cached data maintenance</string>
+    <!-- Settings hub entry for saving and restoring a backup file -->
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_section_backup_summary">Save a copy of your trips and settings</string>
     <string name="settings_section_about">About</string>
     <string name="settings_section_about_summary">Version and support</string>
     <string name="settings_section_debug">Debug tools</string>
@@ -1605,4 +1608,65 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">N/A</string>
+
+    <!-- Backup screen: saving a copy of everything that lives only on this phone -->
+    <string name="backup_intro">A few things live only on this phone: the trips you put together yourself, the sentry alerts MateDroid has seen, and the way you like the app set up. A backup keeps them safe. MateDroid does not store the file anywhere — it hands it to you, and you choose where it goes.</string>
+    <string name="backup_export_header">Save a copy</string>
+    <!-- Reassurance that the two sections nobody can choose are in every file -->
+    <string name="backup_export_always">Your saved trips and your settings are always included.</string>
+    <!-- Shown under the export options: credentials are deliberately left out of the file -->
+    <string name="backup_export_no_secrets">Your API token and server password are never put in the file.</string>
+    <string name="backup_export_button">Save and share</string>
+    <string name="backup_export_preparing">Preparing the file…</string>
+
+    <!-- Backup: names of the things a file can hold, reused by the export and restore screens -->
+    <string name="backup_section_trips">Saved trips</string>
+    <string name="backup_section_settings">Settings</string>
+    <string name="backup_section_sentry">Sentry alerts</string>
+    <string name="backup_section_sentry_hint">Teslamate keeps no record of these. Lose them and they are gone.</string>
+    <string name="backup_section_places">Place names</string>
+    <string name="backup_section_places_hint">The names of the places you have been. Looking them all up again takes hours.</string>
+    <string name="backup_section_trip_maps">Trip maps</string>
+    <string name="backup_section_trip_maps_hint">The map lines of your trips. They can be downloaded again, and they make the file much bigger.</string>
+    <string name="backup_section_stats">Drives and charges</string>
+    <string name="backup_section_stats_hint">Everything already downloaded from Teslamate. Saves a long download later, and makes the file much bigger.</string>
+
+    <!-- Backup screen: putting a file back -->
+    <string name="backup_import_header">Put a copy back</string>
+    <string name="backup_import_hint">Pick a backup file. You will see what is inside before anything changes.</string>
+    <string name="backup_import_button">Choose a file</string>
+    <string name="backup_import_reading">Reading the file…</string>
+
+    <!-- Backup: the contents of a chosen file, shown before anything is restored -->
+    <string name="backup_preview_title">What is in this file</string>
+    <!-- %1$s is a date, e.g. 19 September 2026 -->
+    <string name="backup_preview_saved_on">Saved on %1$s</string>
+    <!-- %1$s is a date, %2$s an app version such as 1.11.3 -->
+    <string name="backup_preview_saved_on_version">Saved on %1$s by MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">The drives and charges in this file were saved by a different version of MateDroid, so they are left out. The app will download them again.</string>
+    <string name="backup_preview_mode">What about what is already on this phone?</string>
+    <string name="backup_preview_mode_merge">Keep it, and add what is missing</string>
+    <string name="backup_preview_mode_replace">Replace it with what is in the file</string>
+    <string name="backup_preview_restore">Restore</string>
+    <string name="backup_preview_restoring">Putting everything back…</string>
+
+    <!-- Backup: summary of what a restore actually did -->
+    <string name="backup_result_title">Restored</string>
+    <!-- Row label: entries in the file that this phone already had -->
+    <string name="backup_result_already_here">Already here</string>
+    <!-- Row label: restored trips with at least one drive missing from this phone -->
+    <string name="backup_result_trips_incomplete">Trips missing a drive</string>
+    <!-- Row label: trips whose drives could not be found at all -->
+    <string name="backup_result_trips_unmatched">Trips that could not be matched</string>
+    <!-- Row value next to Settings when they were put back -->
+    <string name="backup_result_restored">Restored</string>
+    <string name="backup_result_nothing">There was nothing new to put back.</string>
+    <string name="backup_result_note_unmatched">Those trips point at drives this phone does not have. They may turn up after the next sync.</string>
+    <string name="backup_result_note_token">A backup never holds your API token. If the connection stops working, type it in again under Connection.</string>
+
+    <!-- Backup: things that can go wrong -->
+    <string name="backup_error_export">The backup could not be created.</string>
+    <string name="backup_error_not_a_backup">That file is not a MateDroid backup.</string>
+    <string name="backup_error_too_new">That backup was made by a newer version of MateDroid. Update the app and try again.</string>
+    <string name="backup_error_restore">Something went wrong while restoring. Part of the file may already have been put back.</string>
 </resources>

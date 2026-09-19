@@ -27,6 +27,45 @@ abstract class SavedTripDao {
     """)
     abstract suspend fun getAllConsumedFingerprintsForCar(carId: Int): List<String>
 
+    // === Backup export/import ===
+
+    @Transaction
+    @Query("SELECT * FROM saved_trips ORDER BY id ASC")
+    abstract suspend fun getAllTripsWithLegs(): List<SavedTripWithLegs>
+
+    @Query("SELECT * FROM saved_trip_consumed_fingerprints")
+    abstract suspend fun getAllConsumedFingerprints(): List<SavedTripConsumedFingerprint>
+
+    @Query("SELECT DISTINCT carId FROM saved_trips")
+    abstract suspend fun getAllCarIds(): List<Int>
+
+    @Query("SELECT COUNT(*) FROM saved_trips")
+    abstract suspend fun countAll(): Int
+
+    /** Wipes every saved trip; legs and consumed fingerprints follow by cascade. */
+    @Query("DELETE FROM saved_trips")
+    abstract suspend fun deleteAllTrips()
+
+    /**
+     * Insert a restored trip whole: the row, its legs and the auto-detected fingerprints it
+     * stands in for, all under a freshly allocated id.
+     */
+    @Transaction
+    open suspend fun insertRestoredTrip(
+        trip: SavedTrip,
+        legs: List<SavedTripLeg>,
+        consumedFingerprints: List<String>
+    ): Long {
+        val tripId = insertTrip(trip)
+        if (legs.isNotEmpty()) insertLegs(legs.map { it.copy(tripId = tripId) })
+        if (consumedFingerprints.isNotEmpty()) {
+            insertConsumedFingerprints(
+                consumedFingerprints.map { SavedTripConsumedFingerprint(tripId, it) }
+            )
+        }
+        return tripId
+    }
+
     @Insert
     abstract suspend fun insertTrip(trip: SavedTrip): Long
 

@@ -123,6 +123,26 @@ Glance state, so the threshold is read once per run by `CarWidgetUpdateWorker`, 
 (the percentage text and `buildProgressBarBitmap`) read it from there — the bar bitmap is cached, so
 the threshold must stay in its `remember` keys or a changed setting won't repaint it.
 
+### Backup and restore
+
+Some of what the app holds can never be fetched again from Teslamate: the trips the user merged, renamed or edited by hand, the sentry alerts the app spotted itself by polling `center_display_state`, and the app's own settings. Settings → Backup writes all of that into one JSON file and hands it to the share sheet; the same page reads one back through the system file picker.
+
+**The app never decides where a backup lives.** It stages the file in `cacheDir/backups/`, exposes it through the `FileProvider` in the manifest — `res/xml/file_paths.xml` opens that one directory and nothing else — and fires `ACTION_SEND`. Whether it ends up in Drive, a chat or on a cable is the user's business. Restoring comes back through `ActivityResultContracts.OpenDocument`, which reaches all the same places; it accepts any MIME type on purpose, because storage providers label a `.json` anything from `application/json` to `application/octet-stream` and a greyed-out backup file is a dead end.
+
+**What goes in.** `BackupSection` is the registry. `TRIPS` and `SETTINGS` are `alwaysIncluded`; the other four are checkboxes the export screen asks about on every export. `SENTRY` and `PLACES` start ticked because rebuilding them is impossible or slow — place names are re-geocoded at Nominatim's one lookup per second. `TRIP_MAPS` and `STATS` start unticked because Teslamate can supply them again and they are what makes a file large.
+
+**Credentials never leave.** The API token and the HTTP Basic Auth username and password are neither written into a backup nor overwritten by one, the same call `data_extraction_rules.xml` already makes for Android's own cloud backups. Server URLs *are* carried, so a restore leaves only the token to type back in. Demo mode is the exception: its sample-data URL sits in the same field a real server would, so it is left out rather than quietly disconnecting whoever restores the file.
+
+**Streaming both ways.** `BackupFile` is the entire file format and depends on neither Android nor Room, so `BackupFileTest` round-trips it on the JVM. Writing pulls one section at a time from a `BackupSource`; reading hands a `BackupVisitor` batches of at most `BackupFile.BATCH_SIZE` rows. Neither side ever materialises the whole file, which is what makes the two heavyweight sections safe to offer. Unknown names are skipped on the way in and missing ones fall back to the data-class defaults, so a file from a newer release still gives up everything this one understands.
+
+**Ids are not trusted blindly.** Teslamate numbers cars and drives per database, so the ids in a backup only mean something against the server that produced it. `BackupCarMap` re-matches cars by VIN — best-effort, since an unreachable server simply means id-for-id — and every trip leg carries its drive's or charge's `startDate` alongside the id. `BackupLegResolver` checks each leg against the local tables and returns a `LegResolution`: `Kept` when the id still starts at the same moment or there is nothing synced to check against, `Remapped` when the drive turns up under a new id, `Pending` when this phone has not synced it yet, and `Dropped` when that id now belongs to a *different* drive and the original is nowhere to be found. A trip is better off short than pointing at a stranger's drive.
+
+**Two passes.** The picked file is copied into `cacheDir/imports/` first, so neither pass depends on a `content://` grant outliving the screen. The first counts what is inside and fills the preview dialog; the second applies whichever sections the user ticked, either merging — deduplicated by leg set for trips, by car and timestamp for sentry alerts — or replacing.
+
+**The one schema-coupled section.** `STATS` serialises the Room entities verbatim, which is why `DriveSummary` and friends carry `@JsonClass`, and why `proguard-rules.pro` keeps `data.backup` and `data.local.entity` by name: Moshi resolves each generated adapter from its class name at runtime. `BackupHeader.databaseVersion` records `StatsDatabase.SCHEMA_VERSION` and a restore skips the section outright when it does not match — those rows are re-downloadable, so refusing them beats pouring an old shape into tables that have moved on. Keep that constant in step with the `@Database` version.
+
+The page owns a `BackupViewModel` instead of sharing `SettingsViewModel`, which the other section pages do: none of its state overlaps theirs.
+
 ### Background polling cadence
 
 Charging and sentry state is polled by `ChargingNotificationWorker`, a self-rescheduling

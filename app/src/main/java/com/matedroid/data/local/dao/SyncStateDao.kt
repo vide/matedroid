@@ -15,6 +15,9 @@ interface SyncStateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(syncState: SyncState)
 
+    @Query("SELECT * FROM sync_state")
+    suspend fun getAll(): List<SyncState>
+
     // Summary sync completion
     @Query("""
         UPDATE sync_state
