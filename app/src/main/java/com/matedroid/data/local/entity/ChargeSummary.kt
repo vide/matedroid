@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 /**
  * Charge summary data from /charges list endpoint.
@@ -17,6 +18,8 @@ import androidx.room.PrimaryKey
         Index(value = ["carId", "startDate"])
     ]
 )
+// Ships verbatim inside backup files, hence the Moshi adapter — see BackupSection.STATS.
+@JsonClass(generateAdapter = true)
 data class ChargeSummary(
     @PrimaryKey
     val chargeId: Int,

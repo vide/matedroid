@@ -2,12 +2,15 @@ package com.matedroid.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 /**
  * Tracks sync progress for each car.
  * Allows resuming sync across app sessions.
  */
 @Entity(tableName = "sync_state")
+// Ships verbatim inside backup files, hence the Moshi adapter — see BackupSection.STATS.
+@JsonClass(generateAdapter = true)
 data class SyncState(
     @PrimaryKey
     val carId: Int,

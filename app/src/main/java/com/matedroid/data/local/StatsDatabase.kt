@@ -79,6 +79,13 @@ abstract class StatsDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "matedroid_stats.db"
 
+        /**
+         * Mirror of the [Database] version above. Backup files record it so a restore can
+         * tell whether the drives and charges inside still match the tables here — keep the
+         * two in step when adding a migration.
+         */
+        const val SCHEMA_VERSION = 13
+
         /** Migration from V1 to V2: Add start/end elevation for net climb calculation */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {

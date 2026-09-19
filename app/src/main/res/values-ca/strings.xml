@@ -226,6 +226,8 @@
     <string name="settings_section_notifications_summary">Alertes de càrrega, Sentinella i pneumàtics</string>
     <string name="settings_section_data">Dades i sincronització</string>
     <string name="settings_section_data_summary">Manteniment de les dades desades</string>
+    <string name="settings_section_backup">Còpia de seguretat</string>
+    <string name="settings_section_backup_summary">Desa una còpia dels teus viatges i la configuració</string>
     <string name="settings_section_about">Quant a</string>
     <string name="settings_section_about_summary">Versió i suport</string>
     <string name="settings_section_debug">Eines de depuració</string>
@@ -1454,4 +1456,51 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">N/D</string>
+
+    <string name="backup_intro">Algunes coses només existeixen en aquest telèfon: els viatges que has muntat tu, els avisos de Sentinella que MateDroid ha vist i com tens configurada l\'aplicació. Una còpia de seguretat els posa fora de perill. MateDroid no desa el fitxer enlloc: te\'l dona i tu decideixes on va a parar.</string>
+    <string name="backup_export_header">Desa una còpia</string>
+    <string name="backup_export_always">Els viatges desats i la configuració hi van sempre.</string>
+    <string name="backup_export_no_secrets">El teu token API i la contrasenya del servidor no es posen mai al fitxer.</string>
+    <string name="backup_export_button">Desa i comparteix</string>
+    <string name="backup_export_preparing">S\'està preparant el fitxer…</string>
+    <string name="backup_section_trips">Viatges desats</string>
+    <string name="backup_section_settings">Configuració</string>
+    <string name="backup_section_sentry">Avisos de Sentinella</string>
+    <string name="backup_section_sentry_hint">Teslamate no en guarda cap registre. Si els perds, es perden per sempre.</string>
+    <string name="backup_section_places">Noms dels llocs</string>
+    <string name="backup_section_places_hint">Els noms dels llocs on has estat. Tornar a buscar-los tots triga hores.</string>
+    <string name="backup_section_trip_maps">Mapes dels viatges</string>
+    <string name="backup_section_trip_maps_hint">Les línies al mapa dels teus viatges. Es poden tornar a baixar i fan el fitxer molt més gran.</string>
+    <string name="backup_section_stats">Trajectes i càrregues</string>
+    <string name="backup_section_stats_hint">Tot el que ja s\'ha baixat de Teslamate. Estalvia una baixada llarga més endavant, però fa el fitxer molt més gran.</string>
+    <string name="backup_import_header">Restaura una còpia</string>
+    <string name="backup_import_hint">Tria un fitxer de còpia de seguretat. Veuràs què hi ha a dins abans que canviï res.</string>
+    <string name="backup_import_button">Tria un fitxer</string>
+    <string name="backup_import_reading">S\'està llegint el fitxer…</string>
+    <string name="backup_preview_title">Què hi ha en aquest fitxer</string>
+    <string name="backup_preview_saved_on">Desada el %1$s</string>
+    <string name="backup_preview_saved_on_version">Desada el %1$s per MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">Els trajectes i les càrregues d\'aquest fitxer els va desar una altra versió de MateDroid, així que es deixen fora. L\'aplicació els tornarà a baixar.</string>
+    <string name="backup_preview_mode">I el que ja hi ha en aquest telèfon?</string>
+    <string name="backup_preview_mode_merge">Conserva-ho i afegeix el que falti</string>
+    <string name="backup_preview_mode_replace">Substitueix-ho pel que hi ha al fitxer</string>
+    <string name="backup_preview_restore">Restaura</string>
+    <string name="backup_preview_restoring">S\'està restaurant tot…</string>
+    <string name="backup_result_title">Restaurat</string>
+    <string name="backup_result_already_here">Ja hi eren</string>
+    <string name="backup_result_trips_incomplete">Viatges als quals falta un trajecte</string>
+    <string name="backup_result_trips_unmatched">Viatges que no s\'han pogut aparellar</string>
+    <string name="backup_result_restored">Restaurada</string>
+    <string name="backup_result_nothing">No hi havia res de nou per restaurar.</string>
+    <string name="backup_result_note_unmatched">Aquests viatges apunten a trajectes que aquest telèfon no té. Poden aparèixer després de la propera sincronització.</string>
+    <string name="backup_result_note_token">Una còpia de seguretat mai no conté el teu token API. Si la connexió deixa de funcionar, torna a escriure\'l a Connexió.</string>
+    <string name="backup_error_export">No s\'ha pogut crear la còpia de seguretat.</string>
+    <string name="backup_error_not_a_backup">Aquest fitxer no és una còpia de seguretat de MateDroid.</string>
+    <string name="backup_error_too_new">Aquesta còpia de seguretat l\'ha feta una versió més recent de MateDroid. Actualitza l\'aplicació i torna-ho a provar.</string>
+    <string name="backup_error_restore">Alguna cosa ha anat malament en restaurar. És possible que una part del fitxer ja s\'hagi restaurat.</string>
+
+    <string name="backup_cars_header">Cotxes</string>
+    <string name="backup_cars_hint">Els viatges, els avisos de Sentinella i els trajectes es desen per als cotxes que marquis.</string>
+    <string name="backup_car_unnamed">Cotxe %1$d</string>
+    <string name="backup_car_no_vin">Sense VIN registrat</string>
 </resources>

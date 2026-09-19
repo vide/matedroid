@@ -26,6 +26,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 - **Car color based themes** - Light/dark themes with palette based on the car color
 - **Multi-language** - Available in English, Italian, Spanish, Catalan, German, and Chinese (Simplified)
 - **Demo mode** - Try the whole app on a year of sample data before setting up Teslamate
+- **Backup & restore** - Save everything that only lives on your phone — the trips you merged yourself, the sentry alerts and your settings — into one file, and share it wherever you like. Put it back on any phone.
 
 ### Gallery
 
