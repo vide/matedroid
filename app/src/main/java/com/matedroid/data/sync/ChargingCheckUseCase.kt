@@ -4,12 +4,14 @@ import android.content.Context
 import android.util.Log
 import com.matedroid.data.api.models.CarData
 import com.matedroid.data.api.models.CarStatus
+import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.SentryEvent
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.notification.NavigationNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.widget.CarWidgetUpdateWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -18,15 +20,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The single implementation of the periodic charging/sentry check, shared by
+ * The single implementation of the periodic charging/sentry/navigation check, shared by
  * [ChargingNotificationWorker] (background 30s/5min chain) and
  * [com.matedroid.service.ChargingMonitorService] (foreground 30s loop while charging).
  *
  * It owns everything both callers must agree on: fetching car statuses, persisting the
- * DC-session flag, processing sentry events (including their notifications), and
- * classifying each car. What it deliberately does NOT do is post charging notifications
- * or start/stop the monitor service — the two callers render those differently
- * (startForeground vs. plain notify) and must aggregate across all cars themselves.
+ * DC-session flag, processing sentry events and the navigation route (notifications
+ * included), and classifying each car. What it deliberately does NOT do is post charging
+ * notifications or start/stop the monitor service — the two callers render those
+ * differently (startForeground vs. plain notify) and must aggregate across all cars
+ * themselves.
  */
 @Singleton
 class ChargingCheckUseCase @Inject constructor(
@@ -35,7 +38,8 @@ class ChargingCheckUseCase @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val chargeSessionStateDataStore: ChargeSessionStateDataStore,
     private val sentryStateRepository: SentryStateRepository,
-    private val sentryNotificationManager: SentryNotificationManager
+    private val sentryNotificationManager: SentryNotificationManager,
+    private val navigationNotificationManager: NavigationNotificationManager
 ) {
     companion object {
         private const val TAG = "ChargingCheckUseCase"
@@ -102,13 +106,15 @@ class ChargingCheckUseCase @Inject constructor(
     private suspend fun checkCar(car: CarData): CarCheck? {
         val carId = car.carId
 
-        val status = when (val statusResult = teslamateRepository.getCarStatus(carId)) {
-            is ApiResult.Success -> statusResult.data.status
+        val statusData = when (val statusResult = teslamateRepository.getCarStatus(carId)) {
+            is ApiResult.Success -> statusResult.data
             is ApiResult.Error -> {
                 Log.e(TAG, "Failed to fetch status for car $carId: ${statusResult.message}")
                 return null
             }
         }
+        val status = statusData.status
+        val statusUnits = statusData.units
 
         // Persist whether the active session is DC; this is the only moment we can
         // tell (post-completion `charger_phases` is null regardless of charge type).
@@ -122,6 +128,7 @@ class ChargingCheckUseCase @Inject constructor(
             chargeSessionStateDataStore.wasLastSessionDc(carId)
 
         processSentry(car, status)
+        processNavigation(car, status, statusUnits)
 
         return CarCheck(
             car = car,
@@ -129,6 +136,22 @@ class ChargingCheckUseCase @Inject constructor(
             isCharging = status.isCharging,
             dcFinishedPluggedIn = dcFinishedPluggedIn
         )
+    }
+
+    /**
+     * Put up, refresh or take down the navigation notification.
+     *
+     * [CarStatus.activeRoute] is null both when nothing is set and when the leftover route
+     * of a finished drive is still on the status, so cancelling on null is what clears the
+     * notification once the car arrives.
+     */
+    private suspend fun processNavigation(car: CarData, status: CarStatus, units: Units?) {
+        val route = status.activeRoute
+        if (route == null) {
+            navigationNotificationManager.cancelNotification(car.carId)
+            return
+        }
+        navigationNotificationManager.showNavigationNotification(car, status, route, units)
     }
 
     private suspend fun processSentry(car: CarData, status: CarStatus) {

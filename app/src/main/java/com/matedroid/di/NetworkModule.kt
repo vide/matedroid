@@ -1,6 +1,7 @@
 package com.matedroid.di
 
 import android.annotation.SuppressLint
+import android.content.Context
 import com.matedroid.BuildConfig
 import com.matedroid.data.api.NominatimApi
 import com.matedroid.data.api.OpenMeteoApi
@@ -12,16 +13,20 @@ import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
+import okhttp3.Cache
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.io.File
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -32,6 +37,9 @@ import javax.net.ssl.X509TrustManager
 object NetworkModule {
 
     private const val USER_AGENT = "MateDroid/${BuildConfig.VERSION_NAME}"
+
+    /** Disk budget for cached map tiles; a drive's worth of frames is a few hundred KB. */
+    private const val MAP_TILE_CACHE_BYTES = 20L * 1024 * 1024
 
     private val userAgentInterceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()
@@ -72,6 +80,26 @@ object NetworkModule {
             .build()
             .create(NominatimApi::class.java)
     }
+
+    /**
+     * Client for OpenStreetMap raster tiles, used to paint the map in the navigation
+     * notification.
+     *
+     * The disk cache is the point of it: the frame is redrawn as the car moves, and without
+     * a cache every redraw would re-download tiles that have not changed. OSM's tile usage
+     * policy expects both the cache and the identifying User-Agent, which the shared
+     * interceptor supplies.
+     */
+    @Provides
+    @Singleton
+    @Named("mapTiles")
+    fun provideMapTileClient(@ApplicationContext context: Context): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(userAgentInterceptor)
+            .cache(Cache(File(context.cacheDir, "map-tiles"), MAP_TILE_CACHE_BYTES))
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .build()
 
     @Provides
     @Singleton

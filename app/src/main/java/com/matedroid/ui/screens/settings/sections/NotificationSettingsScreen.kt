@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.TireRepair
@@ -22,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
 import com.matedroid.notification.ChargingNotificationManager
+import com.matedroid.notification.NavigationNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.TpmsPressureWorker
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
@@ -84,6 +86,13 @@ private fun NotificationSettingsContent(
             hint = stringResource(R.string.sentry_channel_description),
             icon = Icons.Filled.Security,
             onClick = { onOpenChannel(SentryNotificationManager.CHANNEL_ID) }
+        )
+
+        SettingsLinkRow(
+            title = stringResource(R.string.navigation_channel_name),
+            hint = stringResource(R.string.navigation_channel_description),
+            icon = Icons.Filled.Navigation,
+            onClick = { onOpenChannel(NavigationNotificationManager.CHANNEL_ID) }
         )
 
         SettingsLinkRow(

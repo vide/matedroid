@@ -14,7 +14,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 ## Features
 
 - **Dashboard** - Real-time vehicle status at a glance with 3D car image matching your vehicle's color and wheels. Long tap it to change the picture.
-- **Notifications** - Sentry events notification, tyres pressure alert and Live notification (Android 16+) of charging sessions.
+- **Notifications** - Sentry events notification, tyres pressure alert, live notification of the drive to a destination, and Live notification (Android 16+) of charging sessions.
 - **Widget** - Home/lock screen widget for easy and safe read-only access to your car status. No more trunks opened due to a misstap!
 - **Stats for Nerds** - Tap car image for advanced statistics: records, extremes, AC/DC ratio and much more!
 - **Charging History** - View all charging sessions with statistics and charts
@@ -88,7 +88,7 @@ No Teslamate server yet? Tap **Try the demo** on the first setup screen and the 
 
 #### Theming & Notifications
 
-The app themes itself based on your car's exterior color — every Tesla color has its own palette, in both light and dark mode. On Android 16+, you also get live charging notifications with real-time progress and tire pressure alerts in the background.
+The app themes itself based on your car's exterior color — every Tesla color has its own palette, in both light and dark mode. On Android 16+, you also get live charging notifications with real-time progress and tire pressure alerts in the background. Set a destination in the car and a notification follows the drive, with the time left, the arrival time and a map of where the car is and where it is going. Each kind of notification has its own Android channel, so you can silence one without losing the rest.
 
 ## Requirements
 
