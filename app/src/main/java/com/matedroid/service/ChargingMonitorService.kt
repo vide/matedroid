@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.matedroid.R
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.sync.ChargingCheckUseCase
+import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.notification.ChargingNotificationManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -131,6 +132,11 @@ class ChargingMonitorService : Service() {
         // Also cancel the placeholder notification in case it was never replaced
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(INITIAL_NOTIFICATION_ID)
+
+        // The worker chain waits out the idle interval while this service runs (its check
+        // would only duplicate the loop above). Now that the loop is gone, put it back on the
+        // active cadence so a still-plugged or sentry-armed car keeps its 30 s checks.
+        ChargingNotificationWorker.schedulePeriodicWork(applicationContext)
 
         serviceScope.cancel()
         super.onDestroy()

@@ -108,6 +108,37 @@ Glance state, so the threshold is read once per run by `CarWidgetUpdateWorker`, 
 (the percentage text and `buildProgressBarBitmap`) read it from there — the bar bitmap is cached, so
 the threshold must stay in its `remember` keys or a changed setting won't repaint it.
 
+### Background polling cadence
+
+Charging and sentry state is polled by `ChargingNotificationWorker`, a self-rescheduling
+WorkManager chain (unique work `charging_notification_work`, `REPLACE`d by the run that schedules
+it) with a 15-minute `PeriodicWorkRequest` as the backstop that survives app death. How soon the
+next check runs is decided in one place, `cadenceAfter()`, and unit-tested:
+
+| situation | next check |
+|---|---|
+| `ChargingMonitorService` is running | 5 min — the service polls every 30 s itself (sentry included) and re-arms the chain at 30 s from its `onDestroy`; the chain is only a watchdog for a service that died with its process |
+| a car is charging, plugged in, sentry-armed or driving | 30 s |
+| the cars list or a status fetch failed | 30 s, then doubling per consecutive failure up to 5 min; the count travels in the request's input data (`KEY_CONSECUTIVE_FAILURES`) |
+| nothing to watch | 5 min |
+| no server configured | the chain is dropped; saving the connection settings runs a check right away, and the backstop (a local settings read) is the fallback |
+
+Every path returns `Result.success()`: the chain is its own retry, and a `Result.retry()` would
+make WorkManager retry the backstop and `runNow()` instances too, on top of the chain.
+
+`Application.onCreate` runs on **every process start**, and WorkManager starts the process for each
+background job (widget refresh, TPMS, sync, the backstop itself). It therefore only calls
+`ChargingNotificationWorker.ensureScheduled()` (`KEEP`: a pending 5-minute check is left alone) and
+the TPMS scheduler. Anything that means "the user opened the app" — the launch sync
+(`DataSyncWorker.enqueueOnAppOpen()`) and the immediate charging check (`runNow()`) — lives in
+`MainActivity.onCreate`, guarded by `savedInstanceState == null` so a rotation doesn't repeat it.
+
+The same rule applies on screen: `DashboardViewModel` and `CurrentChargeViewModel` poll only while
+their screen is showing (`LifecycleStartEffect` → `resume…()` / `pause…()`). The dashboard's poll is
+additionally gated on that visibility flag inside the ViewModel, because its car-loading path
+completes whether or not the dashboard is still on screen — opened from the charging notification,
+the app has already moved on to the live charge screen by then.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:

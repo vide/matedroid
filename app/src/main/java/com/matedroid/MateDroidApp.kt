@@ -5,17 +5,8 @@ import android.util.Log
 import java.io.File
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
-import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.sync.ChargingNotificationWorker
-import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
 import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.ShortEntryFilter
@@ -76,49 +67,15 @@ class MateDroidApp : Application(), Configuration.Provider {
             expirationOverrideDuration = 7L * 24 * 60 * 60 * 1000  // 7 days
         }
 
-        // Start background sync on app launch
-        enqueueSyncWork()
-
-        // Schedule periodic TPMS pressure monitoring
+        // Application.onCreate runs on EVERY process start, and WorkManager starts the process
+        // for each background job (widget refresh, TPMS, sync, the charging backstop itself),
+        // so nothing here may assume the user opened the app. The launch sync and the immediate
+        // charging check live in MainActivity.onCreate for that reason; here the schedules are
+        // only made sure to exist, without resetting a chain that is already pending.
         TpmsPressureWorker.schedulePeriodicWork(this)
-
-        // Schedule periodic charging notification monitoring
-        ChargingNotificationWorker.schedulePeriodicWork(this)
-
-        // Also run an immediate check to cancel stale notifications
-        ChargingNotificationWorker.runNow(this)
+        ChargingNotificationWorker.ensureScheduled(this)
 
         // Create sentry notification channel eagerly so it appears in Android settings
         sentryNotificationManager.ensureChannelExists()
-    }
-
-    /**
-     * Enqueue background sync work.
-     * Uses REPLACE so a stuck/backoff-waiting worker gets a fresh start on every app open;
-     * an interrupted sync loses little (unprocessed-ID queries resume where it left off).
-     */
-    private fun enqueueSyncWork() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val syncRequest = OneTimeWorkRequestBuilder<DataSyncWorker>()
-            .setConstraints(constraints)
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                30, // Start with 30 seconds
-                TimeUnit.SECONDS
-            )
-            .addTag(DataSyncWorker.TAG)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniqueWork(
-            DataSyncWorker.WORK_NAME,
-            ExistingWorkPolicy.REPLACE,  // Replace stuck/waiting work with fresh start
-            syncRequest
-        )
-
-        Log.d("MateDroidApp", "Enqueued sync work")
     }
 }
