@@ -570,6 +570,11 @@
     <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
     <string name="unreadable_period_found_charge">A charge on %1$s is missing data that TeslaMateApi can\'t handle (typically its range, battery level, duration, outside temperature or odometer), so it rejects any period that includes that day. This often happens with charges entered or imported by hand. Fill in the missing values in TeslaMate, or pick a period that leaves that day out.</string>
     <string name="unreadable_period_found_drive">A drive on %1$s is missing data that TeslaMateApi can\'t handle (typically its distance, odometer, range, top speed, power, duration or battery level), so it rejects any period that includes that day. Fill in the missing values in TeslaMate, or pick a period that leaves that day out.</string>
+    <!-- Same as unreadable_period_found_charge/_drive, for several days. %1$s is a list of dates, e.g. "19 Jun 2026 · 3 Jul 2026" -->
+    <string name="unreadable_period_found_charges">Charges on these days are missing data that TeslaMateApi can\'t handle (typically their range, battery level, duration, outside temperature or odometer), so it rejects any period that includes them: %1$s. This often happens with charges entered or imported by hand. Fill in the missing values in TeslaMate, or pick a period that leaves those days out.</string>
+    <string name="unreadable_period_found_drives">Drives on these days are missing data that TeslaMateApi can\'t handle (typically their distance, odometer, range, top speed, power, duration or battery level), so it rejects any period that includes them: %1$s. Fill in the missing values in TeslaMate, or pick a period that leaves those days out.</string>
+    <!-- Shown under the list of days when the search stopped before checking for more bad days -->
+    <string name="unreadable_period_may_be_more">There may be more: the search stops after five days.</string>
     <!-- The app could not narrow it down to a day -->
     <string name="unreadable_period_not_found">An entry in this period is missing data that TeslaMateApi can\'t handle, so it rejects the whole period. The TeslaMateApi logs show which one.</string>
     <!-- Charge/drive detail screen: TeslaMateApi can't read this one entry (a missing value in its data points or positions) -->

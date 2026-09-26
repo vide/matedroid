@@ -315,7 +315,8 @@ private fun ChargesContent(
                 UnreadablePeriodCard(
                     period = unreadablePeriod,
                     titleRes = R.string.unreadable_period_title_charges,
-                    foundRes = R.string.unreadable_period_found_charge
+                    foundRes = R.string.unreadable_period_found_charge,
+                    foundManyRes = R.string.unreadable_period_found_charges
                 )
             }
         } else if (charges.isEmpty()) {

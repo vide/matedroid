@@ -26,13 +26,15 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * TeslamateAPI rejected the selected period because one entry in it can't be read (see
- * [com.matedroid.domain.UnreadableDaySearch]). [day] is that entry's day once the search
- * has found it; [searching] is true while it is still looking.
+ * TeslamateAPI rejected the selected period because entries in it can't be read (see
+ * [com.matedroid.domain.UnreadableDaySearch]). [days] are those entries' days once the search
+ * has found them; [searching] is true while it is still looking; [mayBeMore] when the search
+ * stopped before ruling out further bad days.
  */
 data class UnreadablePeriod(
     val searching: Boolean = true,
-    val day: LocalDate? = null
+    val days: List<LocalDate> = emptyList(),
+    val mayBeMore: Boolean = false
 )
 
 /**
@@ -40,16 +42,19 @@ data class UnreadablePeriod(
  *
  * @param titleRes e.g. "TeslaMateApi couldn't load the charges for this period"
  * @param foundRes the explanation naming the day, with the formatted date as `%1$s`
+ * @param foundManyRes the same for several days, with the formatted dates as `%1$s`
  */
 @Composable
 fun UnreadablePeriodCard(
     period: UnreadablePeriod,
     @StringRes titleRes: Int,
     @StringRes foundRes: Int,
+    @StringRes foundManyRes: Int,
     modifier: Modifier = Modifier
 ) {
     ServerDataErrorCard(titleRes, modifier) {
-        val day = period.day
+        val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+        val dates = period.days.joinToString(" · ") { it.format(formatter) }
         when {
             period.searching -> Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -66,14 +71,20 @@ fun UnreadablePeriodCard(
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
-            day != null -> Text(
-                text = stringResource(
-                    foundRes,
-                    day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
+            period.days.isNotEmpty() -> {
+                Text(
+                    text = stringResource(if (period.days.size == 1) foundRes else foundManyRes, dates),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                if (period.mayBeMore) {
+                    Text(
+                        text = stringResource(R.string.unreadable_period_may_be_more),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
             else -> Text(
                 text = stringResource(R.string.unreadable_period_not_found),
                 style = MaterialTheme.typography.bodyMedium,

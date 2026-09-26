@@ -264,7 +264,8 @@ private fun DrivesContent(
                 UnreadablePeriodCard(
                     period = unreadablePeriod,
                     titleRes = R.string.unreadable_period_title_drives,
-                    foundRes = R.string.unreadable_period_found_drive
+                    foundRes = R.string.unreadable_period_found_drive,
+                    foundManyRes = R.string.unreadable_period_found_drives
                 )
             }
         } else if (drives.isEmpty()) {

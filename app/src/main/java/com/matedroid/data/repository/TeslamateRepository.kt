@@ -354,8 +354,8 @@ class TeslamateRepository @Inject constructor(
             response.toResult("charges") { it?.data?.charges ?: emptyList() }
         }
 
-    /** The day holding a charge TeslamateAPI can't read, somewhere in [from]..[to]; see [UnreadableDaySearch]. */
-    suspend fun findUnreadableChargeDay(carId: Int, from: LocalDate, to: LocalDate): LocalDate? =
+    /** The days holding charges TeslamateAPI can't read, within [from]..[to]; see [UnreadableDaySearch]. */
+    suspend fun findUnreadableChargeDays(carId: Int, from: LocalDate, to: LocalDate): UnreadableDaySearch.Result? =
         UnreadableDaySearch.find(from, to) { start, end ->
             getCharges(carId, LocalDayBoundaries.startOfDay(start), LocalDayBoundaries.endOfDay(end))
                 .isServerQueryFailure()
@@ -410,8 +410,8 @@ class TeslamateRepository @Inject constructor(
             response.toResult("drives") { it?.data?.drives ?: emptyList() }
         }
 
-    /** The day holding a drive TeslamateAPI can't read, somewhere in [from]..[to]; see [UnreadableDaySearch]. */
-    suspend fun findUnreadableDriveDay(carId: Int, from: LocalDate, to: LocalDate): LocalDate? =
+    /** The days holding drives TeslamateAPI can't read, within [from]..[to]; see [UnreadableDaySearch]. */
+    suspend fun findUnreadableDriveDays(carId: Int, from: LocalDate, to: LocalDate): UnreadableDaySearch.Result? =
         UnreadableDaySearch.find(from, to) { start, end ->
             getDrives(carId, LocalDayBoundaries.startOfDay(start), LocalDayBoundaries.endOfDay(end))
                 .isServerQueryFailure()

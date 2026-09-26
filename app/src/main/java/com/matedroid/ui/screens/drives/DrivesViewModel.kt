@@ -268,12 +268,20 @@ class DrivesViewModel @Inject constructor(
                     _uiState.update { it.copy(unreadablePeriod = UnreadablePeriod(), error = null) }
                     applyFiltersAndUpdateState()
                     unreadableSearch = viewModelScope.launch {
-                        val day = repository.findUnreadableDriveDay(
+                        val found = repository.findUnreadableDriveDays(
                             id,
                             from = startDate ?: UnreadableDaySearch.EARLIEST,
                             to = endDate ?: LocalDate.now()
                         )
-                        _uiState.update { it.copy(unreadablePeriod = UnreadablePeriod(searching = false, day = day)) }
+                        _uiState.update {
+                            it.copy(
+                                unreadablePeriod = UnreadablePeriod(
+                                    searching = false,
+                                    days = found?.days.orEmpty(),
+                                    mayBeMore = found?.mayBeMore ?: false
+                                )
+                            )
+                        }
                     }
                 }
                 is ApiResult.Error -> {
