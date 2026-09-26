@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocationOn
+import com.matedroid.ui.screens.common.UnreadableEntryCard
 import com.matedroid.ui.icons.CustomIcons
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
@@ -158,6 +159,15 @@ fun DriveDetailScreen(
                 modifier = Modifier.padding(padding)
             )
         } else {
+            if (uiState.isUnreadable) {
+                UnreadableEntryCard(
+                    titleRes = R.string.unreadable_drive_title,
+                    bodyRes = R.string.unreadable_drive_body,
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(16.dp)
+                )
+            }
             uiState.driveDetail?.let { detail ->
                 DriveDetailContent(
                     detail = detail,

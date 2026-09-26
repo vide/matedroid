@@ -385,7 +385,14 @@ class TeslamateRepository @Inject constructor(
     }
 
     suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> =
-        executeWithFallback { api -> api.getChargeDetail(carId, chargeId).toResult("charge detail") { it?.data?.charge } }
+        executeWithFallback { api ->
+            val response = api.getChargeDetail(carId, chargeId)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("charge detail") { it?.data?.charge }
+        }
 
     suspend fun getDrives(
         carId: Int,
@@ -417,7 +424,14 @@ class TeslamateRepository @Inject constructor(
     }
 
     suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> =
-        executeWithFallback { api -> api.getDriveDetail(carId, driveId).toResult("drive detail") { it?.data?.drive } }
+        executeWithFallback { api ->
+            val response = api.getDriveDetail(carId, driveId)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("drive detail") { it?.data?.drive }
+        }
 
     suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> =
         executeWithFallback { api -> api.getBatteryHealth(carId).toResult("battery health") { it?.data?.batteryHealth } }

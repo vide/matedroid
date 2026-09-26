@@ -549,10 +549,15 @@
     <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
     <string name="unreadable_period_searching">Buscando el registro que lo ha causado…</string>
     <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
-    <string name="unreadable_period_found_charge">A una carga del %1$s le faltan datos que TeslaMateApi no puede procesar, así que rechaza cualquier período que incluya ese día. Suele ocurrir con cargas introducidas o importadas a mano. Completa o elimina esa carga en TeslaMate, o elige un período que excluya ese día.</string>
-    <string name="unreadable_period_found_drive">A un trayecto del %1$s le faltan datos que TeslaMateApi no puede procesar, así que rechaza cualquier período que incluya ese día. Completa o elimina ese trayecto en TeslaMate, o elige un período que excluya ese día.</string>
+    <string name="unreadable_period_found_charge">A una carga del %1$s le faltan datos que TeslaMateApi no puede procesar (normalmente la autonomía, el nivel de batería, la duración, la temperatura exterior o el odómetro), así que rechaza cualquier período que incluya ese día. Suele ocurrir con cargas introducidas o importadas a mano. Completa los valores que faltan en TeslaMate, o elige un período que excluya ese día.</string>
+    <string name="unreadable_period_found_drive">A un trayecto del %1$s le faltan datos que TeslaMateApi no puede procesar (normalmente la distancia, el odómetro, la autonomía, la velocidad máxima, la potencia, la duración o el nivel de batería), así que rechaza cualquier período que incluya ese día. Completa los valores que faltan en TeslaMate, o elige un período que excluya ese día.</string>
     <!-- The app could not narrow it down to a day -->
     <string name="unreadable_period_not_found">A un registro de este período le faltan datos que TeslaMateApi no puede procesar, así que rechaza todo el período. Los registros de TeslaMateApi indican cuál.</string>
+    <!-- Charge/drive detail screen: TeslaMateApi can't read this one entry (a missing value in its data points or positions) -->
+    <string name="unreadable_charge_title">TeslaMateApi no puede leer esta carga</string>
+    <string name="unreadable_charge_body">A uno de los puntos de datos registrados durante esta carga le falta un valor que TeslaMateApi no puede procesar, como el nivel de batería, la autonomía, la temperatura exterior o los datos del cargador. Suele ocurrir con cargas introducidas o importadas a mano. Completa los valores que faltan en TeslaMate.</string>
+    <string name="unreadable_drive_title">TeslaMateApi no puede leer este trayecto</string>
+    <string name="unreadable_drive_body">A una de las posiciones registradas en este trayecto le falta un valor que TeslaMateApi no puede procesar, como el nivel de batería, la potencia o el odómetro. Completa los valores que faltan en TeslaMate.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Sesiones totales</string>

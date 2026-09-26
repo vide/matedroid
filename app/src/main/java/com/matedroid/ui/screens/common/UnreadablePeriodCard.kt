@@ -48,6 +48,66 @@ fun UnreadablePeriodCard(
     @StringRes foundRes: Int,
     modifier: Modifier = Modifier
 ) {
+    ServerDataErrorCard(titleRes, modifier) {
+        val day = period.day
+        when {
+            period.searching -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = stringResource(R.string.unreadable_period_searching),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            day != null -> Text(
+                text = stringResource(
+                    foundRes,
+                    day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            else -> Text(
+                text = stringResource(R.string.unreadable_period_not_found),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+/**
+ * Shown on a charge or drive detail screen when TeslamateAPI can't read that one entry —
+ * the list loaded, but a NULL in one of its data points or positions breaks the detail query.
+ */
+@Composable
+fun UnreadableEntryCard(
+    @StringRes titleRes: Int,
+    @StringRes bodyRes: Int,
+    modifier: Modifier = Modifier
+) {
+    ServerDataErrorCard(titleRes, modifier) {
+        Text(
+            text = stringResource(bodyRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
+}
+
+@Composable
+private fun ServerDataErrorCard(
+    @StringRes titleRes: Int,
+    modifier: Modifier,
+    content: @Composable () -> Unit
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -73,37 +133,7 @@ fun UnreadablePeriodCard(
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
-            val day = period.day
-            when {
-                period.searching -> Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Text(
-                        text = stringResource(R.string.unreadable_period_searching),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-                day != null -> Text(
-                    text = stringResource(
-                        foundRes,
-                        day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-                else -> Text(
-                    text = stringResource(R.string.unreadable_period_not_found),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
+            content()
         }
     }
 }

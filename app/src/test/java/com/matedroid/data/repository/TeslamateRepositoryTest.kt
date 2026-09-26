@@ -192,4 +192,24 @@ class TeslamateRepositoryTest {
 
         assertTrue(repository.getDrives(1) is ApiResult.Error)
     }
+
+    @Test
+    fun `a charge detail error body is flagged as unreadable`() = runTest {
+        coEvery { api.getChargeDetail(1, 597) } returns
+            Response.success(ChargeDetailResponse(error = "Unable to load charge details."))
+
+        val result = repository.getChargeDetail(1, 597)
+
+        assertTrue(result is ApiResult.Error && result.isServerQueryFailure)
+    }
+
+    @Test
+    fun `an HTTP failure is not flagged as unreadable`() = runTest {
+        coEvery { api.getCharges(1, any(), any(), any(), any()) } returns
+            Response.error(502, "".toResponseBody(null))
+
+        val result = repository.getCharges(1)
+
+        assertTrue(result is ApiResult.Error && !result.isServerQueryFailure)
+    }
 }

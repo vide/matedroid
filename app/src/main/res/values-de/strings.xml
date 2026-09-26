@@ -550,10 +550,15 @@
     <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
     <string name="unreadable_period_searching">Suche nach dem verursachenden Eintrag…</string>
     <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
-    <string name="unreadable_period_found_charge">Einem Ladevorgang am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Das passiert oft bei von Hand eingetragenen oder importierten Ladevorgängen. Ergänze oder lösche diesen Ladevorgang in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
-    <string name="unreadable_period_found_drive">Einer Fahrt am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Ergänze oder lösche diese Fahrt in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
+    <string name="unreadable_period_found_charge">Einem Ladevorgang am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann (meist Reichweite, Akkustand, Dauer, Außentemperatur oder Kilometerstand), daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Das passiert oft bei von Hand eingetragenen oder importierten Ladevorgängen. Ergänze die fehlenden Werte in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
+    <string name="unreadable_period_found_drive">Einer Fahrt am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann (meist Strecke, Kilometerstand, Reichweite, Höchstgeschwindigkeit, Leistung, Dauer oder Akkustand), daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Ergänze die fehlenden Werte in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
     <!-- The app could not narrow it down to a day -->
     <string name="unreadable_period_not_found">Einem Eintrag in diesem Zeitraum fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es den ganzen Zeitraum ab. Die Logs von TeslaMateApi zeigen, welcher.</string>
+    <!-- Charge/drive detail screen: TeslaMateApi can't read this one entry (a missing value in its data points or positions) -->
+    <string name="unreadable_charge_title">TeslaMateApi kann diesen Ladevorgang nicht lesen</string>
+    <string name="unreadable_charge_body">Einem der während dieses Ladevorgangs aufgezeichneten Datenpunkte fehlt ein Wert, den TeslaMateApi nicht verarbeiten kann, etwa Akkustand, Reichweite, Außentemperatur oder Ladegerätdaten. Das passiert oft bei von Hand eingetragenen oder importierten Ladevorgängen. Ergänze die fehlenden Werte in TeslaMate.</string>
+    <string name="unreadable_drive_title">TeslaMateApi kann diese Fahrt nicht lesen</string>
+    <string name="unreadable_drive_body">Einer der entlang dieser Fahrt aufgezeichneten Positionen fehlt ein Wert, den TeslaMateApi nicht verarbeiten kann, etwa Akkustand, Leistung oder Kilometerstand. Ergänze die fehlenden Werte in TeslaMate.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Ladevorgänge gesamt</string>

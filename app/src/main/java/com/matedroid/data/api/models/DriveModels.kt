@@ -78,7 +78,9 @@ data class DriveRange(
 
 @JsonClass(generateAdapter = true)
 data class DriveDetailResponse(
-    @Json(name = "data") val data: DriveDetailData? = null
+    @Json(name = "data") val data: DriveDetailData? = null,
+    // HTTP 200 + error when the query fails, e.g. one position along the drive has a NULL.
+    @Json(name = "error") val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)
