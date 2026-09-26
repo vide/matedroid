@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A notification follows the drive to a destination** — set a destination in the car and a notification appears with the name of the place, how long is left, the time you are due to arrive and the distance and battery level you will arrive with. Expand it for a map showing the car, the destination and the line between them. It updates itself as the car drives and clears when the route ends. It lives on its own **Navigation** notification channel, so it can be silenced from Android's settings without touching the charging, sentry or tyre-pressure notifications.
 - **The dashboard map shows where the car is going** — when a destination is set in the car, a banner across the top of the location card names it and counts down the time left, with the minutes traffic is costing called out in amber next to it. The chips below swap from elevation and coordinates to the distance still to drive, the clock time you are due to arrive, and the battery level you will arrive with. The card goes back to showing only the current position as soon as the route ends.
 
+### Fixed
+- **A space after the server URL no longer crashes the app on every launch** — phone keyboards often add a space after the last word, and a URL saved that way made MateDroid close as soon as it opened, with no way back into Settings short of clearing the app's data. Spaces around the server URLs are now removed when you save or test the connection, a URL already saved with one is cleaned up when it is used, so updating is enough to get back in, and a URL that still can't be understood shows a connection error instead of crashing.
+
 ## [1.11.3] - 2026-09-19
 
 ### Fixed

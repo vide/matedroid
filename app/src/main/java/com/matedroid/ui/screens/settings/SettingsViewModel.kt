@@ -282,8 +282,8 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isTesting = true, testResult = null, error = null)
 
-            val primaryUrl = _uiState.value.serverUrl.trimEnd('/')
-            val secondaryUrl = _uiState.value.secondaryServerUrl.trimEnd('/')
+            val primaryUrl = _uiState.value.serverUrl.trim().trimEnd('/')
+            val secondaryUrl = _uiState.value.secondaryServerUrl.trim().trimEnd('/')
 
             // Validate primary URL
             if (primaryUrl.isBlank()) {
@@ -443,7 +443,7 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
 
             try {
-                val url = _uiState.value.serverUrl.trimEnd('/')
+                val url = _uiState.value.serverUrl.trim().trimEnd('/')
                 if (url.isBlank()) {
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
@@ -452,7 +452,7 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
-                val secondaryUrl = _uiState.value.secondaryServerUrl.trimEnd('/')
+                val secondaryUrl = _uiState.value.secondaryServerUrl.trim().trimEnd('/')
 
                 settingsDataStore.saveSettings(
                     serverUrl = url,

@@ -171,7 +171,8 @@ class TeslamateApiFactory(
         // screens, and no URL derived from the sentinel is ever dialled.
         if (settings.isDemoMode) return demoApi
 
-        val normalizedUrl = baseUrl.trimEnd('/') + "/"
+        // trim(): a URL saved with a stray space (keyboards add one) is otherwise an invalid port.
+        val normalizedUrl = baseUrl.trim().trimEnd('/') + "/"
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername
