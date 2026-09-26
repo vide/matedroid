@@ -543,6 +543,16 @@
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">No se encontraron cargas para el período seleccionado</string>
+    <!-- Charges/Drives list: TeslaMateApi rejected the selected period because one entry has missing data (card title) -->
+    <string name="unreadable_period_title_charges">TeslaMateApi no pudo cargar las cargas de este período</string>
+    <string name="unreadable_period_title_drives">TeslaMateApi no pudo cargar los trayectos de este período</string>
+    <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
+    <string name="unreadable_period_searching">Buscando el registro que lo ha causado…</string>
+    <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
+    <string name="unreadable_period_found_charge">A una carga del %1$s le faltan datos que TeslaMateApi no puede procesar, así que rechaza cualquier período que incluya ese día. Suele ocurrir con cargas introducidas o importadas a mano. Completa o elimina esa carga en TeslaMate, o elige un período que excluya ese día.</string>
+    <string name="unreadable_period_found_drive">A un trayecto del %1$s le faltan datos que TeslaMateApi no puede procesar, así que rechaza cualquier período que incluya ese día. Completa o elimina ese trayecto en TeslaMate, o elige un período que excluya ese día.</string>
+    <!-- The app could not narrow it down to a day -->
+    <string name="unreadable_period_not_found">A un registro de este período le faltan datos que TeslaMateApi no puede procesar, así que rechaza todo el período. Los registros de TeslaMateApi indican cuál.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Sesiones totales</string>

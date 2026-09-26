@@ -17,6 +17,7 @@ import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,8 @@ import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
+import com.matedroid.ui.screens.common.UnreadablePeriod
+import com.matedroid.domain.UnreadableDaySearch
 import com.matedroid.ui.screens.common.buildTimeSeries
 
 enum class ChargeTypeFilter {
@@ -74,6 +77,8 @@ data class ChargesUiState(
     val chartData: List<ChargeChartData> = emptyList(),
     val chartGranularity: ChartGranularity = ChartGranularity.MONTHLY,
     val error: String? = null,
+    // Set when TeslamateAPI rejected the whole period over one unreadable charge (#385).
+    val unreadablePeriod: UnreadablePeriod? = null,
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val selectedFilter: DateFilter = DateFilter.LAST_7_DAYS,  // Preserve filter in ViewModel
@@ -112,6 +117,7 @@ class ChargesViewModel @Inject constructor(
     private var carId: Int? = null
     private var showShortDrivesCharges: Boolean = false
     private var allCharges: List<ChargeData> = emptyList()
+    private var unreadableSearch: Job? = null
 
     companion object {
         private const val KEY_DATE_FILTER = "filter_date"
@@ -280,6 +286,7 @@ class ChargesViewModel @Inject constructor(
 
     private fun loadCharges(startDate: LocalDate? = null, endDate: LocalDate? = null) {
         val id = carId ?: return
+        unreadableSearch?.cancel()
 
         viewModelScope.launch {
             val state = _uiState.value
@@ -328,11 +335,26 @@ class ChargesViewModel @Inject constructor(
                             dcChargeIds = dcChargeIds,
                             processedChargeIds = processedChargeIds,
                             chartGranularity = granularity,
-                            error = null
+                            error = null,
+                            unreadablePeriod = null
                         )
                     }
 
                     applyFiltersAndUpdateState()
+                }
+                is ApiResult.Error if result.isServerQueryFailure -> {
+                    // Don't leave the previous period's charges on screen under this one's filter.
+                    allCharges = emptyList()
+                    _uiState.update { it.copy(unreadablePeriod = UnreadablePeriod(), error = null) }
+                    applyFiltersAndUpdateState()
+                    unreadableSearch = viewModelScope.launch {
+                        val day = repository.findUnreadableChargeDay(
+                            id,
+                            from = startDate ?: UnreadableDaySearch.EARLIEST,
+                            to = endDate ?: LocalDate.now()
+                        )
+                        _uiState.update { it.copy(unreadablePeriod = UnreadablePeriod(searching = false, day = day)) }
+                    }
                 }
                 is ApiResult.Error -> {
                     _uiState.update {

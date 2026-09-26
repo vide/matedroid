@@ -562,6 +562,16 @@
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">No charges found for selected period</string>
+    <!-- Charges/Drives list: TeslaMateApi rejected the selected period because one entry has missing data (card title) -->
+    <string name="unreadable_period_title_charges">TeslaMateApi couldn\'t load the charges for this period</string>
+    <string name="unreadable_period_title_drives">TeslaMateApi couldn\'t load the drives for this period</string>
+    <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
+    <string name="unreadable_period_searching">Looking for the entry that caused it…</string>
+    <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
+    <string name="unreadable_period_found_charge">A charge on %1$s is missing data that TeslaMateApi can\'t handle, so it rejects any period that includes that day. This often happens with charges entered or imported by hand. Fill in or remove that charge in TeslaMate, or pick a period that leaves that day out.</string>
+    <string name="unreadable_period_found_drive">A drive on %1$s is missing data that TeslaMateApi can\'t handle, so it rejects any period that includes that day. Fill in or remove that drive in TeslaMate, or pick a period that leaves that day out.</string>
+    <!-- The app could not narrow it down to a day -->
+    <string name="unreadable_period_not_found">An entry in this period is missing data that TeslaMateApi can\'t handle, so it rejects the whole period. The TeslaMateApi logs show which one.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Total Sessions</string>

@@ -544,6 +544,16 @@
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">Keine Ladevorgänge für den ausgewählten Zeitraum gefunden</string>
+    <!-- Charges/Drives list: TeslaMateApi rejected the selected period because one entry has missing data (card title) -->
+    <string name="unreadable_period_title_charges">TeslaMateApi konnte die Ladevorgänge für diesen Zeitraum nicht laden</string>
+    <string name="unreadable_period_title_drives">TeslaMateApi konnte die Fahrten für diesen Zeitraum nicht laden</string>
+    <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
+    <string name="unreadable_period_searching">Suche nach dem verursachenden Eintrag…</string>
+    <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
+    <string name="unreadable_period_found_charge">Einem Ladevorgang am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Das passiert oft bei von Hand eingetragenen oder importierten Ladevorgängen. Ergänze oder lösche diesen Ladevorgang in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
+    <string name="unreadable_period_found_drive">Einer Fahrt am %1$s fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es jeden Zeitraum ab, der diesen Tag enthält. Ergänze oder lösche diese Fahrt in TeslaMate oder wähle einen Zeitraum ohne diesen Tag.</string>
+    <!-- The app could not narrow it down to a day -->
+    <string name="unreadable_period_not_found">Einem Eintrag in diesem Zeitraum fehlen Daten, die TeslaMateApi nicht verarbeiten kann, daher lehnt es den ganzen Zeitraum ab. Die Logs von TeslaMateApi zeigen, welcher.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Ladevorgänge gesamt</string>
