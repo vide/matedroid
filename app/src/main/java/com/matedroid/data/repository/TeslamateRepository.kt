@@ -339,8 +339,11 @@ class TeslamateRepository @Inject constructor(
         show: Int = 50000
     ): ApiResult<List<ChargeData>> =
         executeWithFallback { api ->
-            api.getCharges(carId, startDate, endDate, page = page, show = show)
-                .toResult("charges") { it?.data?.charges ?: emptyList() }
+            val response = api.getCharges(carId, startDate, endDate, page = page, show = show)
+            // An HTTP 200 error body must not read as "no charges": the list screen would show
+            // an empty period and the sync would store nothing and count it a success (#385).
+            response.body()?.error?.let { return@executeWithFallback ApiResult.Error(it) }
+            response.toResult("charges") { it?.data?.charges ?: emptyList() }
         }
 
     suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
@@ -377,8 +380,10 @@ class TeslamateRepository @Inject constructor(
         show: Int = 50000
     ): ApiResult<List<DriveData>> =
         executeWithFallback { api ->
-            api.getDrives(carId, startDate, endDate, page = page, show = show)
-                .toResult("drives") { it?.data?.drives ?: emptyList() }
+            val response = api.getDrives(carId, startDate, endDate, page = page, show = show)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let { return@executeWithFallback ApiResult.Error(it) }
+            response.toResult("drives") { it?.data?.drives ?: emptyList() }
         }
 
     suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> =
