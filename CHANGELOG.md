@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The dashboard map shows where the car is going** — when a destination is set in the car, a banner across the top of the location card names it and counts down the time left, with the minutes traffic is costing called out in amber next to it. The chips below swap from elevation and coordinates to the distance still to drive, the clock time you are due to arrive, and the battery level you will arrive with. The card goes back to showing only the current position as soon as the route ends.
 
 ### Fixed
-- **A space after the server URL no longer crashes the app on every launch** — phone keyboards often add a space after the last word, and a URL saved that way made MateDroid close as soon as it opened, with no way back into Settings short of clearing the app's data. Spaces around the server URLs are now removed when you save or test the connection, a URL already saved with one is cleaned up when it is used, so updating is enough to get back in, and a URL that still can't be understood shows a connection error instead of crashing.
+- **A space after the server URL no longer crashes the app on every launch** — phone keyboards often add a space after the last word, and a URL saved that way made MateDroid close as soon as it opened, with no way back into Settings short of clearing the app's data. Spaces around the server URLs are now removed when you save or test the connection. A URL already saved with one is cleaned up when it's used, so updating is enough to get back in. A URL that still can't be understood shows a connection error instead of crashing.
 
 ## [1.11.3] - 2026-09-19
 
