@@ -157,4 +157,13 @@ class TeslamateRepositoryTest {
 
         coVerify(exactly = 1) { api.getCurrentCharge(1) }
     }
+
+    @Test
+    fun `a malformed server url is an error, not a crash`() = runTest {
+        coEvery { apiFactory.create(any(), any(), any()) } throws IllegalArgumentException("Invalid URL port: \"80x\"")
+
+        val result = repository.getCharges(1)
+
+        assertTrue(result is ApiResult.Error)
+    }
 }

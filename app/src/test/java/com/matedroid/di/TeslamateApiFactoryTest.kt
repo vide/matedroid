@@ -119,6 +119,14 @@ class TeslamateApiFactoryTest {
         assertNotSame(before, factory.create(PRIMARY))
     }
 
+    @Test
+    fun `a url saved with surrounding spaces still builds (it used to crash every launch)`() = runTest {
+        // "Invalid URL port: \"18080 \"" — keyboards append a space after the last word.
+        val padded = factory.create(" http://10.0.2.2:18080 ")
+
+        assertSame(padded, factory.create("http://10.0.2.2:18080"))
+    }
+
     private companion object {
         const val PRIMARY = "https://primary.example.com"
         const val SECONDARY = "https://secondary.example.com"

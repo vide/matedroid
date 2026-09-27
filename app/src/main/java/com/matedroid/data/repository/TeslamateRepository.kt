@@ -186,9 +186,13 @@ class TeslamateRepository @Inject constructor(
             return ApiResult.Error("Server not configured")
         }
 
-        // Try primary server first
-        val primaryApi = getApiForUrl(settings.serverUrl)
-            ?: return ApiResult.Error("Server not configured")
+        // Try primary server first. A malformed saved URL must come back as an error, not an
+        // exception: callers run on the main thread, so throwing here crashed every launch.
+        val primaryApi = try {
+            getApiForUrl(settings.serverUrl)
+        } catch (e: IllegalArgumentException) {
+            return ApiResult.Error("Invalid server URL: ${e.message}")
+        } ?: return ApiResult.Error("Server not configured")
 
         val primaryResult = try {
             apiCall(primaryApi)
@@ -231,8 +235,11 @@ class TeslamateRepository @Inject constructor(
         // Try secondary server if available
         if (settings.hasSecondaryServer) {
             Log.d(TAG, "Trying secondary server: ${settings.secondaryServerUrl}")
-            val secondaryApi = getApiForUrl(settings.secondaryServerUrl)
-                ?: return primaryResult ?: ApiResult.Error("Secondary server not configured")
+            val secondaryApi = try {
+                getApiForUrl(settings.secondaryServerUrl)
+            } catch (e: IllegalArgumentException) {
+                return primaryResult ?: ApiResult.Error("Invalid secondary server URL: ${e.message}")
+            } ?: return primaryResult ?: ApiResult.Error("Secondary server not configured")
 
             return try {
                 apiCall(secondaryApi)
