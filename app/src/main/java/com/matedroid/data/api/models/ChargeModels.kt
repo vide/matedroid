@@ -5,7 +5,10 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class ChargesResponse(
-    @Json(name = "data") val data: ChargesData? = null
+    @Json(name = "data") val data: ChargesData? = null,
+    // TeslamateAPI answers HTTP 200 with this field (and no data) when the query fails,
+    // e.g. a single row with a NULL column makes the whole list "Unable to load charges."
+    @Json(name = "error") val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)

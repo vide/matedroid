@@ -5,7 +5,10 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class DrivesResponse(
-    @Json(name = "data") val data: DrivesData? = null
+    @Json(name = "data") val data: DrivesData? = null,
+    // TeslamateAPI answers HTTP 200 with this field (and no data) when the query fails,
+    // e.g. a single row with a NULL column makes the whole list "Unable to load drives."
+    @Json(name = "error") val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -75,7 +78,9 @@ data class DriveRange(
 
 @JsonClass(generateAdapter = true)
 data class DriveDetailResponse(
-    @Json(name = "data") val data: DriveDetailData? = null
+    @Json(name = "data") val data: DriveDetailData? = null,
+    // HTTP 200 + error when the query fails, e.g. one position along the drive has a NULL.
+    @Json(name = "error") val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)

@@ -30,6 +30,8 @@ import kotlin.math.roundToInt
 data class DriveDetailUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
+    // TeslamateAPI can't read this drive (a NULL in one of its rows) — shown as a card, not a snackbar.
+    val isUnreadable: Boolean = false,
     val driveDetail: DriveDetail? = null,
     val units: Units? = null,
     val stats: DriveDetailStats? = null,
@@ -114,7 +116,7 @@ class DriveDetailViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, isUnreadable = false) }
 
             // Fetch drive detail and units in parallel
             val detailResult = repository.getDriveDetail(carId, driveId)
@@ -146,7 +148,8 @@ class DriveDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = detailResult.message
+                            isUnreadable = detailResult.isServerQueryFailure,
+                            error = detailResult.message.takeUnless { detailResult.isServerQueryFailure }
                         )
                     }
                 }

@@ -64,6 +64,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.Units
+import com.matedroid.ui.screens.common.UnreadablePeriod
+import com.matedroid.ui.screens.common.UnreadablePeriodCard
 import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.domain.model.UnitFormatter
@@ -158,6 +160,7 @@ fun DrivesScreen(
             } else {
                 DrivesContent(
                     drives = uiState.drives,
+                    unreadablePeriod = uiState.unreadablePeriod,
                     chartData = uiState.chartData,
                     chartGranularity = uiState.chartGranularity,
                     summary = uiState.summary,
@@ -183,6 +186,7 @@ fun DrivesScreen(
 @Composable
 private fun DrivesContent(
     drives: List<DriveData>,
+    unreadablePeriod: UnreadablePeriod?,
     chartData: List<DriveChartData>,
     chartGranularity: ChartGranularity,
     summary: DrivesSummary,
@@ -255,7 +259,16 @@ private fun DrivesContent(
             )
         }
 
-        if (drives.isEmpty()) {
+        if (unreadablePeriod != null) {
+            item {
+                UnreadablePeriodCard(
+                    period = unreadablePeriod,
+                    titleRes = R.string.unreadable_period_title_drives,
+                    foundRes = R.string.unreadable_period_found_drive,
+                    foundManyRes = R.string.unreadable_period_found_drives
+                )
+            }
+        } else if (drives.isEmpty()) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

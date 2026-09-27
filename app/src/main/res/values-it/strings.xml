@@ -543,6 +543,26 @@
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">Nessuna ricarica trovata per il periodo selezionato</string>
+    <!-- Charges/Drives list: TeslaMateApi rejected the selected period because one entry has missing data (card title) -->
+    <string name="unreadable_period_title_charges">TeslaMateApi non è riuscito a caricare le ricariche di questo periodo</string>
+    <string name="unreadable_period_title_drives">TeslaMateApi non è riuscito a caricare i tragitti di questo periodo</string>
+    <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
+    <string name="unreadable_period_searching">Ricerca della voce che ha causato il problema…</string>
+    <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
+    <string name="unreadable_period_found_charge">Una ricarica del %1$s ha dati mancanti che TeslaMateApi non riesce a gestire (di solito autonomia, livello della batteria, durata, temperatura esterna o contachilometri), quindi rifiuta qualsiasi periodo che includa quel giorno. Succede spesso con ricariche inserite o importate a mano. Completa i valori mancanti in TeslaMate, oppure scegli un periodo che escluda quel giorno.</string>
+    <string name="unreadable_period_found_drive">Un tragitto del %1$s ha dati mancanti che TeslaMateApi non riesce a gestire (di solito distanza, contachilometri, autonomia, velocità massima, potenza, durata o livello della batteria), quindi rifiuta qualsiasi periodo che includa quel giorno. Completa i valori mancanti in TeslaMate, oppure scegli un periodo che escluda quel giorno.</string>
+    <!-- Same as unreadable_period_found_charge/_drive, for several days. %1$s is a list of dates, e.g. "19 Jun 2026 · 3 Jul 2026" -->
+    <string name="unreadable_period_found_charges">Alcune ricariche in questi giorni hanno dati mancanti che TeslaMateApi non riesce a gestire (di solito autonomia, livello della batteria, durata, temperatura esterna o contachilometri), quindi rifiuta qualsiasi periodo che li includa: %1$s. Succede spesso con ricariche inserite o importate a mano. Completa i valori mancanti in TeslaMate, oppure scegli un periodo che escluda quei giorni.</string>
+    <string name="unreadable_period_found_drives">Alcuni tragitti in questi giorni hanno dati mancanti che TeslaMateApi non riesce a gestire (di solito distanza, contachilometri, autonomia, velocità massima, potenza, durata o livello della batteria), quindi rifiuta qualsiasi periodo che li includa: %1$s. Completa i valori mancanti in TeslaMate, oppure scegli un periodo che escluda quei giorni.</string>
+    <!-- Shown under the list of days when the search stopped before checking for more bad days -->
+    <string name="unreadable_period_may_be_more">Potrebbero essercene altri: la ricerca si ferma dopo cinque giorni.</string>
+    <!-- The app could not narrow it down to a day -->
+    <string name="unreadable_period_not_found">Una voce di questo periodo ha dati mancanti che TeslaMateApi non riesce a gestire, quindi rifiuta l\'intero periodo. I log di TeslaMateApi indicano quale.</string>
+    <!-- Charge/drive detail screen: TeslaMateApi can't read this one entry (a missing value in its data points or positions) -->
+    <string name="unreadable_charge_title">TeslaMateApi non riesce a leggere questa ricarica</string>
+    <string name="unreadable_charge_body">Uno dei punti dati registrati durante questa ricarica non ha un valore che TeslaMateApi riesce a gestire, come livello della batteria, autonomia, temperatura esterna o dati del caricatore. Succede spesso con ricariche inserite o importate a mano. Completa i valori mancanti in TeslaMate.</string>
+    <string name="unreadable_drive_title">TeslaMateApi non riesce a leggere questo tragitto</string>
+    <string name="unreadable_drive_body">Una delle posizioni registrate lungo questo tragitto non ha un valore che TeslaMateApi riesce a gestire, come livello della batteria, potenza o contachilometri. Completa i valori mancanti in TeslaMate.</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">Sessioni totali</string>

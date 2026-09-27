@@ -15,7 +15,9 @@ import com.matedroid.data.api.models.UpdateData
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
+import com.matedroid.domain.LocalDayBoundaries
 import com.matedroid.domain.UnitSystem
+import com.matedroid.domain.UnreadableDaySearch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,6 +26,7 @@ import com.squareup.moshi.JsonEncodingException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.LocalDate
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,7 +38,10 @@ sealed class ApiResult<out T> {
     data class Error(
         val message: String,
         val code: Int? = null,
-        val details: String? = null
+        val details: String? = null,
+        // TeslamateAPI answered, but its database query for the whole list failed — typically
+        // one entry with a NULL it can't read. Retrying won't help; the entry must be fixed.
+        val isServerQueryFailure: Boolean = false
     ) : ApiResult<Nothing>()
 }
 
@@ -339,8 +345,20 @@ class TeslamateRepository @Inject constructor(
         show: Int = 50000
     ): ApiResult<List<ChargeData>> =
         executeWithFallback { api ->
-            api.getCharges(carId, startDate, endDate, page = page, show = show)
-                .toResult("charges") { it?.data?.charges ?: emptyList() }
+            val response = api.getCharges(carId, startDate, endDate, page = page, show = show)
+            // An HTTP 200 error body must not read as "no charges": the list screen would show
+            // an empty period and the sync would store nothing and count it a success (#385).
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("charges") { it?.data?.charges ?: emptyList() }
+        }
+
+    /** The days holding charges TeslamateAPI can't read, within [from]..[to]; see [UnreadableDaySearch]. */
+    suspend fun findUnreadableChargeDays(carId: Int, from: LocalDate, to: LocalDate): UnreadableDaySearch.Result? =
+        UnreadableDaySearch.find(from, to) { start, end ->
+            getCharges(carId, LocalDayBoundaries.startOfDay(start), LocalDayBoundaries.endOfDay(end))
+                .isServerQueryFailure()
         }
 
     suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
@@ -367,7 +385,14 @@ class TeslamateRepository @Inject constructor(
     }
 
     suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> =
-        executeWithFallback { api -> api.getChargeDetail(carId, chargeId).toResult("charge detail") { it?.data?.charge } }
+        executeWithFallback { api ->
+            val response = api.getChargeDetail(carId, chargeId)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("charge detail") { it?.data?.charge }
+        }
 
     suspend fun getDrives(
         carId: Int,
@@ -377,12 +402,36 @@ class TeslamateRepository @Inject constructor(
         show: Int = 50000
     ): ApiResult<List<DriveData>> =
         executeWithFallback { api ->
-            api.getDrives(carId, startDate, endDate, page = page, show = show)
-                .toResult("drives") { it?.data?.drives ?: emptyList() }
+            val response = api.getDrives(carId, startDate, endDate, page = page, show = show)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("drives") { it?.data?.drives ?: emptyList() }
         }
 
+    /** The days holding drives TeslamateAPI can't read, within [from]..[to]; see [UnreadableDaySearch]. */
+    suspend fun findUnreadableDriveDays(carId: Int, from: LocalDate, to: LocalDate): UnreadableDaySearch.Result? =
+        UnreadableDaySearch.find(from, to) { start, end ->
+            getDrives(carId, LocalDayBoundaries.startOfDay(start), LocalDayBoundaries.endOfDay(end))
+                .isServerQueryFailure()
+        }
+
+    /** true = the query failed on the server, false = it loaded, null = some other failure. */
+    private fun ApiResult<*>.isServerQueryFailure(): Boolean? = when (this) {
+        is ApiResult.Success -> false
+        is ApiResult.Error -> if (isServerQueryFailure) true else null
+    }
+
     suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> =
-        executeWithFallback { api -> api.getDriveDetail(carId, driveId).toResult("drive detail") { it?.data?.drive } }
+        executeWithFallback { api ->
+            val response = api.getDriveDetail(carId, driveId)
+            // Same HTTP 200 error body as getCharges — see there.
+            response.body()?.error?.let {
+                return@executeWithFallback ApiResult.Error(it, isServerQueryFailure = true)
+            }
+            response.toResult("drive detail") { it?.data?.drive }
+        }
 
     suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> =
         executeWithFallback { api -> api.getBatteryHealth(carId).toResult("battery health") { it?.data?.batteryHealth } }

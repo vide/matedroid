@@ -543,6 +543,26 @@
 
     <!-- Empty state when no charges match filters -->
     <string name="no_charges_found">所选时段内无充电记录</string>
+    <!-- Charges/Drives list: TeslaMateApi rejected the selected period because one entry has missing data (card title) -->
+    <string name="unreadable_period_title_charges">TeslaMateApi 无法加载此时段的充电记录</string>
+    <string name="unreadable_period_title_drives">TeslaMateApi 无法加载此时段的行程记录</string>
+    <!-- Shown while the app narrows the rejected period down to the day holding the bad entry -->
+    <string name="unreadable_period_searching">正在查找导致问题的记录…</string>
+    <!-- %1$s is a date, e.g. "19 Jun 2026". TeslaMate/TeslaMateApi are product names, do not translate -->
+    <string name="unreadable_period_found_charge">%1$s 的一条充电记录缺少 TeslaMateApi 无法处理的数据（通常是续航、电量、时长、室外温度或里程），因此包含该日期的任何时段都会被拒绝。手动录入或导入的充电记录常出现这种情况。请在 TeslaMate 中补全缺失的数值，或选择不包含该日期的时段。</string>
+    <string name="unreadable_period_found_drive">%1$s 的一条行程记录缺少 TeslaMateApi 无法处理的数据（通常是距离、里程、续航、最高速度、功率、时长或电量），因此包含该日期的任何时段都会被拒绝。请在 TeslaMate 中补全缺失的数值，或选择不包含该日期的时段。</string>
+    <!-- Same as unreadable_period_found_charge/_drive, for several days. %1$s is a list of dates, e.g. "19 Jun 2026 · 3 Jul 2026" -->
+    <string name="unreadable_period_found_charges">以下日期的充电记录缺少 TeslaMateApi 无法处理的数据（通常是续航、电量、时长、室外温度或里程），因此包含这些日期的任何时段都会被拒绝：%1$s。手动录入或导入的充电记录常出现这种情况。请在 TeslaMate 中补全缺失的数值，或选择不包含这些日期的时段。</string>
+    <string name="unreadable_period_found_drives">以下日期的行程记录缺少 TeslaMateApi 无法处理的数据（通常是距离、里程、续航、最高速度、功率、时长或电量），因此包含这些日期的任何时段都会被拒绝：%1$s。请在 TeslaMate 中补全缺失的数值，或选择不包含这些日期的时段。</string>
+    <!-- Shown under the list of days when the search stopped before checking for more bad days -->
+    <string name="unreadable_period_may_be_more">可能还有更多：搜索在找到五天后停止。</string>
+    <!-- The app could not narrow it down to a day -->
+    <string name="unreadable_period_not_found">此时段中有一条记录缺少 TeslaMateApi 无法处理的数据，因此整个时段都被拒绝。TeslaMateApi 的日志会显示是哪一条。</string>
+    <!-- Charge/drive detail screen: TeslaMateApi can't read this one entry (a missing value in its data points or positions) -->
+    <string name="unreadable_charge_title">TeslaMateApi 无法读取此充电记录</string>
+    <string name="unreadable_charge_body">此次充电记录的某个数据点缺少 TeslaMateApi 无法处理的数值，例如电量、续航、室外温度或充电桩信息。手动录入或导入的充电记录常出现这种情况。请在 TeslaMate 中补全缺失的数值。</string>
+    <string name="unreadable_drive_title">TeslaMateApi 无法读取此行程</string>
+    <string name="unreadable_drive_body">此行程中记录的某个位置缺少 TeslaMateApi 无法处理的数值，例如电量、功率或里程。请在 TeslaMate 中补全缺失的数值。</string>
 
     <!-- Summary card labels -->
     <string name="total_sessions">总充电次数</string>

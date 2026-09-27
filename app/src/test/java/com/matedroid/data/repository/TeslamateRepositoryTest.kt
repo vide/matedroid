@@ -4,6 +4,9 @@ import com.matedroid.data.api.TeslamateApi
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargeDetailData
 import com.matedroid.data.api.models.ChargeDetailResponse
+import com.matedroid.data.api.models.ChargesData
+import com.matedroid.data.api.models.ChargesResponse
+import com.matedroid.data.api.models.DrivesResponse
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -156,5 +160,56 @@ class TeslamateRepositoryTest {
         assertFalse(repository.isCurrentChargeAvailable(1))
 
         coVerify(exactly = 1) { api.getCurrentCharge(1) }
+    }
+
+    // TeslamateAPI reports a failed list query as HTTP 200 + {"error": ...} (#385).
+
+    @Test
+    fun `a charges error body is an error, not an empty list`() = runTest {
+        coEvery { api.getCharges(1, any(), any(), any(), any()) } returns
+            Response.success(ChargesResponse(error = "Unable to load charges."))
+
+        val result = repository.getCharges(1)
+
+        assertTrue(result is ApiResult.Error)
+        assertEquals("Unable to load charges.", (result as ApiResult.Error).message)
+    }
+
+    @Test
+    fun `a genuinely empty charges list is still a success`() = runTest {
+        coEvery { api.getCharges(1, any(), any(), any(), any()) } returns
+            Response.success(ChargesResponse(data = ChargesData(charges = null)))
+
+        val result = repository.getCharges(1)
+
+        assertTrue(result is ApiResult.Success && result.data.isEmpty())
+    }
+
+    @Test
+    fun `a drives error body is an error, not an empty list`() = runTest {
+        coEvery { api.getDrives(1, any(), any(), any(), any()) } returns
+            Response.success(DrivesResponse(error = "Unable to load drives."))
+
+        assertTrue(repository.getDrives(1) is ApiResult.Error)
+    }
+
+    @Test
+    fun `a charge detail error body is flagged as unreadable`() = runTest {
+        coEvery { api.getChargeDetail(1, 597) } returns
+            Response.success(ChargeDetailResponse(error = "Unable to load charge details."))
+
+        val result = repository.getChargeDetail(1, 597)
+
+        assertTrue(result is ApiResult.Error && result.isServerQueryFailure)
+    }
+
+    @Test
+    fun `an HTTP failure is not flagged as unreadable`() = runTest {
+        coEvery { api.getCharges(1, any(), any(), any(), any()) } returns
+            Response.error(502, "".toResponseBody(null))
+
+        val result = repository.getCharges(1)
+
+        assertTrue(result is ApiResult.Error && !result.isServerQueryFailure)
     }
 }

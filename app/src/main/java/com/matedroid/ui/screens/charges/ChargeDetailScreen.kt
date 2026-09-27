@@ -82,6 +82,7 @@ import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.ChargeComparison
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.screens.common.UnreadableEntryCard
 import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.extractTimeLabels
@@ -147,6 +148,15 @@ fun ChargeDetailScreen(
         } else {
             val context = LocalContext.current
             val teslamateBaseUrl = uiState.teslamateBaseUrl
+            if (uiState.isUnreadable) {
+                UnreadableEntryCard(
+                    titleRes = R.string.unreadable_charge_title,
+                    bodyRes = R.string.unreadable_charge_body,
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(16.dp)
+                )
+            }
             uiState.chargeDetail?.let { detail ->
                 ChargeDetailContent(
                     detail = detail,

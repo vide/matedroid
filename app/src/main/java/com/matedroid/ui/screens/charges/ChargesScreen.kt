@@ -73,6 +73,8 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
+import com.matedroid.ui.screens.common.UnreadablePeriod
+import com.matedroid.ui.screens.common.UnreadablePeriodCard
 import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.ui.components.BarChartData
@@ -149,6 +151,7 @@ fun ChargesScreen(
             } else {
                 ChargesContent(
                     charges = uiState.charges,
+                    unreadablePeriod = uiState.unreadablePeriod,
                     dcChargeIds = uiState.dcChargeIds,
                     processedChargeIds = uiState.processedChargeIds,
                     chartData = uiState.chartData,
@@ -188,6 +191,7 @@ fun ChargesScreen(
 @Composable
 private fun ChargesContent(
     charges: List<ChargeData>,
+    unreadablePeriod: UnreadablePeriod?,
     dcChargeIds: Set<Int>,
     processedChargeIds: Set<Int>,
     chartData: List<ChargeChartData>,
@@ -306,7 +310,16 @@ private fun ChargesContent(
     ) {
         items(headerCount) { index -> headerItems[index]() }
 
-        if (charges.isEmpty()) {
+        if (unreadablePeriod != null) {
+            item {
+                UnreadablePeriodCard(
+                    period = unreadablePeriod,
+                    titleRes = R.string.unreadable_period_title_charges,
+                    foundRes = R.string.unreadable_period_found_charge,
+                    foundManyRes = R.string.unreadable_period_found_charges
+                )
+            }
+        } else if (charges.isEmpty()) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

@@ -26,6 +26,9 @@ import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import com.matedroid.ui.screens.common.ChartGranularity
 import com.matedroid.ui.screens.common.DateFilter
+import com.matedroid.ui.screens.common.UnreadablePeriod
+import com.matedroid.domain.UnreadableDaySearch
+import kotlinx.coroutines.Job
 import com.matedroid.ui.screens.common.buildTimeSeries
 
 enum class DriveDistanceFilter(
@@ -60,6 +63,8 @@ data class DrivesUiState(
     val chartData: List<DriveChartData> = emptyList(),
     val chartGranularity: ChartGranularity = ChartGranularity.MONTHLY,
     val error: String? = null,
+    // Set when TeslamateAPI rejected the whole period over one unreadable drive (#385).
+    val unreadablePeriod: UnreadablePeriod? = null,
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val summary: DrivesSummary = DrivesSummary(),
@@ -95,6 +100,7 @@ class DrivesViewModel @Inject constructor(
     private var carId: Int? = null
     private var showShortDrivesCharges: Boolean = false
     private var allDrives: List<DriveData> = emptyList()
+    private var unreadableSearch: Job? = null
     private var isInitialized: Boolean = false
 
     companion object {
@@ -214,6 +220,7 @@ class DrivesViewModel @Inject constructor(
 
     private fun loadDrives(startDate: LocalDate? = null, endDate: LocalDate? = null) {
         val id = carId ?: return
+        unreadableSearch?.cancel()
 
         viewModelScope.launch {
             val state = _uiState.value
@@ -248,11 +255,34 @@ class DrivesViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             chartGranularity = granularity,
-                            error = null
+                            error = null,
+                            unreadablePeriod = null
                         )
                     }
 
                     applyFiltersAndUpdateState()
+                }
+                is ApiResult.Error if result.isServerQueryFailure -> {
+                    // Don't leave the previous period's drives on screen under this one's filter.
+                    allDrives = emptyList()
+                    _uiState.update { it.copy(unreadablePeriod = UnreadablePeriod(), error = null) }
+                    applyFiltersAndUpdateState()
+                    unreadableSearch = viewModelScope.launch {
+                        val found = repository.findUnreadableDriveDays(
+                            id,
+                            from = startDate ?: UnreadableDaySearch.EARLIEST,
+                            to = endDate ?: LocalDate.now()
+                        )
+                        _uiState.update {
+                            it.copy(
+                                unreadablePeriod = UnreadablePeriod(
+                                    searching = false,
+                                    days = found?.days.orEmpty(),
+                                    mayBeMore = found?.mayBeMore ?: false
+                                )
+                            )
+                        }
+                    }
                 }
                 is ApiResult.Error -> {
                     _uiState.update {
