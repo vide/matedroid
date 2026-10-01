@@ -53,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CustomHeaders
 import com.matedroid.ui.screens.settings.ServerTestResult
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
 import com.matedroid.ui.screens.settings.SettingsPresetPicker
@@ -453,6 +454,7 @@ private fun CustomHeadersEditor(
                 placeholder = { Text(stringResource(R.string.settings_custom_headers_key_placeholder)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                isError = key.isNotBlank() && !CustomHeaders.isValidName(key.trim()),
                 enabled = enabled
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -462,6 +464,7 @@ private fun CustomHeadersEditor(
                 placeholder = { Text(stringResource(R.string.settings_custom_headers_value_placeholder)) },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                isError = !CustomHeaders.isValidValue(value.trim()),
                 visualTransformation = if (valueVisible[index]) {
                     VisualTransformation.None
                 } else {

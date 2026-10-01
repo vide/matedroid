@@ -9,6 +9,7 @@ import com.matedroid.data.api.TeslamateApi
 import com.matedroid.data.demo.DemoTeslamateApi
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CustomHeaders
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
@@ -247,6 +248,9 @@ class TeslamateApiFactory(
         connectTimeoutSeconds: Int = ConnectionTimeout.WITHOUT_FALLBACK_SECONDS,
         customHeaders: Map<String, String> = emptyMap()
     ): OkHttpClient {
+        // Invalid headers make OkHttp throw on its dispatcher thread, crashing the app, so
+        // anything that slipped past Settings validation is dropped here.
+        val safeCustomHeaders = CustomHeaders.sanitize(customHeaders)
         val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
@@ -262,10 +266,8 @@ class TeslamateApiFactory(
                         okhttp3.Credentials.basic(basicAuthUsername, basicAuthPassword))
                 }
                 // Custom headers are applied last so they can override built-in headers if needed
-                for ((key, value) in customHeaders) {
-                    if (key.isNotBlank()) {
-                        requestBuilder.header(key, value)
-                    }
+                for ((key, value) in safeCustomHeaders) {
+                    requestBuilder.header(key, value)
                 }
                 chain.proceed(requestBuilder.build())
             }
@@ -284,6 +286,8 @@ class TeslamateApiFactory(
                 level = HttpLoggingInterceptor.Level.HEADERS
                 // Keep credentials (Bearer token / Basic auth) out of logcat
                 redactHeader("Authorization")
+                // Custom headers usually carry proxy/gateway secrets too
+                safeCustomHeaders.keys.forEach { redactHeader(it) }
             }
             builder.addInterceptor(loggingInterceptor)
         }

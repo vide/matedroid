@@ -348,6 +348,8 @@
     <string name="settings_custom_headers_value_placeholder">Header-Wert</string>
     <string name="settings_custom_headers_add">Header hinzufügen</string>
     <string name="settings_custom_headers_remove">Header entfernen</string>
+    <!-- Error shown when saving a custom HTTP header whose name or value has invalid characters. %1$s is the header name -->
+    <string name="settings_error_custom_header_invalid">Der Header \"%1$s\" enthält Zeichen, die in HTTP-Headern nicht erlaubt sind. Verwende nur einfache ASCII-Buchstaben, Ziffern und Symbole, ohne Leerzeichen im Namen.</string>
     <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
     <string name="settings_connect_timeout_automatic">Automatisch (%1$d s)</string>
     <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->

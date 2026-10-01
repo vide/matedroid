@@ -21,6 +21,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.domain.CostPerKwhBasis
+import com.matedroid.domain.CustomHeaders
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -478,6 +479,14 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
+                CustomHeaders.firstInvalid(_uiState.value.customHeaders)?.let { (name, _) ->
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        error = context.getString(R.string.settings_error_custom_header_invalid, name)
+                    )
+                    return@launch
+                }
+
                 val secondaryUrl = _uiState.value.secondaryServerUrl.trimEnd('/')
 
                 settingsDataStore.saveSettings(
@@ -488,9 +497,7 @@ class SettingsViewModel @Inject constructor(
                     httpBasicAuthPassword = _uiState.value.httpBasicAuthPassword,
                     acceptInvalidCerts = _uiState.value.acceptInvalidCerts,
                     currencyCode = _uiState.value.currencyCode,
-                    customHeaders = _uiState.value.customHeaders
-                        .filter { (key, _) -> key.isNotBlank() }
-                        .toMap()
+                    customHeaders = CustomHeaders.normalize(_uiState.value.customHeaders).toMap()
                 )
 
                 // Trigger sync after settings are saved (handles first-time setup)

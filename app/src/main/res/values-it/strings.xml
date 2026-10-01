@@ -344,6 +344,8 @@
     <string name="settings_custom_headers_value_placeholder">Valore header</string>
     <string name="settings_custom_headers_add">Aggiungi header</string>
     <string name="settings_custom_headers_remove">Rimuovi header</string>
+    <!-- Error shown when saving a custom HTTP header whose name or value has invalid characters. %1$s is the header name -->
+    <string name="settings_error_custom_header_invalid">L\'header \"%1$s\" contiene caratteri non consentiti negli header HTTP. Usa solo lettere, cifre e simboli ASCII semplici, senza spazi nel nome.</string>
 
     <!-- Connect timeout picker (Connection section) -->
     <string name="settings_connect_timeout_label">Timeout di connessione</string>

@@ -344,6 +344,8 @@
     <string name="settings_custom_headers_value_placeholder">Valor de capçalera</string>
     <string name="settings_custom_headers_add">Afegeix capçalera</string>
     <string name="settings_custom_headers_remove">Elimina capçalera</string>
+    <!-- Error shown when saving a custom HTTP header whose name or value has invalid characters. %1$s is the header name -->
+    <string name="settings_error_custom_header_invalid">La capçalera \"%1$s\" conté caràcters no permesos a les capçaleres HTTP. Fes servir només lletres, dígits i símbols ASCII simples, sense espais al nom.</string>
 
     <!-- Connect timeout picker (Connection section) -->
     <string name="settings_connect_timeout_label">Temps d\'espera de connexió</string>
