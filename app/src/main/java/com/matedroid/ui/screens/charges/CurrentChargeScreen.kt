@@ -44,7 +44,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +68,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import androidx.compose.ui.platform.LocalContext
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.FullscreenDualAxisLineChart
 import com.matedroid.ui.components.FullscreenLineChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
@@ -86,11 +88,18 @@ fun CurrentChargeScreen(
     onNavigateBack: () -> Unit,
     viewModel: CurrentChargeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(carId) {
         viewModel.loadCurrentCharge(carId)
+    }
+
+    // Only poll while the screen is actually on screen: the ViewModel outlives ON_STOP, and the
+    // monitor service already follows the charge for the notification while the phone is locked.
+    LifecycleStartEffect(Unit) {
+        viewModel.resumeRefresh()
+        onStopOrDispose { viewModel.pauseRefresh() }
     }
 
     LaunchedEffect(uiState.error) {
@@ -142,6 +151,22 @@ fun CurrentChargeScreen(
         when {
             uiState.isLoading -> {
                 MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
+            }
+            uiState.isChargeStarting && uiState.chargeDetail == null -> {
+                // Car is charging but TeslaMate hasn't published the charge yet —
+                // the ViewModel is polling fast; tell the user instead of bouncing out.
+                Box(modifier = Modifier.padding(padding)) {
+                    MateDroidLoadingPlaceholder()
+                    Text(
+                        text = stringResource(R.string.current_charge_starting),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 32.dp, vertical = 96.dp)
+                    )
+                }
             }
             uiState.isUnsupportedApi -> {
                 FallbackMessage(
@@ -273,10 +298,17 @@ private fun CurrentChargeContent(
             DcUnplugWarningBanner(dcFinishedSince = dcFinishedSince)
         }
 
-        // Charts - always show cards, even with few data points
-        val timeLabels = extractChronoTimeLabels(chronologicalPoints, is24Hour)
-        val powers = chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
-        val batteryLevels = chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
+        // Charts - always show cards, even with few data points.
+        // Derivations are remembered so crosshair-drag recompositions don't recompute them.
+        val timeLabels = remember(chronologicalPoints, is24Hour) {
+            extractChronoTimeLabels(chronologicalPoints, is24Hour)
+        }
+        val powers = remember(chronologicalPoints) {
+            chronologicalPoints.mapNotNull { it.chargerPower?.toFloat() }
+        }
+        val batteryLevels = remember(chronologicalPoints) {
+            chronologicalPoints.mapNotNull { it.batteryLevel?.toFloat() }
+        }
         val fractionToTimeLabel: (Float) -> String = { fraction ->
             val pts = chronologicalPoints
             val index = (fraction * pts.lastIndex).roundToInt().coerceIn(0, pts.lastIndex)
@@ -292,17 +324,20 @@ private fun CurrentChargeContent(
             icon = Icons.Default.Bolt
         ) {
             if (powers.size >= 2) {
-                var yMin = kotlin.math.floor(powers.min())
-                var yMax = kotlin.math.ceil(powers.max())
-                if (yMin == yMax) {
-                    yMin -= 1
-                    yMax += 1
+                val fixedMinMax = remember(powers) {
+                    var yMin = kotlin.math.floor(powers.min())
+                    var yMax = kotlin.math.ceil(powers.max())
+                    if (yMin == yMax) {
+                        yMin -= 1
+                        yMax += 1
+                    }
+                    Pair(yMin, yMax)
                 }
                 FullscreenLineChart(
                     data = powers,
                     color = accentColor,
                     unit = "kW",
-                    fixedMinMax = Pair(yMin, yMax),
+                    fixedMinMax = fixedMinMax,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
@@ -314,8 +349,12 @@ private fun CurrentChargeContent(
 
         // Voltage & Current combined chart (AC only)
         if (!isDcCharge) {
-            val voltages = chronologicalPoints.mapNotNull { it.chargerVoltage?.toFloat() }
-            val currents = chronologicalPoints.mapNotNull { it.chargerCurrent?.toFloat() }
+            val voltages = remember(chronologicalPoints) {
+                chronologicalPoints.mapNotNull { it.chargerVoltage?.toFloat() }
+            }
+            val currents = remember(chronologicalPoints) {
+                chronologicalPoints.mapNotNull { it.chargerCurrent?.toFloat() }
+            }
 
             val vcTitle = stringResource(R.string.voltage_and_current_profile)
             LiveChartCard(
@@ -347,17 +386,20 @@ private fun CurrentChargeContent(
             icon = Icons.Default.BatteryChargingFull
         ) {
             if (batteryLevels.size >= 2) {
-                var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
-                var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
-                if (yMin == yMax) {
-                    yMin -= 1
-                    yMax += 1
+                val fixedMinMax = remember(batteryLevels) {
+                    var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
+                    var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
+                    if (yMin == yMax) {
+                        yMin -= 1
+                        yMax += 1
+                    }
+                    Pair(yMin, yMax)
                 }
                 FullscreenLineChart(
                     data = batteryLevels,
                     color = MaterialTheme.colorScheme.primary,
                     unit = "%",
-                    fixedMinMax = Pair(yMin, yMax),
+                    fixedMinMax = fixedMinMax,
                     timeLabels = timeLabels,
                     externalSelectedFraction = sharedXFraction,
                     onXSelected = { sharedXFraction = it },
@@ -559,7 +601,7 @@ private fun CurrentChargeHeaderCard(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                             }
-                            LiveChargeTypeBadge(isDcCharge = isDcCharge)
+                            ChargeTypeBadge(isDc = isDcCharge)
                         }
                         Text(
                             text = stringResource(R.string.soc_instant_power),
@@ -600,27 +642,6 @@ private fun CurrentChargeHeaderCard(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun LiveChargeTypeBadge(isDcCharge: Boolean) {
-    val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
     }
 }
 

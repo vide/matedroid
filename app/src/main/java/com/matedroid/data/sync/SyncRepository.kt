@@ -21,6 +21,7 @@ import com.matedroid.data.local.entity.SchemaVersion
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ElevationStats
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -47,10 +48,25 @@ class SyncRepository @Inject constructor(
         private const val TAG = "SyncRepository"
         private const val THROTTLE_DELAY_MS = 10L  // Reduced from 100ms
         private const val BATCH_SIZE = 10  // Number of concurrent API calls
+
+        // Incremental summary sync: fetch entries newer than the last sync minus this
+        // overlap (absorbs clock skew, in-progress drives, and recent cost edits)...
+        private const val SUMMARY_OVERLAP_MS = 7L * 24 * 60 * 60 * 1000
+        // ...and do a periodic unfiltered fetch to pick up older server-side edits.
+        private const val FULL_REFRESH_INTERVAL_MS = 7L * 24 * 60 * 60 * 1000
     }
 
     private fun log(message: String) = logCollector.log(TAG, message)
     private fun logError(message: String, error: Throwable? = null) = logCollector.logError(TAG, message, error)
+
+    /**
+     * RFC3339 UTC ("2024-12-07T00:00:00Z") — one of the two formats TeslamateApi's
+     * parseDateParam accepts. The 7-day overlap absorbs any timezone interpretation drift.
+     */
+    private fun formatSyncStartDate(epochMs: Long): String =
+        java.time.Instant.ofEpochMilli(epochMs)
+            .truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+            .toString()
 
     /**
      * Ensure geocoding worker is running or scheduled.
@@ -88,13 +104,27 @@ class SyncRepository @Inject constructor(
         // Phase 1: Sync summaries
         syncManager.updateSummaryProgress(carId, "Fetching drives and charges...")
 
-        val summariesSuccess = syncSummaries(carId)
+        // Incremental fetch when possible: for large histories the unfiltered list endpoints
+        // are a multi-MB download + full-table upsert on EVERY sync.
+        val state = syncManager.getOrCreateSyncState(carId)
+        val now = System.currentTimeMillis()
+        val fullSync = !state.summariesSynced ||
+            state.lastDriveSyncAt == 0L ||
+            state.lastChargeSyncAt == 0L ||
+            now - state.lastFullSummarySyncAt > FULL_REFRESH_INTERVAL_MS
+        val startDate = if (fullSync) {
+            null
+        } else {
+            formatSyncStartDate(minOf(state.lastDriveSyncAt, state.lastChargeSyncAt) - SUMMARY_OVERLAP_MS)
+        }
+
+        val summariesSuccess = syncSummaries(carId, startDate)
         if (!summariesSuccess) {
             syncManager.markSyncError(carId, "Failed to sync summaries")
             return false
         }
 
-        syncManager.markSummariesComplete(carId)
+        syncManager.markSummariesComplete(carId, wasFullSync = fullSync)
 
         // Check if details need syncing
         if (syncManager.areDetailsSynced(carId)) {
@@ -102,19 +132,20 @@ class SyncRepository @Inject constructor(
             return true
         }
 
-        // Phase 2: Sync drive details
-        val driveSuccess = syncDriveDetails(carId)
-        if (!driveSuccess) {
-            syncManager.markSyncError(carId, "Failed to sync drive details")
+        // Phase 2: Sync drive details. Failed items keep no aggregate row, so a retry
+        // reprocesses only them — don't mark the phase complete while failures remain.
+        val driveFailures = syncDriveDetails(carId)
+        if (driveFailures > 0) {
+            syncManager.markSyncError(carId, "$driveFailures drive details failed — will retry")
             return false
         }
 
         syncManager.markDriveDetailsComplete(carId)
 
         // Phase 3: Sync charge details
-        val chargeSuccess = syncChargeDetails(carId)
-        if (!chargeSuccess) {
-            syncManager.markSyncError(carId, "Failed to sync charge details")
+        val chargeFailures = syncChargeDetails(carId)
+        if (chargeFailures > 0) {
+            syncManager.markSyncError(carId, "$chargeFailures charge details failed — will retry")
             return false
         }
 
@@ -129,12 +160,16 @@ class SyncRepository @Inject constructor(
     /**
      * Sync only summaries (Quick Stats).
      * Fast operation - 2 API calls regardless of data size.
+     * [startDate] (RFC3339) limits the fetch to entries newer than it; null fetches everything.
      */
-    suspend fun syncSummaries(carId: Int): Boolean {
-        log("Syncing summaries for car $carId")
+    suspend fun syncSummaries(carId: Int, startDate: String? = null): Boolean {
+        log(
+            if (startDate == null) "Syncing summaries for car $carId (full)"
+            else "Syncing summaries for car $carId (incremental since $startDate)"
+        )
 
         // Fetch and store drives
-        when (val drivesResult = teslamateRepository.getDrives(carId)) {
+        when (val drivesResult = teslamateRepository.getDrives(carId, startDate = startDate)) {
             is ApiResult.Success -> {
                 val summaries = drivesResult.data.map { it.toDriveSummary(carId) }
                 driveSummaryDao.upsertAll(summaries)
@@ -147,7 +182,7 @@ class SyncRepository @Inject constructor(
         }
 
         // Fetch and store charges
-        when (val chargesResult = teslamateRepository.getCharges(carId)) {
+        when (val chargesResult = teslamateRepository.getCharges(carId, startDate = startDate)) {
             is ApiResult.Success -> {
                 val summaries = chargesResult.data.map { it.toChargeSummary(carId) }
                 chargeSummaryDao.upsertAll(summaries)
@@ -167,8 +202,11 @@ class SyncRepository @Inject constructor(
      * Processes drives in parallel batches for improved performance.
      * Locations are enqueued for geocoding incrementally (per batch) and geocoding
      * starts in parallel without blocking drive retrieval.
+     *
+     * @return number of drives whose detail fetch failed (0 = fully synced)
      */
-    suspend fun syncDriveDetails(carId: Int): Boolean {
+    suspend fun syncDriveDetails(carId: Int): Int {
+        var failures = 0
         val unprocessedIds = driveSummaryDao.getUnprocessedDriveIds(carId, SchemaVersion.CURRENT)
         val total = unprocessedIds.size
         log("Processing $total drive details for car $carId (batch size: $BATCH_SIZE)")
@@ -203,6 +241,7 @@ class SyncRepository @Inject constructor(
                     }
                     is ApiResult.Error -> {
                         logError("Drive $driveId failed: ${result.message}")
+                        failures++
                         null
                     }
                 }
@@ -237,7 +276,7 @@ class SyncRepository @Inject constructor(
             }
         }
 
-        return true
+        return failures
     }
 
     /**
@@ -245,11 +284,18 @@ class SyncRepository @Inject constructor(
      * Processes charges in parallel batches for improved performance.
      * Locations are enqueued for geocoding incrementally (per batch) and geocoding
      * starts in parallel without blocking charge retrieval.
+     *
+     * @return number of charges whose detail fetch failed (0 = fully synced)
      */
-    suspend fun syncChargeDetails(carId: Int): Boolean {
+    suspend fun syncChargeDetails(carId: Int): Int {
+        var failures = 0
         val unprocessedIds = chargeSummaryDao.getUnprocessedChargeIds(carId, SchemaVersion.CURRENT)
         val total = unprocessedIds.size
         log("Processing $total charge details for car $carId (batch size: $BATCH_SIZE)")
+
+        // Preload summaries once (they were just written by summary sync) instead of a
+        // per-charge DB read inside the batch loop, which was ~one query per charge.
+        val summariesById = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         // Process in batches
         unprocessedIds.chunked(BATCH_SIZE).forEachIndexed { batchIndex, batch ->
@@ -276,8 +322,8 @@ class SyncRepository @Inject constructor(
                         val aggregate = computeChargeAggregate(carId, result.data)
                         aggregates.add(aggregate)
 
-                        // Get location from charge summary for geocoding
-                        val summary = chargeSummaryDao.get(chargeId)
+                        // Get location from charge summary for geocoding (preloaded above)
+                        val summary = summariesById[chargeId]
                         if (summary != null && summary.latitude != 0.0 && summary.longitude != 0.0) {
                             batchLocations.add(summary.latitude to summary.longitude)
                         }
@@ -285,6 +331,7 @@ class SyncRepository @Inject constructor(
                     is ApiResult.Error -> {
                         logError("Charge $chargeId failed: ${result.message}")
                         // Continue with other charges instead of failing entirely
+                        failures++
                     }
                 }
             }
@@ -318,7 +365,7 @@ class SyncRepository @Inject constructor(
             }
         }
 
-        return true
+        return failures
     }
 
     /**
@@ -341,21 +388,14 @@ class SyncRepository @Inject constructor(
         var maxPower: Int? = null
         var minPower: Int? = null
         var climateOnCount = 0
-        var elevationGain = 0
-        var elevationLoss = 0
-        var prevElevation: Int? = null
+        val elevationChange = ElevationStats.Accumulator()
 
         for (pos in positions) {
             // Elevation
             pos.elevation?.let { elev ->
                 maxElevation = maxOf(maxElevation ?: elev, elev)
                 minElevation = minOf(minElevation ?: elev, elev)
-                prevElevation?.let { prev ->
-                    val diff = elev - prev
-                    if (diff > 0) elevationGain += diff
-                    else elevationLoss += -diff
-                }
-                prevElevation = elev
+                elevationChange.add(elev)
             }
 
             // Temperature
@@ -380,8 +420,10 @@ class SyncRepository @Inject constructor(
 
         val firstPosition = positions.firstOrNull()
         val lastPosition = positions.lastOrNull()
-        val startElevation = firstPosition?.elevation
-        val endElevation = lastPosition?.elevation
+        // The first and last few positions of a drive often carry no elevation yet, so scan for
+        // the outermost ones that do instead of reading straight off the edges.
+        val startElevation = positions.firstNotNullOfOrNull { it.elevation }
+        val endElevation = positions.lastOrNull { it.elevation != null }?.elevation
         val hasElevationData = maxElevation != null
 
         // Extract start/end coordinates for geocoding and trip country resolution
@@ -400,8 +442,8 @@ class SyncRepository @Inject constructor(
             minElevation = minElevation,
             startElevation = startElevation,
             endElevation = endElevation,
-            elevationGain = if (hasElevationData) elevationGain else null,
-            elevationLoss = if (hasElevationData) elevationLoss else null,
+            elevationGain = if (hasElevationData) elevationChange.change.climb else null,
+            elevationLoss = if (hasElevationData) elevationChange.change.descent else null,
             hasElevationData = hasElevationData,
 
             maxInsideTemp = maxInsideTemp,
@@ -502,70 +544,57 @@ class SyncRepository @Inject constructor(
      * Returns the number of unique locations enqueued.
      */
     suspend fun reEnqueueLocationsForGeocoding(carId: Int): Int {
-        val driveLocations = aggregateDao.getDriveLocationsNeedingGeocode(carId)
-            .mapNotNull { it.toLatLon() }
-        val chargeLocations = aggregateDao.getChargeLocationsNeedingGeocode(carId)
-            .mapNotNull { it.toLatLon() }
+        val drives = aggregateDao.getDriveLocationsNeedingGeocode(carId)
+        val charges = aggregateDao.getChargeLocationsNeedingGeocode(carId)
+        log("Found ${drives.size} drive + ${charges.size} charge locations needing geocode")
 
-        val allLocations = driveLocations + chargeLocations
-        log("Found ${driveLocations.size} drive + ${chargeLocations.size} charge locations needing geocode")
-
-        if (allLocations.isEmpty()) {
+        if (drives.isEmpty() && charges.isEmpty()) {
             log("No locations need geocoding")
             return 0
         }
 
-        // First, apply any cached geocode data to aggregates
-        val applied = applyCachedGeocodeData(carId, allLocations)
+        // First, apply any cached geocode data to aggregates. Grouping ids per cached cell
+        // and updating by primary key replaces the old per-cell CAST(lat*100)-matching
+        // UPDATEs, which SQLite could never index (a full table scan per cell, twice).
+        val cacheByGrid = geocodingRepository.getAllCachedByGrid()
+        var applied = 0
+
+        val drivesByCache = drives.groupBy { row ->
+            cacheByGrid[geocodingRepository.toGridCoord(row.latitude) to geocodingRepository.toGridCoord(row.longitude)]
+        }
+        for ((cached, rows) in drivesByCache) {
+            if (cached == null) continue
+            rows.map { it.id }.chunked(500).forEach { ids ->
+                aggregateDao.updateDriveLocationsByIds(ids, cached.countryCode, cached.countryName, cached.regionName, cached.city)
+            }
+            applied += rows.size
+        }
+
+        val chargesByCache = charges.groupBy { row ->
+            cacheByGrid[geocodingRepository.toGridCoord(row.latitude) to geocodingRepository.toGridCoord(row.longitude)]
+        }
+        for ((cached, rows) in chargesByCache) {
+            if (cached == null) continue
+            rows.map { it.id }.chunked(500).forEach { ids ->
+                aggregateDao.updateChargeLocationsByIds(ids, cached.countryCode, cached.countryName, cached.regionName, cached.city)
+            }
+            applied += rows.size
+        }
+
         if (applied > 0) {
             log("Applied cached geocode data to $applied locations")
         }
 
         // Then enqueue any still-uncached locations
-        val enqueued = geocodingRepository.enqueueLocationsForCar(carId, allLocations)
+        val uncached = (drivesByCache[null].orEmpty() + chargesByCache[null].orEmpty())
+            .map { it.latitude to it.longitude }
+        if (uncached.isEmpty()) {
+            log("All locations were served from cache")
+            return 0
+        }
+        val enqueued = geocodingRepository.enqueueLocationsForCar(carId, uncached)
         log("Re-enqueued $enqueued unique locations for geocoding")
         return enqueued
-    }
-
-    /**
-     * Apply cached geocode data to drive/charge aggregates.
-     * This handles the case where geocoding completed but aggregates weren't updated.
-     */
-    private suspend fun applyCachedGeocodeData(carId: Int, locations: List<Pair<Double, Double>>): Int {
-        var appliedCount = 0
-        val uniqueGridCells = locations
-            .map { (lat, lon) ->
-                geocodingRepository.toGridCoord(lat) to geocodingRepository.toGridCoord(lon)
-            }
-            .distinct()
-
-        for ((gridLat, gridLon) in uniqueGridCells) {
-            val cached = geocodingRepository.getFromCacheByGrid(gridLat, gridLon)
-            if (cached != null) {
-                // Update drive aggregates in this grid cell
-                aggregateDao.updateDriveLocationsInGrid(
-                    carId = carId,
-                    gridLat = gridLat,
-                    gridLon = gridLon,
-                    countryCode = cached.countryCode,
-                    countryName = cached.countryName,
-                    regionName = cached.regionName,
-                    city = cached.city
-                )
-                // Update charge aggregates in this grid cell
-                aggregateDao.updateChargeLocationsInGrid(
-                    carId = carId,
-                    gridLat = gridLat,
-                    gridLon = gridLon,
-                    countryCode = cached.countryCode,
-                    countryName = cached.countryName,
-                    regionName = cached.regionName,
-                    city = cached.city
-                )
-                appliedCount++
-            }
-        }
-        return appliedCount
     }
 }
 

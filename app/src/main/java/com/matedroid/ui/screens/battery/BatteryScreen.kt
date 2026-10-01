@@ -44,9 +44,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.AlertDialog
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,7 +87,7 @@ fun BatteryScreen(
     onNavigateBack: () -> Unit,
     viewModel: BatteryViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -100,6 +101,11 @@ fun BatteryScreen(
             snackbarHostState.showSnackbar(error)
             viewModel.clearError()
         }
+    }
+
+    // System back closes the detail overlay instead of popping the whole screen.
+    BackHandler(enabled = uiState.showDetail) {
+        viewModel.hideDetail()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -132,7 +138,7 @@ fun BatteryScreen(
                 if (uiState.isLoading && !uiState.isRefreshing) {
                     MateDroidLoadingPlaceholder(color = palette.accent)
                 } else {
-                    val stats = viewModel.computeStats()
+                    val stats = uiState.stats
                     if (stats != null) {
                         BatteryHealthContent(
                             stats = stats,
@@ -162,7 +168,7 @@ fun BatteryScreen(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it })
         ) {
-            val stats = viewModel.computeStats()
+            val stats = uiState.stats
             if (stats != null) {
                 BatteryDetailScreen(
                     stats = stats,

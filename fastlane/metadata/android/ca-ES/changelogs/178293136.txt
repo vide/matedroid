@@ -1,0 +1,6 @@
+Els números clau del teu viatge ara són directament al mapa. La pantalla de detall s'obre amb un mapa a tota alçada i una barra d'estadístiques a baix.
+
+Afegit:
+- Distància, consum (Wh/km) i cost de càrrega per 100 km, en primer pla al mapa del viatge
+- Toca per obrir el mapa a pantalla completa
+- Arrossega amb dos dits per moure el mapa

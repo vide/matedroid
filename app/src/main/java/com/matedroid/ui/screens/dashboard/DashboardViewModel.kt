@@ -10,6 +10,10 @@ import com.matedroid.data.local.CarImageOverride
 import com.matedroid.data.local.ChargeSessionStateDataStore
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TripCountCache
+import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
+import com.matedroid.domain.SinceLastChargeRepository
+import com.matedroid.domain.SinceLastChargeStats
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import com.matedroid.data.repository.ApiResult
@@ -23,6 +27,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -43,11 +49,19 @@ data class DashboardUiState(
     val carImageOverride: CarImageOverride? = null,
     val carImageOverrides: Map<Int, CarImageOverride> = emptyMap(),
     val isCurrentChargeAvailable: Boolean = false,
+    /** True while the dashboard is showing the built-in sample data rather than a real car. */
+    val isDemoMode: Boolean = false,
     val sentryEventCount: Int = 0,
     val totalTrips: Int? = null,
     /** Most recent detected trip (newest first), for the dashboard's Trips hero teaser. */
     val latestTrip: Trip? = null,
-    val dcFinishedPluggedIn: Boolean = false
+    val dcFinishedPluggedIn: Boolean = false,
+    /** Consumption since the last energy-adding charge; null hides the carousel page. */
+    val sinceLastCharge: SinceLastChargeStats? = null,
+    /** Battery level above which a parked car is flagged; see [HighSocWarning]. */
+    val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    /** Battery level below which the percentage reads as low; see [LowSocWarning]. */
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD
 ) {
     private val selectedCar: CarData?
         get() = cars.find { it.carId == selectedCarId }
@@ -79,13 +93,15 @@ class DashboardViewModel @Inject constructor(
     private val sentryStateRepository: SentryStateRepository,
     private val tripRepository: TripRepository,
     private val tripCountCache: TripCountCache,
-    private val chargeSessionStateDataStore: ChargeSessionStateDataStore
+    private val chargeSessionStateDataStore: ChargeSessionStateDataStore,
+    private val sinceLastChargeRepository: SinceLastChargeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
+    private var autoRefreshCarId: Int? = null
     private var lastGeocodedLocation: Pair<Double, Double>? = null
 
     companion object {
@@ -103,6 +119,28 @@ class DashboardViewModel @Inject constructor(
             loadCars()
         }
         observeCarImageOverrides()
+        observeSocWarningThresholds()
+    }
+
+    /** Kept live rather than read once, so a change in Settings shows on the way back. */
+    private fun observeSocWarningThresholds() {
+        viewModelScope.launch {
+            settingsDataStore.settings
+                .map { it.highSocWarningThreshold to it.lowSocWarningThreshold }
+                .distinctUntilChanged()
+                .collect { (high, low) ->
+                    _uiState.update {
+                        it.copy(highSocWarningThreshold = high, lowSocWarningThreshold = low)
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            settingsDataStore.settings
+                .map { it.isDemoMode }
+                .distinctUntilChanged()
+                .collect { demo -> _uiState.update { it.copy(isDemoMode = demo) } }
+        }
     }
 
     private fun observeCarImageOverrides() {
@@ -171,6 +209,7 @@ class DashboardViewModel @Inject constructor(
                 totalDrives = null,
                 carImageOverride = currentOverrides[carId],
                 isCurrentChargeAvailable = false,
+                sinceLastCharge = null,
                 // Clear any error from a previously-selected car so switching to a
                 // working car doesn't keep showing the stale error (issue #272).
                 error = null,
@@ -209,6 +248,7 @@ class DashboardViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val status = result.data.status
                     val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
@@ -226,6 +266,7 @@ class DashboardViewModel @Inject constructor(
 
             // Pull-to-refresh also re-reads the trip count + latest trip.
             loadTripCount(carId)
+            loadSinceLastCharge(carId)
 
             _uiState.update { it.copy(isRefreshing = false) }
         }
@@ -237,6 +278,7 @@ class DashboardViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val status = result.data.status
                     val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                     _uiState.update {
                         it.copy(
                             carStatus = status,
@@ -256,7 +298,31 @@ class DashboardViewModel @Inject constructor(
             }
         }
         loadCounts(carId)
+        loadSinceLastCharge(carId)
         startAutoRefresh(carId)
+    }
+
+    // Charging state seen by the last status update, per car — a true→false
+    // transition means a charge cycle just ended and the stats must re-anchor.
+    private var lastObservedCharging: Pair<Int, Boolean>? = null
+
+    /** Reload the since-last-charge stats when a charge finishes while the dashboard polls. */
+    private fun detectChargeCycleEnd(carId: Int, status: CarStatus) {
+        val wasCharging = lastObservedCharging?.takeIf { it.first == carId }?.second
+        lastObservedCharging = carId to status.isCharging
+        if (wasCharging == true && !status.isCharging) {
+            loadSinceLastCharge(carId)
+        }
+    }
+
+    private fun loadSinceLastCharge(carId: Int) {
+        viewModelScope.launch {
+            val stats = sinceLastChargeRepository.getStats(carId)
+            // Guard against a car switch while the two API calls were in flight.
+            if (_uiState.value.selectedCarId == carId) {
+                _uiState.update { it.copy(sinceLastCharge = stats) }
+            }
+        }
     }
 
     /**
@@ -314,8 +380,36 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private fun startAutoRefresh(carId: Int) {
+    /** Whether the dashboard is on screen. The status poll only runs while it is. */
+    private var dashboardVisible = false
+
+    /** Resume polling after the dashboard becomes visible again (see [pauseAutoRefresh]). */
+    fun resumeAutoRefresh() {
+        dashboardVisible = true
+        autoRefreshCarId?.let { startAutoRefresh(it) }
+    }
+
+    /** Stop polling while the dashboard is not visible, to avoid off-screen network/CPU/battery cost. */
+    fun pauseAutoRefresh() {
+        dashboardVisible = false
         autoRefreshJob?.cancel()
+        autoRefreshJob = null
+    }
+
+    /**
+     * (Re)arm the 5 s status poll for [carId], but only actually poll while the dashboard is
+     * visible. This is reached from the car-loading path, which completes whether or not the
+     * dashboard is still on screen: opening the app from the charging notification jumps
+     * straight past it to the live charge screen, so its pause hook has already fired before
+     * the poll existed, and the poll then ran for as long as the ViewModel lived — every 5 s,
+     * in the background, for the whole charge. When not visible only the car is remembered,
+     * for [resumeAutoRefresh] to start the poll later.
+     */
+    private fun startAutoRefresh(carId: Int) {
+        autoRefreshCarId = carId
+        autoRefreshJob?.cancel()
+        autoRefreshJob = null
+        if (!dashboardVisible) return
         autoRefreshJob = viewModelScope.launch {
             while (isActive) {
                 delay(AUTO_REFRESH_INTERVAL_MS)
@@ -323,6 +417,7 @@ class DashboardViewModel @Inject constructor(
                     is ApiResult.Success -> {
                         val status = result.data.status
                         val dcFinishedPluggedIn = trackAndComputeDcFinishedPluggedIn(carId, status)
+                    detectChargeCycleEnd(carId, status)
                         _uiState.update {
                             it.copy(
                                 carStatus = status,
@@ -343,12 +438,19 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    private var currentChargeProbeJob: Job? = null
+
+    /**
+     * Find out whether the live-charge screen can be offered. The repository rate-limits the
+     * actual probe; this only avoids stacking a new coroutine on every 5 s tick while the
+     * previous one is still waiting for an answer.
+     */
     private fun checkCurrentChargeAvailability(carId: Int, status: CarStatus) {
-        if (status.isCharging && !_uiState.value.isCurrentChargeAvailable) {
-            viewModelScope.launch {
-                val available = repository.isCurrentChargeAvailable(carId)
-                _uiState.update { it.copy(isCurrentChargeAvailable = available) }
-            }
+        if (!status.isCharging || _uiState.value.isCurrentChargeAvailable) return
+        if (currentChargeProbeJob?.isActive == true) return
+        currentChargeProbeJob = viewModelScope.launch {
+            val available = repository.isCurrentChargeAvailable(carId)
+            _uiState.update { it.copy(isCurrentChargeAvailable = available) }
         }
     }
 

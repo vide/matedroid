@@ -2,7 +2,6 @@ package com.matedroid.ui.screens.wherewasi
 
 import android.content.Intent
 import android.net.Uri
-import android.view.MotionEvent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +58,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.WeatherCondition
@@ -68,11 +66,10 @@ import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.util.formatDuration
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.theme.CarColorPalettes
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +85,7 @@ fun WhereWasIScreen(
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(carId, targetTimestamp) {
         viewModel.load(carId, targetTimestamp)
@@ -213,35 +210,16 @@ fun WhereWasIScreen(
                                     .height(250.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
-                                AndroidView(
-                                    factory = { ctx ->
-                                        MapView(ctx).apply {
-                                            setTileSource(TileSourceFactory.MAPNIK)
-                                            setMultiTouchControls(true)
-                                            // Tell the parent vertical scroll to stop intercepting
-                                            // touches so single-finger drag pans the map instead
-                                            // of scrolling the page.
-                                            setOnTouchListener { v, event ->
-                                                when (event.actionMasked) {
-                                                    MotionEvent.ACTION_DOWN,
-                                                    MotionEvent.ACTION_MOVE,
-                                                    MotionEvent.ACTION_POINTER_DOWN ->
-                                                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                                                    MotionEvent.ACTION_UP,
-                                                    MotionEvent.ACTION_CANCEL ->
-                                                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                                                }
-                                                false
-                                            }
-                                            controller.setZoom(15.0)
-                                            controller.setCenter(GeoPoint(lat, lon))
-                                            val marker = org.osmdroid.views.overlay.Marker(this)
-                                            marker.position = GeoPoint(lat, lon)
-                                            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
-                                            marker.icon = createPinMarkerDrawable(ctx.resources, accentArgb)
-                                            marker.title = youWereHere
-                                            overlays.add(marker)
-                                        }
+                                RouteMapView(
+                                    onMapReady = { mapView ->
+                                        mapView.controller.setZoom(15.0)
+                                        mapView.controller.setCenter(GeoPoint(lat, lon))
+                                        val marker = org.osmdroid.views.overlay.Marker(mapView)
+                                        marker.position = GeoPoint(lat, lon)
+                                        marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                                        marker.icon = createPinMarkerDrawable(mapView.context.resources, accentArgb)
+                                        marker.title = youWereHere
+                                        mapView.overlays.add(marker)
                                     },
                                     modifier = Modifier.fillMaxSize()
                                 )
@@ -417,7 +395,7 @@ fun WhereWasIScreen(
                                     CarActivityState.DRIVING -> {
                                         Row(modifier = Modifier.fillMaxWidth()) {
                                             InfoItem(
-                                                label = stringResource(R.string.speed_profile).split(" ").first(),
+                                                label = stringResource(R.string.speed),
                                                 value = state.speed?.let { "$it ${UnitFormatter.getSpeedUnit(state.units)}" } ?: "—",
                                                 palette = palette,
                                                 modifier = Modifier.weight(1f)
@@ -441,7 +419,7 @@ fun WhereWasIScreen(
                                                 modifier = Modifier.weight(1f)
                                             )
                                             InfoItem(
-                                                label = stringResource(R.string.power_profile).split(" ").first(),
+                                                label = stringResource(R.string.power),
                                                 value = state.chargerPower?.let { "$it kW" } ?: "—",
                                                 palette = palette,
                                                 modifier = Modifier.weight(1f)
@@ -504,8 +482,15 @@ fun WhereWasIScreen(
                                     tint = weatherIconColor(state.weatherCondition!!)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
+                                // Open-meteo always returns \u00B0C (external data, not TeslamateAPI),
+                                // so converting for \u00B0F users is legitimate here.
+                                val displayTemp = if (state.units?.unitOfTemperature == "F") {
+                                    state.weatherTemperature!! * 1.8 + 32
+                                } else {
+                                    state.weatherTemperature!!
+                                }
                                 Text(
-                                    text = "%.1f\u00B0C".format(state.weatherTemperature),
+                                    text = UnitFormatter.formatTemperature(displayTemp, state.units, decimals = 1),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = palette.onSurface

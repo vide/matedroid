@@ -1,0 +1,1 @@
+Tesla-Fahrzeugdaten aus deiner selbst gehosteten Teslamate-Instanz

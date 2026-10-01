@@ -39,18 +39,18 @@ class SentryStateDataStore @Inject constructor(
     private fun lastEventKey(carId: Int) = longPreferencesKey("sentry_last_event_$carId")
     private fun sessionStartedAtKey(carId: Int) = longPreferencesKey("sentry_session_started_$carId")
 
+    private fun Preferences.toSentryState(carId: Int) = SentryState(
+        sentryActive = this[activeKey(carId)] ?: false,
+        eventCount = this[eventCountKey(carId)] ?: 0,
+        lastEventAt = this[lastEventKey(carId)] ?: 0L,
+        sessionStartedAt = this[sessionStartedAtKey(carId)] ?: 0L
+    )
+
     /**
      * Get the current sentry state for a specific car.
      */
     suspend fun getState(carId: Int): SentryState {
-        return context.sentryDataStore.data.map { preferences ->
-            SentryState(
-                sentryActive = preferences[activeKey(carId)] ?: false,
-                eventCount = preferences[eventCountKey(carId)] ?: 0,
-                lastEventAt = preferences[lastEventKey(carId)] ?: 0L,
-                sessionStartedAt = preferences[sessionStartedAtKey(carId)] ?: 0L
-            )
-        }.first()
+        return context.sentryDataStore.data.map { it.toSentryState(carId) }.first()
     }
 
     /**
@@ -67,15 +67,16 @@ class SentryStateDataStore @Inject constructor(
 
     /**
      * Increment the event count and update lastEventAt for a specific car.
+     *
+     * The read-modify-write happens inside a single [DataStore.edit] transaction,
+     * so concurrent callers can't lose increments.
      */
     suspend fun incrementEventCount(carId: Int): SentryState {
-        val current = getState(carId)
-        val updated = current.copy(
-            eventCount = current.eventCount + 1,
-            lastEventAt = System.currentTimeMillis()
-        )
-        saveState(carId, updated)
-        return updated
+        val updated = context.sentryDataStore.edit { preferences ->
+            preferences[eventCountKey(carId)] = (preferences[eventCountKey(carId)] ?: 0) + 1
+            preferences[lastEventKey(carId)] = System.currentTimeMillis()
+        }
+        return updated.toSentryState(carId)
     }
 
     /**

@@ -1,7 +1,9 @@
 package com.matedroid.ui.screens.stats
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.StatsRepository
@@ -9,6 +11,7 @@ import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.model.CountryRecord
 import com.matedroid.domain.model.YearFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,25 +22,18 @@ import javax.inject.Inject
 /**
  * Sorting options for the countries list.
  */
-enum class CountrySortOrder {
-    FIRST_VISIT,    // Chronological by first visit date (default)
-    ALPHABETICAL,   // A-Z by country name
-    DRIVE_COUNT,    // Most drives first
-    DISTANCE,       // Most distance first
-    ENERGY,         // Most energy charged first
-    CHARGES         // Most charges first
-}
 
 data class CountriesVisitedUiState(
     val isLoading: Boolean = true,
     val countries: List<CountryRecord> = emptyList(),
-    val sortOrder: CountrySortOrder = CountrySortOrder.FIRST_VISIT,
+    val sortOrder: GeoSortOrder = GeoSortOrder.FIRST_VISIT,
     val units: Units? = null,
     val error: String? = null
 )
 
 @HiltViewModel
 class CountriesVisitedViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val statsRepository: StatsRepository,
     private val teslamateRepository: TeslamateRepository
 ) : ViewModel() {
@@ -73,14 +69,14 @@ class CountriesVisitedViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Failed to load countries"
+                        error = e.message ?: context.getString(R.string.countries_error_load_failed)
                     )
                 }
             }
         }
     }
 
-    fun setSortOrder(order: CountrySortOrder) {
+    fun setSortOrder(order: GeoSortOrder) {
         val sorted = sortCountries(originalCountries, order)
         _uiState.update {
             it.copy(
@@ -92,15 +88,15 @@ class CountriesVisitedViewModel @Inject constructor(
 
     private fun sortCountries(
         countries: List<CountryRecord>,
-        order: CountrySortOrder
+        order: GeoSortOrder
     ): List<CountryRecord> {
         return when (order) {
-            CountrySortOrder.FIRST_VISIT -> countries.sortedBy { it.firstVisitDate }
-            CountrySortOrder.ALPHABETICAL -> countries.sortedBy { it.countryName }
-            CountrySortOrder.DRIVE_COUNT -> countries.sortedByDescending { it.driveCount }
-            CountrySortOrder.DISTANCE -> countries.sortedByDescending { it.totalDistanceKm }
-            CountrySortOrder.ENERGY -> countries.sortedByDescending { it.totalChargeEnergyKwh }
-            CountrySortOrder.CHARGES -> countries.sortedByDescending { it.chargeCount }
+            GeoSortOrder.FIRST_VISIT -> countries.sortedBy { it.firstVisitDate }
+            GeoSortOrder.ALPHABETICAL -> countries.sortedBy { it.countryName }
+            GeoSortOrder.DRIVE_COUNT -> countries.sortedByDescending { it.driveCount }
+            GeoSortOrder.DISTANCE -> countries.sortedByDescending { it.totalDistanceKm }
+            GeoSortOrder.ENERGY -> countries.sortedByDescending { it.totalChargeEnergyKwh }
+            GeoSortOrder.CHARGES -> countries.sortedByDescending { it.chargeCount }
         }
     }
 }

@@ -42,17 +42,13 @@ interface GeocodeProgressDao {
     @Query("UPDATE geocode_progress SET totalLocations = 0, processedLocations = 0 WHERE carId = :carId")
     suspend fun reset(carId: Int)
 
-    // Delete progress record
-    @Query("DELETE FROM geocode_progress WHERE carId = :carId")
-    suspend fun delete(carId: Int)
-
-    // Sync progress with actual cache count (fixes stale data)
-    // Sets both total and processed to cachedCount, marking geocoding as complete
+    // Queue is empty → nothing is pending, so every car's progress is complete. (The old
+    // variant wrote the GLOBAL cache count into every car's total — wrong for multi-car.)
     @Query("""
         UPDATE geocode_progress
-        SET totalLocations = :cachedCount,
-            processedLocations = :cachedCount,
+        SET processedLocations = totalLocations,
             lastUpdatedAt = :timestamp
+        WHERE processedLocations < totalLocations
     """)
-    suspend fun syncWithCache(cachedCount: Int, timestamp: Long = System.currentTimeMillis())
+    suspend fun markAllComplete(timestamp: Long = System.currentTimeMillis())
 }

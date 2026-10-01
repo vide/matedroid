@@ -1,0 +1,11 @@
+Més ràpida, més lleugera i més precisa: millor rendiment, menys consum de bateria i moltes correccions per a qui fa servir milles.
+
+Canvis:
+- Desplaçament, gràfics i pantalles més fluids
+- Les comprovacions s'alenteixen amb el cotxe aparcat
+- Sincronització incremental en lloc de completa
+
+Corregit:
+- Eficiència, velocitat i distàncies errònies en milles
+- Notificació de càrrega inestable amb dos cotxes
+- Errors de mapa, botó enrere i gràfics

@@ -24,7 +24,9 @@ data class BatteryUiState(
     val units: Units? = null,
     val originalCapacity: Double = 82.0, // Default for Model 3 LR, could be fetched from car details
     val ratedEfficiency: Double = 0.0,
-    val showDetail: Boolean = false
+    val showDetail: Boolean = false,
+    // Derived from batteryHealth/carStatus when they land, so composition never recomputes it
+    val stats: BatteryStats? = null
 )
 
 // Computed battery statistics
@@ -102,7 +104,7 @@ class BatteryViewModel @Inject constructor(
             when {
                 healthResult is ApiResult.Success && statusResult is ApiResult.Success -> {
                     _uiState.update {
-                        it.copy(
+                        val updated = it.copy(
                             isLoading = false,
                             isRefreshing = false,
                             batteryHealth = healthResult.data,
@@ -110,6 +112,7 @@ class BatteryViewModel @Inject constructor(
                             units = statusResult.data.units,
                             error = null
                         )
+                        updated.copy(stats = computeStats(updated))
                     }
                 }
                 healthResult is ApiResult.Error -> {
@@ -134,8 +137,7 @@ class BatteryViewModel @Inject constructor(
         }
     }
 
-    fun computeStats(): BatteryStats? {
-        val state = _uiState.value
+    private fun computeStats(state: BatteryUiState): BatteryStats? {
         val health = state.batteryHealth ?: return null
         val status = state.carStatus
 

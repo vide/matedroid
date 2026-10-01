@@ -3,22 +3,29 @@ package com.matedroid.ui.screens.drives
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.DriveDetail
+import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.data.repository.WeatherPoint
 import com.matedroid.data.repository.WeatherRepository
+import com.matedroid.domain.DriveComparison
+import com.matedroid.domain.DriveComparisonRepository
+import com.matedroid.domain.ElevationStats
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
+import com.matedroid.util.parseIsoDateTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.ZoneOffset
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class DriveDetailUiState(
     val isLoading: Boolean = true,
@@ -28,7 +35,8 @@ data class DriveDetailUiState(
     val stats: DriveDetailStats? = null,
     val weatherPoints: List<WeatherPoint> = emptyList(),
     val isLoadingWeather: Boolean = false,
-    val containingTrip: Pair<Long, Trip>? = null
+    val containingTrip: Pair<Long, Trip>? = null,
+    val comparison: DriveComparison? = null
 )
 
 data class DriveDetailStats(
@@ -40,8 +48,18 @@ data class DriveDetailStats(
     val powerAvg: Double,
     val elevationMax: Int,
     val elevationMin: Int,
-    val elevationGain: Int,
-    val elevationLoss: Int,
+    /** Cumulative metres climbed over the drive, noise-filtered by [ElevationStats]. */
+    val elevationClimb: Int,
+    /** Cumulative metres descended over the drive, noise-filtered by [ElevationStats]. */
+    val elevationDescent: Int,
+    /** End elevation minus start elevation: negative on a net-downhill drive. */
+    val elevationNet: Int,
+    /**
+     * Share of the drive's duration that actually carries elevation samples, 0..1. Below
+     * [ElevationStats.MIN_COVERAGE] every figure above describes only part of the route, and
+     * the screen says so on each elevation surface — see [isElevationPartial].
+     */
+    val elevationCoverage: Double,
     val batteryStart: Int,
     val batteryEnd: Int,
     val batteryUsed: Int,
@@ -52,13 +70,23 @@ data class DriveDetailStats(
     val avgSpeedFromDistance: Double,
     val outsideTempAvg: Double?,
     val insideTempAvg: Double?
-)
+) {
+    /**
+     * True when the elevation figures describe only part of the route, so every elevation
+     * surface has to say which part rather than passing them off as the whole drive.
+     */
+    val isElevationPartial: Boolean get() = elevationCoverage < ElevationStats.MIN_COVERAGE
+
+    /** [elevationCoverage] as a whole percentage, for display alongside the partial figures. */
+    val elevationCoveragePercent: Int get() = (elevationCoverage * 100).roundToInt()
+}
 
 @HiltViewModel
 class DriveDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val weatherRepository: WeatherRepository,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val driveComparisonRepository: DriveComparisonRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DriveDetailUiState())
@@ -78,6 +106,11 @@ class DriveDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val containing = tripRepository.findTripContaining(carId, SavedTripLeg.TYPE_DRIVE, driveId)
             _uiState.update { it.copy(containingTrip = containing) }
+        }
+
+        viewModelScope.launch {
+            val comparison = driveComparisonRepository.findComparable(carId, driveId)
+            _uiState.update { it.copy(comparison = comparison) }
         }
 
         viewModelScope.launch {
@@ -184,11 +217,15 @@ class DriveDetailViewModel @Inject constructor(
         val powerMin = powers.minOrNull() ?: detail.powerMin ?: 0
         val powerAvg = if (powers.isNotEmpty()) powers.average() else 0.0
 
-        // Elevation stats
+        // Elevation stats. Only positions polled from the car carry an elevation, so a drive can
+        // hold elevation for part of its route and nothing for the rest; every figure below then
+        // describes that part only, which is why they are all gated on the coverage check.
         val elevations = positions.mapNotNull { it.elevation }
         val elevationMax = elevations.maxOrNull() ?: 0
         val elevationMin = elevations.minOrNull() ?: 0
-        val (elevationGain, elevationLoss) = calculateElevationChange(elevations)
+        val elevationChange = ElevationStats.of(elevations)
+        val elevationNet = if (elevations.size >= 2) elevations.last() - elevations.first() else 0
+        val coverage = if (elevations.size >= 2) elevationCoverage(positions) else 0.0
 
         // Battery stats
         val batteryLevels = positions.mapNotNull { it.batteryLevel }
@@ -214,8 +251,10 @@ class DriveDetailViewModel @Inject constructor(
             powerAvg = powerAvg,
             elevationMax = elevationMax,
             elevationMin = elevationMin,
-            elevationGain = elevationGain,
-            elevationLoss = elevationLoss,
+            elevationClimb = elevationChange.climb,
+            elevationDescent = elevationChange.descent,
+            elevationNet = elevationNet,
+            elevationCoverage = coverage,
             batteryStart = batteryStart,
             batteryEnd = batteryEnd,
             batteryUsed = batteryUsed,
@@ -229,18 +268,17 @@ class DriveDetailViewModel @Inject constructor(
         )
     }
 
-    private fun calculateElevationChange(elevations: List<Int>): Pair<Int, Int> {
-        if (elevations.size < 2) return Pair(0, 0)
-
-        var gain = 0
-        var loss = 0
-
-        for (i in 1 until elevations.size) {
-            val diff = elevations[i] - elevations[i - 1]
-            if (diff > 0) gain += diff
-            else loss += -diff
+    /** Share of the drive's duration that carries elevation samples, 0..1. */
+    private fun elevationCoverage(positions: List<DrivePosition>): Double {
+        val driveStart = positions.firstNotNullOfOrNull { positionMillis(it) } ?: return 0.0
+        val driveEnd = positions.lastOrNull { positionMillis(it) != null }
+            ?.let { positionMillis(it) } ?: return 0.0
+        val sampleTimes = positions.mapNotNull { position ->
+            position.elevation?.let { positionMillis(position) }
         }
-
-        return Pair(gain, loss)
+        return ElevationStats.coverage(sampleTimes, driveStart, driveEnd)
     }
+
+    private fun positionMillis(position: DrivePosition): Long? =
+        parseIsoDateTime(position.date)?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
 }

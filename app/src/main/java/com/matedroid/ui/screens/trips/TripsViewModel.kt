@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.trips
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.matedroid.data.api.models.Units
+import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
@@ -12,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.matedroid.util.parseIsoDate
@@ -30,7 +32,8 @@ data class TripsUiState(
     val customStartDate: LocalDate? = null,
     val customEndDate: LocalDate? = null,
     val units: Units? = null,
-    val dcChargeIds: Set<Int> = emptySet()
+    val dcChargeIds: Set<Int> = emptySet(),
+    val showShortDrivesCharges: Boolean = false
 )
 
 @HiltViewModel
@@ -38,7 +41,8 @@ class TripsViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val repository: TeslamateRepository,
     private val tripCache: TripCache,
-    private val aggregateDao: AggregateDao
+    private val aggregateDao: AggregateDao,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TripsUiState())
@@ -114,6 +118,10 @@ class TripsViewModel @Inject constructor(
 
     private fun loadTrips(carId: Int) {
         viewModelScope.launch {
+            // Read on each load so toggling the setting is reflected when the screen reloads.
+            val showShort = settingsDataStore.showShortDrivesCharges.first()
+            _uiState.update { it.copy(showShortDrivesCharges = showShort) }
+
             allTrips = tripRepository.getTrips(carId)
 
             val years = allTrips.mapNotNull { parseYear(it.startDate) }

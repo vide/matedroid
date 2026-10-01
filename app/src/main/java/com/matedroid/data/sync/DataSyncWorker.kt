@@ -1,11 +1,7 @@
 package com.matedroid.data.sync
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.ServiceInfo
-import android.os.Build
-import androidx.core.app.NotificationCompat
+import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -14,6 +10,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.ForegroundInfo
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import java.io.IOException
@@ -47,6 +44,29 @@ class DataSyncWorker @AssistedInject constructor(
         const val WORK_NAME = "data_sync_work"
         const val NOTIFICATION_ID = 1001
         const val CHANNEL_ID = "sync_channel"
+
+        /**
+         * Start a sync because the user opened the app. REPLACE so a stuck or backoff-waiting
+         * worker gets a fresh start; an interrupted sync loses little (unprocessed-ID queries
+         * resume where it left off). Deliberately not called from Application.onCreate: that
+         * runs on every process start, including the ones WorkManager triggers for background
+         * jobs, and each one used to cost a sync.
+         */
+        fun enqueueOnAppOpen(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<DataSyncWorker>()
+                .setConstraints(constraints)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .addTag(TAG)
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+            Log.d(TAG, "Enqueued launch sync")
+        }
     }
 
     private fun log(message: String) = logCollector.log(TAG, message)
@@ -61,6 +81,15 @@ class DataSyncWorker @AssistedInject constructor(
 
     // Track if foreground service is available (may fail on Android 14+ from background)
     private var foregroundAvailable = true
+
+    private val foregroundNotifier = WorkerForegroundNotifier(
+        context = applicationContext,
+        channelId = CHANNEL_ID,
+        channelName = "Data Sync",
+        channelDescription = "Background sync for stats data",
+        notificationId = NOTIFICATION_ID,
+        contentTitle = "MateDroid Sync",
+    )
 
     override suspend fun doWork(): Result {
         log("Starting data sync worker (attempt ${runAttemptCount})")
@@ -199,45 +228,6 @@ class DataSyncWorker @AssistedInject constructor(
         }
     }
 
-    /**
-     * Create foreground info for the notification.
-     */
-    private fun createForegroundInfo(progress: String): ForegroundInfo {
-        val context = applicationContext
-
-        // Create notification channel (required for Android 8.0+)
-        createNotificationChannel()
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("MateDroid Sync")
-            .setContentText(progress)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            ForegroundInfo(NOTIFICATION_ID, notification)
-        }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Data Sync",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Background sync for stats data"
-            }
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
+    private fun createForegroundInfo(progress: String): ForegroundInfo =
+        foregroundNotifier.createForegroundInfo(progress)
 }

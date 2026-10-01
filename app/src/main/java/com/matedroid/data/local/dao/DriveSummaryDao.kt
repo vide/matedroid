@@ -6,6 +6,10 @@ import androidx.room.Upsert
 import com.matedroid.data.local.entity.DriveSummary
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Range-parameterized queries: callers wanting all-time results pass
+ * [DateBounds.MIN] / [DateBounds.MAX] as the date bounds.
+ */
 @Dao
 interface DriveSummaryDao {
 
@@ -14,153 +18,97 @@ interface DriveSummaryDao {
     @Upsert
     suspend fun upsertAll(drives: List<DriveSummary>)
 
-    @Upsert
-    suspend fun upsert(drive: DriveSummary)
-
     @Query("SELECT * FROM drives_summary WHERE driveId = :driveId")
     suspend fun get(driveId: Int): DriveSummary?
 
-    @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate DESC")
-    fun observeAll(carId: Int): Flow<List<DriveSummary>>
-
-    @Query("SELECT MAX(driveId) FROM drives_summary WHERE carId = :carId")
-    suspend fun getMaxDriveId(carId: Int): Int?
+    @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate ASC")
+    suspend fun getAllForCar(carId: Int): List<DriveSummary>
 
     @Query("DELETE FROM drives_summary WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)
 
-    /** All drives for a car, ordered chronologically for trip detection. */
-    @Query("SELECT * FROM drives_summary WHERE carId = :carId ORDER BY startDate ASC")
-    suspend fun getAllChronological(carId: Int): List<DriveSummary>
-
     // === Quick Stats Queries ===
 
     // Total count
-    @Query("SELECT COUNT(*) FROM drives_summary WHERE carId = :carId")
-    suspend fun count(carId: Int): Int
-
-    // Flow-based count for real-time progress updates
-    @Query("SELECT COUNT(*) FROM drives_summary WHERE carId = :carId")
-    fun observeCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
-
     @Query("""
         SELECT COUNT(*) FROM drives_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun countInRange(carId: Int, startDate: String, endDate: String): Int
+    suspend fun count(carId: Int, startDate: String, endDate: String): Int
+
+    // Flow-based count for real-time progress updates
+    @Query("SELECT COUNT(*) FROM drives_summary WHERE carId = :carId")
+    fun observeCount(carId: Int): kotlinx.coroutines.flow.Flow<Int>
 
     // Total distance
-    @Query("SELECT COALESCE(SUM(distance), 0) FROM drives_summary WHERE carId = :carId")
-    suspend fun sumDistance(carId: Int): Double
-
     @Query("""
         SELECT COALESCE(SUM(distance), 0) FROM drives_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun sumDistanceInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun sumDistance(carId: Int, startDate: String, endDate: String): Double
 
     // Total energy consumed
-    @Query("SELECT COALESCE(SUM(energyConsumed), 0) FROM drives_summary WHERE carId = :carId")
-    suspend fun sumEnergyConsumed(carId: Int): Double
-
     @Query("""
         SELECT COALESCE(SUM(energyConsumed), 0) FROM drives_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun sumEnergyConsumedInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun sumEnergyConsumed(carId: Int, startDate: String, endDate: String): Double
 
     // Average efficiency
-    @Query("""
-        SELECT COALESCE(SUM(energyConsumed) * 1000 / NULLIF(SUM(distance), 0), 0)
-        FROM drives_summary WHERE carId = :carId
-    """)
-    suspend fun avgEfficiency(carId: Int): Double
-
     @Query("""
         SELECT COALESCE(SUM(energyConsumed) * 1000 / NULLIF(SUM(distance), 0), 0)
         FROM drives_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun avgEfficiencyInRange(carId: Int, startDate: String, endDate: String): Double
+    suspend fun avgEfficiency(carId: Int, startDate: String, endDate: String): Double
 
-    // Max speed ever
-    @Query("SELECT MAX(speedMax) FROM drives_summary WHERE carId = :carId")
-    suspend fun maxSpeed(carId: Int): Int?
-
+    // Max speed
     @Query("""
         SELECT MAX(speedMax) FROM drives_summary
         WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
     """)
-    suspend fun maxSpeedInRange(carId: Int, startDate: String, endDate: String): Int?
+    suspend fun maxSpeed(carId: Int, startDate: String, endDate: String): Int?
 
     // Longest drive (by distance)
     @Query("""
         SELECT * FROM drives_summary
         WHERE carId = :carId
-        ORDER BY distance DESC LIMIT 1
-    """)
-    suspend fun longestDrive(carId: Int): DriveSummary?
-
-    @Query("""
-        SELECT * FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY distance DESC LIMIT 1
     """)
-    suspend fun longestDriveInRange(carId: Int, startDate: String, endDate: String): DriveSummary?
+    suspend fun longestDrive(carId: Int, startDate: String, endDate: String): DriveSummary?
 
     // Drive with max speed
     @Query("""
         SELECT * FROM drives_summary
         WHERE carId = :carId
-        ORDER BY speedMax DESC LIMIT 1
-    """)
-    suspend fun fastestDrive(carId: Int): DriveSummary?
-
-    @Query("""
-        SELECT * FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY speedMax DESC LIMIT 1
     """)
-    suspend fun fastestDriveInRange(carId: Int, startDate: String, endDate: String): DriveSummary?
+    suspend fun fastestDrive(carId: Int, startDate: String, endDate: String): DriveSummary?
 
     // Best efficiency (lowest Wh/km, excluding very short drives)
     @Query("""
         SELECT * FROM drives_summary
         WHERE carId = :carId AND efficiency > 0 AND distance > 5
-        ORDER BY efficiency ASC LIMIT 1
-    """)
-    suspend fun mostEfficientDrive(carId: Int): DriveSummary?
-
-    @Query("""
-        SELECT * FROM drives_summary
-        WHERE carId = :carId AND efficiency > 0 AND distance > 5
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY efficiency ASC LIMIT 1
     """)
-    suspend fun mostEfficientDriveInRange(carId: Int, startDate: String, endDate: String): DriveSummary?
+    suspend fun mostEfficientDrive(carId: Int, startDate: String, endDate: String): DriveSummary?
 
     // Worst efficiency (highest Wh/km)
     @Query("""
         SELECT * FROM drives_summary
         WHERE carId = :carId AND efficiency > 0 AND distance > 5
-        ORDER BY efficiency DESC LIMIT 1
-    """)
-    suspend fun leastEfficientDrive(carId: Int): DriveSummary?
-
-    @Query("""
-        SELECT * FROM drives_summary
-        WHERE carId = :carId AND efficiency > 0 AND distance > 5
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY efficiency DESC LIMIT 1
     """)
-    suspend fun leastEfficientDriveInRange(carId: Int, startDate: String, endDate: String): DriveSummary?
+    suspend fun leastEfficientDrive(carId: Int, startDate: String, endDate: String): DriveSummary?
 
     // Average drive duration
     @Query("SELECT AVG(durationMin) FROM drives_summary WHERE carId = :carId")
@@ -175,47 +123,26 @@ interface DriveSummaryDao {
         SELECT DATE(startDate) as day, COUNT(*) as count
         FROM drives_summary
         WHERE carId = :carId
-        GROUP BY DATE(startDate)
-        ORDER BY count DESC LIMIT 1
-    """)
-    suspend fun busiestDay(carId: Int): BusiestDayResult?
-
-    @Query("""
-        SELECT DATE(startDate) as day, COUNT(*) as count
-        FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         GROUP BY DATE(startDate)
         ORDER BY count DESC LIMIT 1
     """)
-    suspend fun busiestDayInRange(carId: Int, startDate: String, endDate: String): BusiestDayResult?
+    suspend fun busiestDay(carId: Int, startDate: String, endDate: String): BusiestDayResult?
 
     // Count of unique driving days
-    @Query("SELECT COUNT(DISTINCT DATE(startDate)) FROM drives_summary WHERE carId = :carId")
-    suspend fun countDrivingDays(carId: Int): Int
-
     @Query("SELECT COUNT(DISTINCT DATE(startDate)) FROM drives_summary WHERE carId = :carId AND startDate >= :startDate AND startDate < :endDate")
-    suspend fun countDrivingDaysInRange(carId: Int, startDate: String, endDate: String): Int
+    suspend fun countDrivingDays(carId: Int, startDate: String, endDate: String): Int
 
     // Most distance in a single day
     @Query("""
         SELECT DATE(startDate) as day, SUM(distance) as totalDistance
         FROM drives_summary
         WHERE carId = :carId
-        GROUP BY DATE(startDate)
-        ORDER BY totalDistance DESC LIMIT 1
-    """)
-    suspend fun mostDistanceDay(carId: Int): MostDistanceDayResult?
-
-    @Query("""
-        SELECT DATE(startDate) as day, SUM(distance) as totalDistance
-        FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         GROUP BY DATE(startDate)
         ORDER BY totalDistance DESC LIMIT 1
     """)
-    suspend fun mostDistanceDayInRange(carId: Int, startDate: String, endDate: String): MostDistanceDayResult?
+    suspend fun mostDistanceDay(carId: Int, startDate: String, endDate: String): MostDistanceDayResult?
 
     // === Queries for Detail Sync ===
 
@@ -265,27 +192,8 @@ interface DriveSummaryDao {
 
     /**
      * Find the longest gap (in days) between two consecutive drives.
+     * Both drives must be within the date range.
      */
-    @Query("""
-        SELECT
-            prev.driveId as fromDriveId,
-            curr.driveId as toDriveId,
-            CAST(julianday(curr.startDate) - julianday(prev.startDate) AS REAL) as gapDays,
-            prev.startDate as fromDate,
-            curr.startDate as toDate
-        FROM drives_summary curr
-        INNER JOIN drives_summary prev ON prev.carId = curr.carId
-            AND prev.startDate = (
-                SELECT MAX(p.startDate)
-                FROM drives_summary p
-                WHERE p.carId = curr.carId AND p.startDate < curr.startDate
-            )
-        WHERE curr.carId = :carId
-        ORDER BY gapDays DESC
-        LIMIT 1
-    """)
-    suspend fun longestGapBetweenDrives(carId: Int): GapBetweenDrivesResult?
-
     @Query("""
         SELECT
             prev.driveId as fromDriveId,
@@ -306,7 +214,7 @@ interface DriveSummaryDao {
         ORDER BY gapDays DESC
         LIMIT 1
     """)
-    suspend fun longestGapBetweenDrivesInRange(
+    suspend fun longestGapBetweenDrives(
         carId: Int,
         startDate: String,
         endDate: String
@@ -318,19 +226,11 @@ interface DriveSummaryDao {
     @Query("""
         SELECT * FROM drives_summary
         WHERE carId = :carId
-        ORDER BY (startBatteryLevel - endBatteryLevel) DESC
-        LIMIT 1
-    """)
-    suspend fun biggestBatteryDrainDrive(carId: Int): DriveSummary?
-
-    @Query("""
-        SELECT * FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY (startBatteryLevel - endBatteryLevel) DESC
         LIMIT 1
     """)
-    suspend fun biggestBatteryDrainDriveInRange(
+    suspend fun biggestBatteryDrainDrive(
         carId: Int,
         startDate: String,
         endDate: String
@@ -343,18 +243,10 @@ interface DriveSummaryDao {
         SELECT DISTINCT DATE(startDate) as day
         FROM drives_summary
         WHERE carId = :carId
-        ORDER BY day ASC
-    """)
-    suspend fun getDistinctDrivingDays(carId: Int): List<String>
-
-    @Query("""
-        SELECT DISTINCT DATE(startDate) as day
-        FROM drives_summary
-        WHERE carId = :carId
         AND startDate >= :startDate AND startDate < :endDate
         ORDER BY day ASC
     """)
-    suspend fun getDistinctDrivingDaysInRange(carId: Int, startDate: String, endDate: String): List<String>
+    suspend fun getDistinctDrivingDays(carId: Int, startDate: String, endDate: String): List<String>
 }
 
 data class BusiestDayResult(
@@ -376,13 +268,4 @@ data class GapBetweenDrivesResult(
     val gapDays: Double,
     val fromDate: String,
     val toDate: String
-)
-
-/**
- * Result of longest driving streak query.
- */
-data class DrivingStreakResult(
-    val streakDays: Int,
-    val startDate: String,
-    val endDate: String
 )

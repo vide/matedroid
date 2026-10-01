@@ -1,0 +1,9 @@
+Una beta más discreta y segura: refuerzos de seguridad internos y un widget que gasta menos batería.
+
+Cambios:
+- Los botones "Añadir tramo" en las pantallas de viajes ahora dicen "Añadir tramo o carga"
+- El widget solo redibuja su fondo cuando cambia el aspecto del coche o el estado de carga — menos memoria y batería
+
+Seguridad:
+- Las credenciales del servidor ya no se incluyen en las copias de seguridad de Android
+- Los componentes y registros de depuración ya no pueden exponer tu token API

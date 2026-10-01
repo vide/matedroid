@@ -1,0 +1,143 @@
+# Regenerates the README gallery from demo mode on a hosted emulator and opens a pull request
+# with the result. Run it by hand after a UI change; the PR shows the image diffs for review.
+#
+# The capture itself is scripts/screenshots.sh, the same entry point used locally, so this file
+# only provides the emulator and the PR. The google_apis image is rootable, which lets the script
+# pin the device clock and the demo clock together: a same-day re-run produces identical pixels.
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      screens:
+        description: Comma-separated spec ids to capture (empty = all, see ScreenshotSpecs.kt)
+        required: false
+        default: ""
+      clock:
+        description: ISO-8601 instant to pin the clocks to (empty = today 09:00 UTC, a charging phase)
+        required: false
+        default: ""
+      dry_run:
+        description: Capture and upload artifacts only, no pull request
+        type: boolean
+        default: false
+
+# One refresh at a time; a second dispatch queues behind the first.
+concurrency:
+  group: screenshots
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  API_LEVEL: 35
+  TARGET: google_apis
+  ARCH: x86_64
+  # 1080x2400 at 420 dpi, the same geometry as the local AVD the first gallery came from.
+  PROFILE: pixel_6
+  EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -timezone Europe/Madrid
+
+jobs:
+  capture:
+    name: Capture demo-mode screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Hosted Linux runners have KVM; without this rule the emulator falls back to software
+      # virtualisation and never boots in time.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache AVD
+        id: avd-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-${{ env.TARGET }}-${{ env.ARCH }}-${{ env.PROFILE }}-v1
+
+      # Cold boot once and save a snapshot; later runs restore it in seconds.
+      - name: Create AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          profile: ${{ env.PROFILE }}
+          force-avd-creation: false
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          disable-animations: false
+          # The cold boot under software rendering tends to raise "isn't responding" dialogs
+          # for the launcher; make sure the saved snapshot will not raise new ones.
+          script: adb shell settings put global hide_error_dialogs 1
+
+      # The action runs each script line with /bin/sh, hence the single-line call into a bash
+      # helper that holds the retry and the logcat dump.
+      - name: Capture screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SCREENS: ${{ inputs.screens }}
+          # Empty means the script's default (today 09:00 UTC).
+          SCREENSHOT_CLOCK: ${{ inputs.clock }}
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          profile: ${{ env.PROFILE }}
+          force-avd-creation: false
+          emulator-options: ${{ env.EMULATOR_OPTIONS }} -no-snapshot-save
+          disable-animations: true
+          script: bash .github/scripts/capture-screenshots.sh
+
+      # The suite's output directory holds the images and, for failed screens, a hierarchy dump
+      # and a raw frame: the first thing to read when a marker stops matching.
+      - name: Upload capture output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-output
+          if-no-files-found: ignore
+          path: |
+            app/build/outputs/connected_android_test_additional_output/
+            app/build/reports/androidTests/
+            logcat.txt
+
+      - name: Open pull request
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == false
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: main
+          branch: chore/refresh-screenshots
+          delete-branch: true
+          add-paths: |
+            docs/screenshots/*.jpg
+            README.md
+          commit-message: |
+            docs: refresh screenshots from demo mode
+
+            Captured by the Screenshots workflow, run ${{ github.run_id }}.
+          title: "docs: refresh screenshots from demo mode"
+          body: |
+            Gallery images regenerated from demo mode on a hosted emulator by
+            [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+            Review the image diffs and merge if they look right. A run that changed nothing opens no PR.

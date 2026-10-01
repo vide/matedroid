@@ -1,0 +1,9 @@
+Una beta més discreta i segura: reforços de seguretat interns i un widget que gasta menys bateria.
+
+Canvis:
+- Els botons "Afegeix tram" a les pantalles de viatges ara diuen "Afegeix tram o càrrega"
+- El widget només redibuixa el fons quan canvia l'aspecte del cotxe o l'estat de càrrega — menys memòria i bateria
+
+Seguretat:
+- Les credencials del servidor ja no s'inclouen a les còpies de seguretat d'Android
+- Els components i registres de depuració ja no poden exposar el teu token API

@@ -5,20 +5,21 @@ import android.util.Log
 import java.io.File
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
-import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
+import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.sync.ChargingNotificationWorker
-import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.TpmsPressureWorker
+import com.matedroid.domain.CostPerKwhBasis
+import com.matedroid.domain.ShortEntryFilter
+import com.matedroid.domain.UnitSystem
+import com.matedroid.notification.NavigationNotificationManager
 import com.matedroid.notification.SentryNotificationManager
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class MateDroidApp : Application(), Configuration.Provider {
@@ -29,6 +30,14 @@ class MateDroidApp : Application(), Configuration.Provider {
     @Inject
     lateinit var sentryNotificationManager: SentryNotificationManager
 
+    @Inject
+    lateinit var navigationNotificationManager: NavigationNotificationManager
+
+    @Inject
+    lateinit var settingsDataStore: SettingsDataStore
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -37,6 +46,21 @@ class MateDroidApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Restore the last known unit system before any trip detection / filtering runs.
+        appScope.launch {
+            UnitSystem.isImperial = settingsDataStore.isImperial.first()
+        }
+
+        // Restore the user's short drive/charge thresholds and cost basis into their
+        // process-wide mirrors.
+        appScope.launch {
+            val settings = settingsDataStore.settings.first()
+            ShortEntryFilter.minDriveDurationMin = settings.shortDriveMinDurationMin
+            ShortEntryFilter.minDriveDistance = settings.shortDriveMinDistance
+            ShortEntryFilter.minChargeEnergyKwh = settings.shortChargeMinEnergyKwh
+            CostPerKwhBasis.current = settings.costPerKwhBasis
+        }
 
         // Configure OSMDroid tile cache (shared across all map screens)
         org.osmdroid.config.Configuration.getInstance().apply {
@@ -47,48 +71,17 @@ class MateDroidApp : Application(), Configuration.Provider {
             expirationOverrideDuration = 7L * 24 * 60 * 60 * 1000  // 7 days
         }
 
-        // Start background sync on app launch
-        enqueueSyncWork()
-
-        // Schedule periodic TPMS pressure monitoring
+        // Application.onCreate runs on EVERY process start, and WorkManager starts the process
+        // for each background job (widget refresh, TPMS, sync, the charging backstop itself),
+        // so nothing here may assume the user opened the app. The launch sync and the immediate
+        // charging check live in MainActivity.onCreate for that reason; here the schedules are
+        // only made sure to exist, without resetting a chain that is already pending.
         TpmsPressureWorker.schedulePeriodicWork(this)
+        ChargingNotificationWorker.ensureScheduled(this)
 
-        // Schedule periodic charging notification monitoring
-        ChargingNotificationWorker.schedulePeriodicWork(this)
-
-        // Also run an immediate check to cancel stale notifications
-        ChargingNotificationWorker.runNow(this)
-
-        // Create sentry notification channel eagerly so it appears in Android settings
+        // Create the sentry and navigation channels eagerly so they appear in Android
+        // settings, and can be turned off, before the car has ever triggered one.
         sentryNotificationManager.ensureChannelExists()
-    }
-
-    /**
-     * Enqueue background sync work.
-     * Uses KEEP policy to not restart if already running.
-     */
-    private fun enqueueSyncWork() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val syncRequest = OneTimeWorkRequestBuilder<DataSyncWorker>()
-            .setConstraints(constraints)
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                30, // Start with 30 seconds
-                TimeUnit.SECONDS
-            )
-            .addTag(DataSyncWorker.TAG)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniqueWork(
-            DataSyncWorker.WORK_NAME,
-            ExistingWorkPolicy.REPLACE,  // Replace stuck/waiting work with fresh start
-            syncRequest
-        )
-
-        Log.d("MateDroidApp", "Enqueued sync work")
+        navigationNotificationManager.ensureChannelExists()
     }
 }

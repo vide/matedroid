@@ -20,6 +20,10 @@ Visualizza lo stato in tempo reale della tua Tesla su una dashboard accattivante
 
 MateDroid sincronizza i tuoi dati localmente così puoi consultare i tuoi viaggi e ricariche anche senza connessione internet. Perfetto per controllare la cronologia dei viaggi mentre sei in viaggio.
 
+<b>Provala Subito, Senza Configurare Nulla</b>
+
+Non hai ancora un server Teslamate? Tocca "Prova la demo" nella prima schermata ed esplora tutta l'app con un anno di dati di esempio realistici: viaggi, ricariche, una ricarica in corso, statistiche e salute della batteria. Nessun account, nessuna credenziale, niente da installare. Collegherai il tuo server quando vuoi.
+
 <b>Requisiti</b>
 
 Questa app richiede un'installazione funzionante di Teslamate + TeslamateApi:

@@ -28,6 +28,8 @@ import javax.inject.Singleton
 class TripDetector @Inject constructor() {
 
     companion object {
+        // Physical thresholds defined in km; API distances arrive pre-converted (km or mi),
+        // so comparisons scale these through UnitSystem.thresholdKmToUserUnits.
         private const val MICRO_DRIVE_THRESHOLD_KM = 1.0
         private const val MIN_TRIP_DISTANCE_KM = 300.0
         private const val MAX_DRIVE_TO_CHARGE_GAP_MIN = 15L
@@ -44,12 +46,14 @@ class TripDetector @Inject constructor() {
         drives: List<DriveSummary>,
         dcCharges: List<ChargeSummary>
     ): List<Trip> {
-        val realDrives = drives.filter { it.distance >= MICRO_DRIVE_THRESHOLD_KM }
+        val realDrives = drives.filter { it.distance >= UnitSystem.thresholdKmToUserUnits(MICRO_DRIVE_THRESHOLD_KM) }
 
         val events = mutableListOf<Event>()
         realDrives.forEach { events.add(Event.Drive(it)) }
         dcCharges.forEach { events.add(Event.Charge(it)) }
-        events.sortBy { parseDateTime(it.startDate) ?: LocalDateTime.MIN }
+        // Timestamps are uniform ISO-8601, so lexicographic order == chronological order.
+        // Sorting by the raw string avoids parsing a date per comparison.
+        events.sortBy { it.startDate }
 
         val trips = mutableListOf<Trip>()
         var currentDrives = mutableListOf<DriveSummary>()
@@ -122,7 +126,7 @@ class TripDetector @Inject constructor() {
     ) {
         if (drives.size < 2 || charges.isEmpty()) return
         val totalDistance = drives.sumOf { it.distance }
-        if (totalDistance < MIN_TRIP_DISTANCE_KM) return
+        if (totalDistance < UnitSystem.thresholdKmToUserUnits(MIN_TRIP_DISTANCE_KM)) return
         TripAggregator.buildTrip(drives, charges)?.let { trips.add(it) }
     }
 

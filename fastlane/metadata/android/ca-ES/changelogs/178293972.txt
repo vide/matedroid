@@ -1,0 +1,12 @@
+Compara qualsevol trajecte o càrrega amb el teu historial — amb classificacions i percentatges — i mira els números clau de cada viatge al seu mapa.
+
+Afegit:
+- Compara trajectes i càrregues similars, amb estadístiques i classificacions
+- Distància, consum i cost/100km del viatge al mapa — toca per pantalla completa
+- Edita el cost d'una càrrega des del seu detall
+
+Canviat:
+- Pantalles de detall de càrrega i trajecte redissenyades
+
+Corregit:
+- Les càrregues DC ja no s'etiqueten com a AC

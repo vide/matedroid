@@ -4,10 +4,17 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.matedroid.data.demo.DemoMode
+import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CostPerKwhBasis
+import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
+import com.matedroid.domain.ShortEntryFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -51,14 +58,29 @@ data class AppSettings(
     val httpBasicAuthUsername: String = "",
     val httpBasicAuthPassword: String = "",
     val acceptInvalidCerts: Boolean = false,
+    val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
+    val costPerKwhBasis: CostPerKwhBasis = CostPerKwhBasis.DEFAULT,
     val showShortDrivesCharges: Boolean = false,
+    val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+    val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+    val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+    val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
     val teslamateBaseUrl: String = "",
     val lastSelectedCarId: Int? = null,
     val customHeaders: Map<String, String> = emptyMap()
 ) {
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank()
+
+    /**
+     * True while the app is showing the built-in sample dataset instead of talking to a
+     * server. Derived from [serverUrl] rather than stored separately, so the two can never
+     * disagree — see [DemoMode.SERVER_URL].
+     */
+    val isDemoMode: Boolean
+        get() = DemoMode.isDemoUrl(serverUrl)
 
     val hasSecondaryServer: Boolean
         get() = secondaryServerUrl.isNotBlank()
@@ -74,13 +96,32 @@ class SettingsDataStore @Inject constructor(
     private val httpBasicAuthUsernameKey = stringPreferencesKey("http_basic_auth_username")
     private val httpBasicAuthPasswordKey = stringPreferencesKey("http_basic_auth_password")
     private val acceptInvalidCertsKey = booleanPreferencesKey("accept_invalid_certs")
+    private val connectTimeoutSecondsKey = intPreferencesKey("connect_timeout_seconds")
     private val currencyCodeKey = stringPreferencesKey("currency_code")
+    private val costPerKwhBasisKey = stringPreferencesKey("cost_per_kwh_basis")
     private val showShortDrivesChargesKey = booleanPreferencesKey("show_short_drives_charges")
+    private val shortDriveMinDurationKey = intPreferencesKey("short_drive_min_duration_min")
+    private val shortDriveMinDistanceKey = doublePreferencesKey("short_drive_min_distance")
+    private val shortChargeMinEnergyKey = doublePreferencesKey("short_charge_min_energy_kwh")
+    private val highSocWarningThresholdKey = intPreferencesKey("high_soc_warning_threshold")
+    private val lowSocWarningThresholdKey = intPreferencesKey("low_soc_warning_threshold")
     private val teslamateBaseUrlKey = stringPreferencesKey("teslamate_base_url")
     private val lastSelectedCarIdKey = intPreferencesKey("last_selected_car_id")
     private val carImageOverridesKey = stringPreferencesKey("car_image_overrides")
     private val notificationPermissionAskedKey = booleanPreferencesKey("notification_permission_asked")
     private val customHeadersKey = stringPreferencesKey("custom_headers")
+    private val isImperialKey = booleanPreferencesKey("is_imperial")
+
+    /** Last known TeslamateAPI unit system; used to restore [com.matedroid.domain.UnitSystem] at app start. */
+    val isImperial: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[isImperialKey] ?: false
+    }
+
+    suspend fun saveIsImperial(value: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[isImperialKey] = value
+        }
+    }
 
     val notificationPermissionAsked: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[notificationPermissionAskedKey] ?: false
@@ -94,8 +135,20 @@ class SettingsDataStore @Inject constructor(
             httpBasicAuthUsername = preferences[httpBasicAuthUsernameKey] ?: "",
             httpBasicAuthPassword = preferences[httpBasicAuthPasswordKey] ?: "",
             acceptInvalidCerts = preferences[acceptInvalidCertsKey] ?: false,
+            connectTimeoutSeconds = preferences[connectTimeoutSecondsKey] ?: ConnectionTimeout.AUTO,
             currencyCode = preferences[currencyCodeKey] ?: "EUR",
+            costPerKwhBasis = CostPerKwhBasis.fromId(preferences[costPerKwhBasisKey]),
             showShortDrivesCharges = preferences[showShortDrivesChargesKey] ?: false,
+            shortDriveMinDurationMin = preferences[shortDriveMinDurationKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+            shortDriveMinDistance = preferences[shortDriveMinDistanceKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+            shortChargeMinEnergyKwh = preferences[shortChargeMinEnergyKey]
+                ?: ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+            highSocWarningThreshold = preferences[highSocWarningThresholdKey]
+                ?: HighSocWarning.DEFAULT_THRESHOLD,
+            lowSocWarningThreshold = preferences[lowSocWarningThresholdKey]
+                ?: LowSocWarning.DEFAULT_THRESHOLD,
             teslamateBaseUrl = preferences[teslamateBaseUrlKey] ?: "",
             lastSelectedCarId = preferences[lastSelectedCarIdKey],
             customHeaders = parseCustomHeadersJson(preferences[customHeadersKey] ?: "{}")
@@ -198,6 +251,47 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    /**
+     * Seconds OkHttp may spend establishing a connection, or [ConnectionTimeout.AUTO] to let
+     * the presence of a fallback server decide — see [ConnectionTimeout].
+     */
+    suspend fun saveConnectTimeoutSeconds(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[connectTimeoutSecondsKey] = seconds
+        }
+    }
+
+    /**
+     * Enter demo mode, replacing whatever connection was configured.
+     *
+     * The previous server URL and credentials are cleared rather than parked somewhere for
+     * later: demo mode is entered from onboarding, where there is nothing to preserve, and
+     * keeping a shadow copy of someone's API token around for a restore that may never come
+     * is not a trade worth making. Leaving demo mode returns to onboarding.
+     */
+    suspend fun enterDemoMode() {
+        context.dataStore.edit { preferences ->
+            preferences[serverUrlKey] = DemoMode.SERVER_URL
+            preferences[secondaryServerUrlKey] = ""
+            preferences[apiTokenKey] = ""
+            preferences[httpBasicAuthUsernameKey] = ""
+            preferences[httpBasicAuthPasswordKey] = ""
+            preferences.remove(customHeadersKey)
+            preferences[teslamateBaseUrlKey] = ""
+            preferences.remove(lastSelectedCarIdKey)
+        }
+    }
+
+    /** Leave demo mode, putting the app back in its unconfigured first-run state. */
+    suspend fun exitDemoMode() {
+        context.dataStore.edit { preferences ->
+            preferences[serverUrlKey] = ""
+            preferences[teslamateBaseUrlKey] = ""
+            preferences.remove(lastSelectedCarIdKey)
+            preferences.remove(carImageOverridesKey)
+        }
+    }
+
     suspend fun saveServerUrl(url: String) {
         context.dataStore.edit { preferences ->
             preferences[serverUrlKey] = url
@@ -210,9 +304,51 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    suspend fun saveCostPerKwhBasis(basis: CostPerKwhBasis) {
+        context.dataStore.edit { preferences ->
+            preferences[costPerKwhBasisKey] = basis.id
+        }
+    }
+
     suspend fun saveShowShortDrivesCharges(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[showShortDrivesChargesKey] = show
+        }
+    }
+
+    /**
+     * Thresholds behind the "short drive / charge" rule. Distance is stored in the user's
+     * display unit — see [ShortEntryFilter] for why it is not normalised to km.
+     */
+    suspend fun saveShortEntryThresholds(
+        driveMinDurationMin: Int,
+        driveMinDistance: Double,
+        chargeMinEnergyKwh: Double
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[shortDriveMinDurationKey] = driveMinDurationMin
+            preferences[shortDriveMinDistanceKey] = driveMinDistance
+            preferences[shortChargeMinEnergyKey] = chargeMinEnergyKwh
+        }
+    }
+
+    /**
+     * Battery level above which the dashboard flags a high state of charge.
+     * [HighSocWarning.DISABLED] hides the warning altogether — see [HighSocWarning].
+     */
+    suspend fun saveHighSocWarningThreshold(threshold: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[highSocWarningThresholdKey] = threshold
+        }
+    }
+
+    /**
+     * Battery level below which the percentage reads as low (red).
+     * [LowSocWarning.DISABLED] leaves it in the palette colour — see [LowSocWarning].
+     */
+    suspend fun saveLowSocWarningThreshold(threshold: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[lowSocWarningThresholdKey] = threshold
         }
     }
 

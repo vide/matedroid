@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Switch API endpoint via ADB broadcast (debug builds only) -->
+        <receiver
+            android:name=".receiver.DebugEndpointReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.matedroid.SET_ENDPOINT" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

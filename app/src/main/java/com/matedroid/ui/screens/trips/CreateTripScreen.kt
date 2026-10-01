@@ -38,7 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -78,7 +78,7 @@ fun CreateTripScreen(
     onTripCreated: (startDate: String) -> Unit = {},
     viewModel: CreateTripViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDark = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDark)
 
@@ -138,6 +138,7 @@ fun CreateTripScreen(
                     drives = uiState.drives,
                     charges = uiState.charges,
                     dcChargeIds = uiState.dcChargeIds,
+                    units = uiState.units,
                     palette = palette,
                     onRemove = viewModel::removeLeg
                 )
@@ -166,6 +167,7 @@ fun CreateTripScreen(
         AddLegSheet(
             eligible = uiState.eligibleLegs!!,
             dcChargeIds = uiState.dcChargeIds,
+            units = uiState.units,
             palette = palette,
             startInMultiSelect = true,
             onPickLegs = viewModel::pickLegs,
@@ -192,7 +194,7 @@ private fun PreviewSummary(preview: Trip?, units: com.matedroid.data.api.models.
             Spacer(Modifier.height(4.dp))
             val meta = if (preview != null) {
                 val dist = "%,.0f %s".format(
-                    UnitFormatter.formatDistanceValue(preview.totalDistance, units, 0),
+                    preview.totalDistance,
                     UnitFormatter.getDistanceUnit(units)
                 )
                 val dur = formatDuration(LocalContext.current.resources, preview.totalDurationMin)
@@ -262,6 +264,7 @@ private fun LegList(
     drives: List<DriveSummary>,
     charges: List<ChargeSummary>,
     dcChargeIds: Set<Int>,
+    units: com.matedroid.data.api.models.Units?,
     palette: CarColorPalette,
     onRemove: (LegRef) -> Unit
 ) {
@@ -299,8 +302,9 @@ private fun LegList(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "%.1f km · %s".format(
+                                text = "%.1f %s · %s".format(
                                     d.distance,
+                                    UnitFormatter.getDistanceUnit(units),
                                     formatDuration(context.resources, d.durationMin)
                                 ),
                                 style = MaterialTheme.typography.labelSmall,

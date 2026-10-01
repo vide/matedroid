@@ -1,0 +1,15 @@
+Nuevo menú de accesos arriba a la derecha, creación manual de viajes y mapa de Ubicación a pantalla completa, para abrir en Maps con un toque.
+
+Añadido:
+- Menú: Stats, Salud batería, ¿Dónde estuve?, Sentry, Ajustes
+- Crea un viaje a mano desde la lista de viajes
+
+Cambiado:
+- Tarjeta de Actividad reorganizada; ruedas en su tarjeta
+
+Corregido:
+- Carga en vivo al instante tras enchufar
+- Valores del tooltip tensión/corriente restaurados
+
+Seguridad:
+- Credenciales ya no en backups de Android

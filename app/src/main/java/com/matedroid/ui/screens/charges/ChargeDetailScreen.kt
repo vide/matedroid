@@ -2,10 +2,12 @@ package com.matedroid.ui.screens.charges
 
 import android.content.Intent
 import android.net.Uri
-import android.view.MotionEvent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,16 +20,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.EnergySavingsLeaf
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Schedule
@@ -46,39 +53,45 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.ChargeComparison
 import com.matedroid.domain.model.UnitFormatter
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.FullscreenLineChart
+import com.matedroid.ui.components.extractTimeLabels
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
 import com.matedroid.ui.components.createPinMarkerDrawable
 import com.matedroid.ui.screens.trips.displayName
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import com.matedroid.ui.theme.CarColorPalette
+import com.matedroid.ui.theme.CarColorPalettes
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
@@ -93,9 +106,10 @@ fun ChargeDetailScreen(
     exteriorColor: String? = null,
     onNavigateBack: () -> Unit,
     onNavigateToTripDetail: (tripStartDate: String) -> Unit = {},
+    onNavigateToCompare: (baseChargeId: Int) -> Unit = {},
     viewModel: ChargeDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(carId, chargeId) {
@@ -131,6 +145,8 @@ fun ChargeDetailScreen(
         if (uiState.isLoading) {
             MateDroidLoadingPlaceholder(modifier = Modifier.padding(padding))
         } else {
+            val context = LocalContext.current
+            val teslamateBaseUrl = uiState.teslamateBaseUrl
             uiState.chargeDetail?.let { detail ->
                 ChargeDetailContent(
                     detail = detail,
@@ -138,9 +154,18 @@ fun ChargeDetailScreen(
                     units = uiState.units,
                     currencySymbol = uiState.currencySymbol,
                     isDcCharge = uiState.isDcCharge,
+                    exteriorColor = exteriorColor,
                     containingTrip = uiState.containingTrip,
+                    comparison = uiState.comparison,
+                    onCompareClick = { onNavigateToCompare(chargeId) },
                     onNavigateToTripDetail = onNavigateToTripDetail,
                     onRemoveFromTrip = viewModel::removeFromTrip,
+                    onEditCost = if (teslamateBaseUrl.isNotBlank()) {
+                        {
+                            val url = "$teslamateBaseUrl/charge-cost/$chargeId"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    } else null,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -155,11 +180,16 @@ private fun ChargeDetailContent(
     units: Units?,
     currencySymbol: String,
     isDcCharge: Boolean,
+    exteriorColor: String?,
     containingTrip: Pair<Long, com.matedroid.domain.model.Trip>?,
+    comparison: ChargeComparison?,
+    onCompareClick: () -> Unit,
     onNavigateToTripDetail: (String) -> Unit,
     onRemoveFromTrip: () -> Unit,
+    onEditCost: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val palette = CarColorPalettes.forExteriorColor(exteriorColor, isSystemInDarkTheme())
     val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
     val scrollState = rememberScrollState()
     var sharedXFraction by remember { mutableStateOf<Float?>(null) }
@@ -167,6 +197,22 @@ private fun ChargeDetailContent(
     LaunchedEffect(scrollState) {
         snapshotFlow { scrollState.isScrollInProgress }
             .collect { isScrolling -> if (isScrolling) sharedXFraction = null }
+    }
+
+    // Chart time labels are shared by the primary power chart and the secondary charts.
+    // Remembered so crosshair-drag recompositions don't re-parse every point's date.
+    val chargePoints = detail.chargePoints
+    val timeLabels = remember(chargePoints, is24Hour) {
+        chargePoints?.takeIf { it.size > 2 }
+            ?.let { pts -> extractTimeLabels(pts.map { it.date }, is24Hour) } ?: emptyList()
+    }
+    val fractionToTimeLabel: (Float) -> String = label@{ fraction ->
+        val cp = chargePoints
+        if (cp == null || cp.size <= 2) return@label ""
+        val index = (fraction * cp.lastIndex).roundToInt().coerceIn(0, cp.lastIndex)
+        cp[index].date?.let { dateStr ->
+            parseIsoDateTime(dateStr)?.formatTime(java.util.Locale.getDefault(), is24Hour) ?: ""
+        } ?: ""
     }
 
     Column(
@@ -177,10 +223,72 @@ private fun ChargeDetailContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Location header card
-        LocationHeaderCard(detail = detail, currencySymbol = currencySymbol, isDcCharge = isDcCharge)
+        // Hero: location, headline energy/power, key meta, AC/DC badge
+        ChargeHeroSection(
+            detail = detail,
+            stats = stats,
+            isDcCharge = isDcCharge,
+            currencySymbol = currencySymbol,
+            palette = palette,
+            is24Hour = is24Hour,
+            onEditCost = onEditCost
+        )
 
-        // Part-of-trip banner
+        // Accent stat tiles — the headline secondary figures
+        stats?.let { s ->
+            ChargeStatTiles(stats = s, units = units, palette = palette)
+        }
+
+        // Compare entry — appears for DC charges with comparable sessions nearby
+        comparison?.let { cmp ->
+            ChargeCompareCard(comparison = cmp, palette = palette, onClick = onCompareClick)
+        }
+
+        // Primary chart: power curve, accent-tinted by charge type (DC orange / AC green)
+        val cp = chargePoints
+        val hasPower = remember(cp) { cp?.any { (it.chargerPower ?: 0) > 0 } == true }
+        if (cp != null && cp.size > 2 && hasPower) {
+            MetricChartCard(
+                chargePoints = cp,
+                metricValue = { it.chargerPower?.toFloat() },
+                title = stringResource(R.string.power_profile),
+                icon = Icons.Default.Bolt,
+                color = if (isDcCharge) palette.dcColor else palette.acColor,
+                unit = "kW",
+                timeLabels = timeLabels,
+                externalSelectedFraction = sharedXFraction,
+                onXSelected = { sharedXFraction = it },
+                fractionToTimeLabel = fractionToTimeLabel
+            )
+        }
+
+        // Map showing charge location
+        if (detail.latitude != null && detail.longitude != null) {
+            ChargeMapCard(
+                latitude = detail.latitude,
+                longitude = detail.longitude,
+                accent = palette.accent
+            )
+        }
+
+        // Everything else, tucked away behind a tap by default
+        stats?.let { s ->
+            ChargeMoreDetails(
+                stats = s,
+                units = units,
+                isDcCharge = isDcCharge,
+                currencySymbol = currencySymbol,
+                palette = palette,
+                chargePoints = chargePoints?.takeIf { it.size > 2 },
+                timeLabels = timeLabels,
+                sharedXFraction = sharedXFraction,
+                onXSelected = { sharedXFraction = it },
+                fractionToTimeLabel = fractionToTimeLabel,
+                onEditCost = onEditCost
+            )
+        }
+
+        // Part-of-trip banner — kept at the very end, below the details
         if (containingTrip != null) {
             val (_, trip) = containingTrip
             com.matedroid.ui.components.PartOfTripCard(
@@ -190,366 +298,502 @@ private fun ChargeDetailContent(
             )
         }
 
-        // Map showing charge location
-        if (detail.latitude != null && detail.longitude != null) {
-            ChargeMapCard(latitude = detail.latitude, longitude = detail.longitude)
-        }
-
-        // Stats grid
-        stats?.let { s ->
-            // Localized labels
-            val energyLabel = stringResource(R.string.energy)
-            val batteryLabel = stringResource(R.string.battery)
-            val powerLabel = stringResource(R.string.power)
-            val chargerLabel = stringResource(R.string.charger)
-            val temperatureLabel = stringResource(R.string.temperature)
-            val costLabel = stringResource(R.string.cost)
-            val addedLabel = stringResource(R.string.energy_added)
-            val usedLabel = stringResource(R.string.used)
-            val efficiencyLabel = stringResource(R.string.efficiency)
-            val startLabel = stringResource(R.string.start)
-            val endLabel = stringResource(R.string.end)
-            val durationLabel = stringResource(R.string.duration)
-            val maximumLabel = stringResource(R.string.maximum)
-            val minimumLabel = stringResource(R.string.minimum)
-            val averageLabel = stringResource(R.string.average)
-            val voltageMaxLabel = stringResource(R.string.voltage_max)
-            val voltageMinLabel = stringResource(R.string.voltage_min)
-            val voltageAvgLabel = stringResource(R.string.voltage_avg)
-            val currentMaxLabel = stringResource(R.string.current_max)
-            val currentMinLabel = stringResource(R.string.current_min)
-            val currentAvgLabel = stringResource(R.string.current_avg)
-            val totalLabel = stringResource(R.string.total)
-            val perKwhLabel = stringResource(R.string.per_kwh)
-
-            // Energy section
-            StatsSectionCard(
-                title = energyLabel,
-                icon = Icons.Default.EnergySavingsLeaf,
-                stats = listOf(
-                    StatItem(addedLabel, "%.2f kWh".format(s.energyAdded)),
-                    StatItem(usedLabel, "%.2f kWh".format(s.energyUsed)),
-                    StatItem(efficiencyLabel, "%.1f%%".format(s.efficiency))
-                )
-            )
-
-            // Battery section
-            StatsSectionCard(
-                title = batteryLabel,
-                icon = Icons.Default.BatteryChargingFull,
-                stats = listOf(
-                    StatItem(startLabel, "${s.batteryStart}%"),
-                    StatItem(endLabel, "${s.batteryEnd}%"),
-                    StatItem(addedLabel, "+${s.batteryAdded}%"),
-                    StatItem(durationLabel, formatDurationCompact(s.durationMin))
-                )
-            )
-
-            // Power section
-            if (s.powerMax > 0) {
-                StatsSectionCard(
-                    title = powerLabel,
-                    icon = Icons.Default.Bolt,
-                    stats = listOf(
-                        StatItem(maximumLabel, "${s.powerMax} kW"),
-                        StatItem(minimumLabel, "${s.powerMin} kW"),
-                        StatItem(averageLabel, "%.1f kW".format(s.powerAvg))
-                    )
-                )
-            }
-
-            // Voltage & Current section
-            // Shown only for AC charges
-            if (!isDcCharge) {
-                StatsSectionCard(
-                    title = chargerLabel,
-                    icon = Icons.Default.ElectricalServices,
-                    stats = listOf(
-                        StatItem(voltageMaxLabel, "${s.voltageMax} V"),
-                        StatItem(voltageMinLabel, "${s.voltageMin} V"),
-                        StatItem(voltageAvgLabel, "%.0f V".format(s.voltageAvg)),
-                        StatItem(currentMaxLabel, "${s.currentMax} A"),
-                        StatItem(currentMinLabel, "${s.currentMin} A"),
-                        StatItem(currentAvgLabel, "%.1f A".format(s.currentAvg))
-                    )
-                )
-            }
-
-            // Temperature section
-            if (s.tempMax > -100) {
-                StatsSectionCard(
-                    title = temperatureLabel,
-                    icon = Icons.Default.DeviceThermostat,
-                    stats = listOf(
-                        StatItem(maximumLabel, UnitFormatter.formatTemperature(s.tempMax, units)),
-                        StatItem(minimumLabel, UnitFormatter.formatTemperature(s.tempMin, units)),
-                        StatItem(averageLabel, UnitFormatter.formatTemperature(s.tempAvg, units))
-                    )
-                )
-            }
-
-            // Cost section
-            s.cost?.let { cost ->
-                if (cost > 0) {
-                    StatsSectionCard(
-                        title = costLabel,
-                        icon = Icons.Default.Paid,
-                        stats = listOf(
-                            StatItem(totalLabel, "$currencySymbol%.2f".format(cost)),
-                            StatItem(perKwhLabel, "$currencySymbol%.3f".format(cost / s.energyAdded.coerceAtLeast(0.001)))
-                        )
-                    )
-                }
-            }
-
-            // Charts
-            val chargePoints = detail.chargePoints
-            if (!chargePoints.isNullOrEmpty() && chargePoints.size > 2) {
-                // Extract time range for labels
-                val timeLabels = extractTimeLabels(chargePoints, is24Hour)
-                val fractionToTimeLabel: (Float) -> String = { fraction ->
-                    val index = (fraction * chargePoints.lastIndex).roundToInt().coerceIn(0, chargePoints.lastIndex)
-                    chargePoints[index].date?.let { dateStr ->
-                        parseIsoDateTime(dateStr)?.formatTime(java.util.Locale.getDefault(), is24Hour) ?: ""
-                    } ?: ""
-                }
-
-                // Localized chart titles
-                val powerProfileTitle = stringResource(R.string.power_profile)
-                val voltageProfileTitle = stringResource(R.string.voltage_profile)
-                val currentProfileTitle = stringResource(R.string.current_profile)
-                val batteryLevelTitle = stringResource(R.string.battery_level)
-
-                if (chargePoints.any { (it.chargerPower ?: 0) > 0 }) {
-                    PowerChartCard(
-                        chargePoints = chargePoints,
-                        timeLabels = timeLabels,
-                        title = powerProfileTitle,
-                        externalSelectedFraction = sharedXFraction,
-                        onXSelected = { sharedXFraction = it },
-                        fractionToTimeLabel = fractionToTimeLabel
-                    )
-                }
-                // Only show voltage and current charts for AC charges
-                if (!isDcCharge) {
-                    if (chargePoints.any { (it.chargerVoltage ?: 0) > 0 }) {
-                        VoltageChartCard(
-                            chargePoints = chargePoints,
-                            timeLabels = timeLabels,
-                            title = voltageProfileTitle,
-                            externalSelectedFraction = sharedXFraction,
-                            onXSelected = { sharedXFraction = it },
-                            fractionToTimeLabel = fractionToTimeLabel
-                        )
-                    }
-                    if (chargePoints.any { (it.chargerCurrent ?: 0) > 0 }) {
-                        CurrentChartCard(
-                            chargePoints = chargePoints,
-                            timeLabels = timeLabels,
-                            title = currentProfileTitle,
-                            externalSelectedFraction = sharedXFraction,
-                            onXSelected = { sharedXFraction = it },
-                            fractionToTimeLabel = fractionToTimeLabel
-                        )
-                    }
-                }
-                if (chargePoints.any { it.outsideTemp != null }) {
-                    TemperatureChartCard(
-                        chargePoints = chargePoints,
-                        units = units,
-                        timeLabels = timeLabels,
-                        title = temperatureLabel,
-                        externalSelectedFraction = sharedXFraction,
-                        onXSelected = { sharedXFraction = it },
-                        fractionToTimeLabel = fractionToTimeLabel
-                    )
-                }
-                if (chargePoints.any { it.batteryLevel != null }) {
-                    BatteryChartCard(
-                        chargePoints = chargePoints,
-                        timeLabels = timeLabels,
-                        title = batteryLevelTitle,
-                        externalSelectedFraction = sharedXFraction,
-                        onXSelected = { sharedXFraction = it },
-                        fractionToTimeLabel = fractionToTimeLabel
-                    )
-                }
-            }
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+/**
+ * Compact hero: location, the dominant figure (energy added) in the car's accent colour, a
+ * balanced row of labelled key figures (peak power, battery swing, duration), and a footer with
+ * the start time and the (editable) cost. Replaces the old verbose header.
+ */
 @Composable
-private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isDcCharge: Boolean) {
-    val is24Hour = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
-    val locationLabel = stringResource(R.string.location)
+private fun ChargeHeroSection(
+    detail: ChargeDetail,
+    stats: ChargeDetailStats?,
+    isDcCharge: Boolean,
+    currencySymbol: String,
+    palette: CarColorPalette,
+    is24Hour: Boolean,
+    onEditCost: (() -> Unit)? = null
+) {
     val unknownLocationLabel = stringResource(R.string.unknown_location)
-    val startedLabel = stringResource(R.string.started)
-    val endedLabel = stringResource(R.string.ended)
-    val energyAddedLabel = stringResource(R.string.energy_added_header)
-    val costLabel = stringResource(R.string.cost)
     val unknownLabel = stringResource(R.string.unknown)
+    val freeLabel = stringResource(R.string.charge_free)
+    val peakLabel = stringResource(R.string.peak)
+    val batteryLabel = stringResource(R.string.battery)
+    val durationLabel = stringResource(R.string.duration)
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Location
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = locationLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = detail.address ?: unknownLocationLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 36.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        // Location
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = palette.accent
             )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = detail.address ?: unknownLocationLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
+        }
 
-            // Start time
+        // Dominant figure: energy added, with the AC/DC badge on the right
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "%.1f".format(detail.chargeEnergyAdded ?: 0.0),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.accent
+                )
+                Text(
+                    text = " kWh",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 2.dp, bottom = 3.dp)
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            ChargeTypeBadge(isDc = isDcCharge)
+        }
+
+        // Balanced row of labelled key figures
+        if (stats != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (stats.powerMax > 0) {
+                    HeroStat(
+                        label = peakLabel,
+                        value = "${stats.powerMax} kW",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                HeroStat(
+                    label = batteryLabel,
+                    value = "${stats.batteryStart}% → ${stats.batteryEnd}%",
+                    modifier = Modifier.weight(1f)
+                )
+                HeroStat(
+                    label = durationLabel,
+                    value = formatDurationCompact(stats.durationMin),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        // Footer: start time (left) and cost (right, tappable to edit in TeslaMate)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Schedule,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = startedLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = formatDateTime(detail.startDate, unknownLabel, is24Hour),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = formatDateTime(detail.startDate, unknownLabel, is24Hour),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            // End time
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = endedLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = formatDateTime(detail.endDate, unknownLabel, is24Hour),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    detail.durationStr?.let { duration ->
-                        Text(
-                            text = stringResource(R.string.duration_label, duration),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-
-            // Energy added and cost summary
-            detail.chargeEnergyAdded?.let { energy ->
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 36.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-                )
-
+            val cost = detail.cost ?: 0.0
+            if (cost > 0 || onEditCost != null) {
+                val costText = if (cost > 0) "$currencySymbol%.2f".format(cost) else freeLabel
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = if (onEditCost != null) {
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onEditCost)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    } else Modifier
                 ) {
-                    // Energy Added (left side) with AC/DC badge
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = costText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (onEditCost != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
-                            imageVector = Icons.Default.Power,
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = Color(0xFF4CAF50)
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = energyAddedLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A single labelled figure: small uppercase label over a bold value. Left-aligned in a column. */
+@Composable
+private fun HeroStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = label.uppercase(java.util.Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
+    }
+}
+
+/** A single row of accent tiles for the secondary "quality" figures (avg power, efficiency, temp). */
+@Composable
+private fun ChargeStatTiles(
+    stats: ChargeDetailStats,
+    units: Units?,
+    palette: CarColorPalette
+) {
+    val avgLabel = stringResource(R.string.average)
+    val efficiencyLabel = stringResource(R.string.efficiency)
+    val temperatureLabel = stringResource(R.string.temperature)
+
+    val tiles = buildList {
+        if (stats.powerMax > 0) add(avgLabel to "${stats.powerAvg.roundToInt()} kW")
+        add(efficiencyLabel to "${stats.efficiency.roundToInt()}%")
+        if (stats.tempMax > -100) add(temperatureLabel to UnitFormatter.formatTemperature(stats.tempAvg, units))
+    }
+    if (tiles.isEmpty()) return
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        tiles.forEach { (label, value) ->
+            ChargeStatTile(
+                label = label,
+                value = value,
+                accent = palette.accent,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChargeStatTile(
+    label: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(vertical = 12.dp, horizontal = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label.uppercase(java.util.Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = accent,
+            maxLines = 1
+        )
+    }
+}
+
+/** Entry point into the charge-comparison screen, shown only for DC charges with nearby siblings. */
+@Composable
+private fun ChargeCompareCard(
+    comparison: ChargeComparison,
+    palette: CarColorPalette,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.accent.copy(alpha = 0.12f))
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(palette.accent.copy(alpha = 0.20f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Insights,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.compare_charges_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.compare_sessions_nearby,
+                    comparison.others.size,
+                    comparison.others.size
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * Collapsible section holding the detailed stat cards and the secondary charts. Collapsed by
+ * default to keep the screen calm; the headline figures live in the hero and tiles above.
+ */
+@Composable
+private fun ChargeMoreDetails(
+    stats: ChargeDetailStats,
+    units: Units?,
+    isDcCharge: Boolean,
+    currencySymbol: String,
+    palette: CarColorPalette,
+    chargePoints: List<ChargePoint>?,
+    timeLabels: List<String>,
+    sharedXFraction: Float?,
+    onXSelected: (Float?) -> Unit,
+    fractionToTimeLabel: (Float) -> String,
+    onEditCost: (() -> Unit)? = null
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "moreDetailsChevron")
+    val temperatureLabel = stringResource(R.string.temperature)
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { expanded = !expanded }
+                .padding(vertical = 8.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(if (expanded) R.string.hide_details else R.string.more_details),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = palette.accent
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = palette.accent,
+                modifier = Modifier
+                    .size(22.dp)
+                    .rotate(rotation)
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                // Energy section
+                StatsSectionCard(
+                    title = stringResource(R.string.energy),
+                    icon = Icons.Default.EnergySavingsLeaf,
+                    stats = listOf(
+                        StatItem(stringResource(R.string.energy_added), "%.2f kWh".format(stats.energyAdded)),
+                        StatItem(stringResource(R.string.used), "%.2f kWh".format(stats.energyUsed)),
+                        StatItem(stringResource(R.string.efficiency), "%.1f%%".format(stats.efficiency))
+                    )
+                )
+
+                // Battery section
+                StatsSectionCard(
+                    title = stringResource(R.string.battery),
+                    icon = Icons.Default.BatteryChargingFull,
+                    stats = listOf(
+                        StatItem(stringResource(R.string.start), "${stats.batteryStart}%"),
+                        StatItem(stringResource(R.string.end), "${stats.batteryEnd}%"),
+                        StatItem(stringResource(R.string.energy_added), "+${stats.batteryAdded}%"),
+                        StatItem(stringResource(R.string.duration), formatDurationCompact(stats.durationMin))
+                    )
+                )
+
+                // Power section
+                if (stats.powerMax > 0) {
+                    StatsSectionCard(
+                        title = stringResource(R.string.power),
+                        icon = Icons.Default.Bolt,
+                        stats = listOf(
+                            StatItem(stringResource(R.string.maximum), "${stats.powerMax} kW"),
+                            StatItem(stringResource(R.string.minimum), "${stats.powerMin} kW"),
+                            StatItem(stringResource(R.string.average), "%.1f kW".format(stats.powerAvg))
+                        )
+                    )
+                }
+
+                // Voltage & current — AC only
+                if (!isDcCharge) {
+                    StatsSectionCard(
+                        title = stringResource(R.string.charger),
+                        icon = Icons.Default.ElectricalServices,
+                        stats = listOf(
+                            StatItem(stringResource(R.string.voltage_max), "${stats.voltageMax} V"),
+                            StatItem(stringResource(R.string.voltage_min), "${stats.voltageMin} V"),
+                            StatItem(stringResource(R.string.voltage_avg), "%.0f V".format(stats.voltageAvg)),
+                            StatItem(stringResource(R.string.current_max), "${stats.currentMax} A"),
+                            StatItem(stringResource(R.string.current_min), "${stats.currentMin} A"),
+                            StatItem(stringResource(R.string.current_avg), "%.1f A".format(stats.currentAvg))
+                        )
+                    )
+                }
+
+                // Temperature section
+                if (stats.tempMax > -100) {
+                    StatsSectionCard(
+                        title = temperatureLabel,
+                        icon = Icons.Default.DeviceThermostat,
+                        stats = listOf(
+                            StatItem(stringResource(R.string.maximum), UnitFormatter.formatTemperature(stats.tempMax, units)),
+                            StatItem(stringResource(R.string.minimum), UnitFormatter.formatTemperature(stats.tempMin, units)),
+                            StatItem(stringResource(R.string.average), UnitFormatter.formatTemperature(stats.tempAvg, units))
+                        )
+                    )
+                }
+
+                // Cost section — tappable to edit in TeslaMate when configured. Both per-kWh
+                // bases are shown here regardless of the Settings choice: this is the one
+                // surface with room to disambiguate energy added vs energy used (issue #257).
+                val cost = stats.cost ?: 0.0
+                if (cost > 0) {
+                    StatsSectionCard(
+                        title = stringResource(R.string.cost),
+                        icon = Icons.Default.Paid,
+                        stats = listOf(
+                            StatItem(stringResource(R.string.total), "$currencySymbol%.2f".format(cost)),
+                            StatItem(stringResource(R.string.per_kwh_added), "$currencySymbol%.3f".format(cost / stats.energyAdded.coerceAtLeast(0.001))),
+                            StatItem(stringResource(R.string.per_kwh_used), "$currencySymbol%.3f".format(cost / stats.energyUsed.coerceAtLeast(0.001)))
+                        ),
+                        onClick = onEditCost
+                    )
+                } else if (onEditCost != null) {
+                    StatsSectionCard(
+                        title = stringResource(R.string.cost),
+                        icon = Icons.Default.Paid,
+                        stats = listOf(StatItem(stringResource(R.string.total), stringResource(R.string.charge_free))),
+                        onClick = onEditCost
+                    )
+                }
+
+                // Secondary charts
+                if (chargePoints != null) {
+                    if (!isDcCharge) {
+                        if (chargePoints.any { (it.chargerVoltage ?: 0) > 0 }) {
+                            MetricChartCard(
+                                chargePoints = chargePoints,
+                                metricValue = { it.chargerVoltage?.toFloat() },
+                                title = stringResource(R.string.voltage_profile),
+                                icon = Icons.Default.ElectricalServices,
+                                color = MaterialTheme.colorScheme.tertiary,
+                                unit = "V",
+                                timeLabels = timeLabels,
+                                externalSelectedFraction = sharedXFraction,
+                                onXSelected = onXSelected,
+                                fractionToTimeLabel = fractionToTimeLabel
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "%.2f kWh".format(energy),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4CAF50)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                ChargeTypeBadge(isDcCharge = isDcCharge)
-                            }
+                        }
+                        if (chargePoints.any { (it.chargerCurrent ?: 0) > 0 }) {
+                            MetricChartCard(
+                                chargePoints = chargePoints,
+                                metricValue = { it.chargerCurrent?.toFloat() },
+                                title = stringResource(R.string.current_profile),
+                                icon = Icons.Default.Power,
+                                color = MaterialTheme.colorScheme.secondary,
+                                unit = "A",
+                                timeLabels = timeLabels,
+                                externalSelectedFraction = sharedXFraction,
+                                onXSelected = onXSelected,
+                                fractionToTimeLabel = fractionToTimeLabel
+                            )
                         }
                     }
-
-                    // Cost (right side)
-                    detail.cost?.let { cost ->
-                        if (cost > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = costLabel,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                    )
-                                    Text(
-                                        text = "$currencySymbol%.2f".format(cost),
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Paid,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
+                    if (chargePoints.any { it.outsideTemp != null }) {
+                        MetricChartCard(
+                            chargePoints = chargePoints,
+                            metricValue = { it.outsideTemp?.toFloat() },
+                            title = temperatureLabel,
+                            icon = Icons.Default.DeviceThermostat,
+                            color = Color(0xFFFF9800),
+                            unit = UnitFormatter.getTemperatureUnit(units),
+                            timeLabels = timeLabels,
+                            fixedMinMax = ::temperatureMinMax,
+                            externalSelectedFraction = sharedXFraction,
+                            onXSelected = onXSelected,
+                            fractionToTimeLabel = fractionToTimeLabel
+                        )
+                    }
+                    if (chargePoints.any { it.batteryLevel != null }) {
+                        MetricChartCard(
+                            chargePoints = chargePoints,
+                            metricValue = { it.batteryLevel?.toFloat() },
+                            title = stringResource(R.string.battery_level),
+                            icon = Icons.Default.BatteryChargingFull,
+                            color = palette.accent,
+                            unit = "%",
+                            timeLabels = timeLabels,
+                            fixedMinMax = ::batteryMinMax,
+                            externalSelectedFraction = sharedXFraction,
+                            onXSelected = onXSelected,
+                            fractionToTimeLabel = fractionToTimeLabel
+                        )
                     }
                 }
             }
@@ -558,7 +802,7 @@ private fun LocationHeaderCard(detail: ChargeDetail, currencySymbol: String, isD
 }
 
 @Composable
-private fun ChargeMapCard(latitude: Double, longitude: Double) {
+private fun ChargeMapCard(latitude: Double, longitude: Double, accent: Color) {
     val context = LocalContext.current
     val locationTitle = stringResource(R.string.location)
     val chargeLocationMarker = stringResource(R.string.charge_location)
@@ -593,44 +837,24 @@ private fun ChargeMapCard(latitude: Double, longitude: Double) {
                     .height(200.dp)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+                val primaryColor = accent.toArgb()
 
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                            // Tell the parent vertical scroll to stop intercepting
-                            // touches so single-finger drag pans the map instead
-                            // of scrolling the page.
-                            setOnTouchListener { v, event ->
-                                when (event.actionMasked) {
-                                    MotionEvent.ACTION_DOWN,
-                                    MotionEvent.ACTION_MOVE,
-                                    MotionEvent.ACTION_POINTER_DOWN ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                                    MotionEvent.ACTION_UP,
-                                    MotionEvent.ACTION_CANCEL ->
-                                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                                }
-                                false
-                            }
+                RouteMapView(
+                    onMapReady = { mapView ->
+                        val geoPoint = GeoPoint(latitude, longitude)
 
-                            val geoPoint = GeoPoint(latitude, longitude)
-
-                            // Add marker at charge location
-                            val marker = Marker(this).apply {
-                                position = geoPoint
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                title = chargeLocationMarker
-                                icon = createPinMarkerDrawable(ctx.resources, primaryColor)
-                            }
-                            overlays.add(marker)
-
-                            // Center on the location
-                            controller.setZoom(16.0)
-                            controller.setCenter(geoPoint)
+                        // Add marker at charge location
+                        val marker = Marker(mapView).apply {
+                            position = geoPoint
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            title = chargeLocationMarker
+                            icon = createPinMarkerDrawable(mapView.context.resources, primaryColor)
                         }
+                        mapView.overlays.add(marker)
+
+                        // Center on the location
+                        mapView.controller.setZoom(16.0)
+                        mapView.controller.setCenter(geoPoint)
                     },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -645,7 +869,8 @@ data class StatItem(val label: String, val value: String)
 private fun StatsSectionCard(
     title: String,
     icon: ImageVector,
-    stats: List<StatItem>
+    stats: List<StatItem>,
+    onClick: (() -> Unit)? = null
 ) {
     // Get the current screen settings
     val configuration = LocalConfiguration.current
@@ -659,7 +884,9 @@ private fun StatsSectionCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
@@ -669,7 +896,9 @@ private fun StatsSectionCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
             ) {
                 Icon(
                     imageVector = icon,
@@ -683,6 +912,16 @@ private fun StatsSectionCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
+                // External-link affordance: signals the card opens TeslaMate's cost editor.
+                if (onClick != null) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             // Divide the list of statistics according to the calculated number of columns
@@ -738,24 +977,35 @@ private fun StatItemView(
     }
 }
 
+/**
+ * One card per charge metric: extracts the metric's values from the charge points,
+ * optionally derives a fixed Y range from them, and renders the shared [ChartCard].
+ */
 @Composable
-private fun PowerChartCard(
+private fun MetricChartCard(
     chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
+    metricValue: (ChargePoint) -> Float?,
     title: String,
+    icon: ImageVector,
+    color: Color,
+    unit: String,
+    timeLabels: List<String>,
+    fixedMinMax: ((List<Float>) -> Pair<Float, Float>)? = null,
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
 ) {
-    val powers = chargePoints.mapNotNull { it.chargerPower?.toFloat() }
-    if (powers.size < 2) return
+    val values = remember(chargePoints) { chargePoints.mapNotNull(metricValue) }
+    if (values.size < 2) return
+    val minMax = remember(values) { fixedMinMax?.invoke(values) }
 
     ChartCard(
         title = title,
-        icon = Icons.Default.Bolt,
-        data = powers,
-        color = Color(0xFF4CAF50),
-        unit = "kW",
+        icon = icon,
+        data = values,
+        color = color,
+        unit = unit,
+        fixedMinMax = minMax,
         timeLabels = timeLabels,
         externalSelectedFraction = externalSelectedFraction,
         onXSelected = onXSelected,
@@ -763,118 +1013,26 @@ private fun PowerChartCard(
     )
 }
 
-@Composable
-private fun VoltageChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val voltages = chargePoints.mapNotNull { it.chargerVoltage?.toFloat() }
-    if (voltages.size < 2) return
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.ElectricalServices,
-        data = voltages,
-        color = MaterialTheme.colorScheme.tertiary,
-        unit = "V",
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
-}
-
-@Composable
-private fun CurrentChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val currents = chargePoints.mapNotNull { it.chargerCurrent?.toFloat() }
-    if (currents.size < 2) return
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.Power,
-        data = currents,
-        color = MaterialTheme.colorScheme.secondary,
-        unit = "A",
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
-}
-
-@Composable
-private fun TemperatureChartCard(
-    chargePoints: List<ChargePoint>,
-    units: Units?,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val temps = chargePoints.mapNotNull { it.outsideTemp?.toFloat() }
-    if (temps.size < 2) return
+/** Y range for the temperature chart: floor/ceil to whole degrees, padded when flat. */
+private fun temperatureMinMax(temps: List<Float>): Pair<Float, Float> {
     var yMin = kotlin.math.floor(temps.min())
     var yMax = kotlin.math.ceil(temps.max())
     if (yMin == yMax) {
         yMin -= 1
         yMax += 1
     }
-    ChartCard(
-        title = title,
-        icon = Icons.Default.DeviceThermostat,
-        data = temps,
-        color = Color(0xFFFF9800),
-        unit = UnitFormatter.getTemperatureUnit(units),
-        timeLabels = timeLabels,
-        fixedMinMax = Pair(yMin, yMax),
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
+    return Pair(yMin, yMax)
 }
 
-@Composable
-private fun BatteryChartCard(
-    chargePoints: List<ChargePoint>,
-    timeLabels: List<String>,
-    title: String,
-    externalSelectedFraction: Float? = null,
-    onXSelected: ((Float?) -> Unit)? = null,
-    fractionToTimeLabel: ((Float) -> String)? = null
-) {
-    val batteryLevels = chargePoints.mapNotNull { it.batteryLevel?.toFloat() }
-    if (batteryLevels.size < 2) return
+/** Y range for the battery chart: rounded out to the nearest 10%, padded when flat. */
+private fun batteryMinMax(batteryLevels: List<Float>): Pair<Float, Float> {
     var yMin = (kotlin.math.floor(batteryLevels.min() / 10.0) * 10).toFloat()
     var yMax = (kotlin.math.ceil(batteryLevels.max() / 10.0) * 10).toFloat()
     if (yMin == yMax) {
         yMin -= 1
         yMax += 1
     }
-
-    ChartCard(
-        title = title,
-        icon = Icons.Default.BatteryChargingFull,
-        data = batteryLevels,
-        color = MaterialTheme.colorScheme.primary,
-        unit = "%",
-        fixedMinMax = Pair(yMin, yMax),
-        timeLabels = timeLabels,
-        externalSelectedFraction = externalSelectedFraction,
-        onXSelected = onXSelected,
-        fractionToTimeLabel = fractionToTimeLabel
-    )
+    return Pair(yMin, yMax)
 }
 
 @Composable
@@ -887,7 +1045,6 @@ private fun ChartCard(
     showZeroLine: Boolean = false,
     fixedMinMax: Pair<Float, Float>? = null,
     timeLabels: List<String> = emptyList(),
-    convertValue: (Float) -> Float = { it },
     externalSelectedFraction: Float? = null,
     onXSelected: ((Float?) -> Unit)? = null,
     fractionToTimeLabel: ((Float) -> String)? = null
@@ -926,56 +1083,12 @@ private fun ChartCard(
                 showZeroLine = showZeroLine,
                 fixedMinMax = fixedMinMax,
                 timeLabels = timeLabels,
-                convertValue = convertValue,
                 externalSelectedFraction = externalSelectedFraction,
                 onXSelected = onXSelected,
                 fractionToTimeLabel = fractionToTimeLabel,
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-@Composable
-private fun ChargeTypeBadge(isDcCharge: Boolean) {
-    val backgroundColor = if (isDcCharge) Color(0xFFFF9800) else Color(0xFF4CAF50)
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-    }
-}
-
-/**
- * Extract 5 time labels from charge points for X axis display.
- * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
- * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
- */
-private fun extractTimeLabels(chargePoints: List<ChargePoint>, is24Hour: Boolean? = null): List<String> {
-    if (chargePoints.isEmpty()) return listOf("", "", "", "", "")
-
-    val locale = java.util.Locale.getDefault()
-    val times = chargePoints.mapNotNull { point ->
-        point.date?.let { parseIsoDateTime(it) }
-    }
-
-    if (times.isEmpty()) return listOf("", "", "", "", "")
-
-    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
-    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
-    return indices.map { idx ->
-        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }
 

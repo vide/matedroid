@@ -1,5 +1,7 @@
 package com.matedroid.domain
 
+import androidx.room.withTransaction
+import com.matedroid.data.local.StatsDatabase
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
 import com.matedroid.data.local.dao.DriveSummaryDao
@@ -13,6 +15,8 @@ import com.matedroid.data.local.entity.SavedTripWithLegs
 import com.matedroid.domain.model.Trip
 import com.matedroid.util.parseIsoDateTime
 import java.security.MessageDigest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -34,6 +38,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class TripRepository @Inject constructor(
+    private val database: StatsDatabase,
     private val driveSummaryDao: DriveSummaryDao,
     private val chargeSummaryDao: ChargeSummaryDao,
     private val aggregateDao: AggregateDao,
@@ -41,17 +46,26 @@ class TripRepository @Inject constructor(
     private val tripDetector: TripDetector
 ) {
 
+    // Cars whose beta-era duplicate cleanup has already run this session (see cleanupDuplicateSavedTrips).
+    private val duplicatesCleanedForCar = mutableSetOf<Int>()
+
     /** Returns all trips for a car (saved + newly auto-detected this call), newest first. */
-    suspend fun getTrips(carId: Int): List<Trip> {
-        val drives = driveSummaryDao.getAllChronological(carId)
+    suspend fun getTrips(carId: Int): List<Trip> = withContext(Dispatchers.Default) {
+        // Detection, duplicate healing (SHA-256 per trip) and trip building are CPU work — keep
+        // them off the caller's (main) thread. Room still runs the queries on its own executor.
+        val drives = driveSummaryDao.getAllForCar(carId)
         val dcCharges = aggregateDao.getDcChargeSummaries(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
 
         autoPersistNewTrips(carId, drives, dcCharges)
-        cleanupDuplicateSavedTrips(carId)
+        // Beta-era duplicate healing only needs to run once per car per session, not every open.
+        // It's idempotent, so a redundant run (e.g. from a concurrent call) is harmless.
+        if (duplicatesCleanedForCar.add(carId)) {
+            cleanupDuplicateSavedTrips(carId)
+        }
 
         val saved = savedTripDao.getAllWithLegs(carId)
-        return buildTripsFromSaved(saved, drives, allCharges)
+        buildTripsFromSaved(saved, drives, allCharges)
             .sortedByDescending { it.startDate }
     }
 
@@ -123,7 +137,7 @@ class TripRepository @Inject constructor(
         if (newLegs.isEmpty()) return
         val existing = savedTripDao.getWithLegs(tripId) ?: return
         val carId = existing.trip.carId
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val combined = (existing.legs.map { LegRef(it.legType, it.legId) } + newLegs).distinct()
@@ -133,16 +147,19 @@ class TripRepository @Inject constructor(
         }
 
         val now = System.currentTimeMillis()
-        if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
-            val priorFingerprint = computeFingerprint(existing.driveIds())
-            savedTripDao.insertConsumedFingerprints(
-                listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
-            )
-            savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, now)
-        } else {
-            savedTripDao.updateSource(tripId, existing.trip.source, now)
+        // Atomic: a crash between these writes must not leave a half-edited trip.
+        database.withTransaction {
+            if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
+                val priorFingerprint = computeFingerprint(existing.driveIds())
+                savedTripDao.insertConsumedFingerprints(
+                    listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
+                )
+                savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, now)
+            } else {
+                savedTripDao.updateSource(tripId, existing.trip.source, now)
+            }
+            savedTripDao.replaceLegs(tripId, legsToWrite)
         }
-        savedTripDao.replaceLegs(tripId, legsToWrite)
     }
 
     /**
@@ -155,7 +172,7 @@ class TripRepository @Inject constructor(
         val kept = savedTripDao.getWithLegs(keptTripId) ?: return null
         val consumed = savedTripDao.getWithLegs(consumedTripId) ?: return null
 
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val keptRange = tripRange(kept, drives, charges) ?: return null
@@ -199,33 +216,38 @@ class TripRepository @Inject constructor(
         // Inherit the kept trip's custom name; fall back to the consumed trip's name if only the
         // consumed one had been renamed. Either way, user-chosen names don't disappear at merge.
         val inheritedName = kept.trip.name ?: consumed.trip.name
-        val newId = savedTripDao.insertTripWithLegs(
-            trip = SavedTrip(
-                carId = carId,
-                name = inheritedName,
-                source = SavedTrip.SOURCE_USER_MERGED,
-                createdAt = now,
-                updatedAt = now
-            ),
-            legs = { tripId ->
-                allRefs.mapIndexed { index, ref ->
-                    SavedTripLeg(tripId = tripId, position = index, legType = ref.type, legId = ref.id)
+        // Atomic: a crash mid-merge would otherwise leave the merged trip coexisting with the
+        // originals — duplicates that share legs but not a fingerprint, which the duplicate
+        // healer in cleanupDuplicateSavedTrips can't detect.
+        return database.withTransaction {
+            val newId = savedTripDao.insertTripWithLegs(
+                trip = SavedTrip(
+                    carId = carId,
+                    name = inheritedName,
+                    source = SavedTrip.SOURCE_USER_MERGED,
+                    createdAt = now,
+                    updatedAt = now
+                ),
+                legs = { tripId ->
+                    allRefs.mapIndexed { index, ref ->
+                        SavedTripLeg(tripId = tripId, position = index, legType = ref.type, legId = ref.id)
+                    }
                 }
-            }
-        )
-        savedTripDao.insertConsumedFingerprints(
-            inheritedFingerprints.map { SavedTripConsumedFingerprint(savedTripId = newId, fingerprint = it) }
-        )
-        savedTripDao.deleteTrip(keptTripId)
-        savedTripDao.deleteTrip(consumedTripId)
-        return newId
+            )
+            savedTripDao.insertConsumedFingerprints(
+                inheritedFingerprints.map { SavedTripConsumedFingerprint(savedTripId = newId, fingerprint = it) }
+            )
+            savedTripDao.deleteTrip(keptTripId)
+            savedTripDao.deleteTrip(consumedTripId)
+            newId
+        }
     }
 
     /** Trips for [carId] whose date range is within [windowDays] of [tripId]'s range, excluding [tripId] itself. */
     suspend fun getAdjacentTrips(tripId: Long, carId: Int, windowDays: Int = 14): List<Pair<Long, Trip>> {
         val allSaved = savedTripDao.getAllWithLegs(carId)
         val currentSwl = allSaved.find { it.trip.id == tripId } ?: return emptyList()
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
 
         val currentRange = tripRange(currentSwl, drives, charges) ?: return emptyList()
@@ -251,7 +273,7 @@ class TripRepository @Inject constructor(
     /** Drives and charges near [tripId]'s time range, not already part of any saved trip on [carId]. */
     suspend fun getEligibleNewLegs(tripId: Long, carId: Int, windowDays: Int = 2): EligibleLegs {
         val swl = savedTripDao.getWithLegs(tripId) ?: return EligibleLegs(emptyList(), emptyList())
-        val allDrives = driveSummaryDao.getAllChronological(carId)
+        val allDrives = driveSummaryDao.getAllForCar(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
         val drivesById = allDrives.associateBy { it.driveId }
         val chargesById = allCharges.associateBy { it.chargeId }
@@ -289,7 +311,7 @@ class TripRepository @Inject constructor(
         anchorEnd: String,
         windowDays: Int = 2
     ): EligibleLegs {
-        val allDrives = driveSummaryDao.getAllChronological(carId)
+        val allDrives = driveSummaryDao.getAllForCar(carId)
         val allCharges = chargeSummaryDao.getAllForCar(carId)
         val windowStart = shiftDate(anchorStart, -windowDays.toLong())
         val windowEnd = shiftDate(anchorEnd, windowDays.toLong())
@@ -312,7 +334,7 @@ class TripRepository @Inject constructor(
 
     /** Resolve a set of leg refs into their drive/charge summaries (for building a draft preview). */
     suspend fun resolveLegs(carId: Int, refs: List<LegRef>): EligibleLegs {
-        val drivesById = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drivesById = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val chargesById = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val drives = refs.filter { it.type == SavedTripLeg.TYPE_DRIVE }.mapNotNull { drivesById[it.id] }
         val charges = refs.filter { it.type == SavedTripLeg.TYPE_CHARGE }.mapNotNull { chargesById[it.id] }
@@ -327,7 +349,7 @@ class TripRepository @Inject constructor(
      */
     suspend fun createTrip(carId: Int, legs: List<LegRef>, name: String?): Long? {
         if (legs.none { it.type == SavedTripLeg.TYPE_DRIVE }) return null
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val sorted = legs.distinct().sortedBy { ref -> legStartDate(ref, drives, charges) ?: "" }
         val now = System.currentTimeMillis()
@@ -494,11 +516,12 @@ class TripRepository @Inject constructor(
             swl.legs.any { it.legType == legType && it.legId == legId }
         } ?: return null
 
-        val drives = driveSummaryDao.getAllChronological(carId).associateBy { it.driveId }
+        val drives = driveSummaryDao.getAllForCar(carId).associateBy { it.driveId }
         val charges = chargeSummaryDao.getAllForCar(carId).associateBy { it.chargeId }
         val trip = TripAggregator.buildTrip(
             tripDrivesIn(match, drives),
-            tripChargesIn(match, charges)
+            tripChargesIn(match, charges),
+            name = match.trip.name
         ) ?: return null
         return match.trip.id to trip
     }
@@ -525,16 +548,19 @@ class TripRepository @Inject constructor(
             return
         }
 
-        if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
-            val priorFingerprint = computeFingerprint(existing.driveIds())
-            savedTripDao.insertConsumedFingerprints(
-                listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
-            )
-            savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, System.currentTimeMillis())
-        } else {
-            savedTripDao.updateSource(tripId, existing.trip.source, System.currentTimeMillis())
+        // Atomic: a crash between these writes must not leave a half-edited trip.
+        database.withTransaction {
+            if (existing.trip.source == SavedTrip.SOURCE_AUTO_DETECTED) {
+                val priorFingerprint = computeFingerprint(existing.driveIds())
+                savedTripDao.insertConsumedFingerprints(
+                    listOf(SavedTripConsumedFingerprint(savedTripId = tripId, fingerprint = priorFingerprint))
+                )
+                savedTripDao.updateSource(tripId, SavedTrip.SOURCE_USER_EDITED, System.currentTimeMillis())
+            } else {
+                savedTripDao.updateSource(tripId, existing.trip.source, System.currentTimeMillis())
+            }
+            savedTripDao.replaceLegs(tripId, remaining)
         }
-        savedTripDao.replaceLegs(tripId, remaining)
     }
 }
 

@@ -54,7 +54,10 @@ data class ChargeRange(
 
 @JsonClass(generateAdapter = true)
 data class ChargeDetailResponse(
-    @Json(name = "data") val data: ChargeDetailData? = null
+    @Json(name = "data") val data: ChargeDetailData? = null,
+    // TeslamateAPI returns HTTP 200 with this error field (and no data) when
+    // there is no active charge, e.g. "No active charging in progress."
+    @Json(name = "error") val error: String? = null
 )
 
 @JsonClass(generateAdapter = true)

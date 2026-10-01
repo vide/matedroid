@@ -16,6 +16,11 @@ data class SyncState(
     val lastDriveSyncAt: Long = 0,
     val lastChargeSyncAt: Long = 0,
 
+    // Last time summaries were fetched WITHOUT a startDate filter. Incremental syncs only
+    // fetch entries newer than the last sync (minus an overlap window), so a periodic full
+    // fetch picks up server-side edits (e.g. costs added to old charges).
+    val lastFullSummarySyncAt: Long = 0,
+
     // Detail sync tracking (individual endpoints)
     val lastDriveDetailId: Int = 0,
     val lastChargeDetailId: Int = 0,
@@ -40,7 +45,7 @@ data class SyncState(
  * records with older versions will be reprocessed.
  */
 object SchemaVersion {
-    const val CURRENT = 5
+    const val CURRENT = 6
 
     // Changelog:
     // V1 (initial): elevation, temp extremes, power, climate, charger info
@@ -48,4 +53,6 @@ object SchemaVersion {
     // V3: startCountryCode, startCountryName from reverse geocoding first position
     // V4: startRegionName, startCity for drives; countryCode, countryName, regionName, city for charges
     // V5: endLatitude, endLongitude for trip country resolution without API call
+    // V6: elevationGain/elevationLoss are noise-filtered (ElevationStats), and
+    //     startElevation/endElevation now skip leading/trailing positions without elevation
 }

@@ -1,0 +1,8 @@
+Seguire una ricarica non scarica più il telefono.
+
+Corretto:
+- Aperta dalla notifica di ricarica, la dashboard interrogava il server ogni 5 secondi anche in background e la ricarica live continuava a telefono bloccato. Ora entrambe si fermano fuori schermo
+- Un controllo fallito della ricarica live si ripeteva a ogni richiesta
+
+Modificato:
+- I controlli in background rallentano con il monitor della notifica attivo o il server irraggiungibile, e non si azzerano a ogni avvio del processo

@@ -151,25 +151,22 @@ fun MonthScrollIndicator(
     val currentDateAt by rememberUpdatedState(dateAt)
 
     // Distinct month count drives the label format. Computing this only when
-    // `totalItems` changes (data loaded / filter changed) keeps it off the hot
-    // scroll path — `derivedStateOf` would otherwise re-iterate every time the
-    // captured dateAt lambda changes identity, which is every recomposition.
-    val monthCount by remember {
-        derivedStateOf {
-            val total = state.layoutInfo.totalItemsCount
-            if (total == 0) return@derivedStateOf 0
-            var count = 0
-            var prev: YearMonth? = null
-            for (i in 0 until total) {
-                val date = currentDateAt(i) ?: continue
-                val ym = YearMonth.from(date)
-                if (ym != prev) {
-                    count++
-                    prev = ym
-                }
+    // `totalItems` changes (data loaded / filter changed) keeps the O(n) date
+    // parse loop off the hot scroll path — a `derivedStateOf` reading
+    // `state.layoutInfo` would re-run the loop on every scroll/drag frame.
+    val monthCount = remember(totalItems) {
+        if (totalItems == 0) return@remember 0
+        var count = 0
+        var prev: YearMonth? = null
+        for (i in 0 until totalItems) {
+            val date = currentDateAt(i) ?: continue
+            val ym = YearMonth.from(date)
+            if (ym != prev) {
+                count++
+                prev = ym
             }
-            count
         }
+        count
     }
 
     var trackHeightPx by remember { mutableIntStateOf(0) }
@@ -254,8 +251,9 @@ fun MonthScrollIndicator(
 
     // Label text is a derivedStateOf so it only invalidates when the rendered
     // string actually changes — many drag-fraction updates within the same row
-    // produce the same date and don't recompose Text.
-    val labelText by remember {
+    // produce the same date and don't recompose Text. Keyed on monthCount (now a
+    // plain remembered value) so the closure never holds a stale format choice.
+    val labelText by remember(monthCount) {
         derivedStateOf {
             val frac = dragFraction ?: return@derivedStateOf null
             val info = state.layoutInfo

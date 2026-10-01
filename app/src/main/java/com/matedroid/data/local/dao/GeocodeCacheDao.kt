@@ -18,11 +18,17 @@ interface GeocodeCacheDao {
     @Query("SELECT COUNT(*) FROM geocode_cache")
     suspend fun count(): Int
 
-    // For stats: count unique countries in cache
-    @Query("SELECT COUNT(DISTINCT countryCode) FROM geocode_cache WHERE countryCode IS NOT NULL")
-    suspend fun countUniqueCountries(): Int
+    // Full cache read for batch matching — the table holds one small row per ~1.1km grid
+    // cell ever visited, so this is cheap and replaces per-cell point queries.
+    @Query("SELECT * FROM geocode_cache")
+    suspend fun getAll(): List<GeocodeCache>
 
-    // For stats: count unique cities in cache
-    @Query("SELECT COUNT(DISTINCT city) FROM geocode_cache WHERE city IS NOT NULL")
-    suspend fun countUniqueCities(): Int
+    @Query("SELECT gridLat, gridLon FROM geocode_cache")
+    suspend fun getAllGridKeys(): List<GridKey>
 }
+
+/** A grid-cell key (0.01° precision). */
+data class GridKey(
+    val gridLat: Int,
+    val gridLon: Int
+)

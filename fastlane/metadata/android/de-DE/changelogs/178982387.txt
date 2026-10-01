@@ -1,0 +1,8 @@
+Ladevorgänge verfolgen leert den Akku nicht mehr.
+
+Behoben:
+- Aus der Ladebenachrichtigung geöffnet, fragte das Dashboard im Hintergrund alle 5 s den Server ab und die Live-Ladeansicht lief bei gesperrtem Handy weiter. Beide stoppen nun im Hintergrund
+- Eine fehlgeschlagene Live-Lade-Prüfung wurde bei jeder Abfrage wiederholt
+
+Geändert:
+- Hintergrundprüfungen laufen seltener, wenn der Benachrichtigungsmonitor aktiv oder der Server unerreichbar ist, und starten nicht bei jedem Prozessstart neu

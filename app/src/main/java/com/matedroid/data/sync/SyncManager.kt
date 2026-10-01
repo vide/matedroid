@@ -38,13 +38,6 @@ class SyncManager @Inject constructor(
     fun getProgressForCar(carId: Int): SyncProgress? = _carProgress.value[carId]
 
     /**
-     * Check if summaries are synced for a car (Quick Stats available).
-     */
-    suspend fun areSummariesSynced(carId: Int): Boolean {
-        return syncStateDao.get(carId)?.summariesSynced == true
-    }
-
-    /**
      * Check if details are synced for a car (Deep Stats available).
      */
     suspend fun areDetailsSynced(carId: Int): Boolean {
@@ -69,9 +62,15 @@ class SyncManager @Inject constructor(
 
     /**
      * Mark summaries as synced and calculate total items to process.
+     * [wasFullSync] records that this fetch had no startDate filter, resetting the
+     * periodic full-refresh clock used by incremental syncs.
      */
-    suspend fun markSummariesComplete(carId: Int) {
-        syncStateDao.markSummariesSynced(carId, System.currentTimeMillis())
+    suspend fun markSummariesComplete(carId: Int, wasFullSync: Boolean = true) {
+        val now = System.currentTimeMillis()
+        syncStateDao.markSummariesSynced(carId, now)
+        if (wasFullSync) {
+            syncStateDao.markFullSummarySync(carId, now)
+        }
 
         // Calculate total items to process for detail sync
         val unprocessedDrives = driveSummaryDao.countUnprocessedDrives(carId, SchemaVersion.CURRENT)

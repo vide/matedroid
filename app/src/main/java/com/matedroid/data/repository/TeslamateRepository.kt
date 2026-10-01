@@ -15,15 +15,20 @@ import com.matedroid.data.api.models.UpdateData
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
+import com.matedroid.domain.UnitSystem
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import javax.net.ssl.SSLException
+import retrofit2.Response
 
 sealed class ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>()
@@ -38,6 +43,15 @@ data class CarStatusWithUnits(
     val status: CarStatus,
     val units: Units
 )
+
+/**
+ * Typed outcome of the current-charge endpoint: the server answering
+ * "no active charge" is an authoritative response, distinct from errors.
+ */
+sealed class CurrentChargeOutcome {
+    data class Active(val detail: ChargeDetail) : CurrentChargeOutcome()
+    data object NoActiveCharge : CurrentChargeOutcome()
+}
 
 /**
  * Represents exceptions that should trigger a fallback to the secondary server.
@@ -69,32 +83,86 @@ class TeslamateRepository @Inject constructor(
 ) {
     companion object {
         private const val TAG = "TeslamateRepository"
+
+        /**
+         * How long a probe that got no definitive answer keeps [isCurrentChargeAvailable]
+         * answering false before the endpoint is tried again.
+         */
+        internal const val CURRENT_CHARGE_PROBE_RETRY_MS = 5 * 60_000L
     }
 
     // Cache: true = endpoint exists (API 1.24+), false = 404 (older API)
-    private val currentChargeApiAvailable = mutableMapOf<Int, Boolean>()
+    private val currentChargeApiAvailable = ConcurrentHashMap<Int, Boolean>()
+
+    // When the last probe for a car ended without a definitive answer, so the next one can
+    // wait out CURRENT_CHARGE_PROBE_RETRY_MS instead of firing on every poll.
+    private val currentChargeProbeFailedAt = ConcurrentHashMap<Int, Long>()
+
+    // One probe in flight at a time. The dashboard asks every 5 s while a car is charging and
+    // the monitor service every 30 s; without this each tick started its own request while
+    // the previous one was still waiting on the server.
+    private val currentChargeProbeMutex = Mutex()
 
     /**
      * Check whether the current charge endpoint is available for the given car.
-     * Makes a dedicated HTTP call and checks only the status code: 200 means the endpoint exists,
-     * anything else (e.g. 404 on old TM versions) means it doesn't.
-     * Result is cached for the app session since the API version doesn't change at runtime.
+     *
+     * Only a definitive answer is remembered for the app session: a 2xx means the endpoint
+     * exists (204 or 200 with an error body is what it answers when nothing is charging),
+     * 404 means an old TM version without it. Anything else — timeout, DNS, 5xx, a proxy's
+     * 401/403 — must not disable the live-charge UI until process death, but it must not be
+     * re-probed on every poll either: the probe is a full `charges/current` request, and
+     * while a car is charging it is asked for every 5 s by the dashboard and every 30 s by
+     * the monitor service. A failed probe therefore answers false for
+     * [CURRENT_CHARGE_PROBE_RETRY_MS] before the next attempt.
+     *
+     * Every [getCurrentCharge] call feeds the same cache, so once the live screen has fetched
+     * the charge no probe is needed at all.
      */
     suspend fun isCurrentChargeAvailable(carId: Int): Boolean {
         currentChargeApiAvailable[carId]?.let { return it }
-        val result = executeWithFallback { api ->
-            val response = api.getCurrentCharge(carId)
-            if (response.code() == 200) ApiResult.Success(true)
-            else ApiResult.Error("Not available", response.code())
+        return currentChargeProbeMutex.withLock {
+            // A probe that finished while we were waiting for the lock may have answered.
+            currentChargeApiAvailable[carId]?.let { return@withLock it }
+            val failedAt = currentChargeProbeFailedAt[carId]
+            if (failedAt != null && System.currentTimeMillis() - failedAt < CURRENT_CHARGE_PROBE_RETRY_MS) {
+                return@withLock false
+            }
+            val result = executeWithFallback { api ->
+                val response = api.getCurrentCharge(carId)
+                recordCurrentChargeAvailability(carId, response.code())
+                if (response.isSuccessful) ApiResult.Success(true)
+                else ApiResult.Error("Not available", response.code())
+            }
+            if (result is ApiResult.Error && result.code == null) {
+                // No response was seen (network failure), so nothing was recorded yet.
+                recordCurrentChargeAvailability(carId, null)
+            }
+            currentChargeApiAvailable[carId] ?: false
         }
-        val available = result is ApiResult.Success
-        currentChargeApiAvailable[carId] = available
-        return available
+    }
+
+    /**
+     * Remember what an HTTP status from `charges/current` says about the endpoint: 2xx and
+     * 404 are definitive, anything else (including a network failure, [code] null) only
+     * postpones the next probe.
+     */
+    private fun recordCurrentChargeAvailability(carId: Int, code: Int?) {
+        when {
+            code != null && code in 200..299 -> {
+                currentChargeApiAvailable[carId] = true
+                currentChargeProbeFailedAt.remove(carId)
+            }
+            code == 404 -> {
+                currentChargeApiAvailable[carId] = false
+                currentChargeProbeFailedAt.remove(carId)
+            }
+            else -> currentChargeProbeFailedAt[carId] = System.currentTimeMillis()
+        }
     }
 
     private suspend fun getSettings(): AppSettings = settingsDataStore.settings.first()
 
-    private fun getApiForUrl(url: String): TeslamateApi? {
+    private suspend fun getApiForUrl(url: String): TeslamateApi? {
         if (url.isBlank()) return null
         return apiFactory.create(url)
     }
@@ -189,9 +257,17 @@ class TeslamateRepository @Inject constructor(
         return primaryResult ?: ApiResult.Error("Connection failed")
     }
 
-    suspend fun testConnection(serverUrl: String, acceptInvalidCerts: Boolean = false): ApiResult<Unit> {
+    /**
+     * Pings [serverUrl] with the settings the caller passes rather than the saved ones, so
+     * Settings can test the form as it stands before anything is committed to disk.
+     */
+    suspend fun testConnection(
+        serverUrl: String,
+        acceptInvalidCerts: Boolean = false,
+        connectTimeoutSeconds: Int? = null
+    ): ApiResult<Unit> {
         return try {
-            val api = apiFactory.create(serverUrl, acceptInvalidCerts)
+            val api = apiFactory.create(serverUrl, acceptInvalidCerts, connectTimeoutSeconds)
             val response = api.ping()
             if (response.isSuccessful) {
                 ApiResult.Success(Unit)
@@ -205,61 +281,53 @@ class TeslamateRepository @Inject constructor(
         }
     }
 
-    suspend fun getCars(): ApiResult<List<CarData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCars()
-                if (response.isSuccessful) {
-                    val cars = response.body()?.data?.cars ?: emptyList()
-                    ApiResult.Success(cars)
-                } else {
-                    ApiResult.Error("Failed to fetch cars: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e // Let executeWithFallback handle it
-            }
+    /**
+     * Map a Retrofit [Response] to an [ApiResult]: on a successful HTTP status,
+     * run [extract] on the (nullable) body and wrap a non-null result as Success,
+     * otherwise report the missing payload; on a non-2xx status, surface the code.
+     * [what] names the resource for the error messages.
+     *
+     * Any thrown exception propagates to [executeWithFallback], which owns the
+     * network-error / secondary-server handling.
+     */
+    private inline fun <B, T> Response<B>.toResult(
+        what: String,
+        extract: (B?) -> T?
+    ): ApiResult<T> =
+        if (isSuccessful) {
+            extract(body())?.let { ApiResult.Success(it) }
+                ?: ApiResult.Error("No $what returned")
+        } else {
+            ApiResult.Error("Failed to fetch $what: ${code()}", code())
         }
-    }
 
-    suspend fun getCar(carId: Int): ApiResult<CarData> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCar(carId)
-                if (response.isSuccessful) {
-                    val car = response.body()?.data?.cars?.firstOrNull()
-                    if (car != null) {
-                        ApiResult.Success(car)
-                    } else {
-                        ApiResult.Error("No car data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch car: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getCars(): ApiResult<List<CarData>> =
+        executeWithFallback { api -> api.getCars().toResult("cars") { it?.data?.cars ?: emptyList() } }
+
+    suspend fun getCar(carId: Int): ApiResult<CarData> =
+        executeWithFallback { api -> api.getCar(carId).toResult("car") { it?.data?.cars?.firstOrNull() } }
 
     suspend fun getCarStatus(carId: Int): ApiResult<CarStatusWithUnits> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCarStatus(carId)
-                if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    val status = data?.status
-                    val units = data?.units ?: Units()
-                    if (status != null) {
-                        ApiResult.Success(CarStatusWithUnits(status, units))
-                    } else {
-                        ApiResult.Error("No status data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch status: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
+        val result = executeWithFallback { api ->
+            api.getCarStatus(carId).toResult("status") { body ->
+                body?.data?.let { data -> data.status?.let { CarStatusWithUnits(it, data.units ?: Units()) } }
             }
+        }
+        if (result is ApiResult.Success) {
+            updateUnitSystem(result.data.units.isImperial)
+        }
+        return result
+    }
+
+    // Tracks what we last persisted so the DataStore write happens at most once per change.
+    private var lastPersistedImperial: Boolean? = null
+
+    /** Keep [UnitSystem] (and its persisted copy) in sync with the server's unit setting. */
+    private suspend fun updateUnitSystem(imperial: Boolean) {
+        UnitSystem.isImperial = imperial
+        if (lastPersistedImperial != imperial) {
+            lastPersistedImperial = imperial
+            settingsDataStore.saveIsImperial(imperial)
         }
     }
 
@@ -269,61 +337,37 @@ class TeslamateRepository @Inject constructor(
         endDate: String? = null,
         page: Int = 1,
         show: Int = 50000
-    ): ApiResult<List<ChargeData>> {
+    ): ApiResult<List<ChargeData>> =
+        executeWithFallback { api ->
+            api.getCharges(carId, startDate, endDate, page = page, show = show)
+                .toResult("charges") { it?.data?.charges ?: emptyList() }
+        }
+
+    suspend fun getCurrentCharge(carId: Int): ApiResult<CurrentChargeOutcome> {
         return executeWithFallback { api ->
-            try {
-                val response = api.getCharges(carId, startDate, endDate, page = page, show = show)
-                if (response.isSuccessful) {
-                    val charges = response.body()?.data?.charges ?: emptyList()
-                    ApiResult.Success(charges)
-                } else {
-                    ApiResult.Error("Failed to fetch charges: ${response.code()}", response.code())
+            val response = api.getCurrentCharge(carId)
+            // The live screen's own fetch is the best probe there is — see isCurrentChargeAvailable.
+            recordCurrentChargeAvailability(carId, response.code())
+            if (response.isSuccessful) {
+                val body = response.body()
+                val detail = body?.data?.charge
+                when {
+                    detail != null -> ApiResult.Success(CurrentChargeOutcome.Active(detail))
+                    // TeslamateAPI answers 200 + {"error": "..."} (or 204) when there is
+                    // no active charge — an authoritative answer, not a failure. At charge
+                    // start this is returned for a short while before the charge appears.
+                    body?.error != null || response.code() == 204 ->
+                        ApiResult.Success(CurrentChargeOutcome.NoActiveCharge)
+                    else -> ApiResult.Error("No current charge data returned")
                 }
-            } catch (e: Exception) {
-                throw e
+            } else {
+                ApiResult.Error("Failed to fetch current charge: ${response.code()}", response.code())
             }
         }
     }
 
-    suspend fun getCurrentCharge(carId: Int): ApiResult<ChargeDetail> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getCurrentCharge(carId)
-                if (response.isSuccessful) {
-                    val detail = response.body()?.data?.charge
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No current charge data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch current charge: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
-
-    suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getChargeDetail(carId, chargeId)
-                if (response.isSuccessful) {
-                    val detail = response.body()?.data?.charge
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No charge detail returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch charge detail: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getChargeDetail(carId: Int, chargeId: Int): ApiResult<ChargeDetail> =
+        executeWithFallback { api -> api.getChargeDetail(carId, chargeId).toResult("charge detail") { it?.data?.charge } }
 
     suspend fun getDrives(
         carId: Int,
@@ -331,95 +375,23 @@ class TeslamateRepository @Inject constructor(
         endDate: String? = null,
         page: Int = 1,
         show: Int = 50000
-    ): ApiResult<List<DriveData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getDrives(carId, startDate, endDate, page = page, show = show)
-                if (response.isSuccessful) {
-                    val drives = response.body()?.data?.drives ?: emptyList()
-                    ApiResult.Success(drives)
-                } else {
-                    ApiResult.Error("Failed to fetch drives: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+    ): ApiResult<List<DriveData>> =
+        executeWithFallback { api ->
+            api.getDrives(carId, startDate, endDate, page = page, show = show)
+                .toResult("drives") { it?.data?.drives ?: emptyList() }
         }
-    }
 
-    suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getDriveDetail(carId, driveId)
-                if (response.isSuccessful) {
-                    val detail = response.body()?.data?.drive
-                    if (detail != null) {
-                        ApiResult.Success(detail)
-                    } else {
-                        ApiResult.Error("No drive detail returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch drive detail: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getDriveDetail(carId: Int, driveId: Int): ApiResult<DriveDetail> =
+        executeWithFallback { api -> api.getDriveDetail(carId, driveId).toResult("drive detail") { it?.data?.drive } }
 
-    suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getBatteryHealth(carId)
-                if (response.isSuccessful) {
-                    val health = response.body()?.data?.batteryHealth
-                    if (health != null) {
-                        ApiResult.Success(health)
-                    } else {
-                        ApiResult.Error("No battery health data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch battery health: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getBatteryHealth(carId: Int): ApiResult<BatteryHealth> =
+        executeWithFallback { api -> api.getBatteryHealth(carId).toResult("battery health") { it?.data?.batteryHealth } }
 
-    suspend fun getUpdates(carId: Int): ApiResult<List<UpdateData>> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getUpdates(carId, page = 1, show = 50000)
-                if (response.isSuccessful) {
-                    val updates = response.body()?.data?.updates ?: emptyList()
-                    ApiResult.Success(updates)
-                } else {
-                    ApiResult.Error("Failed to fetch updates: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
+    suspend fun getUpdates(carId: Int): ApiResult<List<UpdateData>> =
+        executeWithFallback { api ->
+            api.getUpdates(carId, page = 1, show = 50000).toResult("updates") { it?.data?.updates ?: emptyList() }
         }
-    }
 
-    suspend fun getGlobalSettings(): ApiResult<GlobalSettingsData> {
-        return executeWithFallback { api ->
-            try {
-                val response = api.getGlobalSettings()
-                if (response.isSuccessful) {
-                    val data = response.body()?.data
-                    if (data != null) {
-                        ApiResult.Success(data)
-                    } else {
-                        ApiResult.Error("No global settings data returned")
-                    }
-                } else {
-                    ApiResult.Error("Failed to fetch global settings: ${response.code()}", response.code())
-                }
-            } catch (e: Exception) {
-                throw e
-            }
-        }
-    }
+    suspend fun getGlobalSettings(): ApiResult<GlobalSettingsData> =
+        executeWithFallback { api -> api.getGlobalSettings().toResult("global settings") { it?.data } }
 }

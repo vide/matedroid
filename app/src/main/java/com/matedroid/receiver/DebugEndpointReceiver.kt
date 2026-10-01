@@ -12,7 +12,10 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /**
  * Debug-only receiver for switching the Teslamate API endpoint via ADB.
@@ -33,6 +36,9 @@ class DebugEndpointReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "DebugEndpointReceiver"
         const val ACTION = "com.matedroid.SET_ENDPOINT"
+
+        // Stay well under the ~10 s budget the system grants a goAsync() receiver.
+        private const val TIMEOUT_MS = 8_000L
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -51,16 +57,23 @@ class DebugEndpointReceiver : BroadcastReceiver() {
         )
         val settingsDataStore = entryPoint.settingsDataStore()
 
+        // goAsync pattern: one short-lived scope per broadcast, always finished
+        // (finish + cancel) whether the write succeeds, fails or times out.
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO).launch {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        scope.launch {
             try {
-                settingsDataStore.saveServerUrl(url)
+                withTimeout(TIMEOUT_MS) {
+                    settingsDataStore.saveServerUrl(url)
+                }
                 Log.i(TAG, "API endpoint switched to: $url")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to switch endpoint", e)
             } finally {
                 pendingResult.finish()
             }
+        }.invokeOnCompletion {
+            scope.cancel()
         }
     }
 }

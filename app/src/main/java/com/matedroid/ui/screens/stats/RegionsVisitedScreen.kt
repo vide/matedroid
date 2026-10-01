@@ -27,9 +27,6 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.Route
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -42,7 +39,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,10 +54,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.repository.CountryBoundary
@@ -72,14 +67,13 @@ import com.matedroid.domain.model.RegionRecord
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
+import com.matedroid.ui.components.RouteMapView
+import com.matedroid.ui.components.boundingBoxOf
 import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.theme.BoundaryColor
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
 import com.matedroid.util.formatMedium
@@ -97,7 +91,7 @@ fun RegionsVisitedScreen(
     onNavigateBack: () -> Unit,
     viewModel: RegionsVisitedViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDarkTheme = isSystemInDarkTheme()
     val palette = remember(exteriorColor, isDarkTheme) {
         CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -128,53 +122,14 @@ fun RegionsVisitedScreen(
                                 contentDescription = stringResource(R.string.sort)
                             )
                         }
-                        DropdownMenu(
+                        GeoSortMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_first_visit)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.FIRST_VISIT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_alphabetically)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.ALPHABETICAL)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_drive_count)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.DRIVE_COUNT)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_distance)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.DISTANCE)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_energy)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.ENERGY)
-                                    showSortMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.sort_by_charges)) },
-                                onClick = {
-                                    viewModel.setSortOrder(RegionSortOrder.CHARGES)
-                                    showSortMenu = false
-                                }
-                            )
-                        }
+                            onDismiss = { showSortMenu = false },
+                            onSelect = {
+                                viewModel.setSortOrder(it)
+                                showSortMenu = false
+                            }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -550,14 +505,23 @@ private fun CountryMapCard(
                     .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
                     .clip(RoundedCornerShape(16.dp))
             ) {
-                AndroidView(
-                    factory = { ctx ->
-                        MapView(ctx).apply {
-                            setTileSource(TileSourceFactory.MAPNIK)
-                            setMultiTouchControls(true)
-                        }
-                    },
+                // Track the last applied data so unrelated update passes don't rebuild
+                // hundreds of markers.
+                val lastApplied = remember { arrayOfNulls<Any>(4) }
+
+                RouteMapView(
                     update = { mapView ->
+                        // Skip the expensive marker rebuild when the inputs haven't changed.
+                        if (lastApplied[0] == mapViewMode &&
+                            lastApplied[1] == chargeLocations &&
+                            lastApplied[2] == driveLocations &&
+                            lastApplied[3] == countryBoundary
+                        ) return@RouteMapView
+                        lastApplied[0] = mapViewMode
+                        lastApplied[1] = chargeLocations
+                        lastApplied[2] = driveLocations
+                        lastApplied[3] = countryBoundary
+
                         // Clear all overlays except keep any info windows
                         mapView.overlays.clear()
 
@@ -593,7 +557,9 @@ private fun CountryMapCard(
 
                                 // Only zoom on initial load
                                 if (!hasInitialZoom && chargeLocations.isNotEmpty()) {
-                                    val boundingBox = calculateChargeBoundingBox(chargeLocations)
+                                    val boundingBox = boundingBoxOf(
+                                        chargeLocations.map { GeoPoint(it.latitude, it.longitude) }
+                                    )
                                     mapView.post {
                                         mapView.zoomToBoundingBox(boundingBox, false, 60)
                                         hasInitialZoom = true
@@ -623,7 +589,9 @@ private fun CountryMapCard(
 
                                 // Only zoom on initial load
                                 if (!hasInitialZoom && driveLocations.isNotEmpty()) {
-                                    val boundingBox = calculateDriveBoundingBox(driveLocations)
+                                    val boundingBox = boundingBoxOf(
+                                        driveLocations.map { GeoPoint(it.latitude, it.longitude) }
+                                    )
                                     mapView.post {
                                         mapView.zoomToBoundingBox(boundingBox, false, 60)
                                         hasInitialZoom = true
@@ -837,82 +805,6 @@ private fun MapModeToggle(
 }
 
 /**
- * Calculate bounding box that contains all charge locations with some padding.
- */
-private fun calculateChargeBoundingBox(chargeLocations: List<ChargeLocation>): BoundingBox {
-    if (chargeLocations.isEmpty()) {
-        // Default to Europe if no locations
-        return BoundingBox(55.0, 15.0, 35.0, -10.0)
-    }
-
-    var minLat = Double.MAX_VALUE
-    var maxLat = Double.MIN_VALUE
-    var minLon = Double.MAX_VALUE
-    var maxLon = Double.MIN_VALUE
-
-    chargeLocations.forEach { location ->
-        minLat = minOf(minLat, location.latitude)
-        maxLat = maxOf(maxLat, location.latitude)
-        minLon = minOf(minLon, location.longitude)
-        maxLon = maxOf(maxLon, location.longitude)
-    }
-
-    // Add some padding (about 10% on each side)
-    val latPadding = (maxLat - minLat) * 0.15
-    val lonPadding = (maxLon - minLon) * 0.15
-
-    // Ensure minimum padding for single point
-    val minPadding = 0.01
-    val effectiveLatPadding = maxOf(latPadding, minPadding)
-    val effectiveLonPadding = maxOf(lonPadding, minPadding)
-
-    return BoundingBox(
-        maxLat + effectiveLatPadding,  // north
-        maxLon + effectiveLonPadding,  // east
-        minLat - effectiveLatPadding,  // south
-        minLon - effectiveLonPadding   // west
-    )
-}
-
-/**
- * Calculate bounding box that contains all drive locations with some padding.
- */
-private fun calculateDriveBoundingBox(driveLocations: List<DriveLocation>): BoundingBox {
-    if (driveLocations.isEmpty()) {
-        // Default to Europe if no locations
-        return BoundingBox(55.0, 15.0, 35.0, -10.0)
-    }
-
-    var minLat = Double.MAX_VALUE
-    var maxLat = Double.MIN_VALUE
-    var minLon = Double.MAX_VALUE
-    var maxLon = Double.MIN_VALUE
-
-    driveLocations.forEach { location ->
-        minLat = minOf(minLat, location.latitude)
-        maxLat = maxOf(maxLat, location.latitude)
-        minLon = minOf(minLon, location.longitude)
-        maxLon = maxOf(maxLon, location.longitude)
-    }
-
-    // Add some padding (about 10% on each side)
-    val latPadding = (maxLat - minLat) * 0.15
-    val lonPadding = (maxLon - minLon) * 0.15
-
-    // Ensure minimum padding for single point
-    val minPadding = 0.01
-    val effectiveLatPadding = maxOf(latPadding, minPadding)
-    val effectiveLonPadding = maxOf(lonPadding, minPadding)
-
-    return BoundingBox(
-        maxLat + effectiveLatPadding,  // north
-        maxLon + effectiveLonPadding,  // east
-        minLat - effectiveLatPadding,  // south
-        minLon - effectiveLonPadding   // west
-    )
-}
-
-/**
  * Create country boundary overlays that highlight the selected country.
  * Returns a list of polygons - one for each part of the country (mainland + islands).
  */
@@ -1033,37 +925,6 @@ private fun RegionCard(
     }
 }
 
-@Composable
-private fun StatChip(
-    icon: ImageVector,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(palette.onSurface.copy(alpha = 0.05f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            tint = palette.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            color = palette.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 
 @Composable
 private fun EmptyState(palette: CarColorPalette) {
@@ -1088,18 +949,5 @@ private fun EmptyState(palette: CarColorPalette) {
 private fun formatDate(dateStr: String): String {
     val dt = parseIsoDateTime(dateStr) ?: return dateStr.take(10)
     return dt.toLocalDate().formatMedium(Locale.getDefault())
-}
-
-/**
- * Get the localized country name for a given ISO country code.
- * Falls back to the country code if localization fails.
- */
-private fun getLocalizedCountryName(countryCode: String): String {
-    return try {
-        Locale.Builder().setRegion(countryCode).build().getDisplayCountry(Locale.getDefault())
-            .takeIf { it.isNotBlank() && it != countryCode } ?: countryCode
-    } catch (e: Exception) {
-        countryCode
-    }
 }
 

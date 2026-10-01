@@ -18,13 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -50,30 +46,24 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.lazy.LazyColumn as LogLazyColumn
-import androidx.compose.foundation.lazy.items as logItems
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import com.matedroid.BuildConfig
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -81,6 +71,7 @@ import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.entity.DriveSummary
 import com.matedroid.data.repository.GeocodeProgressInfo
+import com.matedroid.domain.CostPerKwhBasis
 import com.matedroid.domain.model.CarStats
 import com.matedroid.domain.model.DeepStats
 import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
@@ -89,7 +80,6 @@ import com.matedroid.domain.model.SyncPhase
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
-import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 
@@ -105,8 +95,8 @@ fun StatsScreen(
     onNavigateToCountriesVisited: (Int?) -> Unit = {}, // year (null for all time)
     viewModel: StatsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val syncLogs by viewModel.syncLogs.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val syncLogs by viewModel.syncLogs.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -137,11 +127,14 @@ fun StatsScreen(
         viewModel.setCarId(carId)
     }
 
-    // Periodic sync every 60 seconds while the screen is visible
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(60_000L) // Wait 60 seconds
-            viewModel.triggerSync()
+    // Periodic sync every 60 seconds, only while the screen is actually visible
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                kotlinx.coroutines.delay(60_000L) // Wait 60 seconds
+                viewModel.triggerSync()
+            }
         }
     }
 
@@ -655,7 +648,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = stringResource(R.string.stats_energy_used),
-                value = formatEnergy(quickStats.totalEnergyConsumedKwh),
+                value = UnitFormatter.formatEnergy(quickStats.totalEnergyConsumedKwh),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -668,7 +661,7 @@ private fun QuickStatsDrivesCard(quickStats: QuickStats, palette: CarColorPalett
             )
             StatItem(
                 label = stringResource(R.string.stats_cost_per_distance, UnitFormatter.getDistanceUnit(units)),
-                value = costPer100Km?.let { "%.2f %s".format(it, currencySymbol) } ?: "N/A",
+                value = costPer100Km?.let { UnitFormatter.formatCost(it, currencySymbol) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -690,7 +683,7 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
             )
             StatItem(
                 label = stringResource(R.string.energy_added),
-                value = formatEnergy(quickStats.totalEnergyAddedKwh),
+                value = UnitFormatter.formatEnergy(quickStats.totalEnergyAddedKwh),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -699,377 +692,20 @@ private fun QuickStatsChargesCard(quickStats: QuickStats, palette: CarColorPalet
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
                     label = stringResource(R.string.total_cost),
-                    value = "%.2f %s".format(quickStats.totalCost, currencySymbol),
+                    value = UnitFormatter.formatCost(quickStats.totalCost, currencySymbol),
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
-                    label = stringResource(R.string.stats_avg_cost_kwh),
-                    value = quickStats.avgCostPerKwh?.let { "%.3f %s".format(it, currencySymbol) } ?: "N/A",
+                    label = stringResource(
+                        if (CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED) {
+                            R.string.stats_avg_cost_kwh_used
+                        } else {
+                            R.string.stats_avg_cost_kwh_added
+                        }
+                    ),
+                    value = quickStats.avgCostPerKwh?.let { UnitFormatter.formatCost(it, currencySymbol, perKwh = true) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
-            }
-        }
-    }
-}
-
-/** Data class for a single record item */
-private data class RecordData(
-    val emoji: String,
-    val label: String,
-    val value: String,
-    val subtext: String,
-    val onClick: (() -> Unit)?
-)
-
-/**
- * HARD CONSTRAINT: Each page displays exactly 6 record slots (3 rows × 2 columns).
- * If a category has more than 6 records, it MUST be split into multiple pages.
- * This ensures consistent page height and smooth swiping experience.
- */
-private const val RECORDS_PER_PAGE = 6
-
-/** A page of records to display in the pager */
-private data class RecordPage(
-    val categoryTitle: String,
-    val categoryEmoji: String,
-    val records: List<RecordData>, // Max RECORDS_PER_PAGE items
-    val pageIndex: Int, // 0-based index within the category (for multi-page categories)
-    val totalPagesInCategory: Int // Total pages for this category
-)
-
-@Composable
-private fun RecordsCard(
-    quickStats: QuickStats,
-    deepStats: DeepStats?,
-    palette: CarColorPalette,
-    currencySymbol: String,
-    units: Units?,
-    selectedCategory: String,
-    onCategoryChanged: (String) -> Unit,
-    onDriveClick: (Int) -> Unit,
-    onChargeClick: (Int) -> Unit,
-    onDayClick: (String) -> Unit,
-    onCountriesVisitedClick: () -> Unit,
-    onRangeRecordClick: (MaxDistanceBetweenChargesRecord) -> Unit,
-    onGapRecordClick: (Double, String, String, String) -> Unit // gapDays, fromDate, toDate, title
-) {
-    // Pre-compute localized strings for use in lambdas
-    val labelLongestDrive = stringResource(R.string.record_longest_drive)
-    val labelTopSpeed = stringResource(R.string.record_top_speed)
-    val labelMostEfficient = stringResource(R.string.record_most_efficient)
-    val labelLongestStreak = stringResource(R.string.record_longest_streak)
-    val labelBusiestDay = stringResource(R.string.record_busiest_day)
-    val labelCountriesVisited = stringResource(R.string.record_countries_visited)
-    val labelBiggestGain = stringResource(R.string.record_biggest_gain)
-    val labelBiggestDrain = stringResource(R.string.record_biggest_drain)
-    val labelBiggestCharge = stringResource(R.string.record_biggest_charge)
-    val labelPeakPower = stringResource(R.string.record_peak_power)
-    val labelMostExpensive = stringResource(R.string.record_most_expensive)
-    val labelPriciestKwh = stringResource(R.string.record_priciest_kwh)
-    val labelHighestPoint = stringResource(R.string.record_highest_point)
-    val labelMostClimbing = stringResource(R.string.record_most_climbing)
-    val labelHottestDrive = stringResource(R.string.record_hottest_drive)
-    val labelColdestDrive = stringResource(R.string.record_coldest_drive)
-    val labelHottestCharge = stringResource(R.string.record_hottest_charge)
-    val labelColdestCharge = stringResource(R.string.record_coldest_charge)
-    val labelLongestRange = stringResource(R.string.record_longest_range)
-    val labelNoCharging = stringResource(R.string.record_longest_no_charging)
-    val labelNoDriving = stringResource(R.string.record_longest_no_driving)
-    val labelMostDistanceDay = stringResource(R.string.record_most_distance_day)
-    val categoryDrives = stringResource(R.string.stats_category_drives)
-    val categoryBattery = stringResource(R.string.stats_category_battery)
-    val categoryWeather = stringResource(R.string.stats_category_weather)
-    val categoryMisc = stringResource(R.string.stats_category_misc)
-    val gapTypeCharging = stringResource(R.string.gap_type_charging)
-    val gapTypeDriving = stringResource(R.string.gap_type_driving)
-
-    // Category 1: Drives
-    val driveRecords = mutableListOf<RecordData>()
-    quickStats.longestDrive?.let { drive ->
-        driveRecords.add(RecordData("📏", labelLongestDrive, UnitFormatter.formatDistance(drive.distance, units), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
-    }
-    quickStats.fastestDrive?.let { drive ->
-        driveRecords.add(RecordData("🏎️", labelTopSpeed, UnitFormatter.formatSpeed(drive.speedMax.toDouble(), units), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
-    }
-    quickStats.mostEfficientDrive?.let { drive ->
-        driveRecords.add(RecordData("🌱", labelMostEfficient, UnitFormatter.formatEfficiency(drive.efficiency ?: 0.0, units, 0), drive.startDate.take(10)) { onDriveClick(drive.driveId) })
-    }
-    quickStats.longestDrivingStreak?.let { streak ->
-        driveRecords.add(RecordData("🔥", labelLongestStreak, stringResource(R.string.format_days_count, streak.streakDays), "${streak.startDate} → ${streak.endDate}", null))
-    }
-    quickStats.busiestDay?.let { day ->
-        driveRecords.add(RecordData("📅", labelBusiestDay, stringResource(R.string.format_drives_count, day.count), day.day) { onDayClick(day.day) })
-    }
-    deepStats?.countriesVisitedCount?.let { count ->
-        driveRecords.add(RecordData("🌍", labelCountriesVisited, pluralStringResource(R.plurals.format_countries_count, count, count), "") { onCountriesVisitedClick() })
-    }
-
-    // Category 2: Battery
-    val batteryRecords = mutableListOf<RecordData>()
-    quickStats.biggestBatteryGainCharge?.let { record ->
-        batteryRecords.add(RecordData("🔋", labelBiggestGain, "+${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onChargeClick(record.recordId) })
-    }
-    quickStats.biggestBatteryDrainDrive?.let { record ->
-        batteryRecords.add(RecordData("📉", labelBiggestDrain, "-${record.percentChange}%", "${record.startLevel}% → ${record.endLevel}%") { onDriveClick(record.recordId) })
-    }
-    quickStats.biggestCharge?.let { charge ->
-        batteryRecords.add(RecordData("⚡", labelBiggestCharge, "%.0f kWh".format(charge.energyAdded), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
-    }
-    deepStats?.chargeWithMaxPower?.let { record ->
-        batteryRecords.add(RecordData("⚡", labelPeakPower, "${record.powerKw} kW", record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
-    }
-    quickStats.mostExpensiveCharge?.let { charge ->
-        charge.cost?.let { cost ->
-            batteryRecords.add(RecordData("💸", labelMostExpensive, "%.2f %s".format(cost, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
-        }
-    }
-    quickStats.mostExpensivePerKwhCharge?.let { charge ->
-        charge.cost?.let { cost ->
-            if (charge.energyAdded > 0) {
-                batteryRecords.add(RecordData("📈", labelPriciestKwh, "%.3f %s".format(cost / charge.energyAdded, currencySymbol), charge.startDate.take(10)) { onChargeClick(charge.chargeId) })
-            }
-        }
-    }
-
-    // Category 3: Weather & Altitude
-    val weatherRecords = mutableListOf<RecordData>()
-    deepStats?.driveWithMaxElevation?.let { record ->
-        weatherRecords.add(RecordData("🏔️", labelHighestPoint, UnitFormatter.formatElevation(record.elevationM, units), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    deepStats?.driveWithMostClimbing?.let { record ->
-        weatherRecords.add(RecordData("⛰️", labelMostClimbing, record.elevationGainM?.let { "+" + UnitFormatter.formatElevation(it, units) } ?: "N/A", record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    deepStats?.hottestDrive?.let { record ->
-        weatherRecords.add(RecordData("🌡️", labelHottestDrive, UnitFormatter.formatTemperature(record.tempC, units, 1), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    deepStats?.coldestDrive?.let { record ->
-        weatherRecords.add(RecordData("🧊", labelColdestDrive, UnitFormatter.formatTemperature(record.tempC, units, 1), record.date?.take(10) ?: "") { onDriveClick(record.driveId) })
-    }
-    deepStats?.hottestCharge?.let { record ->
-        weatherRecords.add(RecordData("☀️", labelHottestCharge, UnitFormatter.formatTemperature(record.tempC, units, 1), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
-    }
-    deepStats?.coldestCharge?.let { record ->
-        weatherRecords.add(RecordData("❄️", labelColdestCharge, UnitFormatter.formatTemperature(record.tempC, units, 1), record.date?.take(10) ?: "") { onChargeClick(record.chargeId) })
-    }
-
-    // Category 4: Miscelaneous
-    val miscRecords = mutableListOf<RecordData>()
-    quickStats.maxDistanceBetweenCharges?.let { record ->
-        miscRecords.add(RecordData("🔋", labelLongestRange, UnitFormatter.formatDistance(record.distance, units), "${record.fromDate.take(10)} → ${record.toDate.take(10)}") { onRangeRecordClick(record) })
-    }
-    quickStats.longestGapWithoutCharging?.let { gap ->
-        miscRecords.add(RecordData("⏰", labelNoCharging, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeCharging) })
-    }
-    quickStats.longestGapWithoutDriving?.let { gap ->
-        miscRecords.add(RecordData("🅿️", labelNoDriving, stringResource(R.string.format_days, gap.gapDays), "${gap.fromDate.take(10)} → ${gap.toDate.take(10)}") { onGapRecordClick(gap.gapDays, gap.fromDate, gap.toDate, gapTypeDriving) })
-    }
-    quickStats.mostDistanceDay?.let { day ->
-        miscRecords.add(RecordData("🛣️", labelMostDistanceDay, UnitFormatter.formatDistance(day.totalDistance, units), day.day) { onDayClick(day.day) })
-    }
-
-    // Build list of all categories with their records
-    data class CategoryData(val title: String, val emoji: String, val records: List<RecordData>)
-    val allCategories = mutableListOf<CategoryData>()
-    if (driveRecords.isNotEmpty()) allCategories.add(CategoryData(categoryDrives, "🚗", driveRecords))
-    if (batteryRecords.isNotEmpty()) allCategories.add(CategoryData(categoryBattery, "🔋", batteryRecords))
-    if (weatherRecords.isNotEmpty()) allCategories.add(CategoryData(categoryWeather, "🌡️", weatherRecords))
-    if (miscRecords.isNotEmpty()) allCategories.add(CategoryData(categoryMisc, "📍", miscRecords))
-
-    // Don't render anything if no categories
-    if (allCategories.isEmpty()) return
-
-    // Split categories into pages of max RECORDS_PER_PAGE records each
-    val pages = mutableListOf<RecordPage>()
-    allCategories.forEach { category ->
-        val chunks = category.records.chunked(RECORDS_PER_PAGE)
-        chunks.forEachIndexed { index, chunk ->
-            pages.add(RecordPage(
-                categoryTitle = category.title,
-                categoryEmoji = category.emoji,
-                records = chunk,
-                pageIndex = index,
-                totalPagesInCategory = chunks.size
-            ))
-        }
-    }
-
-// Find the first page of the selected category, or default to 0
-    val initialPage = if (selectedCategory.isNotEmpty()) {
-        pages.indexOfFirst { it.categoryTitle == selectedCategory }.takeIf { it >= 0 } ?: 0
-    } else {
-        0
-    }
-
-    val pagerState = rememberPagerState(
-        initialPage = initialPage,
-        pageCount = { pages.size }
-    )
-
-// Update selected category when page changes
-    LaunchedEffect(pagerState.currentPage) {
-        snapshotFlow { pagerState.currentPage }
-            .collect { page ->
-                if (page < pages.size) {
-                    onCategoryChanged(pages[page].categoryTitle)
-                }
-            }
-    }
-
-    Column {
-        // Section header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                imageVector = CustomIcons.Trophy,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = palette.accent
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.stats_records),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-        }
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = palette.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Pager with pages (fixed height for 6 records = 3 rows)
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth()
-                ) { pageIndex ->
-                    val page = pages[pageIndex]
-                    RecordCategoryPage(
-                        page = page,
-                        palette = palette
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Page indicators - group by category with sub-dots for multi-page categories
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    var pageOffset = 0
-                    allCategories.forEach { category ->
-                        val categoryPageCount = (category.records.size + RECORDS_PER_PAGE - 1) / RECORDS_PER_PAGE
-                        val isCurrentCategory = pagerState.currentPage >= pageOffset &&
-                                pagerState.currentPage < pageOffset + categoryPageCount
-                        val currentPageInCategory = if (isCurrentCategory) pagerState.currentPage - pageOffset else -1
-
-                        Row(
-                            modifier = Modifier
-                                .padding(horizontal = 6.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isCurrentCategory) palette.accent.copy(alpha = 0.2f)
-                                    else Color.Transparent
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = category.emoji,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            if (isCurrentCategory) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = category.title,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.accent,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                // Show page dots for multi-page categories
-                                if (categoryPageCount > 1) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    repeat(categoryPageCount) { dotIndex ->
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(horizontal = 2.dp)
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(
-                                                    if (dotIndex == currentPageInCategory) palette.accent
-                                                    else palette.accent.copy(alpha = 0.3f)
-                                                )
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        pageOffset += categoryPageCount
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Base height for each record card row.
- * Scales with system font size to prevent vertical text clipping.
- */
-private const val RECORD_CARD_HEIGHT_BASE = 72
-
-/**
- * A single page showing records for one category.
- * HARD CONSTRAINT: Always renders exactly 3 rows (space for 6 records) to maintain fixed height.
- */
-@Composable
-private fun RecordCategoryPage(
-    page: RecordPage,
-    palette: CarColorPalette
-) {
-    // Pad records to exactly RECORDS_PER_PAGE (6) slots for consistent height
-    val paddedRecords = page.records + List(RECORDS_PER_PAGE - page.records.size) { null }
-    val rows = paddedRecords.chunked(2) // Always 3 rows of 2
-
-    // Scale card height with system font size to prevent vertical text clipping
-    val fontScale = LocalDensity.current.fontScale
-    val scaledCardHeight = (RECORD_CARD_HEIGHT_BASE * fontScale).dp
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Records in 2-column grid - always 3 rows for fixed height
-        // Note: Category title removed - the swipe indicator at the bottom shows current category
-        rows.forEach { rowRecords ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(scaledCardHeight),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                rowRecords.forEach { record ->
-                    if (record != null) {
-                        RecordCard(
-                            emoji = record.emoji,
-                            label = record.label,
-                            value = record.value,
-                            subtext = record.subtext,
-                            palette = palette,
-                            onClick = record.onClick,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                        )
-                    } else {
-                        // Empty placeholder to maintain grid layout - same size as RecordCard
-                        Box(modifier = Modifier.weight(1f).fillMaxHeight())
-                    }
-                }
             }
         }
     }
@@ -1100,12 +736,12 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette,
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_hottest),
-                value = deepStats.maxOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                value = deepStats.maxOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
                 label = stringResource(R.string.stats_coldest),
-                value = deepStats.minOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                value = deepStats.minOutsideTempDrivingC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1122,24 +758,16 @@ private fun TemperatureStatsCard(deepStats: DeepStats, palette: CarColorPalette,
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatItem(
                     label = stringResource(R.string.stats_hottest),
-                    value = deepStats.maxCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                    value = deepStats.maxCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
                 StatItem(
                     label = stringResource(R.string.stats_coldest),
-                    value = deepStats.minCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: "N/A",
+                    value = deepStats.minCabinTempC?.let { UnitFormatter.formatTemperature(it, units, 1) } ?: stringResource(R.string.value_not_available),
                     modifier = Modifier.weight(1f)
                 )
             }
         }
-    }
-}
-
-private fun formatEnergy(kwh: Double): String {
-    return if (kwh >= 1000) {
-        "%.1f MWh".format(kwh / 1000)
-    } else {
-        "%.0f kWh".format(kwh)
     }
 }
 
@@ -1163,12 +791,12 @@ private fun AcDcRatioCard(deepStats: DeepStats, palette: CarColorPalette) {
         Row(modifier = Modifier.fillMaxWidth()) {
             StatItem(
                 label = stringResource(R.string.stats_ac_energy),
-                value = formatEnergy(deepStats.acChargeEnergyKwh),
+                value = UnitFormatter.formatEnergy(deepStats.acChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
             StatItem(
                 label = stringResource(R.string.stats_dc_energy),
-                value = formatEnergy(deepStats.dcChargeEnergyKwh),
+                value = UnitFormatter.formatEnergy(deepStats.dcChargeEnergyKwh),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1317,422 +945,5 @@ private fun StatItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun RecordCard(
-    emoji: String,
-    label: String,
-    value: String,
-    subtext: String,
-    palette: CarColorPalette,
-    onClick: (() -> Unit)?,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable { onClick() }
-                } else {
-                    Modifier
-                }
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = palette.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = emoji,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (subtext.isNotEmpty()) {
-                    Text(
-                        text = subtext,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-            if (onClick != null) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = stringResource(R.string.view_details),
-                    modifier = Modifier.size(18.dp),
-                    tint = palette.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-/**
- * Debug-only dialog showing sync logs like adb logcat.
- */
-@Composable
-private fun SyncLogsDialog(
-    logs: List<String>,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(stringResource(R.string.stats_sync_logs_title))
-        },
-        text = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(400.dp)
-            ) {
-                LogLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    reverseLayout = true // Show newest logs at the bottom
-                ) {
-                    logItems(logs.reversed()) { log ->
-                        Text(
-                            text = log,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            modifier = Modifier.padding(vertical = 2.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close))
-            }
-        }
-    )
-}
-
-/**
- * Dialog showing details of a gap record (longest period without charging/driving).
- */
-@Composable
-private fun GapRecordDialog(
-    gapDays: Double,
-    fromDate: String,
-    toDate: String,
-    title: String,
-    palette: CarColorPalette,
-    onDismiss: () -> Unit
-) {
-    // title is now the gap type (Charging/Driving), used for determining emoji
-    val isCharging = title == stringResource(R.string.gap_type_charging)
-    val emoji = if (isCharging) "⏰" else "🅿️"
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(emoji, style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.stats_gap_dialog_title, title))
-            }
-        },
-        text = {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = palette.surface
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Duration
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.format_days, gapDays),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = palette.accent
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Date range
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.started),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = palette.onSurfaceVariant
-                            )
-                            Text(
-                                text = fromDate.take(10),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = palette.onSurface
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = stringResource(R.string.ended),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = palette.onSurfaceVariant
-                            )
-                            Text(
-                                text = toDate.take(10),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = palette.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close))
-            }
-        }
-    )
-}
-
-/**
- * Dialog showing details of a "longest range" record with scrollable list of drives.
- */
-@Composable
-private fun RangeRecordDialog(
-    record: MaxDistanceBetweenChargesRecord,
-    drives: List<DriveSummary>,
-    isLoading: Boolean,
-    palette: CarColorPalette,
-    units: Units?,
-    onDriveClick: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔋", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.stats_range_record_title))
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Summary info
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = palette.surface
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = stringResource(R.string.total_distance),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = palette.onSurfaceVariant
-                            )
-                            Text(
-                                text = UnitFormatter.formatDistance(record.distance, units),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.onSurface
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.from),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.onSurfaceVariant
-                                )
-                                Text(
-                                    text = record.fromDate.take(10),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = palette.onSurface
-                                )
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = stringResource(R.string.to),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.onSurfaceVariant
-                                )
-                                Text(
-                                    text = record.toDate.take(10),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = palette.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Drives header
-                Text(
-                    text = stringResource(R.string.stats_drives_count, drives.size),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Scrollable list of drives
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                ) {
-                    if (isLoading) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        }
-                    } else if (drives.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.stats_no_drives_found),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = palette.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(drives) { drive ->
-                                DriveListItem(
-                                    drive = drive,
-                                    palette = palette,
-                                    units = units,
-                                    onClick = { onDriveClick(drive.driveId) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.close))
-            }
-        }
-    )
-}
-
-/**
- * Single drive item in the range record dialog.
- */
-@Composable
-private fun DriveListItem(
-    drive: DriveSummary,
-    palette: CarColorPalette,
-    units: Units?,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = palette.surface.copy(alpha = 0.7f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = drive.startDate.take(10),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant
-                )
-                Text(
-                    text = "${drive.startAddress.take(25)}${if (drive.startAddress.length > 25) "..." else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.onSurface,
-                    maxLines = 1
-                )
-                Text(
-                    text = "→ ${drive.endAddress.take(25)}${if (drive.endAddress.length > 25) "..." else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = UnitFormatter.formatDistance(drive.distance, units),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurface
-                )
-                Text(
-                    text = "${drive.durationMin} min",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = palette.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.view_drive),
-                modifier = Modifier.size(18.dp),
-                tint = palette.onSurfaceVariant
-            )
-        }
     }
 }

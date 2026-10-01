@@ -115,12 +115,14 @@
     <!-- AC (Alternating Current) charging indicator badge -->
     <string name="charging_ac">AC</string>
 
-    <!-- Content description for warning icon when battery is above 90% -->
+    <!-- Content description for warning icon when battery is above the configured warning level -->
     <string name="high_charge_level">Nivell de càrrega alt</string>
 
     <!-- Title and message for the high SoC info dialog shown when tapping the warning icon -->
     <string name="high_soc_warning_title">Nivell de càrrega elevat</string>
     <string name="high_soc_warning_message">Mantenir la bateria al 100% o prop d\'aquest valor durant períodes prolongats pot accelerar la degradació.\n\n• Bateries NCM (la majoria dels models Tesla): es recomana carregar fins al 80–90% per a l\'ús diari. Carrega al 100% només abans de viatges llargs.\n• Bateries LFP (Model 3/Y Standard Range): dissenyades per carregar-se regularment al 100% — Tesla ho recomana per a la calibració de la bateria.\n\nEvita deixar el cotxe aparcat amb la càrrega completa durant períodes llargs sempre que sigui possible.</string>
+    <!-- Footer of the same dialog, pointing at the setting that changes or hides the warning -->
+    <string name="high_soc_warning_settings_hint">Pots canviar el nivell en què apareix aquest avís — o desactivar-lo — a Configuració → Pantalla.</string>
 
     <!-- Location card section title -->
     <string name="location">Ubicació</string>
@@ -128,11 +130,31 @@
     <!-- Elevation label in location card -->
     <string name="elevation">Altitud</string>
 
+    <!-- Location card, navigation banner: spoken label for the destination the car is driving to; %1$s is the destination name -->
+    <string name="location_navigating_to">En ruta cap a %1$s</string>
+    <!-- Location card, navigation chip: spoken label for the estimated time of arrival -->
+    <string name="location_arrival_time">Hora d\'arribada</string>
+    <!-- Location card, navigation chip: spoken label for the distance still to drive -->
+    <string name="location_distance_remaining">Distància restant</string>
+    <!-- Location card, navigation chip: spoken label for the predicted charge level when the car reaches the destination -->
+    <string name="location_battery_on_arrival">Bateria a l\'arribada</string>
+    <!-- Location card, navigation banner: spoken label for the extra time traffic is adding; %1$s is a duration such as "8m" -->
+    <string name="location_traffic_delay">Retard per trànsit %1$s</string>
+
     <!-- Vehicle info card section title -->
     <string name="vehicle_info">Info del vehicle</string>
 
     <!-- Activity card section title (bottom dashboard card) -->
     <string name="activity_title">Activitat</string>
+    <!-- "Since last charge" dashboard carousel page: title label -->
+    <string name="since_last_charge_title">Des de l\'última càrrega</string>
+    <!-- "Since last charge" card: sub-line under the kWh hero; %1$d is the number of drives -->
+    <plurals name="since_last_charge_drives">
+        <item quantity="one">consumits en %1$d trajecte</item>
+        <item quantity="other">consumits en %1$d trajectes</item>
+    </plurals>
+    <!-- "Since last charge" card: battery percentage points used this cycle; "SoC" is technical, do not translate -->
+    <string name="since_last_charge_soc_used">−%1$d%% SoC</string>
     <!-- Content description for the top-right overflow/hamburger menu button -->
     <string name="menu">Menú</string>
     <!-- Menu entry: opens the Sentry events / history screen -->
@@ -148,7 +170,7 @@
     <!-- Trips hero empty state: shown when no road-trips have been detected yet -->
     <string name="trips_empty_title">Encara no hi ha viatges</string>
     <!-- Trips hero empty state hint -->
-    <string name="trips_empty_hint">Els viatges de més de 300 km apareixen aquí</string>
+    <string name="trips_empty_hint">Els trajectes llargs units per una càrrega ràpida DC apareixen aquí</string>
     <!-- Trips list empty state: intro before the auto-detection rules -->
     <string name="trips_empty_intro">Un viatge es detecta automàticament quan tens:</string>
     <!-- Trips list empty state: rule 1 -->
@@ -165,7 +187,7 @@
     <string name="trip_create_title">Nou viatge</string>
     <string name="trip_create_pick_day">Tria el dia del viatge</string>
     <string name="trip_create_name_hint">Nom del viatge (opcional)</string>
-    <string name="trip_create_add_legs">Afegeix trams</string>
+    <string name="trip_create_add_legs">Afegeix trams o càrregues</string>
     <string name="trip_create_empty">Tria els trajectes i càrregues que formen aquest viatge</string>
     <string name="trip_create_save">Desa</string>
     <string name="trip_create_remove">Treu el tram</string>
@@ -195,20 +217,98 @@
     <!-- Shown while loading settings from storage -->
     <string name="loading_settings">Carregant configuració…</string>
 
-    <!-- Content description for expand/collapse section arrows -->
-    <string name="collapse">Contraure</string>
-    <string name="expand">Expandir</string>
+    <!-- Settings hub: category names shown in the settings list, one per detail page -->
+    <string name="settings_section_connection">Connexió</string>
+    <string name="settings_section_connection_summary">URL del servidor i credencials</string>
+    <string name="settings_section_display">Pantalla</string>
+    <string name="settings_section_display_summary">Moneda i contingut de les llistes</string>
+    <string name="settings_section_notifications">Notificacions</string>
+    <string name="settings_section_notifications_summary">Alertes de càrrega, Sentinella i pneumàtics</string>
+    <string name="settings_section_data">Dades i sincronització</string>
+    <string name="settings_section_data_summary">Manteniment de les dades desades</string>
+    <string name="settings_section_about">Quant a</string>
+    <string name="settings_section_about_summary">Versió i suport</string>
+    <string name="settings_section_debug">Eines de depuració</string>
+    <string name="settings_section_debug_summary">Opcions per a desenvolupadors</string>
+
+    <!-- Summary shown in the settings hub when no server has been set up yet -->
+    <string name="settings_not_configured">Sense configurar</string>
+
+    <!-- Group headers inside settings detail pages -->
+    <string name="settings_group_server">Servidor</string>
+    <string name="settings_group_authentication">Autenticació</string>
+    <string name="settings_group_security">Seguretat</string>
+    <string name="settings_group_network">Xarxa</string>
+    <!-- Configurable thresholds for the "short drives / charges" rule (Display section) -->
+    <string name="settings_thresholds_hint">Els trajectes i les càrregues per sota d\'aquests valors s\'amaguen de les llistes. Sempre es compten en els totals i les estadístiques.</string>
+    <string name="settings_threshold_drive_duration_label">Durada mínima del trajecte</string>
+    <string name="settings_threshold_drive_distance_label">Distància mínima del trajecte</string>
+    <string name="settings_threshold_charge_energy_label">Energia mínima de la càrrega</string>
+    <!-- Shown when a threshold is set to zero, i.e. that check is switched off -->
+    <string name="settings_threshold_no_minimum">Sense mínim</string>
+    <!-- Content description for the threshold dropdown arrows -->
+    <string name="settings_threshold_select">Selecciona el valor</string>
+    <!-- Threshold values. Units (min, km, mi, kWh) are technical and stay untranslated -->
+    <string name="settings_threshold_value_minutes">%1$d min</string>
+    <string name="settings_threshold_value_km">%1$s km</string>
+    <string name="settings_threshold_value_mi">%1$s mi</string>
+    <string name="settings_threshold_value_kwh">%1$s kWh</string>
+
+    <!-- Configurable level for the dashboard high-charge warning (Display section) -->
+    <string name="settings_high_soc_hint">La pantalla principal marca una càrrega elevada quan el cotxe està aparcat per sobre d\'aquest nivell. Les bateries LFP (Standard Range) estan dissenyades per mantenir-se a plena càrrega, així que tria Mai si és el cas del teu cotxe.</string>
+    <string name="settings_high_soc_threshold_label">Avisa per sobre de</string>
+    <!-- Shown when a charge warning is switched off -->
+    <string name="settings_soc_warning_never">Mai</string>
+    <!-- A high-charge warning level, e.g. "Above 90%" -->
+    <string name="settings_high_soc_value">Per sobre del %1$d%%</string>
+    <!-- Configurable level for the low-charge colouring (Display section) -->
+    <string name="settings_low_soc_hint">Per sota d\'aquest nivell el percentatge de bateria es mostra en vermell a la pantalla principal i al widget, i en ambre en els 20 punts just per sobre.</string>
+    <string name="settings_low_soc_threshold_label">Avisa per sota de</string>
+    <!-- A low-charge warning level, e.g. "Below 20%" -->
+    <string name="settings_low_soc_value">Per sota del %1$d%%</string>
+
+    <string name="settings_group_costs">Costos</string>
+    <string name="settings_group_lists">Llistes</string>
+    <string name="settings_group_battery">Bateria</string>
+    <string name="settings_group_channels">Canals de notificació</string>
+    <string name="settings_group_maintenance">Manteniment</string>
+    <string name="settings_group_support">Suport</string>
+    <string name="settings_group_appearance_debug">Aparença</string>
+    <string name="settings_group_tpms_debug">Pressió dels pneumàtics</string>
+    <string name="settings_group_sentry_debug">Sentinella</string>
+
+    <!-- Notifications settings page -->
+    <string name="settings_notifications_description">Android gestiona les notificacions de MateDroid. Toca una categoria per canviar-ne el so, la importància o desactivar-la.</string>
+    <string name="settings_notifications_all_title">Totes les notificacions de MateDroid</string>
+    <string name="settings_notifications_all_hint">Obre la configuració de notificacions del sistema per a l\'app</string>
+
+    <!-- Save button on the connection page when not in first-run setup -->
+    <string name="settings_save_short">Desa</string>
+    <!-- Snackbar confirmation after saving connection settings -->
+    <string name="settings_saved">Configuració desada</string>
+
+    <!-- About page -->
+    <string name="settings_report_issue_hint">Informa d\'un error o demana una funció a GitHub</string>
+    <string name="settings_source_code">Codi font</string>
+    <string name="settings_source_code_hint">Explora el projecte a GitHub</string>
 
     <!-- Server connection section -->
     <string name="settings_connect_title">Connecta a TeslamateApi</string>
     <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
 
+    <string name="settings_demo_title">No tens cap servidor?</string>
+    <string name="settings_demo_description">Explora MateDroid amb un any de dades d\'exemple d\'un cotxe de demostració. Podràs connectar el teu TeslaMate més endavant.</string>
+    <string name="settings_demo_action">Prova la demo</string>
+
+    <string name="settings_demo_active_title">Mode demo</string>
+    <string name="settings_demo_active_description">Estàs veient dades d\'exemple d\'un cotxe de demostració, no d\'un vehicle real. Surt de la demo per connectar el teu servidor TeslamateApi.</string>
+    <string name="settings_demo_exit_action">Surt del mode demo</string>
+    <string name="settings_demo_summary">Mode demo — dades d\'exemple</string>
+    <string name="demo_mode_badge">Demo</string>
+
     <!-- Server URL field -->
     <string name="settings_server_url_label">URL del servidor</string>
     <string name="settings_server_url_placeholder">https://teslamate-api.example.com</string>
-
-    <!-- Advanced network settings section (collapsible) -->
-    <string name="settings_advanced_network">Configuració de xarxa avançada</string>
 
     <!-- Secondary server URL field -->
     <string name="settings_secondary_url_label">URL del servidor secundari (opcional)</string>
@@ -245,12 +345,24 @@
     <string name="settings_custom_headers_add">Afegeix capçalera</string>
     <string name="settings_custom_headers_remove">Elimina capçalera</string>
 
+    <!-- Connect timeout picker (Connection section) -->
+    <string name="settings_connect_timeout_label">Temps d\'espera de connexió</string>
+    <string name="settings_connect_timeout_hint">Quant s\'espera la connexió amb el servidor, handshake TLS inclòs. Automàtic usa 1 segon quan hi ha un servidor secundari configurat, perquè l\'app recorri de pressa al de reserva, i 5 segons quan només hi ha un servidor. Augmenta\'l si el teu servidor és darrere d\'un túnel HTTPS lent com Tailscale Funnel, on només l\'handshake pot trigar un parell de segons.</string>
+    <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_automatic">Automàtic (%1$d s)</string>
+    <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->
+    <string name="settings_connect_timeout_value">%1$d s</string>
+
     <!-- Display settings section -->
     <string name="settings_display_title">Configuració de pantalla</string>
 
     <!-- Currency selector -->
     <string name="settings_currency_label">Moneda per als costos</string>
     <string name="settings_currency_select">Selecciona moneda</string>
+    <string name="settings_cost_basis_label">Cost per kWh basat en</string>
+    <string name="settings_cost_basis_added">Energia afegida (a la bateria)</string>
+    <string name="settings_cost_basis_used">Energia usada (del carregador, amb pèrdues)</string>
+    <string name="settings_cost_basis_hint">Les pèrdues de càrrega fan que l\'energia presa del carregador sigui més gran que la que arriba a la bateria. Tria entre quin valor dividir els costos per kWh. El detall de la càrrega sempre mostra tots dos.</string>
 
     <!-- Extra settings section (collapsible) -->
     <string name="settings_extra">Configuració extra</string>
@@ -262,7 +374,7 @@
 
     <!-- Short drives/charges info dialog -->
     <string name="settings_short_dialog_title">Trajectes i càrregues curts</string>
-    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els següents elements estan ocults de les llistes:\n\n• Trajectes de menys d\'1 minut o menys de 0,1 km\n• Càrregues de 0,1 kWh o menys\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
+    <string name="settings_short_dialog_text">Quan està desactivat (per defecte), els trajectes i les càrregues per sota dels valors mínims configurats a sota estan ocults de les llistes.\n\nAquests elements segueixen inclosos als totals, mitjanes i estadístiques. Activa aquesta configuració per veure tots els elements a les llistes.</string>
 
     <!-- Force resync button and dialog -->
     <string name="settings_resync_button">Força resincronització completa</string>
@@ -403,8 +515,13 @@
     <string name="energy">Energia</string>
     <string name="max_accel">Màx (accel)</string>
     <string name="min_regen">Mín (regen)</string>
-    <string name="gain">Guany</string>
-    <string name="loss">Pèrdua</string>
+    <string name="elevation_climb">Ascens</string>
+    <string name="elevation_descent">Descens</string>
+    <string name="elevation_net">Net</string>
+    <string name="elevation_climb_descent">↑%1$,d ↓%2$,d %3$s</string>
+    <string name="elevation_partial_warning">Dades d\'altitud incompletes</string>
+    <string name="elevation_partial_title">Dades d\'altitud incompletes</string>
+    <string name="elevation_partial_message">El cotxe només registra l\'altitud mentre TeslaMate la consulta. En aquest trajecte això va passar només durant el %1$d%% del recorregut, així que la resta no té cap altitud.\n\nTots els valors d\'aquí (ascens, descens, net, mínim, màxim i el gràfic de perfil) es calculen només amb aquesta part, de manera que poden allunyar-se molt del trajecte real. Un trajecte que acaba gairebé al nivell del mar pot mostrar un mínim alt, per exemple.\n\nÉs un buit en les dades registrades, no res que l\'app pugui recalcular.</string>
     <string name="outside">Exterior</string>
     <string name="inside">Interior</string>
 
@@ -485,7 +602,10 @@
 
     <!-- Cost stats labels -->
     <string name="total">Total</string>
-    <string name="per_kwh">Per kWh</string>
+    <string name="per_kwh_added">Per kWh afegit</string>
+    <string name="per_kwh_used">Per kWh usat</string>
+    <string name="per_kwh_suffix_added">/kWh afegit</string>
+    <string name="per_kwh_suffix_used">/kWh usat</string>
 
     <!-- Chart card titles -->
     <string name="voltage_profile">Perfil de voltatge</string>
@@ -628,7 +748,8 @@
     <string name="stats_total_charges">Càrregues Totals</string>
 
     <!-- Label for average cost per kWh of energy -->
-    <string name="stats_avg_cost_kwh">Cost Mitjà/kWh</string>
+    <string name="stats_avg_cost_kwh_added">Cost Mitjà/kWh afegit</string>
+    <string name="stats_avg_cost_kwh_used">Cost Mitjà/kWh usat</string>
 
     <!-- Section: Records - personal bests and extremes -->
     <string name="stats_records">Rècords</string>
@@ -679,7 +800,8 @@
     <string name="record_most_expensive">Més car</string>
 
     <!-- Record: highest cost per kWh for a charge -->
-    <string name="record_priciest_kwh">Preu màx/kWh</string>
+    <string name="record_priciest_kwh_added">Preu màx/kWh afegit</string>
+    <string name="record_priciest_kwh_used">Preu màx/kWh usat</string>
 
     <!-- Record: highest elevation reached while driving -->
     <string name="record_highest_point">Punt més alt</string>
@@ -1075,6 +1197,17 @@
     <!-- Notification channel description -->
     <string name="sentry_channel_description">Alertes quan el mode sentinella detecta un event a prop del teu cotxe</string>
 
+    <!-- Notification channel name for the live navigation notification -->
+    <string name="navigation_channel_name">Navegació</string>
+    <!-- Notification channel description -->
+    <string name="navigation_channel_description">Destinació, distància i hora d\'arribada mentre el cotxe va cap a una destinació</string>
+    <!-- Navigation notification, main line; %1$s is the time left such as "23m", %2$s the clock time of arrival -->
+    <string name="navigation_notification_eta">%1$s · arribada a les %2$s</string>
+    <!-- Navigation notification, main line when traffic is adding time; %1$s is the time left, %2$s the traffic delay, %3$s the clock time of arrival -->
+    <string name="navigation_notification_eta_traffic">%1$s (+%2$s trànsit) · arribada a les %3$s</string>
+    <!-- Navigation notification, header line; %1$s is the distance left, %2$d the battery percentage predicted on arrival -->
+    <string name="navigation_notification_remaining_energy">%1$s · %2$d%% a l\'arribada</string>
+
     <!-- Notification title for sentry alert. %s is car name -->
     <string name="sentry_notification_title">%s - Alerta Sentinella</string>
 
@@ -1107,6 +1240,10 @@
     <string name="trip_driving_time">Temps de conducció</string>
     <string name="trip_energy_charged">Energia carregada</string>
     <string name="trip_charge_cost">Cost de càrrega</string>
+    <!-- Average consumption tile label on trip detail (value shown in Wh/km or Wh/mi) -->
+    <string name="consumption">Consum</string>
+    <!-- Cost-per-distance tile label on trip detail; %1$s is the distance unit (km or mi) -->
+    <string name="trip_cost_per_100">Cost / 100 %1$s</string>
     <string name="trip_leg_drive">Trajecte %1$d</string>
     <string name="trip_leg_charge">Càrrega %1$d</string>
 
@@ -1116,7 +1253,7 @@
     <string name="trip_timeline_charging_ac">Càrrega AC</string>
     <string name="trip_timeline_parked">Aparcat</string>
 
-    <string name="trip_edit_add_leg">Afegeix tram</string>
+    <string name="trip_edit_add_leg">Afegeix tram o càrrega</string>
     <string name="trip_edit_merge_trip">Uneix viatge</string>
     <string name="trip_edit_add_leg_title">Afegeix a aquest viatge</string>
     <string name="trip_edit_add_leg_empty">No hi ha trajectes o càrregues properes</string>
@@ -1188,6 +1325,7 @@
     <string name="current_charge_unsupported">La monitorització de càrrega en curs requereix TeslaMate API 1.24 o superior</string>
     <!-- Mostrat quan el cotxe no està carregant actualment -->
     <string name="current_charge_not_charging">El cotxe no està carregant actualment</string>
+    <string name="current_charge_starting">Càrrega iniciant-se — esperant les primeres dades…</string>
     <!-- Títol del gràfic de voltatge i corrent de doble eix -->
     <string name="voltage_and_current_profile">Voltatge &amp; Corrent</string>
     <!-- Etiquetes SoC per a la fila de 3 columnes a la capçalera de càrrega en temps real -->
@@ -1239,4 +1377,88 @@
     <string name="duration_months">%1$dmes</string>
     <string name="duration_months_weeks">%1$dmes %2$dset</string>
     <string name="chart_week_label">S%1$d</string>
+    <string name="more_details">Més detalls</string>
+    <string name="hide_details">Amaga els detalls</string>
+    <string name="peak">Pic</string>
+    <string name="compare_charges_title">Compara càrregues ràpides</string>
+    <string name="ranked_by">Ordena per</string>
+    <string name="compare_this_charge">Aquesta càrrega</string>
+    <string name="compare_empty">No hi ha càrregues ràpides comparables a prop</string>
+    <string name="compare_power_vs_soc">Potència vs SoC</string>
+    <string name="compare_drives_title">Compara trajectes</string>
+    <string name="compare_this_drive">Aquest trajecte</string>
+    <string name="compare_drives_scope">%1$d trajectes · mateixa ruta</string>
+    <string name="compare_drives_empty">No hi ha trajectes comparables en aquesta ruta</string>
+    <string name="compare_speed_vs_distance">Velocitat vs distància</string>
+    <string name="compare_consumption_vs_distance">Consum vs distància</string>
+    <string name="compare_eff_better">%1$d%% menys de consum que la mitjana</string>
+    <string name="compare_eff_worse">%1$d%% més de consum que la mitjana</string>
+    <string name="compare_speed_better">%1$d%% més ràpid que la mitjana</string>
+    <string name="compare_speed_worse">%1$d%% més lent que la mitjana</string>
+    <string name="compare_dur_better">%1$d%% més ràpid que la mitjana</string>
+    <string name="compare_dur_worse">%1$d%% més lent que la mitjana</string>
+    <string name="compare_peak_better">%1$d%% més de pic que la mitjana</string>
+    <string name="compare_peak_worse">%1$d%% menys de pic que la mitjana</string>
+    <string name="compare_cost_better">%1$d%% més barat que la mitjana</string>
+    <string name="compare_cost_worse">%1$d%% més car que la mitjana</string>
+    <string name="compare_rank_of">#%1$d de %2$d</string>
+    <string name="compare_on_par_average">En línia amb la mitjana</string>
+    <string name="compare_pct_off_best">%1$d%% del teu millor</string>
+    <string name="compare_personal_best">El teu millor fins ara</string>
+    <string name="compare_average">Mitjana</string>
+    <plurals name="compare_more">
+        <item quantity="one">+%d més</item>
+        <item quantity="other">+%d més</item>
+    </plurals>
+    <plurals name="compare_drives_nearby">
+        <item quantity="one">%d trajecte comparable</item>
+        <item quantity="other">%d trajectes comparables</item>
+    </plurals>
+    <string name="compare_scope">%1$d càrregues · en %2$d km</string>
+    <plurals name="compare_sessions_nearby">
+        <item quantity="one">%d càrrega comparable a prop</item>
+        <item quantity="other">%d càrregues comparables a prop</item>
+    </plurals>
+
+    <!-- Charges location filter chip when several locations are selected. %d = count -->
+    <plurals name="charges_locations_selected">
+        <item quantity="one">%d ubicació</item>
+        <item quantity="other">%d ubicacions</item>
+    </plurals>
+    <!-- Settings: server connection validation / save errors -->
+    <string name="settings_error_server_url_required">L\'URL del servidor és obligatori</string>
+    <string name="settings_error_url_scheme">L\'URL ha de començar per http:// o https://</string>
+    <string name="settings_error_primary_not_tested">URL principal no provada</string>
+    <string name="settings_error_secondary_url_scheme">L\'URL secundària ha de començar per http:// o https://</string>
+    <string name="settings_error_save_failed">No s\'han pogut desar els ajustos</string>
+    <!-- Snackbar after the debug "force full resync" action succeeds -->
+    <string name="settings_resync_started">Resincronització completa iniciada. S\'han esborrat totes les dades en memòria cau. Consulta la pantalla d\'Estadístiques per veure el progrés.</string>
+    <!-- %1$s = error detail from the server -->
+    <string name="settings_error_resync_failed">No s\'ha pogut iniciar la resincronització: %1$s</string>
+    <!-- Generic load-failure snackbars -->
+    <string name="stats_error_load_failed">No s\'han pogut carregar les estadístiques</string>
+    <string name="regions_error_load_failed">No s\'han pogut carregar les regions</string>
+    <string name="countries_error_load_failed">No s\'han pogut carregar els països</string>
+    <!-- Where-was-I: shown when the requested timestamp can't be parsed -->
+    <string name="wherewasi_error_invalid_date">Data no vàlida</string>
+    <!-- Center of the trip cost donut. %d = number of charging stops -->
+    <plurals name="trip_cost_stops">
+        <item quantity="one">%d parada</item>
+        <item quantity="other">%d parades</item>
+    </plurals>
+    <!-- Car image picker: model has a single render, nothing to choose -->
+    <string name="car_picker_no_variants">No hi ha variants disponibles per a aquest model.</string>
+    <!-- Trip detail: the requested trip no longer exists -->
+    <string name="trip_not_found">Viatge no trobat</string>
+    <!-- Label under the total in the trip energy flow diagram (kWh is not translated) -->
+    <string name="trip_kwh_charged">kWh carregats</string>
+    <!-- Average power label in the trip energy flow. %1$s = pre-formatted number, kW not translated -->
+    <string name="power_kw_avg">%1$s kW de mitjana</string>
+    <!-- Merge sheet: how many drives+charges a trip contains. %d = count -->
+    <plurals name="trip_legs">
+        <item quantity="one">%d tram</item>
+        <item quantity="other">%d trams</item>
+    </plurals>
+    <!-- Placeholder when a stat has no value -->
+    <string name="value_not_available">N/D</string>
 </resources>

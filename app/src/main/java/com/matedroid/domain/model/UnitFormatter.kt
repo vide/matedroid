@@ -28,6 +28,15 @@ object UnitFormatter {
     }
 
     /**
+     * Format an elevation *change* with an explicit sign, so a climb reads "+120 m" and a
+     * descent "-107 m". Negative values already carry their sign from the number formatting.
+     */
+    fun formatSignedElevation(value: Int?, units: Units?): String {
+        val formatted = formatElevation(value, units)
+        return if ((value ?: 0) > 0) "+$formatted" else formatted
+    }
+
+    /**
      * Get the elevation value
      */
     fun getElevationValue(value: Float, units: Units?): Float {
@@ -54,14 +63,6 @@ object UnitFormatter {
     }
 
     /**
-     * Format distance value without unit label (just the number).
-     * Value is already in km (metric) or mi (imperial) as returned by the API.
-     */
-    fun formatDistanceValue(value: Double, units: Units?, decimals: Int = 1): Double {
-        return value
-    }
-
-    /**
      * Get the distance unit label
      */
     fun getDistanceUnit(units: Units?): String {
@@ -78,14 +79,6 @@ object UnitFormatter {
         } else {
             "%.${decimals}f°C".format(value)
         }
-    }
-
-    /**
-     * Format temperature value without unit label.
-     * Value is already in the user's preferred unit as returned by the API.
-     */
-    fun formatTemperatureValue(value: Double, units: Units?): Double {
-        return value
     }
 
     /**
@@ -149,4 +142,18 @@ object UnitFormatter {
     fun getSpeedUnit(units: Units?): String {
         return if (units?.isImperial == true) "mph" else "km/h"
     }
+
+    /**
+     * Format an energy amount given in kWh, rolling over to MWh at 1,000 kWh.
+     * Energy is not affected by the unit system, so no [Units] is needed.
+     */
+    fun formatEnergy(kwh: Double): String =
+        if (kwh >= 1000) "%,.1f MWh".format(kwh / 1000) else "%.0f kWh".format(kwh)
+
+    /**
+     * Format a monetary amount with its currency [symbol]. Uses 2 decimals for
+     * absolute amounts and 3 for per-kWh prices (which are typically well below 1).
+     */
+    fun formatCost(value: Double, symbol: String, perKwh: Boolean = false): String =
+        if (perKwh) "%,.3f %s".format(value, symbol) else "%,.2f %s".format(value, symbol)
 }

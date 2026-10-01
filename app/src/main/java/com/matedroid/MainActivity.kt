@@ -12,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.matedroid.data.sync.ChargingNotificationWorker
+import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.ui.navigation.NavGraph
 import com.matedroid.ui.theme.MateDroidTheme
 import com.matedroid.widget.CarWidgetUpdateWorker
@@ -27,6 +29,13 @@ class MainActivity : ComponentActivity() {
         currentIntent = intent
         if (intent.hasExtra("EXTRA_CAR_ID")) {
             CarWidgetUpdateWorker.scheduleImmediateUpdate(this)
+        }
+        if (savedInstanceState == null) {
+            // A real app open, not a configuration change: refresh the local data and clear
+            // any charging notification a dead process may have left behind. These used to
+            // run from Application.onCreate, i.e. on every background process start too.
+            DataSyncWorker.enqueueOnAppOpen(this)
+            ChargingNotificationWorker.runNow(this)
         }
         enableEdgeToEdge()
         setContent {

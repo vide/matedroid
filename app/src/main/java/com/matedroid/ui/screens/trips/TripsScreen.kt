@@ -46,7 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,18 +65,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
+import com.matedroid.domain.isSignificant
 import com.matedroid.domain.model.Trip
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.SummaryItem
 import com.matedroid.ui.components.TripFingerprintStrip
 import com.matedroid.ui.components.formatShortDate
 import com.matedroid.ui.components.parseListItemDate
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.util.formatDuration
-import com.matedroid.util.formatMediumNoYear
+import com.matedroid.util.formatMedium
 import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDate
 import java.util.Locale
@@ -91,7 +93,7 @@ fun TripsScreen(
     onNavigateToCreateTrip: () -> Unit = {},
     viewModel: TripsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
 
@@ -216,6 +218,7 @@ fun TripsScreen(
                         units = uiState.units,
                         palette = palette,
                         dcChargeIds = uiState.dcChargeIds,
+                        showShortDrivesCharges = uiState.showShortDrivesCharges,
                         onTripClick = { trip ->
                             viewModel.cacheTrip(trip)
                             onNavigateToTripDetail(trip.startDate)
@@ -243,6 +246,7 @@ private fun TripsContent(
     units: Units?,
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
+    showShortDrivesCharges: Boolean,
     onTripClick: (Trip) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -304,13 +308,15 @@ private fun TripsContent(
             trips,
             key = { index, trip ->
                 "${trip.startDate}|${trip.endDate}|${trip.drives.firstOrNull()?.driveId ?: 0}|$index"
-            }
+            },
+            contentType = { _, _ -> "trip" }
         ) { index, trip ->
             TripItem(
                 trip = trip,
                 units = units,
                 palette = palette,
                 dcChargeIds = dcChargeIds,
+                showShort = showShortDrivesCharges,
                 onClick = { onTripClick(trip) }
             )
         }
@@ -389,53 +395,22 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun SummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-        }
-    }
-}
-
-@Composable
 private fun TripItem(
     trip: Trip,
     units: Units?,
     palette: CarColorPalette,
     dcChargeIds: Set<Int>,
+    showShort: Boolean,
     onClick: () -> Unit
 ) {
     // Segments memoized per trip — pure computation on the in-memory Trip, cheap enough for
     // every visible list row (LazyColumn composes ~10 at a time). Keys include dcChargeIds so
-    // the strip recolors if the DC set ever changes.
-    val segments = remember(trip, dcChargeIds) { buildTimelineSegments(trip, dcChargeIds) }
-    val chargeCount = trip.charges.size
+    // the strip recolors if the DC set ever changes, and showShort so the strip rebuilds when
+    // the short-entries setting is toggled.
+    val segments = remember(trip, dcChargeIds, showShort) {
+        buildTimelineSegments(trip, dcChargeIds, showShort = showShort)
+    }
+    val chargeCount = if (showShort) trip.charges.size else trip.charges.count { it.isSignificant() }
 
     Card(
         modifier = Modifier
@@ -529,7 +504,7 @@ private fun pluralStopsLabel(count: Int): String =
 
 private fun formatDateChip(dateStr: String): String {
     val dt = parseIsoDateTime(dateStr) ?: return dateStr
-    return dt.toLocalDate().formatMediumNoYear(Locale.getDefault()).uppercase(Locale.getDefault())
+    return dt.toLocalDate().formatMedium(Locale.getDefault()).uppercase(Locale.getDefault())
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -644,14 +619,4 @@ internal fun Trip.displayName(): String {
     return custom ?: "${extractCity(startAddress)} → ${extractCity(endAddress)}"
 }
 
-/**
- * Format a minutes-granularity duration with unit cascading: as the duration grows into
- * a larger magnitude the smaller unit is dropped (rounded into the next-larger one),
- * so readers aren't distracted by precision that no longer matters.
- *  <1h → "Xm"
- *  1–24h → "Xh Ym" (minute precision)
- *  1–7d → "Xd Yh" (hour precision, minutes rolled into hours)
- *  1w–~1mo → "Xw Yd"
- *  ≥30d → "Xmo Yw"
- */
 

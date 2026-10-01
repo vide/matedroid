@@ -1,0 +1,9 @@
+A quieter, safer beta: security hardening under the hood and a lighter widget on your battery.
+
+Changed:
+- "Add leg" buttons on trip screens now say "Add leg or charge" in every language
+- The widget re-renders its background only when the car's look or charging state changes — less memory and battery use
+
+Security:
+- Server credentials are no longer included in Android backups or device transfers
+- Debug-only components and logs can no longer expose your API token

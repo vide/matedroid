@@ -20,6 +20,10 @@ Mira el estado en tiempo real de tu Tesla en un panel impresionante con un model
 
 MateDroid sincroniza tus datos localmente para que puedas consultar tus viajes y cargas incluso sin conexión a internet. Perfecto para revisar el historial de viajes mientras estás en ruta.
 
+<b>Pruébala Ya, Sin Configurar Nada</b>
+
+¿Aún no tienes un servidor Teslamate? Toca "Probar la demo" en la primera pantalla y explora toda la app con un año de datos de ejemplo realistas: trayectos, cargas, una carga en directo, estadísticas y estado de la batería. Sin cuenta, sin credenciales, sin nada que instalar. Conecta tu propio servidor cuando quieras.
+
 <b>Requisitos</b>
 
 Esta app requiere una instalación funcional de Teslamate + TeslamateApi:

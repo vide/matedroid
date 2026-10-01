@@ -1,0 +1,15 @@
+A tidy new top-right menu, manual road-trip creation, and an immersive full-bleed Location map you can tap to open in Maps.
+
+Added:
+- Top-right menu: Stats, Battery health, Where was I?, Sentry, Settings
+- Create a trip manually from the Trips list
+
+Changed:
+- Reorganized Activity card; tyre pressure in its own card
+
+Fixed:
+- Live charge view opens instantly after plugging in
+- Voltage & current chart tooltip values restored
+
+Security:
+- Credentials no longer in Android backups

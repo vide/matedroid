@@ -5,13 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.matedroid.data.local.entity.GeocodeQueueItem
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GeocodeQueueDao {
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun enqueue(item: GeocodeQueueItem)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun enqueueAll(items: List<GeocodeQueueItem>)
@@ -30,9 +26,9 @@ interface GeocodeQueueDao {
     @Query("SELECT COUNT(*) FROM geocode_queue WHERE attempts < 3")
     suspend fun countPending(): Int
 
-    // Flow-based query for real-time UI updates (Room emits on table changes)
-    @Query("SELECT COUNT(*) FROM geocode_queue WHERE attempts < 3")
-    fun observePendingCount(): Flow<Int>
+    // For batch dedup when enqueueing (progress totals must not re-count queued items)
+    @Query("SELECT gridLat, gridLon FROM geocode_queue")
+    suspend fun getAllGridKeys(): List<GridKey>
 
     @Query("""
         UPDATE geocode_queue
@@ -44,10 +40,6 @@ interface GeocodeQueueDao {
     // Clear queue for a specific car (for resync)
     @Query("DELETE FROM geocode_queue WHERE carId = :carId")
     suspend fun clearForCar(carId: Int)
-
-    // Clear all failed items (attempts >= 3)
-    @Query("DELETE FROM geocode_queue WHERE attempts >= 3")
-    suspend fun clearFailed()
 
     // Count total items in queue (including failed)
     @Query("SELECT COUNT(*) FROM geocode_queue")

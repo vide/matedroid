@@ -1,0 +1,6 @@
+I numeri chiave del tuo viaggio ora sono direttamente sulla mappa. La schermata di dettaglio si apre con una mappa a tutta altezza e una barra di statistiche in basso.
+
+Aggiunto:
+- Distanza, consumo (Wh/km) e costo di ricarica per 100 km, in primo piano sulla mappa del viaggio
+- Tocca per aprire la mappa a schermo intero
+- Trascina con due dita per spostare la mappa

@@ -3,6 +3,7 @@ package com.matedroid.ui.screens.wherewasi
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.models.ChargeData
 import com.matedroid.data.api.models.DriveData
@@ -84,7 +85,10 @@ class WhereWasIViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val targetTime = parseDateTime(timestamp) ?: run {
-                    _uiState.value = WhereWasIUiState(isLoading = false, error = "Invalid date")
+                    _uiState.value = WhereWasIUiState(
+                        isLoading = false,
+                        error = appContext.getString(R.string.wherewasi_error_invalid_date)
+                    )
                     return@launch
                 }
 
@@ -272,17 +276,32 @@ class WhereWasIViewModel @Inject constructor(
         charges: List<ChargeData>,
         targetTime: LocalDateTime
     ): ActivityEnd? {
-        val activityEnds = mutableListOf<ActivityEnd>()
+        // Select the winner from the summaries first (they already carry end times),
+        // so at most ONE heavy drive-detail fetch happens instead of one per drive.
+        val lastDrive = drives
+            .mapNotNull { drive ->
+                val endTime = parseDateTime(drive.endDate ?: "") ?: return@mapNotNull null
+                if (endTime <= targetTime) drive to endTime else null
+            }
+            .maxByOrNull { it.second }
+        val lastCharge = charges
+            .mapNotNull { charge ->
+                val endTime = parseDateTime(charge.endDate ?: "") ?: return@mapNotNull null
+                if (endTime <= targetTime) charge to endTime else null
+            }
+            .maxByOrNull { it.second }
 
-        for (drive in drives) {
-            val endTime = parseDateTime(drive.endDate ?: "") ?: continue
-            if (endTime <= targetTime) {
+        // On equal end times the drive wins, matching the previous list ordering
+        // (drives were appended before charges and maxByOrNull keeps the first max).
+        return when {
+            lastDrive != null && (lastCharge == null || lastDrive.second >= lastCharge.second) -> {
+                val (drive, endTime) = lastDrive
                 val detail = when (val r = repository.getDriveDetail(carId, drive.driveId)) {
                     is ApiResult.Success -> r.data
                     is ApiResult.Error -> null
                 }
                 val lastPos = detail?.positions?.lastOrNull()
-                activityEnds.add(ActivityEnd(
+                ActivityEnd(
                     lat = lastPos?.latitude,
                     lon = lastPos?.longitude,
                     odometer = drive.odometerDetails?.odometerEnd,
@@ -290,14 +309,11 @@ class WhereWasIViewModel @Inject constructor(
                     endTime = endTime,
                     geofenceName = drive.endAddress,
                     driveId = drive.driveId
-                ))
+                )
             }
-        }
-
-        for (charge in charges) {
-            val endTime = parseDateTime(charge.endDate ?: "") ?: continue
-            if (endTime <= targetTime) {
-                activityEnds.add(ActivityEnd(
+            lastCharge != null -> {
+                val (charge, endTime) = lastCharge
+                ActivityEnd(
                     lat = charge.latitude,
                     lon = charge.longitude,
                     odometer = charge.odometer,
@@ -305,11 +321,10 @@ class WhereWasIViewModel @Inject constructor(
                     endTime = endTime,
                     geofenceName = charge.address,
                     chargeId = charge.chargeId
-                ))
+                )
             }
+            else -> null
         }
-
-        return activityEnds.maxByOrNull { it.endTime }
     }
 
     private suspend fun findFirstActivityAfter(

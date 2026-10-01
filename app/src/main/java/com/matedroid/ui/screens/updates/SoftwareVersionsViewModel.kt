@@ -1,11 +1,14 @@
 package com.matedroid.ui.screens.updates
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.matedroid.R
 import com.matedroid.data.api.models.UpdateData
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +56,7 @@ data class SoftwareVersionItem(
 
 @HiltViewModel
 class SoftwareVersionsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val repository: TeslamateRepository
 ) : ViewModel() {
 
@@ -256,7 +260,7 @@ class SoftwareVersionsViewModel @Inject constructor(
      * "2025.44.25.1 abc123def456" -> "2025.44.25.1"
      */
     private fun cleanVersion(version: String?): String {
-        if (version == null) return "Unknown"
+        if (version == null) return context.getString(R.string.unknown)
         // Split by space and take only the first part (the version number)
         return version.split(" ").firstOrNull() ?: version
     }

@@ -32,8 +32,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.matedroid.R
+import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.util.formatDuration
 import kotlin.math.PI
@@ -249,7 +253,7 @@ private fun DonutCanvas(
                     maxLines = 1
                 )
                 Text(
-                    text = "%.2f %s".format(stop.cost, currencySymbol),
+                    text = UnitFormatter.formatCost(stop.cost, currencySymbol),
                     style = MaterialTheme.typography.headlineSmall,
                     color = color,
                     fontWeight = FontWeight.Bold
@@ -265,18 +269,18 @@ private fun DonutCanvas(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Total",
+                    text = stringResource(R.string.total),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "%.2f %s".format(totalCost, currencySymbol),
+                    text = UnitFormatter.formatCost(totalCost, currencySymbol),
                     style = MaterialTheme.typography.headlineSmall,
                     color = palette.accent,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${stops.size} stops",
+                    text = pluralStringResource(R.plurals.trip_cost_stops, stops.size, stops.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

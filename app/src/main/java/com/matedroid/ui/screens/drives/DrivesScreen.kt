@@ -44,11 +44,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +64,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.DriveData
 import com.matedroid.data.api.models.Units
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.components.BarChartData
 import com.matedroid.ui.components.DateRangePickerDialog
@@ -72,6 +75,7 @@ import com.matedroid.ui.components.InteractiveBarChart
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.components.MateDroidPulseSpinner
 import com.matedroid.ui.components.MonthScrollIndicator
+import com.matedroid.ui.components.SummaryItem
 import com.matedroid.ui.components.rememberDebouncedLoading
 import com.matedroid.ui.components.formatEditorialDate
 import com.matedroid.ui.components.formatShortDate
@@ -81,8 +85,10 @@ import com.matedroid.util.formatDurationCompact
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import java.time.LocalDate
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun DrivesScreen(
     carId: Int,
@@ -91,7 +97,7 @@ fun DrivesScreen(
     onNavigateToDriveDetail: (driveId: Int) -> Unit,
     viewModel: DrivesViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -107,12 +113,11 @@ fun DrivesScreen(
         viewModel.setCarId(carId)
     }
 
-    // Save scroll position when it changes
-    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-        viewModel.saveScrollPosition(
-            listState.firstVisibleItemIndex,
-            listState.firstVisibleItemScrollOffset
-        )
+    // Save scroll position when it changes (debounced so we don't emit per scrolled pixel)
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .debounce(200)
+            .collect { (index, offset) -> viewModel.saveScrollPosition(index, offset) }
     }
 
     LaunchedEffect(uiState.error) {
@@ -179,9 +184,9 @@ fun DrivesScreen(
 private fun DrivesContent(
     drives: List<DriveData>,
     chartData: List<DriveChartData>,
-    chartGranularity: DriveChartGranularity,
+    chartGranularity: ChartGranularity,
     summary: DrivesSummary,
-    selectedDateFilter: DriveDateFilter,
+    selectedDateFilter: DateFilter,
     selectedDistanceFilter: DriveDistanceFilter,
     customStartDate: LocalDate?,
     customEndDate: LocalDate?,
@@ -189,7 +194,7 @@ private fun DrivesContent(
     palette: CarColorPalette,
     listState: androidx.compose.foundation.lazy.LazyListState,
     isFilterLoading: Boolean,
-    onDateFilterSelected: (DriveDateFilter) -> Unit,
+    onDateFilterSelected: (DateFilter) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit,
     onDistanceFilterSelected: (DriveDistanceFilter) -> Unit,
     onDriveClick: (driveId: Int) -> Unit
@@ -273,7 +278,7 @@ private fun DrivesContent(
                 }
             }
         } else {
-            items(drives, key = { it.id }) { drive ->
+            items(drives, key = { it.id }, contentType = { "drive" }) { drive ->
                 DriveItem(
                     drive = drive,
                     units = units,
@@ -318,11 +323,11 @@ private fun DrivesContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateFilterChips(
-    selectedFilter: DriveDateFilter,
+    selectedFilter: DateFilter,
     customStartDate: LocalDate?,
     customEndDate: LocalDate?,
     palette: CarColorPalette,
-    onFilterSelected: (DriveDateFilter) -> Unit,
+    onFilterSelected: (DateFilter) -> Unit,
     onCustomRangeSelected: (LocalDate, LocalDate) -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -330,7 +335,7 @@ private fun DateFilterChips(
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(DriveDateFilter.entries.filter { it != DriveDateFilter.CUSTOM }) { filter ->
+        items(DateFilter.entries.filter { it != DateFilter.CUSTOM }) { filter ->
             FilterChip(
                 selected = filter == selectedFilter,
                 onClick = { onFilterSelected(filter) },
@@ -342,13 +347,13 @@ private fun DateFilterChips(
             )
         }
         item {
-            val label = if (selectedFilter == DriveDateFilter.CUSTOM && customStartDate != null && customEndDate != null) {
+            val label = if (selectedFilter == DateFilter.CUSTOM && customStartDate != null && customEndDate != null) {
                 "${formatShortDate(customStartDate)} – ${formatShortDate(customEndDate)}"
             } else {
                 stringResource(R.string.filter_custom)
             }
             FilterChip(
-                selected = selectedFilter == DriveDateFilter.CUSTOM,
+                selected = selectedFilter == DateFilter.CUSTOM,
                 onClick = { showDatePicker = true },
                 label = { Text(label) },
                 colors = FilterChipDefaults.filterChipColors(
@@ -472,41 +477,6 @@ private fun SummaryCard(summary: DrivesSummary, units: Units?, palette: CarColor
 }
 
 @Composable
-private fun SummaryItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    palette: CarColorPalette,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = palette.accent
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.onSurface
-            )
-        }
-    }
-}
-
-@Composable
 private fun DriveItem(
     drive: DriveData,
     units: Units?,
@@ -523,7 +493,7 @@ private fun DriveItem(
         accent = palette.accent,
         dateline = formatEditorialDate(drive.startDate, is24Hour),
         title = "$startCity → $endCity",
-        heroValue = "%.0f".format(UnitFormatter.formatDistanceValue(drive.distance ?: 0.0, units)),
+        heroValue = "%.0f".format(drive.distance ?: 0.0),
         heroUnit = UnitFormatter.getDistanceUnit(units).uppercase(java.util.Locale.getDefault()),
         onClick = onClick,
     ) {
@@ -555,7 +525,7 @@ private enum class DrivesChartType {
 @Composable
 private fun DrivesChartsPager(
     chartData: List<DriveChartData>,
-    granularity: DriveChartGranularity,
+    granularity: ChartGranularity,
     units: Units?,
     palette: CarColorPalette
 ) {
@@ -616,7 +586,7 @@ private fun DrivesChartsPager(
 @Composable
 private fun DrivesChartPage(
     chartData: List<DriveChartData>,
-    granularity: DriveChartGranularity,
+    granularity: ChartGranularity,
     chartType: DrivesChartType,
     units: Units?,
     palette: CarColorPalette
@@ -627,24 +597,24 @@ private fun DrivesChartPage(
 
     val (title, icon) = when (chartType) {
         DrivesChartType.COUNT -> when (granularity) {
-            DriveChartGranularity.DAILY -> stringResource(R.string.chart_drives_per_day)
-            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_drives_per_week)
-            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_drives_per_month)
+            ChartGranularity.DAILY -> stringResource(R.string.chart_drives_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_drives_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_drives_per_month)
         } to Icons.Default.DirectionsCar
         DrivesChartType.TIME -> when (granularity) {
-            DriveChartGranularity.DAILY -> stringResource(R.string.chart_time_per_day)
-            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_time_per_week)
-            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_time_per_month)
+            ChartGranularity.DAILY -> stringResource(R.string.chart_time_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_time_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_time_per_month)
         } to Icons.Default.Timer
         DrivesChartType.DISTANCE -> when (granularity) {
-            DriveChartGranularity.DAILY -> stringResource(R.string.chart_distance_per_day)
-            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_distance_per_week)
-            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_distance_per_month)
+            ChartGranularity.DAILY -> stringResource(R.string.chart_distance_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_distance_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_distance_per_month)
         } to CustomIcons.SteeringWheel
         DrivesChartType.TOP_SPEED -> when (granularity) {
-            DriveChartGranularity.DAILY -> stringResource(R.string.chart_speed_per_day)
-            DriveChartGranularity.WEEKLY -> stringResource(R.string.chart_speed_per_week)
-            DriveChartGranularity.MONTHLY -> stringResource(R.string.chart_speed_per_month)
+            ChartGranularity.DAILY -> stringResource(R.string.chart_speed_per_day)
+            ChartGranularity.WEEKLY -> stringResource(R.string.chart_speed_per_week)
+            ChartGranularity.MONTHLY -> stringResource(R.string.chart_speed_per_month)
         } to Icons.Default.Speed
     }
 

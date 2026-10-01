@@ -9,6 +9,179 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Custom HTTP headers**: A new "Custom HTTP Headers" section in Advanced Network Settings lets you define arbitrary key-value header pairs that are sent with every API request. Useful for authenticating through reverse proxies or gateways that require headers like `X-API-Key` or `CF-Access-Client-Id`.
+- **A notification follows the drive to a destination** — set a destination in the car and a notification appears with the name of the place, how long is left, the time you are due to arrive and the distance and battery level you will arrive with. Expand it for a map showing the car, the destination and the line between them. It updates itself as the car drives and clears when the route ends. It lives on its own **Navigation** notification channel, so it can be silenced from Android's settings without touching the charging, sentry or tyre-pressure notifications.
+- **The dashboard map shows where the car is going** — when a destination is set in the car, a banner across the top of the location card names it and counts down the time left, with the minutes traffic is costing called out in amber next to it. The chips below swap from elevation and coordinates to the distance still to drive, the clock time you are due to arrive, and the battery level you will arrive with. The card goes back to showing only the current position as soon as the route ends.
+
+## [1.11.3] - 2026-09-19
+
+### Fixed
+- **Tracking a charge uses much less battery** — three leaks, all hit by the most common way of following a charge: tapping the charging notification and pocketing the phone. The dashboard's 5-second status refresh kept running in the background for as long as the app stayed open, because opening the app straight onto the live charge screen skipped past the dashboard before its "stop when off screen" hook had anything to stop; it now polls only while the dashboard is actually on screen. The live charge screen itself also kept polling with the phone locked, downloading the whole session's data every 30 seconds for the entire charge on top of the notification's own updates; it now stops while off screen and resumes when you come back, and its fast 4-second "charge starting" poll gives up after two minutes instead of running indefinitely. Finally, the check for whether your TeslaMate has the live-charge endpoint was repeated on every poll whenever the server answered anything other than a clean yes or no (a proxy error or a timeout, for instance); a failed check is now remembered for five minutes, and any successful live-charge fetch counts as a yes.
+
+### Changed
+- **Background checks are lighter when nothing is happening** — the 30-second charging/sentry check now waits the idle five minutes while the charging notification's own monitor is running (it was firing every 30 seconds just to find it had nothing to do), backs off progressively to five minutes while the server can't be reached instead of retrying every 30 seconds for hours (a LAN-only server seen from mobile data, a VPN that is down), and is no longer reset to the 30-second cadence every time Android restarts the app process for a widget refresh or another background job. The launch data sync and the immediate notification check now happen only when you actually open the app, not on every process start; saving the connection settings also runs a check right away, so the charging notification no longer waits up to 15 minutes after first setup.
+
+## [1.11.2] - 2026-09-09
+
+### Changed
+- **Re-released under a new version code, with no changes to the app itself.** The 1.11.1 build never reached Google Play — its upload was blocked before publication — so this is the version that carries demo mode to Play Store users. If you already have 1.11.1 from F-Droid or GitHub, there is nothing new here.
+
+## [1.11.1] - 2026-08-30
+
+### Added
+- **Demo mode** — a **Try the demo** button on the first setup screen fills the app with a year of realistic sample data from a demonstration car, so you can see what MateDroid does before deciding whether to set up Teslamate. Drives, charges, a live charging session, statistics, battery health and three countries visited, all of it working exactly as it would against your own server. A **Demo** badge next to the car name means sample data is never mistaken for your own, and you can leave the demo at any time from Settings → Connection.
+
+## [1.11.0] - 2026-08-24
+
+### Added
+- **Choose what "cost per kWh" means** (#257) (Settings → Display → Costs) — per-kWh figures were always the cost divided by the energy that ended up in the battery, which includes charging losses in the price and so reads higher than the tariff you actually pay. You can now base them on the energy drawn from the charger instead, matching TeslaMate's own numbers and your electricity bill. The default is unchanged (energy added — the effective price of the energy you drive on), every per-kWh label now says which basis it uses, and the charge detail screen simply shows both.
+- **"Since last charge" on the dashboard** (#339) — the position card now swipes: the second page shows the energy consumed since the last charge that actually added something, with distance, average consumption and battery percentage used, mirroring the car's own trip meter. Handy for judging whether one night of home charging will be enough. Tapping it opens the Drives list; brief plug-ins that added no energy don't reset the count.
+- **The connection timeout is now configurable** (#230) (Settings → Connection → Network) — the app gave a connection one second to be established, TLS handshake included, which is not enough when the server sits behind a slow HTTPS tunnel: a Tailscale Funnel handshake alone takes about two seconds, so the app silently failed to load anything. The default is now "Automatic": one second when you have a secondary server configured, so failover stays as quick as before, and five seconds when there is only one server to wait for. A fixed value of up to 15 seconds can be picked instead.
+- **The charge warning levels are now configurable, and can be turned off** (#310) (Settings → Display) — the warning triangle next to the battery percentage used to appear above a fixed 90%, and the percentage turned red below a fixed 20%. Both are now yours to pick, or set to "Never": cars with an LFP battery (Standard Range Model 3/Y) are meant to be charged to 100%, so the high warning never applied to them, and how low is "low" depends on the car and how you drive it. The low level also applies to the widget (amber still covers the 20 points just above it). Tapping the high-charge warning now says where to change it.
+- **The "short drives / charges" thresholds are now configurable** (Settings → Display) — pick the minimum drive duration, minimum drive distance and minimum charge energy that count as worth listing, instead of the previously fixed 1 min / 1 km / 0.1 kWh. Each can also be set to "no minimum". As before, hidden entries are still counted in every total, average and statistic, so changing a threshold only affects what the lists show — no resync needed.
+
+### Changed
+- **Settings are now split into sections** — instead of one long scrolling page, Settings opens a list of categories (Connection, Display, Notifications, Data & sync, About) that each open their own page. The new Notifications page links straight to Android's per-channel settings for charging, sentry and tire-pressure alerts, and the first-run setup now shows only the connection form. Connection settings still have an explicit Save; everything else applies as soon as you change it.
+- **Connection settings are no longer hidden behind "Advanced network settings"** — the secondary server URL, API token, HTTP Basic Auth and certificate options are now laid out in plain view under Server, Authentication and Security headings. If you use MyTeslaMate, the Basic Auth fields you need are visible as soon as you open the page.
+- **Drive elevation is clearer: "Gain"/"Loss" are now "Climb"/"Descent", plus a new "Net"** (#338) — the old "Gain" was the total climbing done over the drive, so it stayed positive even on a downhill drive and read like "you ended this much higher". The Elevation card now also shows Net, the plain difference between where the drive ended and where it started, so a downhill drive reads Climb +120 m / Net -107 m at a glance. The elevation tile at the top now shows both directions at once (↑120 ↓227 m) instead of the climb alone.
+- **Drives with incomplete elevation now say so** (#338) — the car only records elevation while it's being polled, so a drive can lose it partway (bad reception, for instance) and end up with elevation for a fraction of the route. Those figures used to be shown as if they covered the whole drive; now a warning icon sits next to the elevation tile, the Elevation card and the profile chart, and tapping it explains what happened and how much of the drive was actually recorded.
+
+### Fixed
+- **Drive climb and descent are no longer inflated by GPS noise** (#338) — the car logs a position roughly three times a second with elevation rounded to the metre, and every metre of jitter was being counted as real climbing, overstating it by 20% or more on a long drive. Sustained changes of at least 5 m now count, smaller wobbles don't. Existing drives are recalculated on the next sync.
+- **Elevation now respects the miles/imperial setting on the drive detail screen** — the elevation figures and the profile chart were always printed in metres, even for users on miles who see feet everywhere else.
+- **The elevation profile chart is no longer stretched out of shape** (#338) — points where the car didn't record an elevation were dropped from the curve but still counted on the time axis, so the profile was squeezed and every point sat at the wrong time. It now lines up with the speed, power and battery charts.
+
+## [1.10.1] - 2026-08-12
+
+A maintenance release: the app is noticeably faster and lighter on battery, syncs incrementally instead of re-downloading everything, and a long list of unit-system bugs that gave miles/imperial users wrong numbers is fixed.
+
+### Changed
+- **Snappier throughout** — smoother list scrolling, lighter chart rendering, the Stats and Trips screens do their heavy work off the UI thread, and the dashboard stops polling for status while it's off screen (less background battery use). No change to how anything looks.
+- **Smoother charts and screens (second pass)** — dragging the crosshair on charge/drive charts no longer recomputes the whole screen per frame, chart drawing stops allocating per frame, the dashboard car image and its charging glow render off the UI thread (no more hiccup when swiping between cars), detail screens fetch their data truly in parallel, and the Stats auto-refresh pauses while the app is in the background.
+- **Chart labels now respect the system font size** — axis and tooltip text in the native charts was sized in raw pixels; it now scales with display density and the accessibility font setting.
+- **Faster widget, Stats and "Where was I"** — the widget renders its background before drawing (and resizing it no longer hits the network), the deep statistics load in parallel instead of ~30 sequential queries, "Where was I" fetches one drive instead of every drive of the day, and weather along a route is fetched in parallel and cached (reopening a drive no longer refetches it).
+- **Large cost totals now use a thousands separator** (e.g. "1,234.56") consistently across the stats, mileage and trip screens, matching how distances and energy are already shown.
+
+### Changed (battery & background work)
+- **Background polling now backs off when nothing is happening** — the 30-second charging/sentry check drops to every 5 minutes while the car is parked, unplugged, and not sentry-armed, and stops entirely when no server is configured. Driving, plugged-in, sentry-armed and charging cars keep the 30-second cadence, so a fast-charge stop mid-trip is still picked up promptly.
+- **The widget updater stops itself when no widgets are on the launcher** instead of polling forever.
+- **Location lookups back off when the geocoding service is unreachable** instead of retrying the whole queue at full speed on every sync.
+- **Location identification (geocoding) is much lighter** — cached lookups are applied with indexed batch updates instead of one full-table scan per location cluster after every sync, the work queue is checked in one read instead of one query per location, and all OpenStreetMap requests (including the sentry-history and widget address lookups) now share the 1-request-per-second limit their usage policy requires.
+- **The location-identification progress bar no longer goes backwards** — already-queued work was re-counted into the total on every sync, and with two cars the counters mixed both cars' totals.
+- **Country boundaries and address lookups no longer accumulate unbounded memory** — in-memory caches are now size-capped.
+- **A sync with failed drive/charge details now reports the failure and retries them** instead of pretending everything synced.
+- **Syncs are now incremental** — instead of re-downloading the entire drive/charge history on every sync (a multi-MB download for long histories), only entries since the last sync are fetched, with a 7-day overlap and a weekly full refresh to pick up edits to older entries (e.g. charge costs added later).
+
+### Fixed
+- **Efficiency and speed figures are correct again for miles/imperial users** — the lifetime and yearly efficiency on the Mileage screen and the speed-profile chart on the drive detail screen were applying a km→miles conversion to values the API had already converted, so imperial users saw numbers around 40% too low. The values are now shown as returned.
+- **Drive comparison curves are correct again for miles/imperial users** — the compare-drives overlay was applying a km→miles conversion to speeds the API had already converted (curves plotted ~40% low), and its energy estimate mixed km distances with mph speeds, skewing the consumption ranking.
+- **Distances in the trip editing sheets now respect the unit setting** — the add-leg, create-trip and merge-trip sheets showed a hardcoded "km" label on values that are miles for imperial users.
+- **"Where was I" shows the temperature in °F for imperial users** instead of always °C.
+- **Charge charts now classify AC vs DC the same way as the list** — recent DC charges whose details hadn't synced yet were counted in the AC segment of the energy/cost/count charts while showing a DC badge in the list.
+- **Trip detection and the short-drive filter now behave the same for miles/imperial users** — the "at least 300 km" road-trip rule and the "under 1 km" short-drive rule were being read as 300 mi / 1 mi; the thresholds are now scaled to the unit system.
+- **With two cars, the charging notification no longer flickers** — the background check stopped the shared monitor whenever *any* car was idle, so the other car's charging notification was killed and recreated every 30 seconds.
+- **Editing trips (merge, add or remove legs) is now crash-safe** — the database writes happen atomically, so an interruption mid-edit can no longer leave a merged trip coexisting with its originals.
+- **A brief network hiccup no longer disables the live charging view for the rest of the session** — only a definitive "endpoint not available" answer from the server is remembered; transient errors are retried.
+- **Configuring both HTTP basic auth and an API token no longer sends two Authorization headers** (which some reverse proxies reject) — the API token takes precedence.
+- **A missed database migration can no longer silently wipe synced data in release builds** — that recovery path is now debug-only.
+- **The widget no longer keeps a stale colour or car model** if the server stops reporting a field.
+- **The regions map frames correctly in the Americas and the southern hemisphere** — the initial zoom stretched to the equator/Greenwich meridian for all-negative coordinates.
+- **Viewing a chart fullscreen no longer locks the whole app to portrait afterwards** — the previous orientation setting is restored on exit.
+- **The system back button now closes the year/month/day overlays on the Mileage screen and the Battery detail overlay** instead of leaving the screen entirely.
+- **Maps no longer leak background tile-loader threads** — every embedded map now releases its resources when its screen closes.
+- **The dashboard map now follows the car while driving** instead of staying centered on where the car was when the dashboard opened.
+- **The dashboard map dot now marks the car's exact position** — the dot is drawn in the upper third of the card (clear of the place name) but the map was centered on the car at the middle, so the dot appeared a few tens of meters north of reality (typically just off the road). The map's rendered center now shifts to the dot's position.
+- **Every remaining hardcoded English (and one Spanish) label is now translated** — settings validation and sync errors, the charges location-filter chip, the trip cost donut, the trip energy-flow labels, the merge-trip sheet, "N/A" placeholders on the Stats screen, and the "Where was I" speed/power labels are now proper string resources in all six languages.
+
+## [1.10.0] - 2026-07-01
+
+Compare drives and charges against your own history, a trip-detail screen that puts the map and its key numbers front and centre, and redesigned charge & drive detail screens.
+
+### Added
+- **Compare similar charges and drives** — the charge and drive detail screens now show a "Compare" card. For a DC charge it overlays the power-vs-SoC curves of other fast-charging sessions in the same area with a re-sortable leaderboard (peak / time / price); for a drive it overlays the speed-vs-distance curves of other runs of the same route, ranked by efficiency.
+- **Percentage stats in the comparison screens** — a verdict line summarises how this run compares ("8% better than average", rank, and gap to your best), each leaderboard row shows a coloured +/- delta versus your run, and DC charge comparisons add a per-kWh cost line when every charge has a price set.
+- **Trip vitals on the map** — the trip detail map is now a full-height hero showing the trip's distance, average consumption (Wh/km) and charging cost per 100 km in a bar across the bottom, so the figures you compare trips by are front and centre. Tap the expand button to view the map full screen; drag with two fingers to pan it.
+- **Edit a charge's cost from its detail screen** — the Cost section now shows an external-link icon and the whole card opens TeslaMate's cost editor (previously possible only from the charges list). It appears even for free/uncosted charges so you can add a cost.
+- **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.
+
+### Changed
+- **Redesigned the charge detail screen** — a compact hero (energy added and peak power in the car's accent colour) with quick stat tiles and the power curve up front, while the detailed stats and the battery, temperature and AC charts now live behind a "More details" toggle.
+- **Redesigned the drive detail screen** to match — a compact hero (distance in the accent colour, an efficiency tile, and labelled avg-speed / battery / duration figures) with the speed profile up front, while the detailed stats and the power, battery and elevation charts move behind a "More details" toggle.
+- **The Trips list now shows the year on each trip's date chip**, not just day and month.
+- **"Short" drives are now those under 1 km** (was 0.1 km), so brief repositioning hops stop cluttering the lists and trip timelines when "Show short drives / charges" is off. Charges are unchanged (0.1 kWh or less).
+- **The trip timeline gives brief legs an honest sliver** instead of a fixed minimum block, so a quick 1 km hop no longer looks nearly as wide as a long highway leg.
+- **Time spent driving and charging now headline the trip timeline** as bold accent stat tiles, with the overall total as a quiet caption beneath.
+
+### Fixed
+- **The empty-Trips hint on the dashboard now describes road-trip detection accurately** — it no longer implies distance alone qualifies; a road-trip needs multiple drives linked by a DC fast-charge (#314).
+- **Recent DC charges no longer show as AC in the charges list** — until a charge's details are synced, its type is now inferred from average power instead of defaulting to AC, so a fast charge isn't mislabeled while it waits to be processed (#313).
+- **Drives and charges in a merged-and-renamed trip now show the trip's current name** on their detail screen, instead of the original auto-generated "city → city" name.
+- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), short legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
+
+## [1.10.0-beta2] - 2026-07-01
+
+### Added
+- **Trip vitals on the map** — the trip detail map is now a full-height hero showing the trip's distance, average consumption (Wh/km) and charging cost per 100 km in a bar across the bottom, so the figures you compare trips by are front and centre (previously they were only in the energy-flow and cost cards further down). Tap the expand button to view the map full screen; drag with two fingers to pan it.
+
+## [1.10.0-beta1] - 2026-07-01
+
+### Added
+- **Percentage stats in the comparison screens** — a verdict line summarises how this run compares ("8% better than average", rank, and gap to your best), each leaderboard row shows a coloured +/- delta versus your run, and DC charge comparisons add a per-kWh cost line when every charge has a price set.
+- **Compare similar charges and drives** — the charge and drive detail screens now show a "Compare" card. For a DC charge it overlays the power-vs-SoC curves of other fast-charging sessions in the same area with a re-sortable leaderboard (peak / time / price); for a drive it overlays the speed-vs-distance curves of other runs of the same route, ranked by efficiency.
+- **Edit a charge's cost from its detail screen** — the Cost section now shows an external-link icon and the whole card opens TeslaMate's cost editor (previously possible only from the charges list). It appears even for free/uncosted charges so you can add a cost.
+- **Tap a drive or charge in the trip timeline to open its detail** — selecting a segment now shows a chevron on its info row; tapping it jumps straight to that drive's or charge's detail screen.
+
+### Changed
+- **Redesigned the charge detail screen** — a compact hero (energy added and peak power in the car's accent colour) with quick stat tiles and the power curve up front, while the detailed stats and the battery, temperature and AC charts now live behind a "More details" toggle.
+- **Redesigned the drive detail screen** to match — a compact hero (distance in the accent colour, an efficiency tile, and labelled avg-speed / battery / duration figures) with the speed profile up front, while the detailed stats and the power, battery and elevation charts move behind a "More details" toggle.
+- **The Trips list now shows the year on each trip's date chip**, not just day and month.
+- **"Short" drives are now those under 1 km** (was 0.1 km), so brief repositioning hops stop cluttering the lists and trip timelines when "Show short drives / charges" is off. Charges are unchanged (0.1 kWh or less).
+- **The trip timeline gives brief legs an honest sliver** instead of a fixed minimum block, so a quick 1 km hop no longer looks nearly as wide as a long highway leg.
+- **Time spent driving and charging now headline the trip timeline** as bold accent stat tiles, with the overall total as a quiet caption beneath.
+
+### Fixed
+- **The empty-Trips hint on the dashboard now describes road-trip detection accurately** — it no longer implies distance alone qualifies; a road-trip needs multiple drives linked by a DC fast-charge (#314).
+- **Recent DC charges no longer show as AC in the charges list** — until a charge's details are synced, its type is now inferred from average power instead of defaulting to AC, so a fast charge isn't mislabeled while it waits to be processed (#313).
+- **Drives and charges in a merged-and-renamed trip now show the trip's current name** on their detail screen, instead of the original auto-generated "city → city" name.
+- **Short drives and charges now stay hidden on the Trips screens too** — when "Show short drives / charges" is off (the default), short legs no longer clutter the trip timeline strips, the trip detail timeline, or the leg list. The setting is now honoured everywhere drives and charges are listed.
+
+## [1.9.0] - 2026-06-11
+
+A reorganized dashboard with a new top-right menu, manual trip creation, an immersive Location map, plus live-charge reliability and security hardening.
+
+### Added
+- **Menu in the top-right**: the dashboard's lone Settings gear is now a menu with Stats for nerds, Battery health, Where was I?, Sentry events and Settings.
+- **Create a trip by hand**: a + button on the Trips list lets you build a road-trip manually — pick the day, then choose the drives and charges that belong to it (handy when auto-detection misses one).
+
+### Changed
+- **Redesigned the bottom Activity card**: Trips now headlines the card as a tall tile with the trip count and a peek at your latest road-trip; Mileage and Charges sit alongside it, with Drives and Software below. "Where was I?" moved out of the Location card into the new menu.
+- **Redesigned the Location card** into an immersive, full-bleed map (muted to match light/dark theme) with the place name and details over it; tap anywhere to open it in your maps app.
+- **Tyre pressure moved into its own card** with a cleaner 2×2 grid — one tile per wheel with its pressure and an OK/low status dot.
+- **The empty Trips screen now explains itself**: when no road-trips have been detected, it lists how one is auto-generated (2+ drives in a row, linked by a DC fast-charge stop, totalling 300 km or more).
+- **The "Add leg" buttons on the trip detail and new-trip screens now say "Add leg or charge"** in every language — the old wording didn't make it obvious that charges can be added too. The button labels shrink automatically if the translation needs more room.
+- **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
+
+### Fixed
+- **Scroll thumb no longer jumps to the end** on the Trips, Drives and Charges lists — it now tracks the real scroll position the whole way down (the old mapping capped it near 80% and snapped to the bottom), and on the Trips list it stays clear of the new + button.
+- **Software updates list showed each version's "days installed" off by one** — a version displayed the duration that actually belonged to the previous one. Each version now shows how long it was installed before the next update.
+- **Opening the live charge view right after plugging in no longer takes forever**: while TeslaMate hasn't published the new charge yet, the screen now shows a "charge starting" indicator and checks every few seconds instead of silently giving up — the live view appears as soon as the data exists.
+- **A momentary connection problem no longer closes the live charge view** — it shows an error and keeps retrying instead of pretending the car stopped charging.
+- **The voltage & current graph tooltip now shows the values again** — on charges longer than ~12 minutes it only showed the time (and near the start of the chart it could show values from the wrong moment).
+
+### Security
+- **Server credentials are no longer included in Android backups**: the API token and HTTP Basic Auth password are excluded from Google cloud backups and device-to-device transfers.
+- **The debug endpoint-switching receiver no longer exists in release builds** — it was already inert there, but is now only declared in debug builds.
+- **The Authorization header is redacted from debug HTTP logs.**
+
+## [1.9.0-beta2] - 2026-06-10
+
+### Changed
+- **The "Add leg" buttons on the trip detail and new-trip screens now say "Add leg or charge"** in every language — the old wording didn't make it obvious that charges can be added too. The button labels shrink automatically if the translation needs more room.
+- **The home-screen widget re-renders its background image only when the car's appearance or charging state changes**, instead of on every update — less memory churn and battery use, especially while charging.
+
+### Security
+- **Server credentials are no longer included in Android backups**: the API token and HTTP Basic Auth password are excluded from Google cloud backups and device-to-device transfers.
+- **The debug endpoint-switching receiver no longer exists in release builds** — it was already inert there, but is now only declared in debug builds.
+- **The Authorization header is redacted from debug HTTP logs.**
 
 ## [1.9.0-beta1] - 2026-06-09
 
@@ -641,7 +814,17 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.3...HEAD
+[1.11.3]: https://github.com/vide/matedroid/compare/v1.11.2...v1.11.3
+[1.11.2]: https://github.com/vide/matedroid/compare/v1.11.1...v1.11.2
+[1.11.1]: https://github.com/vide/matedroid/compare/v1.11.0...v1.11.1
+[1.11.0]: https://github.com/vide/matedroid/compare/v1.10.1...v1.11.0
+[1.10.1]: https://github.com/vide/matedroid/compare/v1.10.0...v1.10.1
+[1.10.0]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0
+[1.10.0-beta2]: https://github.com/vide/matedroid/compare/v1.10.0-beta1...v1.10.0-beta2
+[1.10.0-beta1]: https://github.com/vide/matedroid/compare/v1.9.0...v1.10.0-beta1
+[1.9.0]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0
+[1.9.0-beta2]: https://github.com/vide/matedroid/compare/v1.9.0-beta1...v1.9.0-beta2
 [1.9.0-beta1]: https://github.com/vide/matedroid/compare/v1.8.1...v1.9.0-beta1
 [1.8.1]: https://github.com/vide/matedroid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/vide/matedroid/compare/v1.7.0...v1.8.0

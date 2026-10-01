@@ -2,11 +2,13 @@ package com.matedroid.data.repository
 
 import android.util.Log
 import com.matedroid.data.api.OpenMeteoApi
+import com.matedroid.data.api.OpenMeteoHourly
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.util.formatTime
 import com.matedroid.util.parseIsoDateTime
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Collections
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -78,6 +80,77 @@ class WeatherRepository @Inject constructor(
         private const val THRESHOLD_MEDIUM_DRIVE = 150.0 // Under 150km: every 25km
         private const val INTERVAL_MEDIUM = 25.0         // Interval for medium drives
         private const val INTERVAL_LONG = 35.0           // Interval for long drives (>150km)
+
+        private const val DAY_CACHE_SIZE = 128
+
+        /** Bounded, access-ordered LRU map (synchronized — callers hop threads). */
+        private fun <K, V> lruCache(maxSize: Int): MutableMap<K, V> =
+            Collections.synchronizedMap(object : LinkedHashMap<K, V>(16, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?) = size > maxSize
+            })
+    }
+
+    // Historical weather never changes, so cache each (place, day) response. One entry
+    // holds all 24 hours of the day, so every same-day sample near the same spot shares
+    // a single network call — and reopening a drive costs zero fetches.
+    private val dayCache = lruCache<String, OpenMeteoHourly>(DAY_CACHE_SIZE)
+
+    /** Cache key: coordinates rounded to ~1km grid plus the ISO date. */
+    private fun dayCacheKey(lat: Double, lon: Double, dateStr: String): String =
+        "%.2f,%.2f,%s".format(Locale.US, lat, lon, dateStr)
+
+    /**
+     * Returns the hourly weather series for [dateStr] at ([lat], [lon]), fetching from
+     * Open-Meteo on cache miss. Returns null on API failure (failures are not cached).
+     */
+    private suspend fun getHourlyForDay(lat: Double, lon: Double, dateStr: String): OpenMeteoHourly? {
+        val key = dayCacheKey(lat, lon, dateStr)
+        dayCache[key]?.let { return it }
+
+        val response = openMeteoApi.getHistoricalWeather(
+            latitude = lat,
+            longitude = lon,
+            startDate = dateStr,
+            endDate = dateStr
+        )
+        if (!response.isSuccessful) {
+            Log.w(TAG, "Weather API returned ${response.code()}: ${response.message()}")
+            return null
+        }
+        val hourly = response.body()?.hourly ?: return null
+        dayCache[key] = hourly
+        return hourly
+    }
+
+    /**
+     * Temperature (°C, as returned by Open-Meteo) and WMO weather code at the hour of
+     * [dateTime] for the given coordinates, or null if unavailable.
+     */
+    private suspend fun fetchHourlyWeather(
+        lat: Double,
+        lon: Double,
+        dateTime: LocalDateTime
+    ): Pair<Double, Int>? {
+        val dateStr = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val hourly = getHourlyForDay(lat, lon, dateStr) ?: return null
+
+        val hour = dateTime.hour
+        val timeIndex = hourly.time?.indexOfFirst { timeStr ->
+            try {
+                LocalDateTime.parse(timeStr).hour == hour
+            } catch (_: Exception) {
+                false
+            }
+        } ?: -1
+
+        if (timeIndex < 0) {
+            Log.w(TAG, "Could not find matching hour $hour in weather response")
+            return null
+        }
+
+        val temperature = hourly.temperature2m?.getOrNull(timeIndex) ?: return null
+        val weatherCode = hourly.weatherCode?.getOrNull(timeIndex) ?: 0
+        return temperature to weatherCode
     }
 
     /**
@@ -222,26 +295,22 @@ class WeatherRepository @Inject constructor(
     }
 
     /**
-     * Fetches weather data from Open-Meteo for the selected positions.
+     * Fetches weather data from Open-Meteo for the selected positions, in parallel.
+     * Failed positions are skipped; the rest are returned in route order.
      */
     private suspend fun fetchWeatherForPositions(
         positions: List<Pair<DrivePosition, Double>>
-    ): List<WeatherPoint> {
-        val weatherPoints = mutableListOf<WeatherPoint>()
-
-        for ((position, distanceKm) in positions) {
-            try {
-                val weather = fetchWeatherForPosition(position, distanceKm)
-                if (weather != null) {
-                    weatherPoints.add(weather)
+    ): List<WeatherPoint> = coroutineScope {
+        positions.map { (position, distanceKm) ->
+            async {
+                try {
+                    fetchWeatherForPosition(position, distanceKm)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to fetch weather for position at ${distanceKm}km", e)
+                    null
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to fetch weather for position at ${distanceKm}km", e)
-                // Continue with other positions even if one fails
             }
-        }
-
-        return weatherPoints
+        }.awaitAll().filterNotNull()
     }
 
     /**
@@ -252,47 +321,16 @@ class WeatherRepository @Inject constructor(
         distanceKm: Double
     ): WeatherPoint? {
         val dateTime = parseDateTime(position.date!!) ?: return null
-        val dateStr = dateTime.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val hour = dateTime.hour
 
-        try {
-            val response = openMeteoApi.getHistoricalWeather(
-                latitude = position.latitude!!,
-                longitude = position.longitude!!,
-                startDate = dateStr,
-                endDate = dateStr
-            )
+        return try {
+            val (temperature, weatherCode) = fetchHourlyWeather(
+                lat = position.latitude!!,
+                lon = position.longitude!!,
+                dateTime = dateTime
+            ) ?: return null
 
-            if (!response.isSuccessful) {
-                Log.w(TAG, "Weather API returned ${response.code()}: ${response.message()}")
-                return null
-            }
-
-            val body = response.body() ?: return null
-            val hourly = body.hourly ?: return null
-
-            // Find the matching hour in the response
-            val timeIndex = hourly.time?.indexOfFirst { timeStr ->
-                try {
-                    val responseTime = LocalDateTime.parse(timeStr)
-                    responseTime.hour == hour
-                } catch (e: Exception) {
-                    false
-                }
-            } ?: -1
-
-            if (timeIndex < 0) {
-                Log.w(TAG, "Could not find matching hour $hour in weather response")
-                return null
-            }
-
-            val temperature = hourly.temperature2m?.getOrNull(timeIndex) ?: return null
-            val weatherCode = hourly.weatherCode?.getOrNull(timeIndex) ?: 0
-
-            val timeStr = dateTime.formatTime(Locale.getDefault())
-
-            return WeatherPoint(
-                time = timeStr,
+            WeatherPoint(
+                time = dateTime.formatTime(Locale.getDefault()),
                 distanceKm = distanceKm,
                 temperatureCelsius = temperature,
                 weatherCode = weatherCode,
@@ -300,7 +338,7 @@ class WeatherRepository @Inject constructor(
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching weather from Open-Meteo", e)
-            return null
+            null
         }
     }
 
@@ -408,26 +446,8 @@ class WeatherRepository @Inject constructor(
         val dt = java.time.Instant.ofEpochMilli(epochMillis)
             .atZone(java.time.ZoneId.systemDefault())
             .toLocalDateTime()
-        val dateStr = dt.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val hour = dt.hour
         return try {
-            val response = openMeteoApi.getHistoricalWeather(
-                latitude = lat,
-                longitude = lon,
-                startDate = dateStr,
-                endDate = dateStr
-            )
-            if (!response.isSuccessful) return null
-            val body = response.body() ?: return null
-            val hourly = body.hourly ?: return null
-            val idx = hourly.time?.indexOfFirst { timeStr ->
-                try {
-                    LocalDateTime.parse(timeStr).hour == hour
-                } catch (_: Exception) { false }
-            } ?: -1
-            if (idx < 0) return null
-            val temp = hourly.temperature2m?.getOrNull(idx) ?: return null
-            val code = hourly.weatherCode?.getOrNull(idx) ?: 0
+            val (temp, code) = fetchHourlyWeather(lat, lon, dt) ?: return null
             TripWeatherPoint(
                 timestamp = dt,
                 latitude = lat,

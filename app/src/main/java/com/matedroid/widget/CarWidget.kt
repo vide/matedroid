@@ -13,6 +13,7 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Shader
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,10 +60,13 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.matedroid.MainActivity
+import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.model.CarImageResolver
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
 import com.matedroid.ui.util.GlowBitmapRenderer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import kotlin.math.roundToInt
 
@@ -130,6 +134,7 @@ class CarWidget : GlanceAppWidget() {
         val IMAGE_OVERRIDE_WHEEL_KEY = stringPreferencesKey("image_override_wheel")
         val LOCATION_TEXT_KEY = stringPreferencesKey("location_text")
         val IS_IMPERIAL_KEY = booleanPreferencesKey("is_imperial")
+        val LOW_SOC_THRESHOLD_KEY = intPreferencesKey("low_soc_warning_threshold")
     }
 
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -206,6 +211,8 @@ class CarWidget : GlanceAppWidget() {
                             val carName = prefs[CAR_NAME_KEY] ?: ""
                             val ratedRange = prefs[RATED_RANGE_KEY]?.takeIf { it >= 0f }
                             val isImperial = prefs[IS_IMPERIAL_KEY] ?: false
+                            val lowSocThreshold = prefs[LOW_SOC_THRESHOLD_KEY]
+                                ?: LowSocWarning.DEFAULT_THRESHOLD
                             val chargeLimit = prefs[CHARGE_LIMIT_KEY]?.takeIf { it >= 0 }
                             val locationText = prefs[LOCATION_TEXT_KEY]
                             val chargeEnergyAdded = prefs[CHARGE_ENERGY_ADDED_KEY]?.takeIf { it >= 0f }
@@ -240,7 +247,29 @@ class CarWidget : GlanceAppWidget() {
                             val stateIsCharging = stateLower == "charging"
 
                             // -- Background bitmap (car + glow + scrim only) --
-                            val bgBitmap = buildBackgroundBitmap(ctx, prefs)
+                            // Cached by appearance + charge state: battery ticks and
+                            // text changes reuse the previously rendered bitmap.
+                            val bgKey = WidgetBackgroundCache.Key(
+                                exteriorColor = exteriorColor,
+                                model = prefs[MODEL_KEY],
+                                trimBadging = prefs[TRIM_BADGING_KEY],
+                                wheelType = prefs[WHEEL_TYPE_KEY],
+                                overrideVariant = prefs[IMAGE_OVERRIDE_VARIANT_KEY],
+                                overrideWheel = prefs[IMAGE_OVERRIDE_WHEEL_KEY],
+                                isCharging = isCharging,
+                                isDcCharging = isDcCharging
+                            )
+                            // The cache is pre-warmed from updateWidget, so this is
+                            // normally an allocation-free memory-cache hit. The builder
+                            // only runs as a fallback (first composition before the
+                            // worker has run, or cache eviction); Glance composes on a
+                            // background dispatcher, so even a miss stays off the main
+                            // thread.
+                            val bgBitmap = remember(bgKey) {
+                                WidgetBackgroundCache.getOrCreate(ctx, bgKey) {
+                                    buildBackgroundBitmap(ctx, bgKey)
+                                }
+                            }
                             Image(
                                 provider = ImageProvider(bgBitmap),
                                 contentDescription = null,
@@ -400,8 +429,8 @@ class CarWidget : GlanceAppWidget() {
 
                                 // Battery % + AC/DC badge | range + charge limit
                                 val batteryColor = when {
-                                    batteryLevel < 20 -> Color(0xFFEF5350)
-                                    batteryLevel < 40 -> Color(0xFFFF9800)
+                                    LowSocWarning.isLow(batteryLevel, lowSocThreshold) -> Color(0xFFEF5350)
+                                    LowSocWarning.isGettingLow(batteryLevel, lowSocThreshold) -> Color(0xFFFF9800)
                                     else -> Color.White
                                 }
                                 val batteryFontSize = when {
@@ -550,9 +579,13 @@ class CarWidget : GlanceAppWidget() {
 
                             // Progress bar at the very bottom
                             val barHeight = if (isCompact) 4.dp else 6.dp
-                            val progressBitmap = buildProgressBarBitmap(
-                                batteryLevel, chargeLimit, isCharging, isDcCharging, palette
-                            )
+                            val progressBitmap = remember(
+                                batteryLevel, chargeLimit, isCharging, isDcCharging, palette, lowSocThreshold
+                            ) {
+                                buildProgressBarBitmap(
+                                    batteryLevel, chargeLimit, isCharging, isDcCharging, palette, lowSocThreshold
+                                )
+                            }
                             Box(
                                 modifier = GlanceModifier.fillMaxSize(),
                                 contentAlignment = Alignment.BottomCenter
@@ -580,11 +613,14 @@ class CarWidget : GlanceAppWidget() {
                 this[CAR_ID_KEY] = data.carId
                 this[HAS_DATA_KEY] = true
                 this[CAR_NAME_KEY] = data.carName
-                data.exteriorColor?.let { this[EXTERIOR_COLOR_KEY] = it }
-                data.model?.let { this[MODEL_KEY] = it }
-                data.trimBadging?.let { this[TRIM_BADGING_KEY] = it }
-                data.wheelType?.let { this[WHEEL_TYPE_KEY] = it }
-                data.state?.let { this[STATE_KEY] = it }
+                // Remove keys on null instead of skipping the write (like imageOverride /
+                // locationText below) — otherwise a field the API stops returning keeps
+                // rendering its stale value (wrong palette / car image) indefinitely.
+                if (data.exteriorColor != null) this[EXTERIOR_COLOR_KEY] = data.exteriorColor else remove(EXTERIOR_COLOR_KEY)
+                if (data.model != null) this[MODEL_KEY] = data.model else remove(MODEL_KEY)
+                if (data.trimBadging != null) this[TRIM_BADGING_KEY] = data.trimBadging else remove(TRIM_BADGING_KEY)
+                if (data.wheelType != null) this[WHEEL_TYPE_KEY] = data.wheelType else remove(WHEEL_TYPE_KEY)
+                if (data.state != null) this[STATE_KEY] = data.state else remove(STATE_KEY)
                 this[IS_LOCKED_KEY] = data.isLocked
                 this[SENTRY_MODE_KEY] = data.sentryModeActive
                 this[PLUGGED_IN_KEY] = data.pluggedIn
@@ -604,6 +640,7 @@ class CarWidget : GlanceAppWidget() {
                 this[AC_PHASES_KEY] = data.acPhases ?: -1
                 this[SENTRY_EVENT_COUNT_KEY] = data.sentryEventCount
                 this[IS_IMPERIAL_KEY] = data.isImperial
+                this[LOW_SOC_THRESHOLD_KEY] = data.lowSocWarningThreshold
                 if (data.imageOverride != null) {
                     this[IMAGE_OVERRIDE_VARIANT_KEY] = data.imageOverride.variant
                     this[IMAGE_OVERRIDE_WHEEL_KEY] = data.imageOverride.wheelCode
@@ -618,8 +655,35 @@ class CarWidget : GlanceAppWidget() {
                 }
             }
         }
+        // Pre-warm the background cache before triggering composition: a cache miss
+        // runs the full glow pipeline (~8-20 MB of transient bitmap allocations plus
+        // a PNG disk encode), which belongs here in the worker rather than inside
+        // Glance composition. The bitmap is size-independent (rendered at the car
+        // image's native resolution, shown with ContentScale.Crop), so no widget
+        // size information is needed. Failures fall back to rendering on demand
+        // during composition.
+        withContext(Dispatchers.Default) {
+            runCatching {
+                val key = backgroundKey(data)
+                WidgetBackgroundCache.getOrCreate(context, key) {
+                    buildBackgroundBitmap(context, key)
+                }
+            }
+        }
         update(context, glanceId)
     }
+
+    /** Background-cache key for [data] — must mirror the key built in [WidgetContent]. */
+    private fun backgroundKey(data: CarWidgetDisplayData) = WidgetBackgroundCache.Key(
+        exteriorColor = data.exteriorColor,
+        model = data.model,
+        trimBadging = data.trimBadging,
+        wheelType = data.wheelType,
+        overrideVariant = data.imageOverride?.variant,
+        overrideWheel = data.imageOverride?.wheelCode,
+        isCharging = data.isCharging,
+        isDcCharging = data.isDcCharging
+    )
 
     // -------------------------------------------------------------------------
     // Background bitmap — decorative only (car + glow + scrim)
@@ -639,20 +703,17 @@ class CarWidget : GlanceAppWidget() {
      */
     private fun buildBackgroundBitmap(
         context: Context,
-        prefs: Preferences,
+        key: WidgetBackgroundCache.Key,
     ): Bitmap {
-        val exteriorColor = prefs[EXTERIOR_COLOR_KEY]
-        val model = prefs[MODEL_KEY]
-        val trimBadging = prefs[TRIM_BADGING_KEY]
-        val wheelType = prefs[WHEEL_TYPE_KEY]
-        val overrideVariant = prefs[IMAGE_OVERRIDE_VARIANT_KEY]
-        val overrideWheel = prefs[IMAGE_OVERRIDE_WHEEL_KEY]
-        val isCharging = prefs[IS_CHARGING_KEY] ?: false
-        val isDcCharging = prefs[IS_DC_CHARGING_KEY] ?: false
+        val isCharging = key.isCharging
+        val isDcCharging = key.isDcCharging
 
-        val palette = CarColorPalettes.forExteriorColor(exteriorColor, darkTheme = true)
+        val palette = CarColorPalettes.forExteriorColor(key.exteriorColor, darkTheme = true)
 
-        val carBitmap = loadCarBitmap(context, model, exteriorColor, wheelType, trimBadging, overrideVariant, overrideWheel)
+        val carBitmap = loadCarBitmap(
+            context, key.model, key.exteriorColor, key.wheelType, key.trimBadging,
+            key.overrideVariant, key.overrideWheel
+        )
         val width = carBitmap?.width ?: FALLBACK_BG_W
         val height = carBitmap?.height ?: FALLBACK_BG_H
 
@@ -782,7 +843,8 @@ class CarWidget : GlanceAppWidget() {
         chargeLimit: Int?,
         isCharging: Boolean,
         isDcCharging: Boolean,
-        palette: CarColorPalette
+        palette: CarColorPalette,
+        lowSocThreshold: Int
     ): Bitmap {
         val w = PROGRESS_BAR_W
         val h = PROGRESS_BAR_H
@@ -815,8 +877,8 @@ class CarWidget : GlanceAppWidget() {
         val fillColor = when {
             isCharging && isDcCharging -> palette.dcColor
             isCharging -> palette.acColor
-            batteryLevel < 20 -> Color(0xFFEF5350)
-            batteryLevel < 40 -> Color(0xFFFF9800)
+            LowSocWarning.isLow(batteryLevel, lowSocThreshold) -> Color(0xFFEF5350)
+            LowSocWarning.isGettingLow(batteryLevel, lowSocThreshold) -> Color(0xFFFF9800)
             else -> palette.accent
         }
         paint.color = android.graphics.Color.argb(

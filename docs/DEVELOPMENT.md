@@ -51,6 +51,109 @@ if (uiState.isLoading) {
 
 If the screen has a car palette in scope pass `palette.accent`; otherwise leave the default (Material primary). Keep small inline progress (button spinners, sub-section card loaders, weather card) on `CircularProgressIndicator` — the MD spinner is too visually heavy at that scale.
 
+### Embedded maps
+
+Never instantiate an osmdroid `MapView` inside a raw `AndroidView` — use `RouteMapView` (in `ui/components/RouteMapView.kt`). It owns the shared boilerplate: MAPNIK tile source, gesture handling (`MapGestureMode.TWO_FINGER_PAN` for maps embedded in scrollable pages, `INERT` for tap-through mini-maps, `FULL` for fullscreen), the optional dim/desaturate tile filter (`dimTiles`), an optional 120 ms deferred mount (`deferMount`) so the first frame paints before osmdroid's synchronous constructor runs, and the mandatory `onDetach()` on release. Screen-specific content goes through `onMapReady` (one-time setup: markers, polylines, zoom/center) and `update` (change-driven passes — guard expensive overlay rebuilds against unchanged inputs, see `TripDetailScreen`/`RegionsVisitedScreen`). The same file exports `mapDimFilter(isDark)` and `boundingBoxOf(points)` for padded route viewports.
+
+### Settings screen architecture
+
+Settings is a **category list → detail page** structure (the pattern Android and iOS system settings use), not a single scrolling form.
+
+- `ui/screens/settings/SettingsScreen.kt` is the **hub**: one tappable card per section, each showing a live summary of its current value. Backed by `SettingsHubViewModel`, which reads the DataStore only — it deliberately does not depend on the repository or sync manager.
+- `ui/screens/settings/SettingsSection.kt` is the **registry**: an enum of sections carrying the navigation id, title/summary string resources, icon, and a `debugOnly` flag. Order of the enum constants is the display order.
+- `ui/screens/settings/sections/` holds one composable per detail page. They share `SettingsViewModel`, each instantiating its own copy via `hiltViewModel()`.
+- `ui/screens/settings/SettingsComponents.kt` holds the shared building blocks: `SettingsSectionScaffold` (top bar + back arrow + snackbar + scrolling column), `SettingsCategoryCard`, `SettingsSwitchRow`, `SettingsLinkRow`, `SettingsGroupHeader`, `SettingsSpacer`.
+
+**Save semantics**: only the Connection page has an explicit Save, because its URL and credentials need validating together. Every other preference writes through to the DataStore the moment it changes — do not add a save button to a new section.
+
+**Navigation**: sections are real destinations (`Screen.SettingsSection(sectionId, onboarding)`), not local state, so the back stack, rotation and deep links work for free. `sectionId` is the stable `SettingsSection.id` string — renaming one breaks existing deep links.
+
+**First run**: when no server is configured, `StartDestinationViewModel` starts directly on the Connection page with `onboarding = true`. That hides the back arrow, skips the hub entirely (the other sections are meaningless without a server), and makes Save continue to the dashboard instead of staying put.
+
+**Notifications** deep-link into the Android per-channel settings rather than duplicating toggles in-app, so sound/importance/DND stay owned by the OS. A channel only exists once its first notification has fired, so the intent falls back to the app-level notification page — the sentry and navigation channels sidestep that by being created in `MateDroidApp.onCreate`, so they are listed before the car has ever triggered one.
+
+#### Notification channels
+
+| Channel | Id | Owner | Importance |
+|---------|----|-------|------------|
+| Charging | `charging_session_channel` | `ChargingNotificationManager` | Default |
+| Sentry Alerts | `sentry_alerts_channel` | `SentryNotificationManager` | High (sound + heads-up) |
+| Navigation | `navigation_route_channel` | `NavigationNotificationManager` | Low (silent, refreshes every poll) |
+| Tyre pressure | `tire_pressure_channel` | `TpmsPressureWorker` | Default |
+
+Notification id bases are spaced a thousand apart and offset by car id: charging `3000 + carId`, sentry `4000 + carId`, navigation `5000 + carId`.
+
+The navigation notification is driven from `ChargingCheckUseCase`, the check both the background worker and the foreground monitor service run, so it works the same whichever of the two happens to be polling. A null `CarStatus.activeRoute` cancels it, which is what clears it on arrival.
+
+Its map is stitched from OpenStreetMap raster tiles by `StaticMapRenderer`, framed by the pure geometry in `SlippyMap` (unit-tested in `SlippyMapTest`). Two things keep that polite to the public tile server: the tile client has its own OkHttp disk cache (`NetworkModule.provideMapTileClient`), and the picture is only redrawn when the frame has actually shifted and at most once a minute, however often the status is polled.
+
+#### Adding a new settings section
+
+1. Add a constant to the `SettingsSection` enum with its id, title/summary string resources and icon.
+2. Add the string resources to all six locale files (see [Adding a New String](#adding-a-new-string)).
+3. Create the composable in `ui/screens/settings/sections/`, wrapping the content in `SettingsSectionScaffold`.
+4. Add the branch to the `when` in `NavGraph.kt`'s `composable<Screen.SettingsSection>`.
+
+#### State-of-charge warning levels
+
+The warning triangle next to the battery percentage on the dashboard fires above a
+**user-configurable level** (Settings → Display → "Warn above", default 90%, presets in
+`domain/HighSocWarning.kt`). `HighSocWarning.DISABLED` (`0`) is the "Never" option and hides it
+entirely — that is the LFP case (#310): those packs are meant to be charged to 100% regularly, so
+the warning is wrong for them.
+
+The chemistry is **not** auto-detected. `BatteryTypeHelper` infers LFP from `trim_badging == "50"`
+for the DC power ceiling, but that badging is not reliable enough across markets and model years to
+silence a battery-health warning on, so the level is a preference instead.
+
+The predicate lives in `HighSocWarning.shouldWarn(batteryLevel, isCharging, threshold)` — a charging
+car is never flagged, since it is on its way to the limit set in the car. The threshold reaches
+`BatteryCard` through `DashboardUiState`, which `DashboardViewModel` keeps in sync with the DataStore
+flow (not a one-shot read) so a change applies on the way back from Settings.
+
+The low end is the mirror image: `domain/LowSocWarning.kt` (Settings → Display → "Warn below",
+default 20%) decides when the battery percentage turns red, with an amber band covering the
+`AMBER_MARGIN` (20) points just above — at the default that is red under 20% and amber under 40%,
+exactly where both used to be hardcoded. `isLow()` / `isGettingLow()` are checked in that order, and
+`DISABLED` leaves the percentage in the palette colour at any level.
+
+Unlike the high warning, this one also drives the **widget**: it renders in its own process from
+Glance state, so the threshold is read once per run by `CarWidgetUpdateWorker`, carried in
+`CarWidgetDisplayData` and persisted to `CarWidget.LOW_SOC_THRESHOLD_KEY`. Both widget colour sites
+(the percentage text and `buildProgressBarBitmap`) read it from there — the bar bitmap is cached, so
+the threshold must stay in its `remember` keys or a changed setting won't repaint it.
+
+### Background polling cadence
+
+Charging and sentry state is polled by `ChargingNotificationWorker`, a self-rescheduling
+WorkManager chain (unique work `charging_notification_work`, `REPLACE`d by the run that schedules
+it) with a 15-minute `PeriodicWorkRequest` as the backstop that survives app death. How soon the
+next check runs is decided in one place, `cadenceAfter()`, and unit-tested:
+
+| situation | next check |
+|---|---|
+| `ChargingMonitorService` is running | 5 min — the service polls every 30 s itself (sentry included) and re-arms the chain at 30 s from its `onDestroy`; the chain is only a watchdog for a service that died with its process |
+| a car is charging, plugged in, sentry-armed or driving | 30 s |
+| the cars list or a status fetch failed | 30 s, then doubling per consecutive failure up to 5 min; the count travels in the request's input data (`KEY_CONSECUTIVE_FAILURES`) |
+| nothing to watch | 5 min |
+| no server configured | the chain is dropped; saving the connection settings runs a check right away, and the backstop (a local settings read) is the fallback |
+
+Every path returns `Result.success()`: the chain is its own retry, and a `Result.retry()` would
+make WorkManager retry the backstop and `runNow()` instances too, on top of the chain.
+
+`Application.onCreate` runs on **every process start**, and WorkManager starts the process for each
+background job (widget refresh, TPMS, sync, the backstop itself). It therefore only calls
+`ChargingNotificationWorker.ensureScheduled()` (`KEEP`: a pending 5-minute check is left alone) and
+the TPMS scheduler. Anything that means "the user opened the app" — the launch sync
+(`DataSyncWorker.enqueueOnAppOpen()`) and the immediate charging check (`runNow()`) — lives in
+`MainActivity.onCreate`, guarded by `savedInstanceState == null` so a rotation doesn't repeat it.
+
+The same rule applies on screen: `DashboardViewModel` and `CurrentChargeViewModel` poll only while
+their screen is showing (`LifecycleStartEffect` → `resume…()` / `pause…()`). The dashboard's poll is
+additionally gated on that visibility flag inside the ViewModel, because its car-loading path
+completes whether or not the dashboard is still on screen — opened from the charging notification,
+the app has already moved on to the live charge screen by then.
+
 ### Localization (i18n)
 
 The app supports multiple languages using Android's standard resource-based localization system. Currently supported languages:
@@ -82,6 +185,37 @@ and the navigation/stats become ambiguous. Established mapping:
 When adding a new `drive_*`/`*_drive*` string, translate "drive" with the drive-column term, and
 reserve the trip-column term for `trip_*`/`trips_*` strings — never let the two collapse to the
 same word in a locale, or the Drives/Trips navigation and stats become ambiguous.
+
+#### Hiding short drives / charges
+
+The "Show short drives / charges" setting (`showShortDrivesCharges`, default off) hides trivial
+entries — by default drives under 1 min or 1 km, and charges of 0.1 kWh or less — from **list-like
+surfaces** while still counting them in totals, averages and statistics.
+
+This filter is **purely presentational**. Short entries are always fetched, always stored, and
+always counted; nothing in the data layer filters on these thresholds, so changing one is a
+re-render and never needs a resync.
+
+The rule lives in **one place**: `domain/ShortEntryFilter.kt`. It exposes the thresholds plus
+`isSignificant()` helpers for every drive/charge model (`DriveData`, `ChargeData`, `DriveSummary`,
+`ChargeSummary`). **Any screen that renders individual drives/charges must filter through these
+helpers** — never re-implement the thresholds at a call site. This is what keeps the behaviour
+consistent (it previously diverged: the trip timeline shipped without the filter and showed short
+legs). Current call sites: `DrivesViewModel`, `ChargesViewModel`, `TripTimelineBuilder` and the
+trip leg list / counts in `TripsScreen` + `TripDetailScreen`. Add a new model? Add its
+`isSignificant()` helper in `ShortEntryFilter.kt`.
+
+**The thresholds are user-configurable** (Settings → Display), chosen from presets defined in
+`ShortEntryFilter.*_PRESETS`. Like `UnitSystem`, the object is a process-wide mirror of the stored
+preference: restored at app start by `MateDroidApp` and written through by `SettingsViewModel` the
+moment the user picks a value. That mirror is what lets the `isSignificant()` helpers stay
+zero-argument — no call site has to thread thresholds through its own state. A threshold of `0`
+means "no minimum" for that dimension.
+
+The distance threshold is compared **in the user's display unit, not km**. TeslamateAPI
+pre-converts every distance it returns and the presets are labelled in the active unit, so both
+sides of the comparison already match — do not scale it through `UnitSystem.thresholdKmToUserUnits`
+(that helper remains for genuinely km-defined constants such as the trip-detection minimum).
 
 #### Adding/Modifying Translations
 
@@ -196,6 +330,8 @@ Then configure the app to connect to `http://localhost:4001` (or your chosen por
 | `--cars-file` | Path to cars config JSON (default: cars.json) |
 | `--list-cars` | List available car profiles and exit |
 
+The server can also simulate states the real car rarely happens to be in when you need them: `--charging` (with `--charging-dc`, `--charging-start-soc`, `--charging-limit-soc`, `--charging-power`) fakes an ongoing charge session on `/status`, and `--navigating DESTINATION` (with `--navigating-minutes`, `--navigating-distance`, `--navigating-energy`, `--navigating-traffic-delay`, `--navigating-location`) injects an active route so the location card's navigation banner shows up. See `mockserver/README.md` for the full list.
+
 #### Car Profiles
 
 Car profiles are defined in `mockserver/cars.json`. Each profile specifies overrides that get deep-merged into the API response for `/api/v1/cars/*` endpoints:
@@ -255,6 +391,134 @@ Pre-configured profiles include:
 3. For `/api/v1/cars/*` endpoints, the response JSON is modified to include the overrides from the selected car profile (deep-merged into `car_details` and `car_exterior`)
 4. Other endpoints are passed through unchanged
 
+### Demo Mode
+
+Demo mode runs the whole app against a self-contained sample dataset, with no server of any
+kind. It exists for two audiences: someone deciding whether Teslamate is worth setting up,
+and app-store reviewers, who have no server to point the connection form at and would
+otherwise never get past onboarding — Google Play rejected a release for exactly that.
+
+Entered from **Try the demo** on the first-run connection screen; left from
+Settings → Connection. The offer is shown during onboarding only, so it can never trample a
+configured server.
+
+#### How it is wired
+
+| File | Role |
+|---|---|
+| `data/demo/DemoMode.kt` | The `demo://matedroid` sentinel stored as the server URL, and the demo car id |
+| `data/demo/DemoGeography.kt` | Route polylines through real places, and the charger sites |
+| `data/demo/DemoDataSet.kt` | Generates the history and serves the live status |
+| `data/demo/DemoTeslamateApi.kt` | A `TeslamateApi` implementation answering from the dataset |
+
+Demo mode is a `TeslamateApi` implementation, injected at `TeslamateApiFactory.create()`,
+which every caller already goes through. Nothing downstream knows the server is missing, so
+every screen, worker, widget and notification path runs exactly the code it runs against a
+real server — including query parameters, pagination, and the "no active charge" reply that
+is a 200 with an `error` field rather than a failure.
+
+`AppSettings.isDemoMode` derives from the server URL rather than being stored separately, so
+the two can never disagree. Because the sentinel is a non-blank URL, every existing
+"is the app configured?" gate treats demo mode as configured with no extra condition.
+
+#### The dataset
+
+Generated against the current date rather than shipped as a JSON fixture. A bundled dataset
+would be visibly stale the first time someone opened the demo a year after the release that
+contained it, and every "last 30 days" filter would come back empty. Generating it means the
+newest drive is always yesterday's and the year filters always have two years to choose from.
+
+It is a simulation, not a pile of independent random rows: one running state-of-charge and
+one running odometer are carried through the whole year, drives spend energy and charges put
+it back. That is what keeps the derived screens honest — battery levels line up end to end
+between consecutive drives, the odometer only increases, and charge costs follow from the
+energy actually delivered.
+
+- **Car**: Model Y Juniper, Ultra Red, Crossflow 19" — a colour with a real entry in
+  `CarColorPalettes`, so the palette theming is visible in the demo.
+- **History**: a year of Girona-based driving — the Barcelona commute, the Costa Brava, and
+  trips over the border to Perpignan and up to Andorra. The border runs are the point of
+  those routes: Visited Countries has nothing to show from a dataset that never leaves one
+  country.
+- **Charging**: home AC (11 kW three-phase), Supercharger DC stops with a real taper curve,
+  and a free hotel charger in Andorra.
+- **Live session**: runs on a four-hour wall-clock cycle — charging for the first ~2h20m,
+  then parked at its 80% limit. Both states have to be reachable, or which one you got would
+  depend on when the release was built.
+- **Determinism**: a fixed seed, so the same day produces the same history and drive ids stay
+  stable while the process lives. The dataset is built once per process.
+
+Everything is metric. TeslamateAPI converts server-side and the app never converts (see
+`UnitFormatter`), so the demo does what a metric Teslamate would: it reports km / bar / °C and
+says so in its `units` block. Making it follow the device locale would mean converting every
+distance, speed, temperature, pressure and consumption figure at generation time, and one
+missed field is a wrong number on screen.
+
+Geocoding is *not* faked: the demo's coordinates are real places and go through Nominatim
+like any other data, which is what fills in Visited Countries. Drive start points land on a
+handful of fixed coordinates, so the grid-cell dedup in `GeocodingRepository` collapses them
+to about a dozen lookups.
+
+`DemoDataSetTest` covers the invariants the derived screens depend on: the odometer only
+moves forward, each drive resumes where the last one stopped, nothing is dated in the future,
+and the live session appears in exactly one of `/charges` and `/charges/current`.
+
+#### What to declare in Play Console → Sign in details
+
+Google rejected 1.11.0 for not providing "an active demo/guest account", having got stuck on
+the connection screen with nothing to type into it. Demo mode is the answer.
+
+**Where:** Play Console → the app → **Policy and programmes → App content → Sign in details**
+(previously called "App access"). This is an app-level declaration, set once — it is *not*
+part of the "Create new release" flow, and nothing prompts you for it while publishing.
+
+**What to answer: No.**
+
+The question is "Is any part of your app restricted?", and **Yes** is defined by an explicit
+enumeration — account sign in details, payments, referral or QR codes, one-time PINs or
+2-step verification, biometric authentication, actions carried out on another device.
+MateDroid has none of them. **No** covers "no account sign in required in any country /
+region", which is simply true: there is no login, no account and no backend of ours.
+
+Do **not** answer Yes in the hope of reaching its free-text instructions box. Yes obliges you
+to supply credentials that must be valid and reusable, and there are none to supply —
+entering "n/a" or similar reads as invalid credentials, which is precisely what got 1.11.0
+rejected.
+
+Answering No means there is no field in which to tell a reviewer about the demo button, so
+that has to travel in the reply to a rejection or appeal. Keep this text to hand for that:
+
+> MateDroid has no login, user accounts or authentication of any kind, so there are no
+> credentials to supply. It is a read-only viewer for Teslamate, an open-source vehicle-data
+> logger that users install on their own hardware, and no data reaches us.
+>
+> To reach the app's full functionality without a server:
+> 1. Launch the app. The first screen is titled "Connection".
+> 2. Tap "Try the demo" in the card near the top of that screen.
+>
+> A full year of sample vehicle data loads and every feature becomes reachable. No
+> credentials, no access to a private server and no configuration are required.
+
+This is the reason the demo offer sits directly under the page description on the connection
+screen, above the first field, rather than next to the buttons at the bottom: with no
+reviewer-instructions field anywhere in the Console, being visible without scrolling is the
+only thing that reliably gets a reviewer past onboarding.
+
+The store listing is the other half of that. `full_description.txt` carries a "Try It First,
+No Setup Needed" section immediately above **Requirements** — deliberately just above the
+line that says you need a server of your own, so the answer arrives with the objection. It is
+also the only durable channel to a reviewer, who always reads the listing, whereas a rejection
+reply reaches one person once.
+
+**The button label therefore appears in three places, and they have to agree**, or the
+instruction sends someone hunting for a button that isn't there:
+
+1. `settings_demo_action` in `res/values*/strings.xml` — the button itself, 6 locales
+2. `fastlane/metadata/android/*/full_description.txt` — quoted in the listing, 6 locales
+3. The reply text above, for a rejection or a support case
+
+Renaming the button means updating all three, in every language.
+
 ### Debug API Endpoint Switching
 
 In debug builds, the Teslamate API endpoint can be changed via ADB broadcast without opening the app. This is useful for switching between the real server and the mock server during testing.
@@ -288,9 +552,116 @@ The `-n` flag (explicit component) is required on Android 14+ since implicit bro
 ./gradlew connectedAndroidTest
 ```
 
+### Screenshots
+
+The README gallery is generated, not hand-taken. `ScreenshotsTest` (in
+`app/src/androidTest/java/com/matedroid/screenshots/`) puts the app into demo mode by writing
+the settings directly, launches each screen through the same `EXTRA_NAVIGATE_TO` intent extras
+the notification and widget deep links use, waits for a marker that only exists once the data
+is on screen, and saves a cropped, scaled JPEG. The crop uses the window's real system-bar
+insets, so any device or emulator profile works. Demo data is fictional, so nothing needs
+blurring.
+
+```bash
+# Everything: prepare the device, capture, copy to docs/screenshots/, rewrite the README gallery
+make screenshots
+
+# A subset (ids are in ScreenshotSpecs.kt); the README keeps the other images
+make screenshots SCREENS=main-dashboard,charges
+
+# Leave the device clock alone (see below)
+SCREENSHOT_CLOCK=off ./scripts/screenshots.sh
+```
+
+`scripts/screenshots.sh` picks the device (`ANDROID_SERIAL` when several are connected), sets
+light theme, 24h clock and animations off for the run and restores them afterwards, runs the
+suite through `connectedDebugAndroidTest`, and copies whatever the suite produced. The images
+land in AGP's additional-test-output directory and are pulled to the host automatically.
+
+**Clock.** The demo dataset is anchored to the current day and its live charging session cycles
+on wall-clock time, so the dashboard shows a different car depending on the hour. On a rootable
+device (an emulator image without Play Store) the script pins the device clock *and* the demo
+clock (`DemoMode.clock`, via the `screenshotClock` runner argument) to the same instant, by
+default today at 09:00 UTC, which is inside a charging phase. Both have to move together: the
+dashboard's "since" durations are computed against the device clock. On a device that cannot be
+rooted the script warns and runs on the real clock; the Current Charge spec then skips itself
+outside a charging phase rather than committing a "not charging" picture.
+
+**Gallery.** The suite writes `manifest.tsv` (file, alt text, README row) from the full spec
+list, and the script regenerates the block between `<!-- screenshots:start -->` and
+`<!-- screenshots:end -->` in `README.md` from it. Adding a screen is one `ScreenshotSpec`
+entry: pick the intent route, a palette colour, and a string resource that appears only once
+the screen has loaded. List screens hand over to their detail screens with `tapFirst`, which
+taps the first clickable row; Visited Countries uses `waitStable` because its rows arrive one
+Nominatim answer at a time.
+
+**CI.** The `Screenshots` workflow (`.github/workflows/screenshots.yml`, run by hand from the
+Actions tab or with `gh workflow run screenshots.yml`) boots a headless API 35 `google_apis`
+emulator on a hosted runner, runs the same script, and opens a pull request on
+`chore/refresh-screenshots` with the changed images and README. That image is rootable, so both
+clocks are pinned there and a same-day re-run is pixel-identical. Inputs: `screens` (subset),
+`clock` (override the pinned instant), `dry_run` (artifacts only). Every run uploads the suite's
+output directory as an artifact, which on failure contains a hierarchy dump and a raw frame per
+failed screen. The PR is opened with the workflow token, so CI does not run on it, and the
+repository setting *Allow GitHub Actions to create and approve pull requests* must stay on.
+
+The canonical images come from that workflow; a local run against a phone is a preview, and
+its content-area height differs by a few dozen pixels because of the phone's own bars.
+
+### Remote builds on the homelab cluster
+
+Gradle plus the Kotlin daemon peak at several gigabytes, and on a laptop that is also running
+an emulator the kernel's OOM killer takes the build down. `scripts/remote-gradle.sh` moves the
+heavy part to a long-lived pod on the Kubernetes cluster instead:
+
+```bash
+# One-off: create namespace, PVC and the build pod (pulls a few GB of SDK image the first time)
+./scripts/remote-gradle.sh --setup
+
+# Then use it like ./gradlew
+./scripts/remote-gradle.sh lintDebug testDebugUnitTest
+./scripts/remote-gradle.sh assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Poke around in the pod's copy of the tree
+./scripts/remote-gradle.sh --shell
+```
+
+Each run rsyncs the working tree into the pod (git-ignored files, `.git/` and build directories
+excluded, so `local.properties` and `.env` never leave the machine), runs `./gradlew` there,
+then syncs `app/build/outputs`, `app/build/reports` and `app/build/test-results` back. The
+pod's Gradle user home and workspace sit on one PVC, so the second build is warm.
+
+The manifests are in `util/k8s-build/matedroid-build.yaml`. This is developer tooling, not an
+ArgoCD application: it is applied by hand and removed with `kubectl delete namespace
+matedroid-build`. JVM sizes for the pod live in the `gradle.properties` the container writes
+into its `GRADLE_USER_HOME`, which take precedence over the repository's; adjust them together
+with the container's memory limit.
+
+Tasks that talk to a device (`connected*AndroidTest`, `install*`, the screenshot suite) still
+run locally, since adb and the emulator are here.
+
 ### Releasing
 
 Releases are automated via GitHub Actions. When a release is published, the workflow builds the APK and attaches it to the release, and deploys to Google Play.
+
+**Publishing to Play, and the one way it can go wrong.** The upload normally commits the edit
+*and* sends it for review, so cutting a tag is the only manual step. But Google refuses to
+auto-submit while the app has an unresolved review or policy issue — it answers "Changes
+cannot be sent for review automatically", and because a failed commit discards the whole edit,
+the upload goes with it. That is how v1.11.2's predecessor vanished: the job logged
+"Successfully uploaded 1 artifacts" and left nothing behind.
+
+The workflow therefore does three things rather than one:
+
+1. Upload with `changesNotSentForReview: false` — auto-submit, no attention needed.
+2. If that fails, re-upload with `changesNotSentForReview: true`. The bundle lands on the
+   track and waits for **Publishing overview → Send for review** in the Console. Degrading to
+   one click beats losing the release.
+3. Ask the Play API what is actually on the track and fail if the version code isn't there —
+   a green upload step is not by itself proof that anything persisted.
+
+The job summary says which path ran, so "do I need to click anything?" is answered without
+reading logs.
 
 The recommended way to create releases is using the `/release` skill in Claude Code, which automates:
 1. Version bumping in `app/build.gradle.kts` (versionCode and versionName)
@@ -313,7 +684,9 @@ fastlane/metadata/android/
 │       └── {versionCode}.txt
 ├── it-IT/           # Italian
 ├── es-ES/           # Spanish
-└── ca-ES/           # Catalan
+├── ca-ES/           # Catalan
+├── de-DE/           # German
+└── zh-CN/           # Chinese (Simplified)
 ```
 
 Each release requires a changelog file named `{versionCode}.txt` (e.g., `24.txt`) in all locale directories. The `/release` skill automatically creates translated changelogs for all supported languages.

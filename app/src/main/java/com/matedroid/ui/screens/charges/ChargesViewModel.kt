@@ -11,46 +11,31 @@ import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.LocalDayBoundaries
+import com.matedroid.domain.isSignificant
 import android.content.Context
 import com.matedroid.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.YearMonth
-import com.matedroid.util.formatMonthYear
-import com.matedroid.util.formatShortNoYear
-import com.matedroid.util.formatWeekLabel
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.time.temporal.ChronoUnit
-import java.time.temporal.WeekFields
 import javax.inject.Inject
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
+import com.matedroid.ui.screens.common.buildTimeSeries
 
-enum class ChartGranularity {
-    DAILY, WEEKLY, MONTHLY
-}
-
-enum class DateFilter(@get:StringRes val labelRes: Int, val days: Long?) {
-    TODAY(R.string.filter_today, 0),
-    LAST_7_DAYS(R.string.filter_last_7_days, 7),
-    LAST_30_DAYS(R.string.filter_last_30_days, 30),
-    LAST_90_DAYS(R.string.filter_last_90_days, 90),
-    LAST_YEAR(R.string.filter_last_year, 365),
-    ALL_TIME(R.string.filter_all_time, null),
-    CUSTOM(R.string.filter_custom, -1)
-}
-
-enum class ChargeTypeFilter(val label: String) {
-    ALL("All"),
-    AC("AC"),
-    DC("DC")
+enum class ChargeTypeFilter {
+    ALL,
+    AC,
+    DC
 }
 
 enum class CostFilter(@get:StringRes val labelRes: Int) {
@@ -58,8 +43,6 @@ enum class CostFilter(@get:StringRes val labelRes: Int) {
     HAS_COST(R.string.cost_filter_has_cost),
     NO_COST(R.string.cost_filter_no_cost)
 }
-
-data class LocationFilter(val name: String) // null name = All locations
 
 data class ChargeChartData(
     val label: String,
@@ -131,8 +114,6 @@ class ChargesViewModel @Inject constructor(
     private var allCharges: List<ChargeData> = emptyList()
 
     companion object {
-        private const val MIN_ENERGY_KWH = 0.1
-
         private const val KEY_DATE_FILTER = "filter_date"
         private const val KEY_CHARGE_TYPE_FILTER = "filter_charge_type"
         private const val KEY_COST_FILTER = "filter_cost"
@@ -259,7 +240,7 @@ class ChargesViewModel @Inject constructor(
     fun setCostFilter(filter: CostFilter) {
         _uiState.update { it.copy(costFilter = filter) }
         savedStateHandle[KEY_COST_FILTER] = filter.name
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun setChargeTypeFilter(filter: ChargeTypeFilter) {
@@ -272,7 +253,7 @@ class ChargesViewModel @Inject constructor(
         }
         _uiState.update { it.copy(chargeTypeFilter = newFilter) }
         savedStateHandle[KEY_CHARGE_TYPE_FILTER] = newFilter.name
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun setLocationFilter(location: String) {
@@ -280,13 +261,13 @@ class ChargesViewModel @Inject constructor(
         val updated = if (location in current) current - location else current + location
         _uiState.update { it.copy(selectedLocations = updated) }
         savedStateHandle[KEY_LOCATIONS] = ArrayList(updated)
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun clearLocationFilter() {
         _uiState.update { it.copy(selectedLocations = emptySet()) }
         savedStateHandle[KEY_LOCATIONS] = ArrayList<String>()
-        applyFiltersAndUpdateState()
+        viewModelScope.launch { applyFiltersAndUpdateState() }
     }
 
     fun clearError() {
@@ -367,34 +348,78 @@ class ChargesViewModel @Inject constructor(
         }
     }
 
-    private fun applyFiltersAndUpdateState() {
+    /** Pure output of the filter pipeline, computed off the main thread. */
+    private data class FilteredChargesResult(
+        val displayCharges: List<ChargeData>,
+        val locations: List<String>,
+        val summary: ChargesSummary,
+        val chartData: List<ChargeChartData>
+    )
+
+    private suspend fun applyFiltersAndUpdateState() {
+        // Snapshot inputs on the caller context, then push the multi-pass
+        // filtering/aggregation to Dispatchers.Default (same pattern as
+        // MileageViewModel) so filter taps don't chew the main thread.
         val state = _uiState.value
+        val charges = allCharges
+        val includeShort = showShortDrivesCharges
+        val result = withContext(Dispatchers.Default) {
+            computeFilteredCharges(state, charges, includeShort)
+        }
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                isRefreshing = false,
+                isFilterLoading = false,
+                charges = result.displayCharges,
+                availableLocations = result.locations,
+                summary = result.summary,
+                chartData = result.chartData
+            )
+        }
+    }
+
+    private fun computeFilteredCharges(
+        state: ChargesUiState,
+        allCharges: List<ChargeData>,
+        showShortCharges: Boolean
+    ): FilteredChargesResult {
         val chargeTypeFilter = state.chargeTypeFilter
         val costFilter = state.costFilter
         val dcChargeIds = state.dcChargeIds
         val granularity = state.chartGranularity
 
-        // First apply short charges filter
-        var filteredCharges = if (showShortDrivesCharges) {
+        // First apply short charges filter (see ShortEntryFilter for the shared rule)
+        var filteredCharges = if (showShortCharges) {
             allCharges
         } else {
-            allCharges.filter { charge ->
-                (charge.chargeEnergyAdded ?: 0.0) > MIN_ENERGY_KWH
-            }
+            allCharges.filter { it.isSignificant() }
         }
+
+        // DC/AC classification matching the list badge: exact for processed charges, average-power
+        // heuristic for not-yet-synced ones (issue #313).
+        val processedChargeIds = state.processedChargeIds
+        fun isDc(charge: ChargeData) = ChargeStatsCalculator.isDcCharge(
+            chargeId = charge.chargeId,
+            energyAddedKwh = charge.chargeEnergyAdded,
+            durationMin = charge.durationMin,
+            dcChargeIds = dcChargeIds,
+            processedChargeIds = processedChargeIds
+        )
 
         // Apply charge type filter (AC/DC) for list display
         val displayCharges = when (chargeTypeFilter) {
             ChargeTypeFilter.ALL -> filteredCharges
-            ChargeTypeFilter.DC -> filteredCharges.filter { it.chargeId in dcChargeIds }
-            ChargeTypeFilter.AC -> filteredCharges.filter { it.chargeId !in dcChargeIds }
+            ChargeTypeFilter.DC -> filteredCharges.filter { isDc(it) }
+            ChargeTypeFilter.AC -> filteredCharges.filter { !isDc(it) }
         }
 
         // Apply charge type filter to all charges for summary/charts (include short charges)
         val chargesForStats = when (chargeTypeFilter) {
             ChargeTypeFilter.ALL -> allCharges
-            ChargeTypeFilter.DC -> allCharges.filter { it.chargeId in dcChargeIds }
-            ChargeTypeFilter.AC -> allCharges.filter { it.chargeId !in dcChargeIds }
+            ChargeTypeFilter.DC -> allCharges.filter { isDc(it) }
+            ChargeTypeFilter.AC -> allCharges.filter { !isDc(it) }
         }
 
         // Extract unique locations from the complete set
@@ -428,19 +453,14 @@ class ChargesViewModel @Inject constructor(
 
         // Calculate summary and chart data from filtered charges
         val summary = calculateSummary(chargesForStatsFiltered)
-        val chartData = calculateChartData(chargesForStatsFiltered, granularity, state.startDate)
+        val chartData = calculateChartData(chargesForStatsFiltered, granularity, state.startDate, ::isDc)
 
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                isRefreshing = false,
-                isFilterLoading = false,
-                charges = displayChargesFiltered,
-                availableLocations = locations,
-                summary = summary,
-                chartData = chartData
-            )
-        }
+        return FilteredChargesResult(
+            displayCharges = displayChargesFiltered,
+            locations = locations,
+            summary = summary,
+            chartData = chartData
+        )
     }
 
     private fun determineGranularity(startDate: LocalDate?, endDate: LocalDate?): ChartGranularity {
@@ -453,139 +473,36 @@ class ChargesViewModel @Inject constructor(
         }
     }
 
-    private fun calculateChartData(charges: List<ChargeData>, granularity: ChartGranularity, startDate: LocalDate?): List<ChargeChartData> {
-        if (charges.isEmpty()) return emptyList()
-
-        val formatter = DateTimeFormatter.ISO_DATE_TIME
-        val weekFields = WeekFields.of(Locale.getDefault())
-
-        // Group the charges by day
-        val chargesByDay = charges.mapNotNull { charge ->
-            charge.startDate?.let {
-                try {
-                    // Use of localdatetime to support the full ISO format
-                    val date = LocalDateTime.parse(it, formatter).toLocalDate()
-                    date.toEpochDay() to charge
-                } catch (e: Exception) { null }
-            }
-        }.groupBy({ it.first }, { it.second })
-
-        return when (granularity) {
-            ChartGranularity.DAILY -> {
-                // DAILY ranges (today, last 7 and last 30 days)
-                // If not startDate (All Time), get the first trip, or today
-                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
-                val end = LocalDate.now()
-                val result = mutableListOf<ChargeChartData>()
-                var current = start
-                while (!current.isAfter(end)) {
-                    val key = current.toEpochDay()
-                    val itemsInDay = chargesByDay[key] ?: emptyList()
-                    result.add(
-                        createChargeChartPoint(
-                            label = current.formatShortNoYear(Locale.getDefault()),
-                            sortKey = key,
-                            charges = itemsInDay,
-                            dcChargeIds = _uiState.value.dcChargeIds
-                        )
-                    )
-                    current = current.plusDays(1)
-                }
-                result
-            }
-            ChartGranularity.WEEKLY -> {
-                // WEEKLY range (last 90 days = ~13 weeks)
-                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
-                val end = LocalDate.now()
-
-                // Get first day of the week for start date
-                var weekStart = start.with(weekFields.dayOfWeek(), 1)
-                // If weekStart is before start, advance to the next week
-                if (weekStart.isBefore(start)) {
-                    weekStart = weekStart.plusWeeks(1)
-                }
-
-                // Group charges by week
-                val chargesByWeek = charges.mapNotNull { charge ->
-                    charge.startDate?.let { dateStr ->
-                        try {
-                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
-                            val firstDayOfWeek = date.with(weekFields.dayOfWeek(), 1)
-                            firstDayOfWeek.toEpochDay() to charge
-                        } catch (e: Exception) { null }
-                    }
-                }.groupBy({ it.first }, { it.second })
-
-                // Generate all weeks in range
-                val result = mutableListOf<ChargeChartData>()
-                var currentWeek = weekStart
-                while (!currentWeek.isAfter(end)) {
-                    val key = currentWeek.toEpochDay()
-                    val chargesInWeek = chargesByWeek[key] ?: emptyList()
-                    val weekOfYear = currentWeek.get(weekFields.weekOfYear())
-                    result.add(
-                        createChargeChartPoint(
-                            label = formatWeekLabel(appContext.resources, weekOfYear),
-                            sortKey = key,
-                            charges = chargesInWeek,
-                            dcChargeIds = _uiState.value.dcChargeIds
-                        )
-                    )
-                    currentWeek = currentWeek.plusWeeks(1)
-                }
-                result
-            }
-
-            ChartGranularity.MONTHLY -> {
-                // MONTHLY range (last year = 12 months)
-                val start = startDate ?: (chargesByDay.keys.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: LocalDate.now())
-                val end = LocalDate.now()
-
-                // Get first day of month for start date
-                val monthStart = YearMonth.from(start).atDay(1)
-                val monthEnd = YearMonth.from(end)
-
-                // Group charges by month
-                val chargesByMonth = charges.mapNotNull { charge ->
-                    charge.startDate?.let { dateStr ->
-                        try {
-                            val date = LocalDateTime.parse(dateStr, formatter).toLocalDate()
-                            val firstDayOfMonth = YearMonth.from(date).atDay(1)
-                            firstDayOfMonth.toEpochDay() to charge
-                        } catch (e: Exception) { null }
-                    }
-                }.groupBy({ it.first }, { it.second })
-
-                // Generate all months in range
-                val result = mutableListOf<ChargeChartData>()
-                var currentMonth = YearMonth.from(monthStart)
-                while (!currentMonth.isAfter(monthEnd)) {
-                    val firstDay = currentMonth.atDay(1)
-                    val key = firstDay.toEpochDay()
-                    val chargesInMonth = chargesByMonth[key] ?: emptyList()
-                    result.add(
-                        createChargeChartPoint(
-                            label = firstDay.formatMonthYear(Locale.getDefault()),
-                            sortKey = key,
-                            charges = chargesInMonth,
-                            dcChargeIds = _uiState.value.dcChargeIds
-                        )
-                    )
-                    currentMonth = currentMonth.plusMonths(1)
-                }
-                result
-            }
+    private fun calculateChartData(
+        charges: List<ChargeData>,
+        granularity: ChartGranularity,
+        startDate: LocalDate?,
+        isDc: (ChargeData) -> Boolean
+    ): List<ChargeChartData> =
+        buildTimeSeries(
+            items = charges,
+            granularity = granularity,
+            startDate = startDate,
+            resources = appContext.resources,
+            dateOf = { it.startDate },
+        ) { label, sortKey, bucket ->
+            createChargeChartPoint(
+                label = label,
+                sortKey = sortKey,
+                charges = bucket,
+                isDc = isDc
+            )
         }
-    }
 
-    // Helper function to centralize chart data creation
+    // Helper function to centralize chart data creation.
+    // Uses the same AC/DC classifier as the list badges so charts and list agree.
     private fun createChargeChartPoint(
         label: String,
         sortKey: Long,
         charges: List<ChargeData>,
-        dcChargeIds: Set<Int>
+        isDc: (ChargeData) -> Boolean
     ): ChargeChartData {
-        val dcCharges = charges.filter { it.chargeId in dcChargeIds }
+        val dcCharges = charges.filter(isDc)
         val energyDc = dcCharges.sumOf { it.chargeEnergyAdded ?: 0.0 }
         val energyTotal = charges.sumOf { it.chargeEnergyAdded ?: 0.0 }
         val costDc = dcCharges.sumOf { it.cost ?: 0.0 }

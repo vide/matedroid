@@ -1,0 +1,6 @@
+Los números clave de tu viaje ahora están directamente en el mapa. La pantalla de detalle se abre con un mapa a toda altura y una barra de estadísticas abajo.
+
+Añadido:
+- Distancia, consumo (Wh/km) y coste de carga por 100 km, en primer plano en el mapa del viaje
+- Toca para abrir el mapa a pantalla completa
+- Arrastra con dos dedos para mover el mapa

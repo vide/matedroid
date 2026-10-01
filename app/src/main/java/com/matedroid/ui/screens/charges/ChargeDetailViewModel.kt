@@ -9,10 +9,14 @@ import com.matedroid.data.local.entity.SavedTripLeg
 import com.matedroid.data.model.Currency
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ChargeComparison
+import com.matedroid.domain.ChargeComparisonRepository
 import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +33,9 @@ data class ChargeDetailUiState(
     val stats: ChargeDetailStats? = null,
     val currencySymbol: String = "€",
     val isDcCharge: Boolean = false,
-    val containingTrip: Pair<Long, Trip>? = null
+    val containingTrip: Pair<Long, Trip>? = null,
+    val teslamateBaseUrl: String = "",
+    val comparison: ChargeComparison? = null
 )
 
 data class ChargeDetailStats(
@@ -59,7 +65,8 @@ data class ChargeDetailStats(
 class ChargeDetailViewModel @Inject constructor(
     private val repository: TeslamateRepository,
     private val settingsDataStore: SettingsDataStore,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val chargeComparisonRepository: ChargeComparisonRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChargeDetailUiState())
@@ -76,7 +83,12 @@ class ChargeDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = settingsDataStore.settings.first()
             val currency = Currency.findByCode(settings.currencyCode)
-            _uiState.update { it.copy(currencySymbol = currency.symbol) }
+            _uiState.update {
+                it.copy(
+                    currencySymbol = currency.symbol,
+                    teslamateBaseUrl = settings.teslamateBaseUrl
+                )
+            }
         }
     }
 
@@ -94,11 +106,19 @@ class ChargeDetailViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            val comparison = chargeComparisonRepository.findComparable(carId, chargeId)
+            _uiState.update { it.copy(comparison = comparison) }
+        }
+
+        viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             // Fetch charge detail and units in parallel
-            val detailResult = repository.getChargeDetail(carId, chargeId)
-            val statusResult = repository.getCarStatus(carId)
+            val (detailResult, statusResult) = coroutineScope {
+                val detail = async { repository.getChargeDetail(carId, chargeId) }
+                val status = async { repository.getCarStatus(carId) }
+                detail.await() to status.await()
+            }
 
             val units = when (statusResult) {
                 is ApiResult.Success -> statusResult.data.units

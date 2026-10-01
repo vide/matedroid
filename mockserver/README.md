@@ -30,6 +30,10 @@ Useful for testing the app with different car configurations without owning mult
 
 # Custom AC charge at 22 kW
 ./server.py -u http://localhost:4000 -c modely_juniper_grey_19 --charging --charging-power 22
+
+# Simulate the car navigating home, 20 minutes out with 8 minutes of traffic
+./server.py -u http://localhost:4000 -c modely_juniper_grey_19 --navigating Home \
+  --navigating-minutes 20 --navigating-distance 24.5 --navigating-traffic-delay 8
 ```
 
 ## Options
@@ -54,6 +58,19 @@ Useful for testing the app with different car configurations without owning mult
 | `--charging-power KW` | Charger power in kW (default: 11 for AC, 150 for DC) |
 
 When `--charging` is active the `/api/v1/cars/<id>/status` endpoint is intercepted and returns a fully simulated response. The battery SOC and energy-added values advance in real time based on elapsed wall-clock time and the configured charger power. All other endpoints continue to proxy normally to the upstream.
+
+### Navigation simulation options
+
+| Option | Description |
+|--------|-------------|
+| `--navigating DESTINATION` | Inject an active route into `/status` with this destination name |
+| `--navigating-minutes MIN` | Minutes left to arrival (default: 35) |
+| `--navigating-distance DIST` | Distance left, in the upstream's unit system (default: 50) |
+| `--navigating-energy PCT` | Predicted charge level on arrival (default: 32) |
+| `--navigating-traffic-delay MIN` | Minutes of the estimate traffic is responsible for (default: 0) |
+| `--navigating-location LAT,LON` | Destination coordinates (default: 41.970389,3.150913) |
+
+`--navigating` adds an `active_route` block to whatever `/status` payload goes out — the proxied one, or the simulated one when `--charging` is also on. It drives the navigation banner on the dashboard's location card, which otherwise only appears while the real car has a destination set.
 
 ## Car Profiles
 

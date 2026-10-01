@@ -54,7 +54,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,7 +73,10 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.matedroid.R
 import com.matedroid.data.api.models.ChargeData
+import com.matedroid.ui.screens.common.ChartGranularity
+import com.matedroid.ui.screens.common.DateFilter
 import com.matedroid.ui.components.BarChartData
+import com.matedroid.ui.components.ChargeTypeBadge
 import com.matedroid.ui.components.BarSegment
 import com.matedroid.ui.components.DateRangePickerDialog
 import com.matedroid.ui.components.EditorialListItem
@@ -98,7 +102,7 @@ fun ChargesScreen(
     onNavigateToChargeDetail: (Int) -> Unit = {},
     viewModel: ChargesViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isDarkTheme = isSystemInDarkTheme()
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
@@ -146,6 +150,7 @@ fun ChargesScreen(
                 ChargesContent(
                     charges = uiState.charges,
                     dcChargeIds = uiState.dcChargeIds,
+                    processedChargeIds = uiState.processedChargeIds,
                     chartData = uiState.chartData,
                     chartGranularity = uiState.chartGranularity,
                     summary = uiState.summary,
@@ -184,6 +189,7 @@ fun ChargesScreen(
 private fun ChargesContent(
     charges: List<ChargeData>,
     dcChargeIds: Set<Int>,
+    processedChargeIds: Set<Int>,
     chartData: List<ChargeChartData>,
     chartGranularity: ChartGranularity,
     summary: ChargesSummary,
@@ -215,21 +221,13 @@ private fun ChargesContent(
         initialFirstVisibleItemScrollOffset = initialScrollOffset
     )
 
-    // Header items in render order: date chips, dropdowns, free hint (conditional),
-    // summary, charts (conditional), history header. Adjust if items are added.
+    // Single source of truth for the header rows preceding the charge list.
+    // The LazyColumn emits exactly these items (in order) before the charges,
+    // and MonthScrollIndicator's index math below uses headerItems.size — so
+    // adding/removing/conditionally-showing a header can't desync the two.
     val showFreeHint = freeSupercharging && selectedCostFilter == CostFilter.NO_COST
-    val headerCount = 4 +
-        (if (showFreeHint) 1 else 0) +
-        (if (chartData.isNotEmpty()) 1 else 0)
-
-    Box(modifier = Modifier.fillMaxSize()) {
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        item {
+    val headerItems: List<@Composable () -> Unit> = buildList {
+        add {
             DateFilterChips(
                 selectedFilter = selectedDateFilter,
                 customStartDate = customStartDate,
@@ -239,8 +237,7 @@ private fun ChargesContent(
                 onCustomRangeSelected = onCustomRangeSelected
             )
         }
-
-        item {
+        add {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -265,9 +262,8 @@ private fun ChargesContent(
                 )
             }
         }
-
-        if (freeSupercharging && selectedCostFilter == CostFilter.NO_COST) {
-            item {
+        if (showFreeHint) {
+            add {
                 Text(
                     text = stringResource(R.string.charges_free_supercharging_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -276,14 +272,12 @@ private fun ChargesContent(
                 )
             }
         }
-
-        item {
+        add {
             SummaryCard(summary = summary, currencySymbol = currencySymbol, palette = palette)
         }
-
         // Charges charts (daily/weekly/monthly based on date range) - swipeable
         if (chartData.isNotEmpty()) {
-            item {
+            add {
                 ChargesChartsPager(
                     chartData = chartData,
                     granularity = chartGranularity,
@@ -292,8 +286,7 @@ private fun ChargesContent(
                 )
             }
         }
-
-        item {
+        add {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.charge_history),
@@ -301,6 +294,17 @@ private fun ChargesContent(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+    val headerCount = headerItems.size
+
+    Box(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(headerCount) { index -> headerItems[index]() }
 
         if (charges.isEmpty()) {
             item {
@@ -325,12 +329,18 @@ private fun ChargesContent(
                 }
             }
         } else {
-            items(charges, key = { it.chargeId }) { charge ->
+            items(charges, key = { it.chargeId }, contentType = { "charge" }) { charge ->
                 ChargeItem(
                     charge = charge,
-                    // Show DC badge if in dcChargeIds, AC otherwise
-                    // Will be correct once sync has processed charge details
-                    isDcCharge = charge.chargeId in dcChargeIds,
+                    // Exact for processed charges; for not-yet-synced ones, fall back to an
+                    // average-power heuristic so recent DC charges aren't shown as AC (issue #313).
+                    isDcCharge = ChargeStatsCalculator.isDcCharge(
+                        chargeId = charge.chargeId,
+                        energyAddedKwh = charge.chargeEnergyAdded,
+                        durationMin = charge.durationMin,
+                        dcChargeIds = dcChargeIds,
+                        processedChargeIds = processedChargeIds
+                    ),
                     currencySymbol = currencySymbol,
                     palette = palette,
                     onEditCost = if (teslamateBaseUrl.isNotBlank()) {
@@ -690,7 +700,7 @@ private fun ChargeItem(
         heroUnit = "kWh",
         onClick = onClick,
         datelineTrailing = {
-            ChargeTypeBadge(isDcCharge = isDcCharge, palette = palette)
+            ChargeTypeBadge(isDc = isDcCharge, dcColor = palette.dcColor, acColor = palette.acColor)
         }
     ) {
         EditorialPill(charge.durationStr ?: "${charge.durationMin ?: 0}m")
@@ -717,27 +727,6 @@ private fun ChargeItem(
                 fontWeight = FontWeight.Bold
             )
         }
-    }
-}
-
-@Composable
-private fun ChargeTypeBadge(isDcCharge: Boolean, palette: CarColorPalette) {
-    val backgroundColor = if (isDcCharge) palette.dcColor else palette.acColor
-    val text = if (isDcCharge) stringResource(R.string.charging_dc) else stringResource(R.string.charging_ac)
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
     }
 }
 
@@ -783,7 +772,6 @@ private fun ChargesChartsPager(
                         palette = palette
                     )
                 }
-                //ChartLegend(palette = palette)
             }
         }
 
@@ -862,39 +850,41 @@ private fun ChargesChartPage(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        val barData = when (chartType) {
-            ChargesChartType.ENERGY -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.totalEnergy,
-                    displayValue = "%.1f kWh".format(data.totalEnergy),
-                    segments = listOf(
-                        BarSegment(data.energyAc, palette.acColor, "AC"),
-                        BarSegment(data.energyDc, palette.dcColor, "DC")
+        val barData = remember(chartData, chartType, currencySymbol, palette) {
+            when (chartType) {
+                ChargesChartType.ENERGY -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.totalEnergy,
+                        displayValue = "%.1f kWh".format(data.totalEnergy),
+                        segments = listOf(
+                            BarSegment(data.energyAc, palette.acColor, "AC"),
+                            BarSegment(data.energyDc, palette.dcColor, "DC")
+                        )
                     )
-                )
-            }
-            ChargesChartType.COST -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.totalCost,
-                    displayValue = "$currencySymbol%.2f".format(data.totalCost),
-                    segments = listOf(
-                        BarSegment(data.costAc, palette.acColor, "AC"),
-                        BarSegment(data.costDc, palette.dcColor, "DC")
+                }
+                ChargesChartType.COST -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.totalCost,
+                        displayValue = "$currencySymbol%.2f".format(data.totalCost),
+                        segments = listOf(
+                            BarSegment(data.costAc, palette.acColor, "AC"),
+                            BarSegment(data.costDc, palette.dcColor, "DC")
+                        )
                     )
-                )
-            }
-            ChargesChartType.COUNT -> chartData.map { data ->
-                BarChartData(
-                    label = data.label,
-                    value = data.count.toDouble(),
-                    displayValue = data.count.toString(),
-                    segments = listOf(
-                        BarSegment(data.countAc.toDouble(), palette.acColor, "AC"),
-                        BarSegment(data.countDc.toDouble(), palette.dcColor, "DC")
+                }
+                ChargesChartType.COUNT -> chartData.map { data ->
+                    BarChartData(
+                        label = data.label,
+                        value = data.count.toDouble(),
+                        displayValue = data.count.toString(),
+                        segments = listOf(
+                            BarSegment(data.countAc.toDouble(), palette.acColor, "AC"),
+                            BarSegment(data.countDc.toDouble(), palette.dcColor, "DC")
+                        )
                     )
-                )
+                }
             }
         }
 
@@ -943,7 +933,11 @@ private fun LocationFilterDropdown(
                     if (hasSelection && selectedLocations.size == 1)
                         selectedLocations.first()
                     else if (hasSelection)
-                        "${selectedLocations.size} ubicaciones"
+                        pluralStringResource(
+                            R.plurals.charges_locations_selected,
+                            selectedLocations.size,
+                            selectedLocations.size
+                        )
                     else
                         stringResource(R.string.filter_location)
                 )

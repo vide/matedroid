@@ -1,26 +1,32 @@
 package com.matedroid.di
 
 import android.annotation.SuppressLint
+import android.content.Context
 import com.matedroid.BuildConfig
 import com.matedroid.data.api.NominatimApi
 import com.matedroid.data.api.OpenMeteoApi
 import com.matedroid.data.api.TeslamateApi
+import com.matedroid.data.demo.DemoTeslamateApi
 import com.matedroid.data.local.SettingsDataStore
+import com.matedroid.domain.ConnectionTimeout
 import com.squareup.moshi.Moshi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import okhttp3.Cache
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.io.File
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -31,6 +37,9 @@ import javax.net.ssl.X509TrustManager
 object NetworkModule {
 
     private const val USER_AGENT = "MateDroid/${BuildConfig.VERSION_NAME}"
+
+    /** Disk budget for cached map tiles; a drive's worth of frames is a few hundred KB. */
+    private const val MAP_TILE_CACHE_BYTES = 20L * 1024 * 1024
 
     private val userAgentInterceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()
@@ -72,6 +81,26 @@ object NetworkModule {
             .create(NominatimApi::class.java)
     }
 
+    /**
+     * Client for OpenStreetMap raster tiles, used to paint the map in the navigation
+     * notification.
+     *
+     * The disk cache is the point of it: the frame is redrawn as the car moves, and without
+     * a cache every redraw would re-download tiles that have not changed. OSM's tile usage
+     * policy expects both the cache and the identifying User-Agent, which the shared
+     * interceptor supplies.
+     */
+    @Provides
+    @Singleton
+    @Named("mapTiles")
+    fun provideMapTileClient(@ApplicationContext context: Context): OkHttpClient =
+        OkHttpClient.Builder()
+            .addInterceptor(userAgentInterceptor)
+            .cache(Cache(File(context.cacheDir, "map-tiles"), MAP_TILE_CACHE_BYTES))
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .build()
+
     @Provides
     @Singleton
     fun provideOpenMeteoApi(moshi: Moshi): OpenMeteoApi {
@@ -99,6 +128,7 @@ private data class ApiCacheKey(
     val apiToken: String,
     val httpBasicAuthUsername: String,
     val httpBasicAuthPassword: String,
+    val connectTimeoutSeconds: Int,
     val customHeaders: Map<String, String>
 )
 
@@ -116,28 +146,67 @@ class TeslamateApiFactory(
     private val apiCache = mutableMapOf<ApiCacheKey, TeslamateApi>()
 
     /**
+     * Kept outside [apiCache] on purpose: it holds a generated dataset whose drive and charge
+     * ids screens are already holding, so it must survive [invalidateCache].
+     */
+    private val demoApi: TeslamateApi by lazy { DemoTeslamateApi() }
+
+    /**
      * Creates or returns a cached TeslamateApi instance for the given URL.
      *
      * @param baseUrl The base URL for the API
      * @param acceptInvalidCerts Override for accepting invalid certificates. If null, uses the setting from DataStore.
+     * @param connectTimeoutSeconds Override for the connect timeout, already resolved. If null,
+     *   it is resolved from the settings in DataStore — see [ConnectionTimeout].
      * @return A TeslamateApi instance configured for the given URL
      */
-    fun create(baseUrl: String, acceptInvalidCerts: Boolean? = null): TeslamateApi {
+    suspend fun create(
+        baseUrl: String,
+        acceptInvalidCerts: Boolean? = null,
+        connectTimeoutSeconds: Int? = null
+    ): TeslamateApi {
+        val settings = settingsDataStore.settings.first()
+
+        // Demo mode answers every request in-process. Checked before anything is built so
+        // that Test Connection, the workers and the widget all take the same path as the
+        // screens, and no URL derived from the sentinel is ever dialled.
+        if (settings.isDemoMode) return demoApi
+
         val normalizedUrl = baseUrl.trimEnd('/') + "/"
-        val settings = runBlocking { settingsDataStore.settings.first() }
         val useInsecure = acceptInvalidCerts ?: settings.acceptInvalidCerts
         val apiToken = settings.apiToken
         val basicAuthUsername = settings.httpBasicAuthUsername
         val basicAuthPassword = settings.httpBasicAuthPassword
         val customHeaders = settings.customHeaders
+        val timeoutSeconds = connectTimeoutSeconds ?: ConnectionTimeout.resolveSeconds(
+            setting = settings.connectTimeoutSeconds,
+            hasFallbackServer = settings.hasSecondaryServer
+        )
 
-        val cacheKey = ApiCacheKey(normalizedUrl, useInsecure, apiToken, basicAuthUsername, basicAuthPassword, customHeaders)
+        // The timeout is part of the key so changing it in Settings takes effect on the next
+        // request rather than on the next app start.
+        val cacheKey = ApiCacheKey(
+            normalizedUrl,
+            useInsecure,
+            apiToken,
+            basicAuthUsername,
+            basicAuthPassword,
+            timeoutSeconds,
+            customHeaders
+        )
 
         // Return cached API if available
         apiCache[cacheKey]?.let { return it }
 
         // Create new API instance
-        val okHttpClient = createOkHttpClient(apiToken, useInsecure, basicAuthUsername, basicAuthPassword, customHeaders)
+        val okHttpClient = createOkHttpClient(
+            apiToken,
+            useInsecure,
+            basicAuthUsername,
+            basicAuthPassword,
+            timeoutSeconds,
+            customHeaders
+        )
 
         val api = Retrofit.Builder()
             .baseUrl(normalizedUrl)
@@ -166,23 +235,31 @@ class TeslamateApiFactory(
         apiCache.clear()
     }
 
-    private fun createOkHttpClient(
+    /**
+     * Internal rather than private so a unit test can assert that the configured timeout
+     * really reaches OkHttp, in the unit OkHttp expects.
+     */
+    internal fun createOkHttpClient(
         apiToken: String,
         acceptInvalidCerts: Boolean,
         basicAuthUsername: String = "",
         basicAuthPassword: String = "",
+        connectTimeoutSeconds: Int = ConnectionTimeout.WITHOUT_FALLBACK_SECONDS,
         customHeaders: Map<String, String> = emptyMap()
     ): OkHttpClient {
         val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                     .header("User-Agent", "MateDroid/${BuildConfig.VERSION_NAME}")
-                if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
-                    requestBuilder.addHeader("Authorization",
-                        okhttp3.Credentials.basic(basicAuthUsername, basicAuthPassword))
-                }
+                // A request must carry a single Authorization header — addHeader() appends,
+                // and duplicate Authorization headers get rejected/mishandled by many
+                // proxies and servers. When both credentials are configured the API token
+                // wins, as it's the credential TeslamateApi itself validates.
                 if (apiToken.isNotBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $apiToken")
+                    requestBuilder.header("Authorization", "Bearer $apiToken")
+                } else if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
+                    requestBuilder.header("Authorization",
+                        okhttp3.Credentials.basic(basicAuthUsername, basicAuthPassword))
                 }
                 // Custom headers are applied last so they can override built-in headers if needed
                 for ((key, value) in customHeaders) {
@@ -192,7 +269,11 @@ class TeslamateApiFactory(
                 }
                 chain.proceed(requestBuilder.build())
             }
-            .connectTimeout(1, TimeUnit.SECONDS)
+            // User-configurable, and short by default when a fallback server is configured:
+            // executeWithFallback tries the primary server on EVERY request, so dual-address
+            // setups (local IP + VPN IP) hit this timeout on each call while on the other
+            // network before falling back. See ConnectionTimeout for the whole trade-off.
+            .connectTimeout(connectTimeoutSeconds.toLong(), TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
 
@@ -201,6 +282,8 @@ class TeslamateApiFactory(
         if (BuildConfig.DEBUG) {
             val loggingInterceptor = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.HEADERS
+                // Keep credentials (Bearer token / Basic auth) out of logcat
+                redactHeader("Authorization")
             }
             builder.addInterceptor(loggingInterceptor)
         }

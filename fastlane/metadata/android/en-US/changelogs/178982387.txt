@@ -1,0 +1,8 @@
+Following a charge no longer drains your phone.
+
+Fixed:
+- Opening the app from the charging notification left the dashboard polling every 5 seconds in the background, and the live charge screen kept polling with the phone locked. Both now stop while off screen
+- A failed live-charge check was repeated on every poll
+
+Changed:
+- Background checks back off while the notification's own monitor is running and when the server can't be reached, and are no longer reset on every process start

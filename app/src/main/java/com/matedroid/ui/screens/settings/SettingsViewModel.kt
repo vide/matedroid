@@ -14,13 +14,20 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.matedroid.R
+import com.matedroid.data.demo.DemoMode
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.local.TirePosition
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CostPerKwhBasis
+import com.matedroid.domain.HighSocWarning
+import com.matedroid.domain.LowSocWarning
+import com.matedroid.domain.ShortEntryFilter
 import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.notification.SentryNotificationManager
+import com.matedroid.data.sync.ChargingNotificationWorker
 import com.matedroid.data.sync.DataSyncWorker
 import com.matedroid.data.sync.SyncManager
 import com.matedroid.data.sync.TpmsPressureWorker
@@ -40,9 +47,17 @@ data class SettingsUiState(
     val httpBasicAuthUsername: String = "",
     val httpBasicAuthPassword: String = "",
     val acceptInvalidCerts: Boolean = false,
+    val connectTimeoutSeconds: Int = ConnectionTimeout.AUTO,
     val currencyCode: String = "EUR",
+    val costPerKwhBasis: CostPerKwhBasis = CostPerKwhBasis.DEFAULT,
     val showShortDrivesCharges: Boolean = false,
     val customHeaders: List<Pair<String, String>> = emptyList(),
+    val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
+    val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
+    val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
+    val highSocWarningThreshold: Int = HighSocWarning.DEFAULT_THRESHOLD,
+    val lowSocWarningThreshold: Int = LowSocWarning.DEFAULT_THRESHOLD,
+    val isDemoMode: Boolean = false,
     val isLoading: Boolean = true,
     val isTesting: Boolean = false,
     val isSaving: Boolean = false,
@@ -104,9 +119,17 @@ class SettingsViewModel @Inject constructor(
                 httpBasicAuthUsername = settings.httpBasicAuthUsername,
                 httpBasicAuthPassword = settings.httpBasicAuthPassword,
                 acceptInvalidCerts = settings.acceptInvalidCerts,
+                connectTimeoutSeconds = settings.connectTimeoutSeconds,
                 currencyCode = settings.currencyCode,
+                costPerKwhBasis = settings.costPerKwhBasis,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
                 customHeaders = settings.customHeaders.entries.map { it.key to it.value },
+                shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
+                shortDriveMinDistance = settings.shortDriveMinDistance,
+                shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
+                highSocWarningThreshold = settings.highSocWarningThreshold,
+                lowSocWarningThreshold = settings.lowSocWarningThreshold,
+                isDemoMode = settings.isDemoMode,
                 isLoading = false
             )
         }
@@ -192,6 +215,21 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Saved eagerly, unlike the rest of the connection form: Test Connection builds its client
+     * from the stored settings, so the timeout has to be on disk for the test to exercise it.
+     */
+    fun updateConnectTimeoutSeconds(seconds: Int) {
+        _uiState.value = _uiState.value.copy(
+            connectTimeoutSeconds = seconds,
+            testResult = null,
+            error = null
+        )
+        viewModelScope.launch {
+            settingsDataStore.saveConnectTimeoutSeconds(seconds)
+        }
+    }
+
     fun updateCurrency(currencyCode: String) {
         _uiState.value = _uiState.value.copy(currencyCode = currencyCode)
         viewModelScope.launch {
@@ -199,10 +237,70 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The process-wide mirror is updated synchronously so per-kWh figures pick up the new
+     * basis on the way back from Settings rather than on the next app start.
+     */
+    fun updateCostPerKwhBasis(basis: CostPerKwhBasis) {
+        _uiState.value = _uiState.value.copy(costPerKwhBasis = basis)
+        CostPerKwhBasis.current = basis
+        viewModelScope.launch {
+            settingsDataStore.saveCostPerKwhBasis(basis)
+        }
+    }
+
     fun updateShowShortDrivesCharges(show: Boolean) {
         _uiState.value = _uiState.value.copy(showShortDrivesCharges = show)
         viewModelScope.launch {
             settingsDataStore.saveShowShortDrivesCharges(show)
+        }
+    }
+
+    fun updateShortDriveMinDuration(minutes: Int) {
+        _uiState.value = _uiState.value.copy(shortDriveMinDurationMin = minutes)
+        persistShortEntryThresholds()
+    }
+
+    fun updateShortDriveMinDistance(distance: Double) {
+        _uiState.value = _uiState.value.copy(shortDriveMinDistance = distance)
+        persistShortEntryThresholds()
+    }
+
+    fun updateShortChargeMinEnergy(energyKwh: Double) {
+        _uiState.value = _uiState.value.copy(shortChargeMinEnergyKwh = energyKwh)
+        persistShortEntryThresholds()
+    }
+
+    fun updateHighSocWarningThreshold(threshold: Int) {
+        _uiState.value = _uiState.value.copy(highSocWarningThreshold = threshold)
+        viewModelScope.launch {
+            settingsDataStore.saveHighSocWarningThreshold(threshold)
+        }
+    }
+
+    fun updateLowSocWarningThreshold(threshold: Int) {
+        _uiState.value = _uiState.value.copy(lowSocWarningThreshold = threshold)
+        viewModelScope.launch {
+            settingsDataStore.saveLowSocWarningThreshold(threshold)
+        }
+    }
+
+    /**
+     * Writes the thresholds to disk and to the [ShortEntryFilter] mirror the lists read from.
+     * The mirror is updated synchronously so a list re-filters on the way back from Settings
+     * rather than on the next app start.
+     */
+    private fun persistShortEntryThresholds() {
+        val state = _uiState.value
+        ShortEntryFilter.minDriveDurationMin = state.shortDriveMinDurationMin
+        ShortEntryFilter.minDriveDistance = state.shortDriveMinDistance
+        ShortEntryFilter.minChargeEnergyKwh = state.shortChargeMinEnergyKwh
+        viewModelScope.launch {
+            settingsDataStore.saveShortEntryThresholds(
+                driveMinDurationMin = state.shortDriveMinDurationMin,
+                driveMinDistance = state.shortDriveMinDistance,
+                chargeMinEnergyKwh = state.shortChargeMinEnergyKwh
+            )
         }
     }
 
@@ -218,7 +316,7 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isTesting = false,
                     testResult = TestResult(
-                        primaryResult = ServerTestResult.Failure("Server URL is required")
+                        primaryResult = ServerTestResult.Failure(context.getString(R.string.settings_error_server_url_required))
                     )
                 )
                 return@launch
@@ -228,7 +326,7 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isTesting = false,
                     testResult = TestResult(
-                        primaryResult = ServerTestResult.Failure("URL must start with http:// or https://")
+                        primaryResult = ServerTestResult.Failure(context.getString(R.string.settings_error_url_scheme))
                     )
                 )
                 return@launch
@@ -240,22 +338,41 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isTesting = false,
                     testResult = TestResult(
-                        primaryResult = ServerTestResult.Failure("Primary URL not tested"),
-                        secondaryResult = ServerTestResult.Failure("Secondary URL must start with http:// or https://")
+                        primaryResult = ServerTestResult.Failure(context.getString(R.string.settings_error_primary_not_tested)),
+                        secondaryResult = ServerTestResult.Failure(context.getString(R.string.settings_error_secondary_url_scheme))
                     )
                 )
                 return@launch
             }
 
+            // Test what the form says, not what is on disk: neither the timeout picker's
+            // "Automatic" resolution nor the secondary URL it depends on are saved yet.
+            val timeoutSeconds = ConnectionTimeout.resolveSeconds(
+                setting = _uiState.value.connectTimeoutSeconds,
+                hasFallbackServer = secondaryUrl.isNotBlank()
+            )
+
             // Test primary server
-            val primaryResult = when (val result = repository.testConnection(primaryUrl, _uiState.value.acceptInvalidCerts)) {
+            val primaryResult = when (
+                val result = repository.testConnection(
+                    primaryUrl,
+                    _uiState.value.acceptInvalidCerts,
+                    timeoutSeconds
+                )
+            ) {
                 is ApiResult.Success -> ServerTestResult.Success
                 is ApiResult.Error -> ServerTestResult.Failure(result.message)
             }
 
             // Test secondary server if configured
             val secondaryResult = if (secondaryUrl.isNotBlank()) {
-                when (val result = repository.testConnection(secondaryUrl, _uiState.value.acceptInvalidCerts)) {
+                when (
+                    val result = repository.testConnection(
+                        secondaryUrl,
+                        _uiState.value.acceptInvalidCerts,
+                        timeoutSeconds
+                    )
+                ) {
                     is ApiResult.Success -> ServerTestResult.Success
                     is ApiResult.Error -> ServerTestResult.Failure(result.message)
                 }
@@ -296,6 +413,57 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Switch to the built-in sample dataset and go straight to the dashboard.
+     *
+     * Offered only from first-run onboarding, so there is no configured server to trample
+     * and no cached data to clear on the way in — the reset below is there for the case
+     * where someone reaches this from a half-finished setup.
+     */
+    fun enterDemoMode(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            try {
+                syncManager.fullResetSync(DemoMode.CAR_ID)
+                settingsDataStore.enterDemoMode()
+                loadSettings()
+                triggerImmediateSync()
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    error = e.message ?: context.getString(R.string.settings_error_save_failed)
+                )
+            }
+        }
+    }
+
+    /**
+     * Leave the demo and return to onboarding.
+     *
+     * The sample drives and charges are deleted rather than left in place: they are keyed by
+     * the same car id a real TeslaMate would use, so anything left behind would be merged
+     * into the real car's history the moment a server is configured.
+     */
+    fun exitDemoMode(onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true, error = null)
+            try {
+                syncManager.fullResetSync(DemoMode.CAR_ID)
+                settingsDataStore.exitDemoMode()
+                loadSettings()
+                _uiState.value = _uiState.value.copy(isSaving = false)
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    error = e.message ?: context.getString(R.string.settings_error_save_failed)
+                )
+            }
+        }
+    }
+
     fun saveSettings(onSuccess: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
@@ -305,7 +473,7 @@ class SettingsViewModel @Inject constructor(
                 if (url.isBlank()) {
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
-                        error = "Server URL is required"
+                        error = context.getString(R.string.settings_error_server_url_required)
                     )
                     return@launch
                 }
@@ -328,12 +496,16 @@ class SettingsViewModel @Inject constructor(
                 // Trigger sync after settings are saved (handles first-time setup)
                 triggerImmediateSync()
 
+                // The charging/sentry chain drops itself while no server is configured, so
+                // start it again now instead of waiting for the 15-minute backstop.
+                ChargingNotificationWorker.runNow(context)
+
                 _uiState.value = _uiState.value.copy(isSaving = false)
                 onSuccess()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    error = e.message ?: "Failed to save settings"
+                    error = e.message ?: context.getString(R.string.settings_error_save_failed)
                 )
             }
         }
@@ -341,6 +513,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearTestResult() {
         _uiState.value = _uiState.value.copy(testResult = null)
+    }
+
+    /** Surfaces a snackbar from the UI layer (e.g. the "saved" confirmation). */
+    fun showMessage(message: String) {
+        _uiState.value = _uiState.value.copy(successMessage = message)
     }
 
     fun clearError() {
@@ -365,20 +542,20 @@ class SettingsViewModel @Inject constructor(
                         triggerImmediateSync()
                         _uiState.value = _uiState.value.copy(
                             isResyncing = false,
-                            successMessage = "Full resync started. All cached data cleared. Check the Stats screen for progress."
+                            successMessage = context.getString(R.string.settings_resync_started)
                         )
                     }
                     is ApiResult.Error -> {
                         _uiState.value = _uiState.value.copy(
                             isResyncing = false,
-                            error = "Failed to start resync: ${result.message}"
+                            error = context.getString(R.string.settings_error_resync_failed, result.message)
                         )
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isResyncing = false,
-                    error = "Failed to start resync: ${e.message}"
+                    error = context.getString(R.string.settings_error_resync_failed, e.message ?: "")
                 )
             }
         }

@@ -1,0 +1,12 @@
+Compare any drive or charge against your own history — with rankings and percentage verdicts — and see each trip's key numbers right on its map.
+
+Added:
+- Compare similar drives and charges, with stats and rankings
+- Trip distance, consumption and cost/100km on the trip map — tap for full screen
+- Edit a charge's cost from its detail screen
+
+Changed:
+- Redesigned charge and drive detail screens
+
+Fixed:
+- DC charges no longer mislabeled as AC

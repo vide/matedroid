@@ -6,11 +6,17 @@ import com.matedroid.data.api.NominatimAddress
 import com.matedroid.data.local.dao.GeocodeCacheDao
 import com.matedroid.data.local.dao.GeocodeProgressDao
 import com.matedroid.data.local.dao.GeocodeQueueDao
+import android.os.SystemClock
 import com.matedroid.data.local.entity.GeocodeCache
 import com.matedroid.data.local.entity.GeocodeProgress
 import com.matedroid.data.local.entity.GeocodeQueueItem
+import java.util.Collections
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -54,11 +60,40 @@ class GeocodingRepository @Inject constructor(
     companion object {
         // Grid precision: 0.01° ≈ 1.1km at equator
         private const val GRID_PRECISION = 100
+
+        // Nominatim usage policy: max 1 request/second. Enforced HERE for every call path
+        // (worker, legacy lookups, boundaries) so no caller can burst past it.
+        private const val NOMINATIM_MIN_INTERVAL_MS = 1100L
+
+        private const val ADDRESS_CACHE_SIZE = 256
+        private const val BOUNDARY_CACHE_SIZE = 3 // full-resolution polygons are MBs each
+
+        /** Bounded, access-ordered LRU map (synchronized — callers hop threads). */
+        private fun <K, V> lruCache(maxSize: Int): MutableMap<K, V> =
+            Collections.synchronizedMap(object : LinkedHashMap<K, V>(16, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?) = size > maxSize
+            })
     }
 
-    // Legacy in-memory caches (kept for backward compatibility with reverseGeocode)
-    private val addressCache = mutableMapOf<String, String>()
-    private val locationCache = mutableMapOf<String, GeocodedLocation>()
+    // Legacy in-memory caches (kept for backward compatibility with reverseGeocode),
+    // bounded so a long session can't accumulate unbounded entries.
+    private val addressCache = lruCache<String, String>(ADDRESS_CACHE_SIZE)
+    private val locationCache = lruCache<String, GeocodedLocation>(ADDRESS_CACHE_SIZE)
+
+    // Serializes all Nominatim calls at the policy rate.
+    private val nominatimMutex = Mutex()
+    private var lastNominatimCallAt = 0L
+
+    private suspend fun <T> rateLimitedNominatim(block: suspend () -> Response<T>): Response<T> =
+        nominatimMutex.withLock {
+            val wait = NOMINATIM_MIN_INTERVAL_MS - (SystemClock.elapsedRealtime() - lastNominatimCallAt)
+            if (wait > 0) delay(wait)
+            try {
+                block()
+            } finally {
+                lastNominatimCallAt = SystemClock.elapsedRealtime()
+            }
+        }
 
     /**
      * Convert coordinate to grid cell.
@@ -114,31 +149,37 @@ class GeocodingRepository @Inject constructor(
         // Deduplicate by grid cell (same location = same grid)
         val uniqueItems = items.distinctBy { it.gridLat to it.gridLon }
 
-        // Filter out already cached locations
-        val uncachedItems = uniqueItems.filter { item ->
-            geocodeCacheDao.get(item.gridLat, item.gridLon) == null
+        // Filter out already cached AND already queued cells with two batch key reads
+        // (this used to be one point query per location, and never deduped against the
+        // queue — so the progress total re-counted still-queued items on every sync and
+        // the percentage regressed instead of reaching 100%).
+        val cachedKeys = geocodeCacheDao.getAllGridKeys().mapTo(HashSet()) { it.gridLat to it.gridLon }
+        val queuedKeys = geocodeQueueDao.getAllGridKeys().mapTo(HashSet()) { it.gridLat to it.gridLon }
+        val newItems = uniqueItems.filter { item ->
+            val key = item.gridLat to item.gridLon
+            key !in cachedKeys && key !in queuedKeys
         }
 
-        if (uncachedItems.isNotEmpty()) {
-            geocodeQueueDao.enqueueAll(uncachedItems)
+        if (newItems.isNotEmpty()) {
+            geocodeQueueDao.enqueueAll(newItems)
 
-            // Update progress tracking with actual unique count
+            // Update progress tracking with actual new-work count
             val progress = geocodeProgressDao.get(carId)
             if (progress == null) {
                 geocodeProgressDao.upsert(
                     GeocodeProgress(
                         carId = carId,
-                        totalLocations = uncachedItems.size,
+                        totalLocations = newItems.size,
                         processedLocations = 0,
                         lastUpdatedAt = System.currentTimeMillis()
                     )
                 )
             } else {
-                geocodeProgressDao.incrementTotal(carId, uncachedItems.size, System.currentTimeMillis())
+                geocodeProgressDao.incrementTotal(carId, newItems.size, System.currentTimeMillis())
             }
         }
 
-        return uncachedItems.size
+        return newItems.size
     }
 
     /**
@@ -147,7 +188,7 @@ class GeocodingRepository @Inject constructor(
      */
     suspend fun geocodeAndCache(item: GeocodeQueueItem): GeocodeCache? {
         return try {
-            val response = nominatimApi.reverseGeocode(item.latitude, item.longitude)
+            val response = rateLimitedNominatim { nominatimApi.reverseGeocode(item.latitude, item.longitude) }
             if (!response.isSuccessful) {
                 geocodeQueueDao.markAttempt(item.gridLat, item.gridLon, System.currentTimeMillis())
                 return null
@@ -212,15 +253,16 @@ class GeocodingRepository @Inject constructor(
     suspend fun getCachedCount(): Int = geocodeCacheDao.count()
 
     /**
-     * Sync progress with actual cache count.
-     * Called when queue is empty but progress shows incomplete work.
-     * This fixes stale progress data from interrupted/cleared geocoding.
+     * Mark all progress records complete. Called when the queue is empty but progress
+     * shows incomplete work (stale data from interrupted/cleared geocoding).
      */
-    suspend fun syncProgressWithCache(cachedCount: Int) {
-        // Update all car progress records to match reality
-        // When queue is empty and we have cached items, those are the completed ones
-        geocodeProgressDao.syncWithCache(cachedCount)
+    suspend fun markProgressComplete() {
+        geocodeProgressDao.markAllComplete()
     }
+
+    /** Batch lookup of cached geocode data keyed by grid cell. */
+    suspend fun getAllCachedByGrid(): Map<Pair<Int, Int>, GeocodeCache> =
+        geocodeCacheDao.getAll().associateBy { it.gridLat to it.gridLon }
 
     /**
      * Observe geocoding progress for a car.
@@ -257,7 +299,7 @@ class GeocodingRepository @Inject constructor(
         addressCache[cacheKey]?.let { return it }
 
         return try {
-            val response = nominatimApi.reverseGeocode(latitude, longitude)
+            val response = rateLimitedNominatim { nominatimApi.reverseGeocode(latitude, longitude) }
             if (response.isSuccessful) {
                 val result = response.body()
                 val address = formatAddress(result?.address)
@@ -284,7 +326,7 @@ class GeocodingRepository @Inject constructor(
         locationCache[cacheKey]?.let { return it }
 
         return try {
-            val response = nominatimApi.reverseGeocode(latitude, longitude)
+            val response = rateLimitedNominatim { nominatimApi.reverseGeocode(latitude, longitude) }
             if (response.isSuccessful) {
                 val result = response.body()
                 val address = result?.address
@@ -327,8 +369,9 @@ class GeocodingRepository @Inject constructor(
 
     // === Country Boundary Methods ===
 
-    // Cache for country boundaries (in-memory, cleared on app restart)
-    private val boundaryCache = mutableMapOf<String, CountryBoundary>()
+    // Cache for country boundaries — bounded: full-resolution multipolygons (Norway/Canada
+    // coastlines) run to several MB each, so keep only the last few.
+    private val boundaryCache = lruCache<String, CountryBoundary>(BOUNDARY_CACHE_SIZE)
 
     /**
      * Fetch country boundary polygon from Nominatim.
@@ -336,51 +379,30 @@ class GeocodingRepository @Inject constructor(
      * Results are cached in memory.
      */
     suspend fun getCountryBoundary(countryCode: String): CountryBoundary? {
-        Log.d("GeocodingRepository", "getCountryBoundary called for $countryCode")
-
         // Check cache first
-        boundaryCache[countryCode]?.let {
-            Log.d("GeocodingRepository", "Returning cached boundary for $countryCode with ${it.polygons.size} polygons")
-            return it
-        }
+        boundaryCache[countryCode]?.let { return it }
 
         return try {
-            Log.d("GeocodingRepository", "Fetching boundary from API for $countryCode")
-            val response = nominatimApi.searchCountryBoundary(countryCode)
-            Log.d("GeocodingRepository", "API response: success=${response.isSuccessful}, code=${response.code()}")
-
+            val response = rateLimitedNominatim { nominatimApi.searchCountryBoundary(countryCode) }
             if (!response.isSuccessful || response.body().isNullOrEmpty()) {
-                Log.w("GeocodingRepository", "Failed to fetch boundary for $countryCode: ${response.errorBody()?.string()}")
+                Log.w("GeocodingRepository", "Failed to fetch boundary for $countryCode: code=${response.code()}")
                 return null
             }
 
-            val result = response.body()?.firstOrNull()
-            if (result == null) {
-                Log.w("GeocodingRepository", "No results in response for $countryCode")
-                return null
-            }
-
-            Log.d("GeocodingRepository", "Got result: displayName=${result.displayName}, hasGeoJson=${result.geojson != null}")
-
-            val geoJson = result.geojson
+            val geoJson = response.body()?.firstOrNull()?.geojson
             if (geoJson == null) {
                 Log.w("GeocodingRepository", "No geojson in result for $countryCode")
                 return null
             }
 
-            Log.d("GeocodingRepository", "GeoJSON type: ${geoJson.type}, coordinates class: ${geoJson.coordinates?.javaClass?.name}")
-
             val polygons = parseGeoJsonToPolygons(geoJson.type, geoJson.coordinates)
-            Log.d("GeocodingRepository", "Parsed ${polygons.size} polygons for $countryCode")
-
             if (polygons.isEmpty()) {
-                Log.w("GeocodingRepository", "No polygons parsed for $countryCode")
+                Log.w("GeocodingRepository", "No polygons parsed for $countryCode (type=${geoJson.type})")
                 return null
             }
 
             val boundary = CountryBoundary(countryCode, polygons)
             boundaryCache[countryCode] = boundary
-            Log.d("GeocodingRepository", "Successfully cached boundary for $countryCode")
             boundary
         } catch (e: Exception) {
             Log.e("GeocodingRepository", "Error fetching boundary for $countryCode", e)

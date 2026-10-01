@@ -2,6 +2,7 @@ package com.matedroid.di
 
 import android.content.Context
 import androidx.room.Room
+import com.matedroid.BuildConfig
 import com.matedroid.data.local.StatsDatabase
 import com.matedroid.data.local.dao.AggregateDao
 import com.matedroid.data.local.dao.ChargeSummaryDao
@@ -36,7 +37,14 @@ object DatabaseModule {
             StatsDatabase.DATABASE_NAME
         )
             .addMigrations(*StatsDatabase.ALL_MIGRATIONS)
-            .fallbackToDestructiveMigration(dropAllTables = false)  // Fallback for development
+            .apply {
+                // Debug convenience only. In release a missed migration must crash loudly
+                // instead of silently wiping all synced data (including the geocode cache,
+                // which takes hours to rebuild at Nominatim's 1 req/s).
+                if (BuildConfig.DEBUG) {
+                    fallbackToDestructiveMigration(dropAllTables = false)
+                }
+            }
             .build()
     }
 

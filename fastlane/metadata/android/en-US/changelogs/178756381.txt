@@ -1,0 +1,13 @@
+Your settings, your rules: this release makes MateDroid adapt to you.
+
+Added:
+- Choose what "cost per kWh" means: energy added or energy used (incl. charging losses)
+- "Since last charge" trip meter on the dashboard
+- Configurable connection timeout, charge warning levels and short drive/charge thresholds
+
+Changed:
+- Settings reorganized into clear sections
+- Clearer drive elevation: Climb, Descent and Net
+
+Fixed:
+- Climb/descent no longer inflated by GPS noise

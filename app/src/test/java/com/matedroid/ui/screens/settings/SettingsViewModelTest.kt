@@ -13,11 +13,13 @@ import com.matedroid.data.repository.SentryStateRepository
 import com.matedroid.data.repository.TpmsStateRepository
 import com.matedroid.notification.SentryNotificationManager
 import com.matedroid.data.sync.SyncManager
+import com.matedroid.domain.ConnectionTimeout
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,6 +55,18 @@ class SettingsViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         context = mockk(relaxed = true)
+        // Error strings are now resources; return their English values so the
+        // assertions below keep testing the user-visible messages.
+        every { context.getString(com.matedroid.R.string.settings_error_server_url_required) } returns
+            "Server URL is required"
+        every { context.getString(com.matedroid.R.string.settings_error_url_scheme) } returns
+            "URL must start with http:// or https://"
+        every { context.getString(com.matedroid.R.string.settings_error_primary_not_tested) } returns
+            "Primary URL not tested"
+        every { context.getString(com.matedroid.R.string.settings_error_secondary_url_scheme) } returns
+            "Secondary URL must start with http:// or https://"
+        every { context.getString(com.matedroid.R.string.settings_error_save_failed) } returns
+            "Failed to save settings"
         settingsDataStore = mockk()
         repository = mockk()
         syncManager = mockk()
@@ -67,6 +81,10 @@ class SettingsViewModelTest {
         // removed @JvmStatic, so mockkStatic(WorkManager::class) no longer intercepts).
         mockkObject(WorkManager.Companion)
         every { WorkManager.getInstance(any()) } returns workManager
+
+        // Saving the connection settings kicks the charging check, which logs.
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any(), any()) } returns 0
     }
 
     @After
@@ -161,7 +179,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `testConnection succeeds with valid url`() = runTest {
-        coEvery { repository.testConnection(any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection(any(), any(), any()) } returns ApiResult.Success(Unit)
         // Mock global settings fetch (called after successful connection)
         coEvery { repository.getGlobalSettings() } returns ApiResult.Success(GlobalSettingsData(settings = GlobalSettings(teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"))))
         coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
@@ -181,8 +199,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `testConnection tests both servers when secondary is configured`() = runTest {
-        coEvery { repository.testConnection("https://primary.com", any()) } returns ApiResult.Success(Unit)
-        coEvery { repository.testConnection("https://secondary.com", any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection("https://primary.com", any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection("https://secondary.com", any(), any()) } returns ApiResult.Success(Unit)
         // Mock global settings fetch (called after successful connection)
         coEvery { repository.getGlobalSettings() } returns ApiResult.Success(GlobalSettingsData(settings = GlobalSettings(teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"))))
         coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
@@ -204,8 +222,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `testConnection shows both results when primary fails and secondary succeeds`() = runTest {
-        coEvery { repository.testConnection("https://primary.com", any()) } returns ApiResult.Error("Connection refused")
-        coEvery { repository.testConnection("https://secondary.com", any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection("https://primary.com", any(), any()) } returns ApiResult.Error("Connection refused")
+        coEvery { repository.testConnection("https://secondary.com", any(), any()) } returns ApiResult.Success(Unit)
 
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -227,7 +245,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `testConnection shows failure when api returns error`() = runTest {
-        coEvery { repository.testConnection(any(), any()) } returns ApiResult.Error("Connection refused")
+        coEvery { repository.testConnection(any(), any(), any()) } returns ApiResult.Error("Connection refused")
 
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -273,6 +291,60 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `updateConnectTimeoutSeconds saves immediately so Test Connection uses it`() = runTest {
+        coEvery { settingsDataStore.saveConnectTimeoutSeconds(any()) } returns Unit
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateConnectTimeoutSeconds(10)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(10, viewModel.uiState.value.connectTimeoutSeconds)
+        coVerify { settingsDataStore.saveConnectTimeoutSeconds(10) }
+    }
+
+    @Test
+    fun `initial state loads the connect timeout from datastore`() = runTest {
+        every { settingsDataStore.settings } returns flowOf(AppSettings(connectTimeoutSeconds = 3))
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(3, viewModel.uiState.value.connectTimeoutSeconds)
+    }
+
+    @Test
+    fun `connect timeout defaults to automatic`() = runTest {
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ConnectionTimeout.AUTO, viewModel.uiState.value.connectTimeoutSeconds)
+    }
+
+    @Test
+    fun `testConnection resolves the timeout from the form, not the saved settings`() = runTest {
+        // Stored: no fallback server, so Automatic is 5s. On screen: a fallback server has just
+        // been typed but not saved, which makes Automatic 1s.
+        every { settingsDataStore.settings } returns flowOf(AppSettings(serverUrl = "https://primary.com"))
+        coEvery { repository.testConnection(any(), any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.getGlobalSettings() } returns ApiResult.Error("skip")
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateSecondaryServerUrl("https://secondary.com")
+        viewModel.testConnection()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            repository.testConnection(
+                "https://primary.com",
+                false,
+                ConnectionTimeout.WITH_FALLBACK_SECONDS
+            )
+        }
+    }
+
+    @Test
     fun `updateAcceptInvalidCerts updates state`() = runTest {
         viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -301,7 +373,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `clearTestResult clears test result`() = runTest {
-        coEvery { repository.testConnection(any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.testConnection(any(), any(), any()) } returns ApiResult.Success(Unit)
         // Mock global settings fetch (called after successful connection)
         coEvery { repository.getGlobalSettings() } returns ApiResult.Success(GlobalSettingsData(settings = GlobalSettings(teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"))))
         coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit

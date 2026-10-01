@@ -1,0 +1,13 @@
+Deine Einstellungen, deine Regeln: Diese Version passt sich dir an.
+
+Neu:
+- Wähle, was "Kosten pro kWh" bedeutet: hinzugefügte oder verbrauchte Energie (inkl. Ladeverluste)
+- "Seit der letzten Ladung"-Anzeige auf dem Dashboard
+- Timeout, Batteriewarnstufen und Schwellen für kurze Fahrten/Ladungen einstellbar
+
+Geändert:
+- Einstellungen in übersichtliche Bereiche gegliedert
+- Klarere Höhenangaben: Anstieg, Abstieg und Netto
+
+Behoben:
+- Anstieg/Abstieg nicht mehr durch GPS-Rauschen überhöht

@@ -77,4 +77,34 @@ object ChargeStatsCalculator {
         val modePhases = phases.filter { it > 0 }.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
         return modePhases == null
     }
+
+    /**
+     * Average charging power (kW) above which an as-yet-unanalyzed charge is assumed to be DC.
+     * AC tops out around 11 kW (22 kW on three phases); DC fast charging sustains far more, so a
+     * threshold in between cleanly separates the two for the list heuristic.
+     */
+    const val DC_AVG_POWER_THRESHOLD_KW = 20.0
+
+    /**
+     * Best-effort DC/AC classification for the charges list.
+     *
+     * When the charge's detail has already been processed into an aggregate, return the exact
+     * stored result. Otherwise (the detail hasn't been synced yet) fall back to an average-power
+     * heuristic — energy added over duration — so recent DC charges aren't mislabeled as AC while
+     * waiting for the background sync. The value self-corrects to exact once the charge is processed.
+     */
+    fun isDcCharge(
+        chargeId: Int,
+        energyAddedKwh: Double?,
+        durationMin: Int?,
+        dcChargeIds: Set<Int>,
+        processedChargeIds: Set<Int>
+    ): Boolean {
+        if (chargeId in processedChargeIds) return chargeId in dcChargeIds
+        val minutes = durationMin ?: return false
+        val energy = energyAddedKwh ?: return false
+        if (minutes <= 0) return false
+        val avgPowerKw = energy / (minutes / 60.0)
+        return avgPowerKw > DC_AVG_POWER_THRESHOLD_KW
+    }
 }

@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.data.model.Currency
@@ -273,7 +274,7 @@ class StatsViewModel @Inject constructor(
         } catch (e: Exception) {
             _uiState.update {
                 it.copy(
-                    error = e.message ?: "Failed to load stats"
+                    error = e.message ?: context.getString(R.string.stats_error_load_failed)
                 )
             }
         }

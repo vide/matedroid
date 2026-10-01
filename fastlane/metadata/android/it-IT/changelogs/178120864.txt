@@ -1,0 +1,15 @@
+Nuovo menu di scorciatoie in alto a destra, creazione manuale dei viaggi e mappa Posizione a tutto schermo, da aprire in Maps con un tocco.
+
+Aggiunto:
+- Menu: Stats, Salute batteria, Dov'ero?, Sentry, Impostazioni
+- Crea un viaggio a mano dalla lista Viaggi
+
+Modificato:
+- Scheda Attività riorganizzata; gomme in scheda dedicata
+
+Corretto:
+- Carica in tempo reale subito dopo il collegamento
+- Valori del tooltip tensione/corrente ripristinati
+
+Sicurezza:
+- Credenziali non più nei backup Android

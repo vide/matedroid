@@ -14,7 +14,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 ## Features
 
 - **Dashboard** - Real-time vehicle status at a glance with 3D car image matching your vehicle's color and wheels. Long tap it to change the picture.
-- **Notifications** - Sentry events notification, tyres pressure alert and Live notification (Android 16+) of charging sessions.
+- **Notifications** - Sentry events notification, tyres pressure alert, live notification of the drive to a destination, and Live notification (Android 16+) of charging sessions.
 - **Widget** - Home/lock screen widget for easy and safe read-only access to your car status. No more trunks opened due to a misstap!
 - **Stats for Nerds** - Tap car image for advanced statistics: records, extremes, AC/DC ratio and much more!
 - **Charging History** - View all charging sessions with statistics and charts
@@ -24,10 +24,12 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 - **Software Updates** - Track update history
 - **Visited countries stats** - Show your friends all the places you visited with your car!
 - **Car color based themes** - Light/dark themes with palette based on the car color
-- **Multi-language** - Available in English, Italian, Spanish, and Catalan
+- **Multi-language** - Available in English, Italian, Spanish, Catalan, German, and Chinese (Simplified)
+- **Demo mode** - Try the whole app on a year of sample data before setting up Teslamate
 
 ### Gallery
 
+<!-- screenshots:start -->
 <p>
 <img src="docs/screenshots/main-dashboard.jpg" alt="Main dashboard" height="300">
 <img src="docs/screenshots/battery-health.jpg" alt="Battery health" height="300">
@@ -41,9 +43,11 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 <img src="docs/screenshots/charge-details.jpg" alt="Charge details" height="300">
 </p>
 <p>
+<img src="docs/screenshots/current-charge.jpg" alt="Current charge" height="300">
 <img src="docs/screenshots/stats-for-nerds.jpg" alt="Stats for nerds" height="300">
 <img src="docs/screenshots/visited-countries.jpg" alt="Visited countries" height="300">
 </p>
+<!-- screenshots:end -->
 <p>
 <img src="app/src/main/res/drawable-nodpi/widget_preview.png" alt="Home screen widget" height="200">
 </p>
@@ -52,7 +56,7 @@ A native Android application for viewing Tesla vehicle data from your self-hoste
 
 #### Dashboard
 
-Your car at a glance: live status, battery level, location on a map, tire pressures, and quick access to all the other sections. The 3D car image matches your actual color, trim, and wheels — tap it for stats, long-press to change the angle. When charging, the battery card comes alive with real-time power and ETA.
+Your car at a glance: live status, battery level, location on a map (swipe it for the energy consumed since your last charge), tire pressures, and quick access to all the other sections. Set a destination in the car and the map tells you where it is heading, how long is left, and what the battery will be down to when it gets there. The 3D car image matches your actual color, trim, and wheels — tap it for stats, long-press to change the angle. When charging, the battery card comes alive with real-time power and ETA.
 
 #### Charges & Drives
 
@@ -78,9 +82,13 @@ Update history with installation dates, time between updates, and a chart of upd
 
 Every country you've driven through, with flags, distance, energy, and charge count. Sort however you like and tap a country to see its regions.
 
+#### Demo Mode
+
+No Teslamate server yet? Tap **Try the demo** on the first setup screen and the app fills itself with a year of realistic sample data from a demonstration car — drives, charges, a live charging session, statistics, battery health and three countries visited. Everything works exactly as it would against a real server, because it runs the same code; a **Demo** badge sits next to the car name so sample data is never mistaken for your own. Leave it any time from Settings → Connection.
+
 #### Theming & Notifications
 
-The app themes itself based on your car's exterior color — every Tesla color has its own palette, in both light and dark mode. On Android 16+, you also get live charging notifications with real-time progress and tire pressure alerts in the background.
+The app themes itself based on your car's exterior color — every Tesla color has its own palette, in both light and dark mode. On Android 16+, you also get live charging notifications with real-time progress and tire pressure alerts in the background. Set a destination in the car and a notification follows the drive, with the time left, the arrival time and a map of where the car is and where it is going. Each kind of notification has its own Android channel, so you can silence one without losing the rest.
 
 ## Requirements
 

@@ -4,9 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
 import com.matedroid.data.local.entity.SyncState
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SyncStateDao {
@@ -14,17 +12,8 @@ interface SyncStateDao {
     @Query("SELECT * FROM sync_state WHERE carId = :carId")
     suspend fun get(carId: Int): SyncState?
 
-    @Query("SELECT * FROM sync_state WHERE carId = :carId")
-    fun observe(carId: Int): Flow<SyncState?>
-
-    @Query("SELECT * FROM sync_state")
-    fun observeAll(): Flow<List<SyncState>>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(syncState: SyncState)
-
-    @Update
-    suspend fun update(syncState: SyncState)
 
     // Summary sync completion
     @Query("""
@@ -35,6 +24,10 @@ interface SyncStateDao {
         WHERE carId = :carId
     """)
     suspend fun markSummariesSynced(carId: Int, timestamp: Long)
+
+    // Recorded only when the summary fetch ran without a startDate filter
+    @Query("UPDATE sync_state SET lastFullSummarySyncAt = :timestamp WHERE carId = :carId")
+    suspend fun markFullSummarySync(carId: Int, timestamp: Long)
 
     // Detail sync progress updates
     @Query("""
@@ -71,10 +64,4 @@ interface SyncStateDao {
         WHERE carId = :carId
     """)
     suspend fun resetForResync(carId: Int)
-
-    @Query("DELETE FROM sync_state WHERE carId = :carId")
-    suspend fun delete(carId: Int)
-
-    @Query("DELETE FROM sync_state")
-    suspend fun deleteAll()
 }

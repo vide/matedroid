@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.dp
+import com.matedroid.util.formatTime
+import com.matedroid.util.parseIsoDateTime
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -36,13 +38,6 @@ data class SelectedPoint(
     val index: Int,
     val value: Float,
     val position: Offset
-)
-
-data class DualChartData(
-    val displayPoints: List<Float>,
-    val minValue: Float,
-    val maxValue: Float,
-    val range: Float
 )
 
 data class DualSelectedPoint(
@@ -80,18 +75,6 @@ fun prepareChartData(
     val maxValue = fixedMinMax?.second ?: displayPoints.maxOrNull() ?: 1f
     val range = (maxValue - minValue).coerceAtLeast(1f)
     return ChartData(displayPoints, minValue, maxValue, range)
-}
-
-fun prepareDualChartData(data: List<Float>): DualChartData {
-    val displayPoints = if (data.size > MAX_DISPLAY_POINTS) {
-        downsampleLTTB(data, MAX_DISPLAY_POINTS)
-    } else {
-        data
-    }
-    val minValue = displayPoints.minOrNull() ?: 0f
-    val maxValue = displayPoints.maxOrNull() ?: 1f
-    val range = (maxValue - minValue).coerceAtLeast(1f)
-    return DualChartData(displayPoints, minValue, maxValue, range)
 }
 
 // ── LTTB Downsampling ───────────────────────────────────────────────────────
@@ -256,6 +239,23 @@ private fun computeMonotoneTangents(xs: FloatArray, ys: FloatArray): FloatArray 
 private val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f))
 private val crosshairDashEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
 
+// Reused across draw frames (crosshair drags and entrance animations redraw every frame).
+// Draws only happen on the UI thread, so shared mutable instances are safe.
+private val chipTextPaint = Paint().apply {
+    color = android.graphics.Color.WHITE
+    isAntiAlias = true
+    textAlign = Paint.Align.CENTER
+}
+private val chipBgPaint = Paint().apply {
+    isAntiAlias = true
+}
+private val chipRect = android.graphics.RectF()
+
+// Gradient fill brushes are cached per (color, alpha): drawGradientFill runs on every draw
+// frame, and Brush.verticalGradient with default bounds is size-independent so the same
+// instance can be reused. Chart colors come from the theme, so the map stays tiny.
+private val gradientFillCache = HashMap<Pair<Color, Float>, Brush>()
+
 /**
  * Draws Grafana-style annotation bands on the chart.
  * Each range is rendered as a semi-transparent vertical band spanning the full chart height,
@@ -343,9 +343,11 @@ fun DrawScope.drawGradientFill(
     alpha: Float = 0.3f,
     progress: Float = 1f
 ) {
-    val brush = Brush.verticalGradient(
-        listOf(color.copy(alpha = alpha), Color.Transparent)
-    )
+    val brush = gradientFillCache.getOrPut(color to alpha) {
+        Brush.verticalGradient(
+            listOf(color.copy(alpha = alpha), Color.Transparent)
+        )
+    }
     if (progress >= 1f) {
         drawPath(fillPath, brush = brush)
     } else {
@@ -406,34 +408,30 @@ fun DrawScope.drawGlowIndicator(center: Offset, color: Color) {
 }
 
 /**
+ * The [steps] + 1 Y-axis label values (top → bottom) plus a format string that
+ * switches to one decimal when adjacent integer labels would collide.
+ */
+private fun axisLabelValues(chartData: ChartData, steps: Int = 4): Pair<List<Float>, String> {
+    val rawValues = (0..steps).map { i -> chartData.maxValue - (chartData.range * i / steps) }
+    val needsDecimal = rawValues.zipWithNext().any { (a, b) -> "%.0f".format(a) == "%.0f".format(b) }
+    return rawValues to if (needsDecimal) "%.1f" else "%.0f"
+}
+
+/**
  * Draws Y-axis labels at 5 positions (including max), with automatic decimal
  * precision when the range is too small to differentiate integer values.
  */
 fun DrawScope.drawYAxisLabels(
-    surfaceColor: Color,
+    textPaint: Paint,
     chartData: ChartData,
     unit: String,
     height: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
-            isAntiAlias = true
-        }
+        val (rawValues, format) = axisLabelValues(chartData)
 
-        val gridLineCount = 4
-
-        val rawValues = (0..gridLineCount).map { i ->
-            chartData.maxValue - (chartData.range * i / gridLineCount)
-        }
-        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
-            "%.0f".format(a) == "%.0f".format(b)
-        }
-        val format = if (needsDecimal) "%.1f" else "%.0f"
-
-        for (i in 0..gridLineCount) {
-            val y = height * i / gridLineCount
+        for (i in rawValues.indices) {
+            val y = height * i / (rawValues.size - 1)
             val label = format.format(rawValues[i]) + " $unit"
             // Position the label above line
             val textY = y - 4f
@@ -446,32 +444,18 @@ fun DrawScope.drawYAxisLabels(
  * Draws Y-axis labels for dual-axis chart (left or right side).
  */
 fun DrawScope.drawDualYAxisLabels(
-    chartData: DualChartData,
+    textPaint: Paint,
+    chartData: ChartData,
     unit: String,
     height: Float,
     isLeft: Boolean,
-    color: Color,
     width: Float = 0f
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            this.color = color.copy(alpha = 0.8f).toArgb()
-            textSize = 24f
-            isAntiAlias = true
-            textAlign = if (isLeft) Paint.Align.LEFT else Paint.Align.RIGHT
-        }
-        val gridLineCount = 4
+        val (rawValues, format) = axisLabelValues(chartData)
 
-        val rawValues = (0..gridLineCount).map { i ->
-            chartData.maxValue - (chartData.range * i / gridLineCount)
-        }
-        val needsDecimal = rawValues.zipWithNext().any { (a, b) ->
-            "%.0f".format(a) == "%.0f".format(b)
-        }
-        val format = if (needsDecimal) "%.1f" else "%.0f"
-
-        for (i in 0..gridLineCount) {
-            val y = height * i / gridLineCount
+        for (i in rawValues.indices) {
+            val y = height * i / (rawValues.size - 1)
             val label = format.format(rawValues[i]) + " $unit"
             // Position the label above line
             val textY = y - 4f
@@ -485,19 +469,13 @@ fun DrawScope.drawDualYAxisLabels(
  * Draws X-axis time labels at 5 positions: start (0%), 25%, 50%, 75%, end (100%).
  */
 fun DrawScope.drawTimeLabels(
-    surfaceColor: Color,
+    textPaint: Paint,
     timeLabels: List<String>,
     width: Float,
     chartHeight: Float,
     timeLabelHeight: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = surfaceColor.copy(alpha = 0.7f).toArgb()
-            textSize = 26f
-            isAntiAlias = true
-        }
-
         val timeY = chartHeight + timeLabelHeight - 4f
         val positions = listOf(0f, width * 0.25f, width * 0.5f, width * 0.75f, width)
 
@@ -524,29 +502,42 @@ fun DrawScope.drawFloatingTimeChip(
     chipColor: Color,
     chartHeight: Float,
     timeLabelHeight: Float,
-    canvasWidth: Float
+    canvasWidth: Float,
+    textSizePx: Float
 ) {
     drawContext.canvas.nativeCanvas.apply {
-        val textPaint = Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 28f
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-        val bgPaint = Paint().apply {
-            color = chipColor.copy(alpha = 0.9f).toArgb()
-            isAntiAlias = true
-        }
+        chipTextPaint.textSize = textSizePx
+        chipBgPaint.color = chipColor.copy(alpha = 0.9f).toArgb()
 
-        val textWidth = textPaint.measureText(timeStr)
+        val textWidth = chipTextPaint.measureText(timeStr)
         val chipPadding = 12f
         val chipWidth = textWidth + chipPadding * 2
         val chipHeight = timeLabelHeight * 0.85f
         val chipTop = chartHeight + (timeLabelHeight - chipHeight) / 2
         val chipLeft = (xCenter - chipWidth / 2).coerceIn(0f, canvasWidth - chipWidth)
 
-        val rect = android.graphics.RectF(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
-        drawRoundRect(rect, 8f, 8f, bgPaint)
-        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + textPaint.textSize / 3, textPaint)
+        chipRect.set(chipLeft, chipTop, chipLeft + chipWidth, chipTop + chipHeight)
+        drawRoundRect(chipRect, 8f, 8f, chipBgPaint)
+        drawText(timeStr, chipLeft + chipWidth / 2, chipTop + chipHeight / 2 + chipTextPaint.textSize / 3, chipTextPaint)
+    }
+}
+
+/**
+ * Extract 5 time labels from a series' ISO date strings for X axis display.
+ * Returns list of 5 time strings at 0%, 25%, 50%, 75%, and 100% positions.
+ * Following the chart guidelines: start, 1st quarter, half, 3rd quarter, end.
+ */
+fun extractTimeLabels(dates: List<String?>, is24Hour: Boolean? = null): List<String> {
+    if (dates.isEmpty()) return listOf("", "", "", "", "")
+
+    val locale = java.util.Locale.getDefault()
+    val times = dates.mapNotNull { parseIsoDateTime(it) }
+
+    if (times.isEmpty()) return listOf("", "", "", "", "")
+
+    // 5 positions: start (0%), 1st quarter (25%), half (50%), 3rd quarter (75%), end (100%)
+    val indices = listOf(0, times.size / 4, times.size / 2, times.size * 3 / 4, times.size - 1)
+    return indices.map { idx ->
+        times.getOrNull(idx.coerceIn(0, times.size - 1))?.formatTime(locale, is24Hour) ?: ""
     }
 }

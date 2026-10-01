@@ -28,12 +28,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.matedroid.R
+import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.Trip
+import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.util.formatMediumNoYear
 import com.matedroid.util.parseIsoDateTime
@@ -43,6 +46,7 @@ import java.util.Locale
 @Composable
 fun MergeTripSheet(
     adjacentTrips: List<Pair<Long, Trip>>,
+    units: Units?,
     palette: CarColorPalette,
     onPick: (tripId: Long, trip: Trip) -> Unit,
     onDismiss: () -> Unit
@@ -82,9 +86,10 @@ fun MergeTripSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    items(adjacentTrips) { (id, trip) ->
+                    items(adjacentTrips, key = { it.first }) { (id, trip) ->
                         AdjacentTripRow(
                             trip = trip,
+                            units = units,
                             palette = palette,
                             onClick = { onPick(id, trip) }
                         )
@@ -98,6 +103,7 @@ fun MergeTripSheet(
 @Composable
 private fun AdjacentTripRow(
     trip: Trip,
+    units: Units?,
     palette: CarColorPalette,
     onClick: () -> Unit
 ) {
@@ -133,12 +139,16 @@ private fun AdjacentTripRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "%.0f km".format(trip.totalDistance),
+                text = "%.0f %s".format(trip.totalDistance, UnitFormatter.getDistanceUnit(units)),
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "${trip.drives.size + trip.charges.size} legs",
+                text = pluralStringResource(
+                    R.plurals.trip_legs,
+                    trip.drives.size + trip.charges.size,
+                    trip.drives.size + trip.charges.size
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

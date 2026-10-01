@@ -1,0 +1,13 @@
+See how each drive and charge stacks up against your own history — rankings, percentage verdicts and side-by-side curves. The detail screens get a cleaner redesign too.
+
+Added:
+- Compare similar drives and charges, with stats and rankings
+- Edit a charge's cost from its detail screen
+- Tap a leg in the trip timeline to open its detail
+
+Changed:
+- Redesigned charge and drive detail screens
+- Trip timeline headlines time driving and charging
+
+Fixed:
+- DC charges no longer mislabeled as AC
