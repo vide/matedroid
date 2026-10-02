@@ -482,7 +482,15 @@ private fun CustomHeadersEditor(
                 enabled = enabled
             )
             Spacer(modifier = Modifier.width(4.dp))
-            IconButton(onClick = { onRemove(index) }, enabled = enabled) {
+            IconButton(
+                onClick = {
+                    // Drop this row's own visibility flag; trimming from the end would shift
+                    // a revealed value onto the row below and unmask it.
+                    valueVisible.removeAt(index)
+                    onRemove(index)
+                },
+                enabled = enabled
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Error,
                     contentDescription = stringResource(R.string.settings_custom_headers_remove),

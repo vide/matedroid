@@ -244,6 +244,12 @@ class SettingsDataStore @Inject constructor(
         return obj.toString()
     }
 
+    suspend fun saveCustomHeaders(headers: Map<String, String>) {
+        context.dataStore.edit { preferences ->
+            preferences[customHeadersKey] = customHeadersToJson(headers)
+        }
+    }
+
     suspend fun saveHttpBasicAuth(username: String, password: String) {
         context.dataStore.edit { preferences ->
             preferences[httpBasicAuthUsernameKey] = username

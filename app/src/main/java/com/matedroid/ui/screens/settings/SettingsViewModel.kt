@@ -185,27 +185,36 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun addCustomHeader() {
-        _uiState.value = _uiState.value.copy(
-            customHeaders = _uiState.value.customHeaders + ("" to "")
-        )
+        updateCustomHeaders(_uiState.value.customHeaders + ("" to ""))
     }
 
     fun removeCustomHeader(index: Int) {
-        _uiState.value = _uiState.value.copy(
-            customHeaders = _uiState.value.customHeaders.toMutableList().also { it.removeAt(index) }
-        )
+        updateCustomHeaders(_uiState.value.customHeaders.toMutableList().also { it.removeAt(index) })
     }
 
     fun updateCustomHeaderKey(index: Int, key: String) {
         val updated = _uiState.value.customHeaders.toMutableList()
         updated[index] = key to updated[index].second
-        _uiState.value = _uiState.value.copy(customHeaders = updated)
+        updateCustomHeaders(updated)
     }
 
     fun updateCustomHeaderValue(index: Int, value: String) {
         val updated = _uiState.value.customHeaders.toMutableList()
         updated[index] = updated[index].first to value
-        _uiState.value = _uiState.value.copy(customHeaders = updated)
+        updateCustomHeaders(updated)
+    }
+
+    private fun updateCustomHeaders(rows: List<Pair<String, String>>) {
+        _uiState.value = _uiState.value.copy(
+            customHeaders = rows,
+            testResult = null,
+            error = null
+        )
+        // Save eagerly so testConnection() picks up the unsaved value, like Basic Auth.
+        // Half-typed invalid rows are harmless: the API client drops them before OkHttp.
+        viewModelScope.launch {
+            settingsDataStore.saveCustomHeaders(CustomHeaders.normalize(rows).toMap())
+        }
     }
 
     fun updateAcceptInvalidCerts(accept: Boolean) {
