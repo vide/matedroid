@@ -12,6 +12,16 @@ class CustomHeadersTest {
     fun `typical gateway header names are valid`() {
         assertTrue(CustomHeaders.isValidName("X-API-Key"))
         assertTrue(CustomHeaders.isValidName("CF-Access-Client-Id"))
+        assertTrue(CustomHeaders.isValidName("x_custom.header~1"))
+    }
+
+    @Test
+    fun `names containing HTTP separators are rejected`() {
+        // The likeliest paste mistake: the colon copied along with the name
+        assertFalse(CustomHeaders.isValidName("X-API-Key:"))
+        for (separator in listOf("/", "(", ")", "\"", ",", ";", "=", "@", "[", "]", "{", "}", "?", "\\")) {
+            assertFalse(separator, CustomHeaders.isValidName("X${separator}Key"))
+        }
     }
 
     @Test

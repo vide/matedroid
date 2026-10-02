@@ -11,12 +11,22 @@ package com.matedroid.domain
  * Headers are therefore checked here before they are saved, and filtered again before
  * they reach OkHttp in case something invalid is already on disk.
  *
- * The rules mirror OkHttp's own checks so that anything accepted here is accepted there.
+ * Values follow OkHttp's own check. Names are stricter than OkHttp, which accepts any
+ * visible ASCII: they must be an RFC 9110 token, so a pasted `X-API-Key:` is caught here
+ * instead of going out as a malformed header that HTTP/2 servers reject outright.
  */
 object CustomHeaders {
-    /** A header name is one or more visible ASCII characters: no spaces, no control chars. */
+    /** RFC 9110 `tchar`: the symbols allowed in a header name besides ASCII letters and digits. */
+    private const val TOKEN_SYMBOLS = "!#$%&'*+-.^_`|~"
+
+    /**
+     * A header name is an RFC 9110 token: one or more ASCII letters, digits or [TOKEN_SYMBOLS].
+     * That rules out spaces, control characters and separators such as `:` `/` `(` `)`.
+     */
     fun isValidName(name: String): Boolean =
-        name.isNotEmpty() && name.all { it in '!'..'~' }
+        name.isNotEmpty() && name.all {
+            it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it in TOKEN_SYMBOLS
+        }
 
     /** A header value is visible ASCII plus space and tab; it may be empty. */
     fun isValidValue(value: String): Boolean =
