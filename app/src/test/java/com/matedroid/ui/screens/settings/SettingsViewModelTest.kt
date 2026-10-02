@@ -291,6 +291,72 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `custom header edits save immediately so Test Connection uses them`() = runTest {
+        coEvery { settingsDataStore.saveCustomHeaders(any()) } returns Unit
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.addCustomHeader()
+        viewModel.updateCustomHeaderKey(0, " X-API-Key ")
+        viewModel.updateCustomHeaderValue(0, "secret")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Stored trimmed, exactly as Save would store it
+        coVerify { settingsDataStore.saveCustomHeaders(mapOf("X-API-Key" to "secret")) }
+
+        viewModel.removeCustomHeader(0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsDataStore.saveCustomHeaders(emptyMap()) }
+    }
+
+    @Test
+    fun `custom header edits clear a stale test result`() = runTest {
+        coEvery { repository.testConnection(any(), any(), any()) } returns ApiResult.Success(Unit)
+        coEvery { repository.getGlobalSettings() } returns ApiResult.Success(GlobalSettingsData(settings = GlobalSettings(teslamateUrls = TeslamateUrls(baseUrl = "https://teslamate.example.com"))))
+        coEvery { settingsDataStore.saveTeslamateBaseUrl(any()) } returns Unit
+        coEvery { settingsDataStore.saveCustomHeaders(any()) } returns Unit
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateServerUrl("https://test.com")
+        viewModel.testConnection()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull(viewModel.uiState.value.testResult)
+
+        viewModel.addCustomHeader()
+
+        assertNull(viewModel.uiState.value.testResult)
+    }
+
+    @Test
+    fun `saveSettings refuses an invalid custom header and names it`() = runTest {
+        every {
+            context.getString(com.matedroid.R.string.settings_error_custom_header_invalid, "X Bad")
+        } returns "Header \"X Bad\" is invalid"
+        coEvery { settingsDataStore.saveCustomHeaders(any()) } returns Unit
+
+        viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateServerUrl("https://test.com")
+        viewModel.addCustomHeader()
+        viewModel.updateCustomHeaderKey(0, "X Bad")
+
+        var callbackCalled = false
+        viewModel.saveSettings { callbackCalled = true }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(callbackCalled)
+        assertEquals("Header \"X Bad\" is invalid", viewModel.uiState.value.error)
+        coVerify(exactly = 0) {
+            settingsDataStore.saveSettings(any(), any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
     fun `updateConnectTimeoutSeconds saves immediately so Test Connection uses it`() = runTest {
         coEvery { settingsDataStore.saveConnectTimeoutSeconds(any()) } returns Unit
         viewModel = createViewModel()

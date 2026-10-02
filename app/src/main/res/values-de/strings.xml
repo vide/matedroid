@@ -341,6 +341,15 @@
     <!-- Connect timeout picker (Connection section) -->
     <string name="settings_connect_timeout_label">Verbindungs-Timeout</string>
     <string name="settings_connect_timeout_hint">Wie lange auf die Verbindung zum Server gewartet wird, einschließlich TLS-Handshake. Automatisch verwendet 1 Sekunde, wenn ein Zweitserver eingerichtet ist, damit die App schnell darauf ausweicht, und 5 Sekunden, wenn es nur einen Server gibt. Erhöhe den Wert, wenn dein Server hinter einem langsamen HTTPS-Tunnel wie Tailscale Funnel liegt, wo allein der Handshake ein paar Sekunden dauern kann.</string>
+    <!-- Custom HTTP headers section in advanced network settings -->
+    <string name="settings_custom_headers_title">Benutzerdefinierte HTTP-Header</string>
+    <string name="settings_custom_headers_hint">Eigene Header hinzufügen, die mit jeder API-Anfrage gesendet werden (z. B. für die Proxy-Authentifizierung).</string>
+    <string name="settings_custom_headers_key_placeholder">Header-Name</string>
+    <string name="settings_custom_headers_value_placeholder">Header-Wert</string>
+    <string name="settings_custom_headers_add">Header hinzufügen</string>
+    <string name="settings_custom_headers_remove">Header entfernen</string>
+    <!-- Error shown when saving a custom HTTP header whose name or value has invalid characters. %1$s is the header name -->
+    <string name="settings_error_custom_header_invalid">Der Header \"%1$s\" enthält Zeichen, die in HTTP-Headern nicht erlaubt sind. Verwende nur einfache ASCII-Buchstaben, Ziffern und Symbole, ohne Leerzeichen im Namen.</string>
     <!-- The default option, showing the value it currently resolves to, e.g. "Automatic (5 s)". "s" is the unit symbol for seconds and stays untranslated -->
     <string name="settings_connect_timeout_automatic">Automatisch (%1$d s)</string>
     <!-- An explicit timeout, e.g. "5 s". "s" is the unit symbol for seconds and stays untranslated -->

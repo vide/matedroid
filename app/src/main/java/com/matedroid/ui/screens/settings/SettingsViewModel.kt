@@ -21,6 +21,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.domain.CostPerKwhBasis
+import com.matedroid.domain.CustomHeaders
 import com.matedroid.domain.HighSocWarning
 import com.matedroid.domain.LowSocWarning
 import com.matedroid.domain.ShortEntryFilter
@@ -51,6 +52,7 @@ data class SettingsUiState(
     val currencyCode: String = "EUR",
     val costPerKwhBasis: CostPerKwhBasis = CostPerKwhBasis.DEFAULT,
     val showShortDrivesCharges: Boolean = false,
+    val customHeaders: List<Pair<String, String>> = emptyList(),
     val shortDriveMinDurationMin: Int = ShortEntryFilter.DEFAULT_MIN_DRIVE_DURATION_MIN,
     val shortDriveMinDistance: Double = ShortEntryFilter.DEFAULT_MIN_DRIVE_DISTANCE,
     val shortChargeMinEnergyKwh: Double = ShortEntryFilter.DEFAULT_MIN_CHARGE_ENERGY_KWH,
@@ -122,6 +124,7 @@ class SettingsViewModel @Inject constructor(
                 currencyCode = settings.currencyCode,
                 costPerKwhBasis = settings.costPerKwhBasis,
                 showShortDrivesCharges = settings.showShortDrivesCharges,
+                customHeaders = settings.customHeaders.entries.map { it.key to it.value },
                 shortDriveMinDurationMin = settings.shortDriveMinDurationMin,
                 shortDriveMinDistance = settings.shortDriveMinDistance,
                 shortChargeMinEnergyKwh = settings.shortChargeMinEnergyKwh,
@@ -178,6 +181,39 @@ class SettingsViewModel @Inject constructor(
         // Save eagerly so testConnection() picks up the unsaved value
         viewModelScope.launch {
             settingsDataStore.saveHttpBasicAuth(_uiState.value.httpBasicAuthUsername, password)
+        }
+    }
+
+    fun addCustomHeader() {
+        updateCustomHeaders(_uiState.value.customHeaders + ("" to ""))
+    }
+
+    fun removeCustomHeader(index: Int) {
+        updateCustomHeaders(_uiState.value.customHeaders.toMutableList().also { it.removeAt(index) })
+    }
+
+    fun updateCustomHeaderKey(index: Int, key: String) {
+        val updated = _uiState.value.customHeaders.toMutableList()
+        updated[index] = key to updated[index].second
+        updateCustomHeaders(updated)
+    }
+
+    fun updateCustomHeaderValue(index: Int, value: String) {
+        val updated = _uiState.value.customHeaders.toMutableList()
+        updated[index] = updated[index].first to value
+        updateCustomHeaders(updated)
+    }
+
+    private fun updateCustomHeaders(rows: List<Pair<String, String>>) {
+        _uiState.value = _uiState.value.copy(
+            customHeaders = rows,
+            testResult = null,
+            error = null
+        )
+        // Save eagerly so testConnection() picks up the unsaved value, like Basic Auth.
+        // Half-typed invalid rows are harmless: the API client drops them before OkHttp.
+        viewModelScope.launch {
+            settingsDataStore.saveCustomHeaders(CustomHeaders.normalize(rows).toMap())
         }
     }
 
@@ -452,6 +488,14 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
+                CustomHeaders.firstInvalid(_uiState.value.customHeaders)?.let { (name, _) ->
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        error = context.getString(R.string.settings_error_custom_header_invalid, name)
+                    )
+                    return@launch
+                }
+
                 val secondaryUrl = _uiState.value.secondaryServerUrl.trimEnd('/')
 
                 settingsDataStore.saveSettings(
@@ -461,7 +505,8 @@ class SettingsViewModel @Inject constructor(
                     httpBasicAuthUsername = _uiState.value.httpBasicAuthUsername,
                     httpBasicAuthPassword = _uiState.value.httpBasicAuthPassword,
                     acceptInvalidCerts = _uiState.value.acceptInvalidCerts,
-                    currencyCode = _uiState.value.currencyCode
+                    currencyCode = _uiState.value.currencyCode,
+                    customHeaders = CustomHeaders.normalize(_uiState.value.customHeaders).toMap()
                 )
 
                 // Trigger sync after settings are saved (handles first-time setup)

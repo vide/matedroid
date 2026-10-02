@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.domain.ConnectionTimeout
+import com.matedroid.domain.CustomHeaders
 import com.matedroid.ui.screens.settings.ServerTestResult
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
 import com.matedroid.ui.screens.settings.SettingsPresetPicker
@@ -116,6 +119,10 @@ fun ConnectionSettingsScreen(
         onHttpBasicAuthPasswordChange = viewModel::updateHttpBasicAuthPassword,
         onAcceptInvalidCertsChange = viewModel::updateAcceptInvalidCerts,
         onConnectTimeoutChange = viewModel::updateConnectTimeoutSeconds,
+        onAddCustomHeader = viewModel::addCustomHeader,
+        onRemoveCustomHeader = viewModel::removeCustomHeader,
+        onCustomHeaderKeyChange = viewModel::updateCustomHeaderKey,
+        onCustomHeaderValueChange = viewModel::updateCustomHeaderValue,
         onTestConnection = viewModel::testConnection,
         onSave = {
             viewModel.saveSettings {
@@ -144,6 +151,10 @@ private fun ConnectionSettingsContent(
     onHttpBasicAuthPasswordChange: (String) -> Unit,
     onAcceptInvalidCertsChange: (Boolean) -> Unit,
     onConnectTimeoutChange: (Int) -> Unit,
+    onAddCustomHeader: () -> Unit = {},
+    onRemoveCustomHeader: (Int) -> Unit = {},
+    onCustomHeaderKeyChange: (Int, String) -> Unit = { _, _ -> },
+    onCustomHeaderValueChange: (Int, String) -> Unit = { _, _ -> },
     onTestConnection: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -379,12 +390,122 @@ private fun ConnectionSettingsContent(
 
         FieldHint(stringResource(R.string.settings_connect_timeout_hint))
 
+        SettingsSpacer()
+
+        CustomHeadersEditor(
+            headers = uiState.customHeaders,
+            enabled = fieldsEnabled,
+            onAdd = onAddCustomHeader,
+            onRemove = onRemoveCustomHeader,
+            onKeyChange = onCustomHeaderKeyChange,
+            onValueChange = onCustomHeaderValueChange
+        )
+
         uiState.testResult?.let { result ->
             SettingsSpacer(24)
             TestResultCard(result = result)
         }
 
         SettingsSpacer()
+    }
+}
+
+/**
+ * Arbitrary key/value headers sent with every API request, for reverse proxies or gateways
+ * that authenticate on headers such as `X-API-Key`. Values are masked like the other
+ * credentials on this page since they are usually secrets.
+ */
+@Composable
+private fun CustomHeadersEditor(
+    headers: List<Pair<String, String>>,
+    enabled: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (Int) -> Unit,
+    onKeyChange: (Int, String) -> Unit,
+    onValueChange: (Int, String) -> Unit
+) {
+    Text(
+        text = stringResource(R.string.settings_custom_headers_title),
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.Medium
+    )
+    Text(
+        text = stringResource(R.string.settings_custom_headers_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+    )
+
+    // Per-row visibility state for header values; grows/shrinks with the list
+    val valueVisible = remember { mutableStateListOf<Boolean>() }
+    while (valueVisible.size < headers.size) valueVisible.add(false)
+    while (valueVisible.size > headers.size) valueVisible.removeLastOrNull()
+
+    headers.forEachIndexed { index, (key, value) ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = key,
+                onValueChange = { onKeyChange(index, it) },
+                placeholder = { Text(stringResource(R.string.settings_custom_headers_key_placeholder)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                isError = key.isNotBlank() && !CustomHeaders.isValidName(key.trim()),
+                enabled = enabled
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedTextField(
+                value = value,
+                onValueChange = { onValueChange(index, it) },
+                placeholder = { Text(stringResource(R.string.settings_custom_headers_value_placeholder)) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                isError = !CustomHeaders.isValidValue(value.trim()),
+                visualTransformation = if (valueVisible[index]) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    VisibilityToggle(
+                        visible = valueVisible[index],
+                        onToggle = { valueVisible[index] = !valueVisible[index] },
+                        showDescription = R.string.show_password,
+                        hideDescription = R.string.hide_password
+                    )
+                },
+                enabled = enabled
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            IconButton(
+                onClick = {
+                    // Drop this row's own visibility flag; trimming from the end would shift
+                    // a revealed value onto the row below and unmask it.
+                    valueVisible.removeAt(index)
+                    onRemove(index)
+                },
+                enabled = enabled
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Error,
+                    contentDescription = stringResource(R.string.settings_custom_headers_remove),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+
+    OutlinedButton(
+        onClick = onAdd,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = enabled
+    ) {
+        Text(stringResource(R.string.settings_custom_headers_add))
     }
 }
 
