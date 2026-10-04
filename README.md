@@ -73,7 +73,7 @@ A summary of your driving and your charging, with how much of the energy came fr
 
 #### Battery Health
 
-How your battery is holding up: current vs. original capacity, degradation percentage, range loss, and a degradation chart over time.
+How your battery is holding up: its estimated health, with the usable capacity now vs. when new and how much was lost, the same for range at 100%, the rated efficiency Tesla uses to turn kWh into range, and the estimated, rated and ideal range right now.
 
 #### Software Updates
 
