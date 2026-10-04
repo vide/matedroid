@@ -614,45 +614,32 @@
     <!-- Empty state -->
     <string name="no_battery_data">Keine Batteriedaten verfügbar</string>
 
-    <!-- Capacity section -->
-    <string name="capacity">Kapazität</string>
-    <string name="usable_new">Nutzbar (neu)</string>
-    <string name="usable_now">Nutzbar (jetzt)</string>
-    <string name="rated">Nominal</string>
+    <!-- Hero caption above the estimated health percentage -->
+    <string name="battery_health_estimated">Geschätzter Batteriezustand</string>
+    <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
+         (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
+         "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
+    <string name="battery_usable_now">Nutzbar jetzt</string>
+    <string name="battery_when_new">Neuzustand</string>
+    <string name="battery_lost">Verlust</string>
+    <!-- Footer label: consumption (Wh/km or Wh/mi) Tesla uses to convert kWh into rated range -->
+    <string name="battery_rated_efficiency">Nennverbrauch</string>
+    <!-- Range tile label: rated range at 100% today -->
+    <string name="battery_range_now">Reichweite jetzt</string>
+    <!-- Card title for the current charge level and range estimates -->
+    <string name="battery_right_now">Aktuell</string>
 
-    <!-- Capacity info dialog -->
-    <string name="battery_capacity_title">Batteriekapazität</string>
-    <string name="battery_capacity_message">Zeigt die Energiespeicherkapazität deiner Batterie.\n\n• Nutzbar (neu): Ursprüngliche nutzbare Kapazität, als das Auto neu war\n• Nutzbar (jetzt): Aktuelle nutzbare Kapazität nach Degradation\n• Nominale Effizienz: Energieverbrauch pro km unter Standardtestbedingungen (Wh/km)</string>
-
-    <!-- Degradation section -->
-    <string name="estimated_degradation">Geschätzte Degradation</string>
-    <string name="loss_kwh">Verlust (kWh)</string>
-    <string name="loss_percent">Verlust (%)</string>
-
-    <!-- Degradation info dialog -->
+    <!-- Battery health info dialog -->
     <string name="estimated_degradation_title">Geschätzte Degradation</string>
-    <string name="estimated_degradation_message">Die Batteriedegradation wird auf Basis von Teslamate-Daten geschätzt.\n\n• Kapazität (%): Verbleibende Batteriegesundheit im Vergleich zu neu\n• Verlust (kWh): Durch Degradation verlorene Energiekapazität\n• Verlust (%): Prozentsatz der ursprünglichen Kapazität, der verloren ging\n\nHinweis: Dies ist eine Schätzung. Tesla stellt keine offiziellen Degradationsdaten bereit.</string>
+    <string name="estimated_degradation_message">Der Batteriezustand wird von Teslamate anhand deiner Ladedaten geschätzt.\n\n• Zustand: aktuelle nutzbare Kapazität geteilt durch die nutzbare Kapazität im Neuzustand\n• Verlust: die Differenz zwischen beiden, in kWh und in nominaler Reichweite\n• Nennverbrauch: der Verbrauch, mit dem Tesla kWh in nominale Reichweite umrechnet\n\nHinweis: Tesla veröffentlicht keinen offiziellen Degradationswert, daher ist dies eine Schätzung.</string>
 
-    <!-- Range section -->
-    <string name="range">Reichweite</string>
-    <string name="max_range_new">Max. Reichweite (neu)</string>
-    <string name="max_range_now">Max. Reichweite (jetzt)</string>
-    <string name="range_loss">Reichweitenverlust</string>
-
-    <!-- Battery detail screen -->
-    <string name="battery_detail_title">Batteriedetails</string>
-
-    <!-- Current charge section -->
-    <string name="current_charge">Aktuelle Ladung</string>
     <!-- %d is the percentage of usable battery -->
     <string name="usable_percent">Nutzbar: %d%%</string>
 
-    <!-- Current charge info dialog -->
+    <!-- Current charge screen title -->
     <string name="current_charge_title">Aktuelle Ladung</string>
-    <string name="current_charge_message">Zeigt den aktuellen Ladezustand deiner Batterie.\n\n • Batterie (%): Der auf deinem Armaturenbrett angezeigte Ladestand\n • Nutzbar (%): Tatsächlich nutzbare Ladung (Tesla reserviert eine kleine Reserve zum Schutz der Batterie)\n\nDies ist der aktuelle Ladezustand, nicht die langfristige Gesundheit der Batterie.</string>
 
-    <!-- Range information section -->
-    <string name="range_information">Reichweiteninformationen</string>
+    <!-- Range rows in the "Right now" card -->
     <string name="estimated_range">Geschätzte Reichweite</string>
     <string name="estimated_range_subtitle">Basierend auf aktuellen Fahrbedingungen</string>
     <string name="rated_range">Nominale Reichweite</string>
@@ -663,16 +650,6 @@
     <!-- Range information info dialog -->
     <string name="range_information_title">Reichweiteninformationen</string>
     <string name="range_information_message">Verschiedene Wege, abzuschätzen, wie weit du fahren kannst.\n\n• Geschätzte Reichweite: Basierend auf deiner jüngsten Fahr-Effizienz und den aktuellen Bedingungen\n• Nominale Reichweite: Offizielle EPA/WLTP-Testreichweite (die von Tesla beworbene)\n• Ideale Reichweite: Maximale theoretische Reichweite unter perfekten Bedingungen (keine Klima, flache Strecke, moderate Geschwindigkeit)</string>
-
-    <!-- Estimated total capacity section -->
-    <string name="estimated_total_capacity">Geschätzte Gesamtkapazität</string>
-    <string name="range_at_100">Reichweite bei 100 %</string>
-    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
-    <string name="estimated_range_description">Schätzung basierend auf aktuellen %1$d%% und einer nominalen Reichweite von %2$.1f km</string>
-
-    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
-    <string name="estimated_total_capacity_title">Geschätzte Gesamtkapazität</string>
-    <string name="estimated_total_capacity_message">Projektion deiner maximalen Reichweite bei 100 % Ladung.\n\nBerechnet durch Hochrechnung deiner aktuellen nominalen Reichweite bei %d%% auf eine Vollladung.\n\nSo kannst du die aktuelle Gesamtkapazität deiner Batterie abschätzen, ohne auf 100 %% laden zu müssen (was für den Alltag nicht empfohlen wird).</string>
 
     <!-- Common dialog button -->
     <string name="got_it">Verstanden</string>

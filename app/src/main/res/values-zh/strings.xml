@@ -613,45 +613,32 @@
     <!-- Empty state -->
     <string name="no_battery_data">暂无电池数据</string>
 
-    <!-- Capacity section -->
-    <string name="capacity">容量</string>
-    <string name="usable_new">可用（出厂）</string>
-    <string name="usable_now">可用（当前）</string>
-    <string name="rated">额定</string>
+    <!-- Hero caption above the estimated health percentage -->
+    <string name="battery_health_estimated">估算电池健康度</string>
+    <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
+         (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
+         "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
+    <string name="battery_usable_now">当前可用</string>
+    <string name="battery_when_new">新车时</string>
+    <string name="battery_lost">损失</string>
+    <!-- Footer label: consumption (Wh/km or Wh/mi) Tesla uses to convert kWh into rated range -->
+    <string name="battery_rated_efficiency">额定能耗</string>
+    <!-- Range tile label: rated range at 100% today -->
+    <string name="battery_range_now">当前续航</string>
+    <!-- Card title for the current charge level and range estimates -->
+    <string name="battery_right_now">当前状态</string>
 
-    <!-- Capacity info dialog -->
-    <string name="battery_capacity_title">电池容量</string>
-    <string name="battery_capacity_message">显示电池的储能容量。\n\n• 可用（出厂）：新车时的原始可用容量\n• 可用（当前）：衰减后的当前可用容量\n• 额定能效：标准测试条件下的能耗 (Wh/km)</string>
-
-    <!-- Degradation section -->
-    <string name="estimated_degradation">预估衰减</string>
-    <string name="loss_kwh">损失 (kWh)</string>
-    <string name="loss_percent">损失 (%)</string>
-
-    <!-- Degradation info dialog -->
+    <!-- Battery health info dialog -->
     <string name="estimated_degradation_title">预估衰减</string>
-    <string name="estimated_degradation_message">电池衰减根据 TeslaMate 数据估算。\n\n• 容量 (%)：与新电池相比的剩余电池健康度\n• 损失 (kWh)：因衰减而损失的能量容量\n• 损失 (%)：原始容量的损失百分比\n\n注意：这是一个估算值。Tesla 不提供官方衰减数据。</string>
+    <string name="estimated_degradation_message">电池健康度由 Teslamate 根据你的充电数据估算。\n\n• 健康度：当前可用容量除以新车时的可用容量\n• 损失：两者之差，以 kWh 和额定续航表示\n• 额定能耗：Tesla 用于将 kWh 换算为额定续航的能耗\n\n注意：Tesla 未公布官方衰减数据，因此这只是估算值。</string>
 
-    <!-- Range section -->
-    <string name="range">续航</string>
-    <string name="max_range_new">最大续航（出厂）</string>
-    <string name="max_range_now">最大续航（当前）</string>
-    <string name="range_loss">续航损失</string>
-
-    <!-- Battery detail screen -->
-    <string name="battery_detail_title">电池详情</string>
-
-    <!-- Current charge section -->
-    <string name="current_charge">当前电量</string>
     <!-- %d is the percentage of usable battery -->
     <string name="usable_percent">可用: %d%%</string>
 
-    <!-- Current charge info dialog -->
+    <!-- Current charge screen title -->
     <string name="current_charge_title">当前电量</string>
-    <string name="current_charge_message">显示电池当前的充电状态。\n\n • 电池 (%)：仪表盘上显示的电量百分比\n • 可用 (%)：实际可用电量（Tesla 会预留少量缓冲以保护电池）\n\n这是当前电量，并非电池的长期健康状态。</string>
 
-    <!-- Range information section -->
-    <string name="range_information">续航信息</string>
+    <!-- Range rows in the "Right now" card -->
     <string name="estimated_range">估算续航</string>
     <string name="estimated_range_subtitle">基于当前驾驶条件</string>
     <string name="rated_range">额定续航</string>
@@ -662,16 +649,6 @@
     <!-- Range information info dialog -->
     <string name="range_information_title">续航信息</string>
     <string name="range_information_message">不同方式估算你能行驶多远。\n\n• 估算续航：基于你近期的驾驶能效和当前条件\n• 额定续航：官方 EPA/WLTP 测试续航（Tesla 标称值）\n• 理想续航：完美条件下的最大理论续航（不开空调、平坦路面、适中车速）</string>
-
-    <!-- Estimated total capacity section -->
-    <string name="estimated_total_capacity">估算总容量</string>
-    <string name="range_at_100">满电续航</string>
-    <!-- %1$d is the current battery percentage, %2$.1f is the rated range in km -->
-    <string name="estimated_range_description">基于当前 %1$d%% 电量和 %2$.1f km 额定续航估算</string>
-
-    <!-- Estimated total capacity info dialog. %d is the current battery percentage -->
-    <string name="estimated_total_capacity_title">估算总容量</string>
-    <string name="estimated_total_capacity_message">推算充至 100%% 时的最大续航。\n\n通过将当前 %d%% 电量下的额定续航外推至满电来计算。\n\n这可以帮助你了解电池当前的完整容量，而无需充至 100%%（日常使用不建议满充）。</string>
 
     <!-- Common dialog button -->
     <string name="got_it">知道了</string>
