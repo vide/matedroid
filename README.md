@@ -69,7 +69,7 @@ Yearly distance overview that you can drill down into: year → month → day �
 
 #### Stats for Nerds
 
-A summary of your driving and your charging, with how much of the energy came from AC and how much from DC. Below it, all your personal records — longest drive, top speed, biggest charge, highest point, longest range and many more — grouped by Drives, Battery, Weather & Altitude and Misc, each one a tap away from the drive, charge or day behind it. Filter by year or go all-time.
+A trophy room for your car. Three headline cards up top — top speed, most distance in a day, biggest charge — then an engraved plaque with the driving and charging totals the dashboard doesn't already show, including how much of your energy came from AC and how much from DC. Every other personal record sits on a shelf for Drives, Battery, Weather & Altitude or Misc, two trophies to a row, each one a tap away from the drive, charge or day behind it. Filter by year or go all-time.
 
 #### Battery Health
 
