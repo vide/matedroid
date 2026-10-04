@@ -158,7 +158,7 @@ object ScreenshotSpecs {
                 group = 3,
                 route = "stats",
                 exteriorColor = "DeepBlue",
-                ready = listOf(text(R.string.stats_drives_overview)),
+                ready = listOf(text(R.string.stats_driving_summary)),
                 // Stats are computed from the local database, which the sync worker fills on
                 // first launch; the banner goes once it has caught up.
                 gone = text(R.string.stats_syncing),

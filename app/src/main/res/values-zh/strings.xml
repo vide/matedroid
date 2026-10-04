@@ -716,8 +716,8 @@
     <!-- Geocode progress status. %1$d is processed count, %2$d is total count -->
     <string name="geocode_progress_status">%1$d / %2$d 个位置</string>
 
-    <!-- Section: Drives Overview - summary statistics about all drives -->
-    <string name="stats_drives_overview">行程概览</string>
+    <!-- Title of the summary card with totals and averages over all drives (the act of driving, not a single drive) -->
+    <string name="stats_driving_summary">驾驶</string>
 
     <!-- Label for total number of drives -->
     <string name="stats_total_drives">总行程数</string>
@@ -736,8 +736,8 @@
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">费用 / 100 %1$s</string>
 
-    <!-- Section: Charges Overview - summary statistics about all charges -->
-    <string name="stats_charges_overview">充电概览</string>
+    <!-- Title of the summary card with totals over all charges, including the AC/DC split (the act of charging) -->
+    <string name="stats_charging_summary">充电</string>
 
     <!-- Label for total number of charge sessions -->
     <string name="stats_total_charges">总充电次数</string>
@@ -816,6 +816,12 @@
     <!-- Record: charge session with lowest outside temperature -->
     <string name="record_coldest_charge">最冷充电</string>
 
+    <!-- Record: highest cabin (interior) temperature measured while driving -->
+    <string name="record_hottest_cabin">车内最高温</string>
+
+    <!-- Record: lowest cabin (interior) temperature measured while driving -->
+    <string name="record_coldest_cabin">车内最低温</string>
+
     <!-- Record: longest distance traveled between two charges -->
     <string name="record_longest_range">最长续航</string>
 
@@ -831,32 +837,16 @@
     <!-- Format for streak duration. %d is number of days -->
     <string name="format_days">%.1f 天</string>
 
-    <!-- Format for number of drives. %d is the count -->
-    <string name="format_drives_count">%d 次行程</string>
+    <!-- Unit shown under a record's big number of days (e.g. "12" over "days"). Lowercase, no number -->
+    <string name="record_unit_days">天</string>
 
-    <!-- Section: Temperature extremes recorded while driving and charging -->
-    <string name="stats_temperature_extremes">极端温度</string>
+    <!-- Unit shown under a record's big number of drives (e.g. "9" over "drives"). Lowercase, no number -->
+    <string name="record_unit_drives">次行程</string>
 
-    <!-- Sub-section: temperatures recorded while driving -->
-    <string name="stats_while_driving">行驶期间</string>
-
-    <!-- Label for highest temperature -->
-    <string name="stats_hottest">最高温</string>
-
-    <!-- Label for lowest temperature -->
-    <string name="stats_coldest">最低温</string>
-
-    <!-- Sub-section: cabin (interior) temperatures -->
-    <string name="stats_cabin_temperature">车内温度</string>
-
-    <!-- Section: ratio between AC and DC charging -->
-    <string name="stats_ac_dc_ratio">AC/DC 充电比例</string>
-
-    <!-- Label for energy charged via AC -->
-    <string name="stats_ac_energy">AC 能量</string>
-
-    <!-- Label for energy charged via DC -->
-    <string name="stats_dc_energy">DC 能量</string>
+    <!-- Unit shown under the big number of countries visited (e.g. "4" over "countries"). No number in the text -->
+    <plurals name="record_unit_countries">
+        <item quantity="other">个国家</item>
+    </plurals>
 
     <!-- Format for number of charge sessions. %d is the count -->
     <string name="format_charges_count">%d 次充电</string>
@@ -891,12 +881,6 @@
     <!-- ==================== Countries Visited Screen ==================== -->
     <!-- Top bar title for countries visited screen -->
     <string name="countries_visited_title">到访国家</string>
-
-    <!-- Plural for number of countries. %d is the count -->
-    <plurals name="format_countries_count">
-        <item quantity="one">%d 个国家</item>
-        <item quantity="other">%d 个国家</item>
-    </plurals>
 
     <!-- Label for first visit date to a country. %s is the formatted date -->
     <string name="country_first_visit">首次到访: %s</string>
