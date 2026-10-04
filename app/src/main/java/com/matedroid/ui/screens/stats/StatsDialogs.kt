@@ -16,6 +16,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -91,14 +94,19 @@ internal fun GapRecordDialog(
     palette: CarColorPalette,
     onDismiss: () -> Unit
 ) {
-    // title is now the gap type (Charging/Driving), used for determining emoji
+    // title is the gap type (Charging/Driving), used for picking the icon
     val isCharging = title == stringResource(R.string.gap_type_charging)
-    val emoji = if (isCharging) "⏰" else "🅿️"
+    val icon = if (isCharging) Icons.Default.Schedule else Icons.Default.LocalParking
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(emoji, style = MaterialTheme.typography.titleLarge)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = palette.accent
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.stats_gap_dialog_title, title))
             }
@@ -186,7 +194,12 @@ internal fun RangeRecordDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔋", style = MaterialTheme.typography.titleLarge)
+                Icon(
+                    imageVector = Icons.Default.BatteryChargingFull,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = palette.accent
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.stats_range_record_title))
             }
