@@ -109,6 +109,10 @@ android {
     }
 
     testOptions {
+        unitTests {
+            // Robolectric needs the merged resources and manifest to inflate an app context.
+            isIncludeAndroidResources = true
+        }
         unitTests.all {
             it.jvmArgs("-Xmx1024m")
         }
@@ -168,6 +172,10 @@ dependencies {
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    // Robolectric so the backup restore path can be exercised against a real Room database
+    // and DataStore in the ordinary unit-test task, which is what CI and the build pod run.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
