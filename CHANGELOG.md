@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **The sync notification shows how far it has got** — a progress bar and real numbers ("Drives: 220 of 8,086") instead of one unchanging line, so a first sync that takes hours no longer looks stuck. MateDroid also asks for notification permission when it first opens, rather than waiting for the second launch.
 - **The demo offer on the setup screen is quieter**, and steps aside once there is a server to connect to.
+- **Stats for Nerds redrawn in the style of the Charges and Drives screens** — a Driving and a Charging summary, with the AC/DC split of your charging, then your records as a list by category, each with its real date and the route or place behind it. The separate temperature card is gone: the cabin extremes are now records in the Weather list.
 
 ### Fixed
 - **The trips list says when it is waiting for drives.** Trips are drawn from the drives they point at, so ones restored from a backup stay invisible until those have downloaded — the list said "no trips" instead of saying so.
