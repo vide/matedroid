@@ -62,4 +62,5 @@
   Pressure is already in bar or psi.
   → `UnitFormatter` must NEVER apply conversion math — it only attaches the correct unit label.
   → Never multiply by 0.621371, 1.60934, or apply °C→°F formulas on values coming from the API.
+* `/battery-health` `rated_efficiency` is kWh per 100 distance units (13.7, not 137); the app multiplies by 10 to show Wh per unit.
 

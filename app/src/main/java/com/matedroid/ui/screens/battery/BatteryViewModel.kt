@@ -23,8 +23,8 @@ data class BatteryUiState(
     val carStatus: CarStatus? = null,
     val units: Units? = null,
     val originalCapacity: Double = 82.0, // Default for Model 3 LR, could be fetched from car details
+    // Raw Teslamate cars.efficiency from the car details (kWh per km, e.g. 0.137); 0 when unknown
     val ratedEfficiency: Double = 0.0,
-    val showDetail: Boolean = false,
     // Derived from batteryHealth/carStatus when they land, so composition never recomputes it
     val stats: BatteryStats? = null
 )
@@ -35,19 +35,75 @@ data class BatteryStats(
     val originalCapacity: Double,
     val healthPercent: Double,
     val lossKwh: Double,
-    val lossPercent: Double,
     val maxRangeNew: Double,
     val maxRangeNow: Double,
     val rangeLoss: Double,
-    val ratedEfficiency: Double,
+    // Rated consumption in Wh per distance unit (Wh/km or Wh/mi), e.g. 137.0
+    val ratedEfficiencyWhPerUnit: Double,
     // Current status
     val batteryLevel: Int,
     val usableBatteryLevel: Int,
     val estimatedRange: Double,
     val ratedRange: Double,
-    val idealRange: Double,
-    val rangeAt100: Double
+    val idealRange: Double
 )
+
+/** Rated consumption in Wh per distance unit used when neither source provides one. */
+private const val DEFAULT_RATED_EFFICIENCY_WH_PER_UNIT = 150.0
+
+/**
+ * Derives the figures shown on the Battery Health screen. Pure, so it can be unit-tested.
+ *
+ * @param fallbackEfficiency Teslamate's raw `cars.efficiency` from the car details (kWh per km,
+ *   e.g. 0.137), or 0 when unknown. Only used when `/battery-health` has no `rated_efficiency`.
+ * @param defaultCapacityKwh capacity when new, used only when the API does not report one.
+ */
+internal fun computeBatteryStats(
+    health: BatteryHealth?,
+    status: CarStatus?,
+    fallbackEfficiency: Double,
+    defaultCapacityKwh: Double
+): BatteryStats? {
+    if (health == null) return null
+
+    val healthPercent = health.batteryHealthPercentage ?: 100.0
+    val originalCapacity = health.maxCapacity ?: defaultCapacityKwh
+    val currentCapacity = health.currentCapacity ?: (originalCapacity * healthPercent / 100)
+    val lossKwh = originalCapacity - currentCapacity
+
+    // Range from API (already in the user's distance unit)
+    val maxRangeNew = health.maxRange ?: 0.0
+    val maxRangeNow = health.currentRange ?: 0.0
+    val rangeLoss = maxRangeNew - maxRangeNow
+
+    // Scale fix within one unit system, NOT a km<->mi conversion: TeslamateAPI's
+    // rated_efficiency is kWh per 100 distance units. The live TeslamateAPI returns 13.7 for a
+    // car whose rated consumption is 137 Wh/km (verified 2026-10-04), so x10 gives Wh per unit.
+    // The car-details fallback is Teslamate's raw cars.efficiency in kWh per km (0.137), so x1000.
+    val ratedEfficiencyWhPerUnit = health.ratedEfficiency?.takeIf { it > 0 }?.let { it * 10 }
+        ?: fallbackEfficiency.takeIf { it > 0 }?.let { it * 1000 }
+        ?: DEFAULT_RATED_EFFICIENCY_WH_PER_UNIT
+
+    // Current status from CarStatus
+    val batteryLevel = status?.batteryLevel ?: 0
+    val usableBatteryLevel = status?.usableBatteryLevel ?: batteryLevel
+
+    return BatteryStats(
+        currentCapacity = currentCapacity,
+        originalCapacity = originalCapacity,
+        healthPercent = healthPercent,
+        lossKwh = lossKwh,
+        maxRangeNew = maxRangeNew,
+        maxRangeNow = maxRangeNow,
+        rangeLoss = rangeLoss,
+        ratedEfficiencyWhPerUnit = ratedEfficiencyWhPerUnit,
+        batteryLevel = batteryLevel,
+        usableBatteryLevel = usableBatteryLevel,
+        estimatedRange = status?.estBatteryRangeKm ?: 0.0,
+        ratedRange = status?.ratedBatteryRangeKm ?: 0.0,
+        idealRange = status?.idealBatteryRangeKm ?: 0.0
+    )
+}
 
 @HiltViewModel
 class BatteryViewModel @Inject constructor(
@@ -80,14 +136,6 @@ class BatteryViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
-    fun showDetail() {
-        _uiState.update { it.copy(showDetail = true) }
-    }
-
-    fun hideDetail() {
-        _uiState.update { it.copy(showDetail = false) }
-    }
-
     private fun loadBatteryData() {
         val id = carId ?: return
 
@@ -112,7 +160,14 @@ class BatteryViewModel @Inject constructor(
                             units = statusResult.data.units,
                             error = null
                         )
-                        updated.copy(stats = computeStats(updated))
+                        updated.copy(
+                            stats = computeBatteryStats(
+                                health = updated.batteryHealth,
+                                status = updated.carStatus,
+                                fallbackEfficiency = updated.ratedEfficiency,
+                                defaultCapacityKwh = updated.originalCapacity
+                            )
+                        )
                     }
                 }
                 healthResult is ApiResult.Error -> {
@@ -135,57 +190,5 @@ class BatteryViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun computeStats(state: BatteryUiState): BatteryStats? {
-        val health = state.batteryHealth ?: return null
-        val status = state.carStatus
-
-        // Use data from the battery health API
-        val healthPercent = health.batteryHealthPercentage ?: 100.0
-        val originalCapacity = health.maxCapacity ?: state.originalCapacity
-        val currentCapacity = health.currentCapacity ?: (originalCapacity * healthPercent / 100)
-        val lossKwh = originalCapacity - currentCapacity
-        val lossPercent = 100 - healthPercent
-
-        // Range from API
-        val maxRangeNew = health.maxRange ?: 0.0
-        val maxRangeNow = health.currentRange ?: 0.0
-        val rangeLoss = maxRangeNew - maxRangeNow
-
-        // Efficiency from API (Wh/km)
-        val ratedEfficiency = health.ratedEfficiency ?: state.ratedEfficiency.takeIf { it > 0 } ?: 150.0
-
-        // Current status from CarStatus
-        val batteryLevel = status?.batteryLevel ?: 0
-        val usableBatteryLevel = status?.usableBatteryLevel ?: batteryLevel
-        val estimatedRange = status?.estBatteryRangeKm ?: 0.0
-        val ratedRange = status?.ratedBatteryRangeKm ?: 0.0
-        val idealRange = status?.idealBatteryRangeKm ?: 0.0
-
-        // Estimate range at 100%
-        val rangeAt100 = if (batteryLevel > 0 && ratedRange > 0) {
-            (ratedRange / batteryLevel) * 100
-        } else {
-            maxRangeNow
-        }
-
-        return BatteryStats(
-            currentCapacity = currentCapacity,
-            originalCapacity = originalCapacity,
-            healthPercent = healthPercent,
-            lossKwh = lossKwh,
-            lossPercent = lossPercent,
-            maxRangeNew = maxRangeNew,
-            maxRangeNow = maxRangeNow,
-            rangeLoss = rangeLoss,
-            ratedEfficiency = ratedEfficiency,
-            batteryLevel = batteryLevel,
-            usableBatteryLevel = usableBatteryLevel,
-            estimatedRange = estimatedRange,
-            ratedRange = ratedRange,
-            idealRange = idealRange,
-            rangeAt100 = rangeAt100
-        )
     }
 }
