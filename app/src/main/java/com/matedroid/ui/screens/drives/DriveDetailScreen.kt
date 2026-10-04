@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
+import com.matedroid.ui.components.HeroStat
 import com.matedroid.data.api.models.DriveDetail
 import com.matedroid.data.api.models.DrivePosition
 import com.matedroid.data.api.models.Units
@@ -412,31 +413,6 @@ private fun RouteLine(color: Color, label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1
-        )
-    }
-}
-
-/** A single labelled figure: small uppercase label over a bold value. */
-@Composable
-private fun HeroStat(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = label.uppercase(java.util.Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1
         )

@@ -77,6 +77,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlin.math.roundToInt
 import com.matedroid.R
+import com.matedroid.ui.components.AccentStatTile
+import com.matedroid.ui.components.HeroStat
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargePoint
 import com.matedroid.data.api.models.Units
@@ -447,31 +449,6 @@ private fun ChargeHeroSection(
     }
 }
 
-/** A single labelled figure: small uppercase label over a bold value. Left-aligned in a column. */
-@Composable
-private fun HeroStat(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(
-            text = label.uppercase(java.util.Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1
-        )
-    }
-}
-
 /** A single row of accent tiles for the secondary "quality" figures (avg power, efficiency, temp). */
 @Composable
 private fun ChargeStatTiles(
@@ -495,44 +472,13 @@ private fun ChargeStatTiles(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         tiles.forEach { (label, value) ->
-            ChargeStatTile(
+            AccentStatTile(
                 label = label,
                 value = value,
                 accent = palette.accent,
                 modifier = Modifier.weight(1f)
             )
         }
-    }
-}
-
-@Composable
-private fun ChargeStatTile(
-    label: String,
-    value: String,
-    accent: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(accent.copy(alpha = 0.12f))
-            .padding(vertical = 12.dp, horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label.uppercase(java.util.Locale.getDefault()),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-            maxLines = 1
-        )
     }
 }
 
