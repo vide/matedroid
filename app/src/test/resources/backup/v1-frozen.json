@@ -1,0 +1,191 @@
+{
+  "header": {
+    "format": 1,
+    "exportedAt": 1759485600000,
+    "appVersionName": "1.11.3",
+    "appVersionCode": 178982387,
+    "databaseVersion": 11,
+    "sections": ["trips", "settings", "sentry", "places", "tripMaps", "stats"],
+    "cars": [
+      { "carId": 1, "vin": "VIN-ALPHA", "name": "Alpha" },
+      { "carId": 2, "vin": "VIN-BETA", "name": "Beta" }
+    ]
+  },
+  "settings": {
+    "serverUrl": "https://teslamate.frozen.example",
+    "secondaryServerUrl": "",
+    "teslamateBaseUrl": "https://grafana.frozen.example",
+    "acceptInvalidCerts": true,
+    "connectTimeoutSeconds": 25,
+    "currencyCode": "CHF",
+    "costPerKwhBasis": "used",
+    "isImperial": true,
+    "showShortDrivesCharges": true,
+    "shortDriveMinDurationMin": 7,
+    "shortDriveMinDistance": 2.5,
+    "shortChargeMinEnergyKwh": 1.5,
+    "highSocWarningThreshold": 85,
+    "lowSocWarningThreshold": 15,
+    "lastSelectedCarId": 1,
+    "carImageOverrides": {
+      "1": { "variant": "myj", "wheelCode": "WY19P" }
+    }
+  },
+  "trips": [
+    {
+      "carId": 1,
+      "name": "Mixed outcomes",
+      "source": "USER_MERGED",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000100000,
+      "legs": [
+        { "type": "DRIVE", "id": 100, "position": 0, "startDate": "2026-01-01T10:00:00Z" },
+        { "type": "DRIVE", "id": 200, "position": 1, "startDate": "2026-02-01T10:00:00Z" },
+        { "type": "DRIVE", "id": 999, "position": 2, "startDate": "2026-03-01T10:00:00Z" },
+        { "type": "DRIVE", "id": 100, "position": 3, "startDate": "2026-09-09T09:09:09Z" }
+      ],
+      "consumedFingerprints": ["frozen-fingerprint-a", "frozen-fingerprint-b"]
+    },
+    {
+      "carId": 1,
+      "name": "Already here",
+      "source": "AUTO_DETECTED",
+      "createdAt": 1700000200000,
+      "updatedAt": 1700000200000,
+      "legs": [
+        { "type": "DRIVE", "id": 100, "position": 0, "startDate": "2026-01-01T10:00:00Z" }
+      ],
+      "consumedFingerprints": []
+    },
+    {
+      "carId": 1,
+      "name": "Nothing left to point at",
+      "source": "USER_EDITED",
+      "createdAt": 1700000300000,
+      "updatedAt": 1700000300000,
+      "legs": [
+        { "type": "DRIVE", "id": 100, "position": 0, "startDate": "2026-12-12T12:12:12Z" }
+      ],
+      "consumedFingerprints": []
+    }
+  ],
+  "sentryEvents": [
+    {
+      "carId": 1,
+      "detectedAt": 1700000000000,
+      "sessionStartedAt": 1699999000000,
+      "latitude": 41.9,
+      "longitude": 3.1,
+      "address": "Pals"
+    },
+    {
+      "carId": 1,
+      "detectedAt": 1700000600000,
+      "sessionStartedAt": 1699999000000,
+      "latitude": null,
+      "longitude": null,
+      "address": null
+    },
+    {
+      "carId": 3,
+      "detectedAt": 1700001200000,
+      "sessionStartedAt": 1700001000000,
+      "latitude": 48.85,
+      "longitude": 2.35,
+      "address": "Paris"
+    }
+  ],
+  "places": [
+    {
+      "gridLat": 4190,
+      "gridLon": 310,
+      "countryCode": "ES",
+      "countryName": "Spain",
+      "regionName": "Catalonia",
+      "city": "Pals",
+      "cachedAt": 1700000000000
+    },
+    {
+      "gridLat": 4885,
+      "gridLon": 235,
+      "countryCode": "FR",
+      "countryName": "France",
+      "regionName": "Ile-de-France",
+      "city": "Paris",
+      "cachedAt": 1700000000000
+    }
+  ],
+  "tripRoutes": [
+    {
+      "tripKey": "frozen-trip-key",
+      "segmentIndex": 0,
+      "points": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "createdAt": 1700000000000
+    }
+  ],
+  "tripCountries": [
+    { "tripKey": "frozen-trip-key", "countries": "ES,FR", "createdAt": 1700000000000 }
+  ],
+  "stats": {
+    "syncStates": [
+      {
+        "carId": 1,
+        "lastDriveSyncAt": 1700000000000,
+        "lastChargeSyncAt": 1700000000000,
+        "lastFullSummarySyncAt": 1700000000000,
+        "lastDriveDetailId": 100,
+        "lastChargeDetailId": 50,
+        "detailSchemaVersion": 6,
+        "totalDrivesToProcess": 2,
+        "totalChargesToProcess": 1,
+        "drivesProcessed": 2,
+        "chargesProcessed": 1,
+        "summariesSynced": true,
+        "detailsSynced": true
+      }
+    ],
+    "drives": [
+      {
+        "driveId": 100,
+        "carId": 1,
+        "startDate": "2026-01-01T10:00:00Z",
+        "endDate": "2026-01-01T11:00:00Z",
+        "durationMin": 60,
+        "startAddress": "Frozen start",
+        "endAddress": "Frozen end",
+        "distance": 80.5,
+        "speedMax": 120,
+        "speedAvg": 80,
+        "powerMax": 150,
+        "powerMin": -40,
+        "startBatteryLevel": 90,
+        "endBatteryLevel": 60,
+        "outsideTempAvg": 18.5,
+        "insideTempAvg": null,
+        "energyConsumed": 14.2,
+        "efficiency": 176.0
+      }
+    ],
+    "charges": [
+      {
+        "chargeId": 50,
+        "carId": 2,
+        "startDate": "2026-01-01T12:00:00Z",
+        "endDate": "2026-01-01T12:30:00Z",
+        "durationMin": 30,
+        "address": "Frozen charger",
+        "latitude": 41.0,
+        "longitude": 2.0,
+        "energyAdded": 35.0,
+        "energyUsed": null,
+        "cost": 12.5,
+        "startBatteryLevel": 20,
+        "endBatteryLevel": 80,
+        "outsideTempAvg": null,
+        "odometer": 12345.6
+      }
+    ],
+    "driveAggregates": [],
+    "chargeAggregates": []
+  }
+}

@@ -8,8 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Backup and restore** — the trips you merged yourself, the sentry alerts and your settings exist nowhere but your phone; Teslamate keeps no record of them. **Settings → Backup** writes them to a file and hands it to the share sheet, so it goes wherever you send it — Drive, a chat, a cable — and MateDroid never keeps a copy. Tick which cars and which parts go in: sentry alerts and saved place names are included by default, trip maps and the full drive history are not. Your API token and server password never go into the file. Restoring shows you what is inside — which cars, by name and VIN, and how much of it belongs to each — before anything changes, and you choose whether to add it to what is already there or replace it. There is a **Restore a backup** button on the first setup screen too, for a phone fresh out of the box.
 - **A notification follows the drive to a destination** — set a destination in the car and a notification appears with the name of the place, how long is left, the time you are due to arrive and the distance and battery level you will arrive with. Expand it for a map showing the car, the destination and the line between them. It updates itself as the car drives and clears when the route ends. It lives on its own **Navigation** notification channel, so it can be silenced from Android's settings without touching the charging, sentry or tyre-pressure notifications.
 - **The dashboard map shows where the car is going** — when a destination is set in the car, a banner across the top of the location card names it and counts down the time left, with the minutes traffic is costing called out in amber next to it. The chips below swap from elevation and coordinates to the distance still to drive, the clock time you are due to arrive, and the battery level you will arrive with. The card goes back to showing only the current position as soon as the route ends.
+
+### Changed
+- **The sync notification shows how far it has got** — a progress bar and real numbers ("Drives: 220 of 8,086") instead of one unchanging line, so a first sync that takes hours no longer looks stuck. MateDroid also asks for notification permission when it first opens, rather than waiting for the second launch.
+- **The demo offer on the setup screen is quieter**, and steps aside once there is a server to connect to.
+
+### Fixed
+- **The trips list says when it is waiting for drives.** Trips are drawn from the drives they point at, so ones restored from a backup stay invisible until those have downloaded — the list said "no trips" instead of saying so.
+- **Going back after restoring a backup no longer lands on an empty setup screen.**
 
 ## [1.11.3] - 2026-09-19
 

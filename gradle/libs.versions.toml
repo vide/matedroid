@@ -19,6 +19,8 @@ junitExt = "1.2.1"
 espresso = "3.6.1"
 uiautomator = "2.3.0"
 coroutinesTest = "1.10.2"
+robolectric = "4.16"
+androidxTestCore = "1.6.1"
 mockk = "1.14.9"
 turbine = "1.2.1"
 room = "2.8.4"
@@ -85,6 +87,8 @@ osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "o
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }

@@ -168,8 +168,15 @@ fun TripsScreen(
                             tint = palette.accent.copy(alpha = 0.7f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+                        val awaiting = uiState.tripsAwaitingDrives > 0
                         Text(
-                            text = stringResource(R.string.trips_empty_title),
+                            text = stringResource(
+                                if (awaiting) {
+                                    R.string.trips_awaiting_title
+                                } else {
+                                    R.string.trips_empty_title
+                                }
+                            ),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -177,27 +184,35 @@ fun TripsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = stringResource(R.string.trips_empty_intro),
+                            text = stringResource(
+                                if (awaiting) {
+                                    R.string.trips_awaiting_body
+                                } else {
+                                    R.string.trips_empty_intro
+                                }
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Column(
-                            modifier = Modifier.widthIn(max = 320.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            TripRuleRow(1, stringResource(R.string.trips_empty_rule_drives), palette)
-                            TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
-                            TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
+                        if (!awaiting) {
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Column(
+                                modifier = Modifier.widthIn(max = 320.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                TripRuleRow(1, stringResource(R.string.trips_empty_rule_drives), palette)
+                                TripRuleRow(2, stringResource(R.string.trips_empty_rule_charge), palette)
+                                TripRuleRow(3, stringResource(R.string.trips_empty_rule_distance), palette)
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = stringResource(R.string.trips_empty_create_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
                         }
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            text = stringResource(R.string.trips_empty_create_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }

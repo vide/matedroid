@@ -32,6 +32,9 @@ class SyncManager @Inject constructor(
 
     private val _carProgress = MutableStateFlow<Map<Int, SyncProgress>>(emptyMap())
 
+    /** Live progress per car. The sync notification follows this to show real numbers. */
+    val carProgress: StateFlow<Map<Int, SyncProgress>> = _carProgress.asStateFlow()
+
     /**
      * Get sync progress for a specific car.
      */

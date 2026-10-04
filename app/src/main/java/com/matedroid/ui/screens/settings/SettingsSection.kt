@@ -2,6 +2,7 @@ package com.matedroid.ui.screens.settings
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Info
@@ -48,6 +49,12 @@ enum class SettingsSection(
         titleRes = R.string.settings_section_data,
         summaryRes = R.string.settings_section_data_summary,
         icon = Icons.Filled.Sync
+    ),
+    BACKUP(
+        id = "backup",
+        titleRes = R.string.settings_section_backup,
+        summaryRes = R.string.settings_section_backup_summary,
+        icon = Icons.Filled.Backup
     ),
     ABOUT(
         id = "about",

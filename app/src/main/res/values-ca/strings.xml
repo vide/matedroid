@@ -226,6 +226,8 @@
     <string name="settings_section_notifications_summary">Alertes de càrrega, Sentinella i pneumàtics</string>
     <string name="settings_section_data">Dades i sincronització</string>
     <string name="settings_section_data_summary">Manteniment de les dades desades</string>
+    <string name="settings_section_backup">Còpia de seguretat</string>
+    <string name="settings_section_backup_summary">Desa una còpia dels teus viatges i la configuració</string>
     <string name="settings_section_about">Quant a</string>
     <string name="settings_section_about_summary">Versió i suport</string>
     <string name="settings_section_debug">Eines de depuració</string>
@@ -297,7 +299,7 @@
     <string name="settings_connect_description">Introdueix l\'URL del teu servidor TeslamateApi per connectar.</string>
 
     <string name="settings_demo_title">No tens cap servidor?</string>
-    <string name="settings_demo_description">Explora MateDroid amb un any de dades d\'exemple d\'un cotxe de demostració. Podràs connectar el teu TeslaMate més endavant.</string>
+    <string name="settings_demo_description">Un any de dades d\'exemple d\'un cotxe de demostració.</string>
     <string name="settings_demo_action">Prova la demo</string>
 
     <string name="settings_demo_active_title">Mode demo</string>
@@ -1454,4 +1456,64 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">N/D</string>
+
+    <string name="backup_intro">Els viatges desats, els avisos de Sentinella i la configuració només existeixen en aquest telèfon. MateDroid et dona el fitxer: on va a parar ho decideixes tu.</string>
+    <string name="backup_export_header">Desa una còpia</string>
+    <string name="backup_export_always">Els viatges i la configuració hi van sempre.</string>
+    <string name="backup_export_no_secrets">El token API i la contrasenya no s\'inclouen mai.</string>
+    <string name="backup_export_button">Desa i comparteix</string>
+    <string name="backup_export_preparing">S\'està preparant…</string>
+    <string name="backup_section_trips">Viatges desats</string>
+    <string name="backup_section_settings">Configuració</string>
+    <string name="backup_section_sentry">Avisos de Sentinella</string>
+    <string name="backup_section_sentry_hint">Teslamate no en guarda cap registre.</string>
+    <string name="backup_section_places">Noms dels llocs</string>
+    <string name="backup_section_places_hint">Tornar a buscar-los tots triga hores.</string>
+    <string name="backup_section_trip_maps">Mapes dels viatges</string>
+    <string name="backup_section_trip_maps_hint">Es poden tornar a baixar. El fitxer es fa molt més gran.</string>
+    <string name="backup_section_stats">Trajectes i càrregues</string>
+    <string name="backup_section_stats_hint">Estalvia una baixada llarga. El fitxer es fa molt més gran.</string>
+    <string name="backup_import_header">Restaura una còpia</string>
+    <string name="backup_import_hint">Veuràs què hi ha a dins abans que canviï res.</string>
+    <string name="backup_import_button">Tria un fitxer</string>
+    <string name="backup_import_reading">S\'està llegint…</string>
+    <string name="backup_preview_title">Què hi ha a dins</string>
+    <string name="backup_preview_saved_on">Desada el %1$s</string>
+    <string name="backup_preview_saved_on_version">Desada el %1$s per MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">Desats per una altra versió de MateDroid: l\'aplicació els tornarà a baixar.</string>
+    <string name="backup_preview_mode">I el que ja hi ha al telèfon?</string>
+    <string name="backup_preview_mode_merge">Conserva-ho i afegeix el que falti</string>
+    <string name="backup_preview_mode_replace">Substitueix-ho pel fitxer</string>
+    <string name="backup_preview_restore">Restaura</string>
+    <string name="backup_preview_restoring">S\'està restaurant…</string>
+    <string name="backup_result_title">Restaurat</string>
+    <string name="backup_result_already_here">Ja hi eren</string>
+    <string name="backup_result_trips_incomplete">Viatges als quals falta un trajecte</string>
+    <string name="backup_result_trips_unmatched">Viatges que no s\'han pogut aparellar</string>
+    <string name="backup_result_restored">Restaurada</string>
+    <string name="backup_result_nothing">Res de nou per restaurar.</string>
+    <string name="backup_result_note_unmatched">Aquests trajectes encara no són en aquest telèfon; la propera sincronització els pot portar.</string>
+    <string name="backup_result_note_token">Torna a escriure el token API a Connexió: una còpia no el conté mai.</string>
+    <string name="backup_error_export">No s\'ha pogut crear la còpia de seguretat.</string>
+    <string name="backup_error_not_a_backup">Aquest fitxer no és una còpia de seguretat de MateDroid.</string>
+    <string name="backup_error_too_new">Aquesta còpia necessita un MateDroid més recent. Actualitza l\'aplicació i torna-ho a provar.</string>
+    <string name="backup_error_restore">Alguna cosa ha anat malament. És possible que una part ja s\'hagi restaurat.</string>
+
+    <string name="backup_cars_header">Cotxes</string>
+    <string name="backup_cars_hint">Només hi entren els cotxes marcats.</string>
+    <string name="backup_car_unnamed">Cotxe %1$d</string>
+    <string name="backup_car_no_vin">Sense VIN registrat</string>
+
+    <string name="backup_restore_entry_title">Restaura una còpia de seguretat</string>
+    <string name="backup_restore_entry_hint">Viatges, avisos de Sentinella i configuració d\'un altre telèfon.</string>
+    <string name="backup_onboarding_intro">Tria el fitxer del telèfon antic. Ho torna tot menys el token API.</string>
+
+    <string name="sync_notification_starting">S\'està iniciant…</string>
+    <string name="sync_notification_car">Cotxe %1$d de %2$d</string>
+    <string name="sync_notification_summaries">S\'està obtenint la llista de trajectes i càrregues</string>
+    <string name="sync_notification_drives">Trajectes: %1$d de %2$d</string>
+    <string name="sync_notification_charges">Càrregues: %1$d de %2$d</string>
+
+    <string name="trips_awaiting_title">Esperant els trajectes</string>
+    <string name="trips_awaiting_body">Els viatges hi són, però els trajectes que els formen encara s\'estan baixant. Aniran apareixent a mesura que avanci la sincronització.</string>
 </resources>

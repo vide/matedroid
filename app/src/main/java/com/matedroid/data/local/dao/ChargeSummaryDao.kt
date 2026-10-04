@@ -24,6 +24,28 @@ interface ChargeSummaryDao {
     @Query("SELECT * FROM charges_summary WHERE carId = :carId ORDER BY startDate ASC")
     suspend fun getAllForCar(carId: Int): List<ChargeSummary>
 
+    // === Backup export/import ===
+
+    @Query("SELECT DISTINCT carId FROM charges_summary")
+    suspend fun getAllCarIds(): List<Int>
+
+    @Query("SELECT COUNT(*) FROM charges_summary")
+    suspend fun countAll(): Int
+
+    @Query("SELECT COUNT(*) FROM charges_summary WHERE carId IN (:carIds)")
+    suspend fun countForCars(carIds: List<Int>): Int
+
+    @Query("SELECT COUNT(*) FROM charges_summary WHERE carId = :carId")
+    suspend fun countForCar(carId: Int): Int
+
+    /** Start timestamp of one charge, used to check a restored trip still points at it. */
+    @Query("SELECT startDate FROM charges_summary WHERE chargeId = :chargeId AND carId = :carId")
+    suspend fun getStartDate(carId: Int, chargeId: Int): String?
+
+    /** The charge that starts at this exact moment, for re-finding one whose id has moved. */
+    @Query("SELECT chargeId FROM charges_summary WHERE carId = :carId AND startDate = :startDate LIMIT 1")
+    suspend fun findIdByStartDate(carId: Int, startDate: String): Int?
+
     @Query("DELETE FROM charges_summary WHERE carId = :carId")
     suspend fun deleteAllForCar(carId: Int)
 

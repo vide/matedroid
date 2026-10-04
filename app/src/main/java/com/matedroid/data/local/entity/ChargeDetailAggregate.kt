@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 /**
  * Aggregated data computed from charge detail points.
@@ -26,6 +27,8 @@ import androidx.room.PrimaryKey
         Index(value = ["chargeId"])
     ]
 )
+// Ships verbatim inside backup files, hence the Moshi adapter — see BackupSection.STATS.
+@JsonClass(generateAdapter = true)
 data class ChargeDetailAggregate(
     @PrimaryKey
     val chargeId: Int,

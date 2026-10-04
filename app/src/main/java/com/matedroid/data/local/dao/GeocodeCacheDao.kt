@@ -15,6 +15,9 @@ interface GeocodeCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(cache: GeocodeCache)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(cache: List<GeocodeCache>)
+
     @Query("SELECT COUNT(*) FROM geocode_cache")
     suspend fun count(): Int
 

@@ -2,6 +2,7 @@ package com.matedroid.ui.navigation
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -34,6 +37,7 @@ import com.matedroid.ui.screens.mileage.MileageScreen
 import com.matedroid.ui.screens.settings.SettingsScreen
 import com.matedroid.ui.screens.settings.SettingsSection
 import com.matedroid.ui.screens.settings.sections.AboutSettingsScreen
+import com.matedroid.ui.screens.settings.sections.BackupSettingsScreen
 import com.matedroid.ui.screens.settings.sections.ConnectionSettingsScreen
 import com.matedroid.ui.screens.settings.sections.DataSyncSettingsScreen
 import com.matedroid.ui.screens.settings.sections.DebugSettingsScreen
@@ -155,9 +159,17 @@ fun NavGraph(
         return // Wait for determination
     }
 
-    // One-time notification permission dialog (Android 13+)
-    if (startDestination == Screen.Dashboard &&
-        !notificationPermissionAsked &&
+    // One-time notification permission dialog (Android 13+). Asked wherever the app starts,
+    // including the first-run setup page: the first sync begins as soon as a server is saved
+    // and runs for hours behind a notification nobody would otherwise see.
+    val notificationsAlreadyGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(
+            LocalContext.current,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+    if (!notificationPermissionAsked &&
+        !notificationsAlreadyGranted &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     ) {
         val permissionLauncher = rememberLauncherForActivityResult(
@@ -235,6 +247,14 @@ fun NavGraph(
                         navController.navigate(Screen.Dashboard) {
                             popUpTo<Screen.SettingsSection> { inclusive = true }
                         }
+                    },
+                    onRestoreBackup = {
+                        navController.navigate(
+                            Screen.SettingsSection(
+                                sectionId = SettingsSection.BACKUP.id,
+                                onboarding = route.onboarding
+                            )
+                        )
                     }
                 )
 
@@ -243,6 +263,30 @@ fun NavGraph(
                 SettingsSection.NOTIFICATIONS -> NotificationSettingsScreen(onNavigateBack = onBack)
 
                 SettingsSection.DATA -> DataSyncSettingsScreen(onNavigateBack = onBack)
+
+                SettingsSection.BACKUP -> BackupSettingsScreen(
+                    onNavigateBack = onBack,
+                    isOnboarding = route.onboarding,
+                    onRestoreFinished = {
+                        // Start setup over on a brand new entry: the connection form reads
+                        // the stored settings once, when its view model is created, so the
+                        // server URL a restore just wrote only shows up on a fresh one.
+                        //
+                        // The whole graph is popped, not the start destination: every
+                        // settings page is the same Screen.SettingsSection destination, so
+                        // popping up to it stops at the nearest entry — this page — and
+                        // leaves the pre-restore form underneath, which is what the back
+                        // gesture then landed on, empty server field and all.
+                        navController.navigate(
+                            Screen.SettingsSection(
+                                sectionId = SettingsSection.CONNECTION.id,
+                                onboarding = true
+                            )
+                        ) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    }
+                )
 
                 SettingsSection.ABOUT -> AboutSettingsScreen(onNavigateBack = onBack)
 

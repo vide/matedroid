@@ -33,6 +33,8 @@ data class TripsUiState(
     val customEndDate: LocalDate? = null,
     val units: Units? = null,
     val dcChargeIds: Set<Int> = emptySet(),
+    /** Saved trips that exist but cannot be drawn yet, their drives not having synced. */
+    val tripsAwaitingDrives: Int = 0,
     val showShortDrivesCharges: Boolean = false
 )
 
@@ -128,7 +130,17 @@ class TripsViewModel @Inject constructor(
                 .distinct()
                 .sortedDescending()
 
-            _uiState.update { it.copy(isLoading = false, availableYears = years) }
+            // Nothing built, yet trips are on file: their drives have not synced. The list
+            // says so instead of explaining what makes a trip, which reads as "you have none".
+            val awaiting = if (allTrips.isEmpty()) tripRepository.savedTripCount(carId) else 0
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    availableYears = years,
+                    tripsAwaitingDrives = awaiting
+                )
+            }
             applyFilter()
         }
     }

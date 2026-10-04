@@ -226,6 +226,8 @@
     <string name="settings_section_notifications_summary">Lade-, Sentry- und Reifenwarnungen</string>
     <string name="settings_section_data">Daten &amp; Synchronisierung</string>
     <string name="settings_section_data_summary">Wartung der gespeicherten Daten</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_section_backup_summary">Eine Kopie deiner Trips und Einstellungen sichern</string>
     <string name="settings_section_about">Über</string>
     <string name="settings_section_about_summary">Version und Support</string>
     <string name="settings_section_debug">Debug-Werkzeuge</string>
@@ -297,7 +299,7 @@
     <string name="settings_connect_description">Gib die URL deines TeslamateApi-Servers ein, um eine Verbindung herzustellen.</string>
 
     <string name="settings_demo_title">Kein Server zur Hand?</string>
-    <string name="settings_demo_description">Sieh dich in MateDroid mit einem Jahr Beispieldaten eines Demofahrzeugs um. Dein eigenes TeslaMate kannst du später verbinden.</string>
+    <string name="settings_demo_description">Ein Jahr Beispieldaten von einem Vorführwagen.</string>
     <string name="settings_demo_action">Demo ausprobieren</string>
 
     <string name="settings_demo_active_title">Demomodus</string>
@@ -1569,4 +1571,64 @@
     </plurals>
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">k. A.</string>
+
+    <string name="backup_intro">Deine gespeicherten Trips, Sentry-Warnungen und Einstellungen gibt es nur auf diesem Telefon. MateDroid gibt dir die Datei — wohin sie geht, entscheidest du.</string>
+    <string name="backup_export_header">Kopie sichern</string>
+    <string name="backup_export_always">Trips und Einstellungen sind immer dabei.</string>
+    <string name="backup_export_no_secrets">Dein API-Token und dein Passwort sind nie dabei.</string>
+    <string name="backup_export_button">Sichern und teilen</string>
+    <string name="backup_export_preparing">Wird vorbereitet…</string>
+    <string name="backup_section_trips">Gespeicherte Trips</string>
+    <string name="backup_section_settings">Einstellungen</string>
+    <string name="backup_section_sentry">Sentry-Warnungen</string>
+    <string name="backup_section_sentry_hint">Teslamate führt darüber kein Protokoll.</string>
+    <string name="backup_section_places">Ortsnamen</string>
+    <string name="backup_section_places_hint">Sie alle erneut nachzuschlagen dauert Stunden.</string>
+    <string name="backup_section_trip_maps">Trip-Karten</string>
+    <string name="backup_section_trip_maps_hint">Lassen sich erneut laden. Macht die Datei viel größer.</string>
+    <string name="backup_section_stats">Fahrten und Ladevorgänge</string>
+    <string name="backup_section_stats_hint">Spart später einen langen Download. Macht die Datei viel größer.</string>
+    <string name="backup_import_header">Eine Kopie zurückholen</string>
+    <string name="backup_import_hint">Du siehst, was darin steckt, bevor sich etwas ändert.</string>
+    <string name="backup_import_button">Datei auswählen</string>
+    <string name="backup_import_reading">Wird gelesen…</string>
+    <string name="backup_preview_title">Was darin steckt</string>
+    <string name="backup_preview_saved_on">Gesichert am %1$s</string>
+    <string name="backup_preview_saved_on_version">Gesichert am %1$s mit MateDroid %2$s</string>
+    <string name="backup_preview_stats_unusable">Von einer anderen MateDroid-Version gesichert — die App lädt sie erneut.</string>
+    <string name="backup_preview_mode">Und was schon auf dem Telefon ist?</string>
+    <string name="backup_preview_mode_merge">Behalten, Fehlendes ergänzen</string>
+    <string name="backup_preview_mode_replace">Durch die Datei ersetzen</string>
+    <string name="backup_preview_restore">Zurückholen</string>
+    <string name="backup_preview_restoring">Wird zurückgeholt…</string>
+    <string name="backup_result_title">Zurückgeholt</string>
+    <string name="backup_result_already_here">Schon vorhanden</string>
+    <string name="backup_result_trips_incomplete">Trips, denen eine Fahrt fehlt</string>
+    <string name="backup_result_trips_unmatched">Trips ohne Zuordnung</string>
+    <string name="backup_result_restored">Zurückgeholt</string>
+    <string name="backup_result_nothing">Nichts Neues zurückzuholen.</string>
+    <string name="backup_result_note_unmatched">Diese Fahrten sind noch nicht auf dem Telefon — die nächste Synchronisierung bringt sie vielleicht.</string>
+    <string name="backup_result_note_token">Gib dein API-Token unter Verbindung erneut ein — ein Backup enthält es nie.</string>
+    <string name="backup_error_export">Das Backup konnte nicht erstellt werden.</string>
+    <string name="backup_error_not_a_backup">Diese Datei ist kein MateDroid-Backup.</string>
+    <string name="backup_error_too_new">Dieses Backup braucht ein neueres MateDroid. Aktualisiere die App und versuche es erneut.</string>
+    <string name="backup_error_restore">Etwas ist schiefgegangen. Ein Teil wurde möglicherweise schon zurückgeholt.</string>
+
+    <string name="backup_cars_header">Autos</string>
+    <string name="backup_cars_hint">Nur die angehakten Autos kommen mit.</string>
+    <string name="backup_car_unnamed">Auto %1$d</string>
+    <string name="backup_car_no_vin">Keine VIN hinterlegt</string>
+
+    <string name="backup_restore_entry_title">Backup zurückholen</string>
+    <string name="backup_restore_entry_hint">Trips, Sentry-Warnungen und Einstellungen von einem anderen Telefon.</string>
+    <string name="backup_onboarding_intro">Wähle die Datei deines alten Telefons. Sie holt alles zurück außer dem API-Token.</string>
+
+    <string name="sync_notification_starting">Wird gestartet…</string>
+    <string name="sync_notification_car">Auto %1$d von %2$d</string>
+    <string name="sync_notification_summaries">Liste der Fahrten und Ladevorgänge wird geholt</string>
+    <string name="sync_notification_drives">Fahrten: %1$d von %2$d</string>
+    <string name="sync_notification_charges">Ladevorgänge: %1$d von %2$d</string>
+
+    <string name="trips_awaiting_title">Warten auf die Fahrten</string>
+    <string name="trips_awaiting_body">Deine Trips sind da, aber die Fahrten, aus denen sie bestehen, werden noch geladen. Sie erscheinen nach und nach, während die Synchronisierung läuft.</string>
 </resources>

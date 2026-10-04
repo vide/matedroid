@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.squareup.moshi.JsonClass
 
 /**
  * Aggregated data computed from drive detail positions.
@@ -27,6 +28,8 @@ import androidx.room.PrimaryKey
         Index(value = ["driveId"])
     ]
 )
+// Ships verbatim inside backup files, hence the Moshi adapter — see BackupSection.STATS.
+@JsonClass(generateAdapter = true)
 data class DriveDetailAggregate(
     @PrimaryKey
     val driveId: Int,

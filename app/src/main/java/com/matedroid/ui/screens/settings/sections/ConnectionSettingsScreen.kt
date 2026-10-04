@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -53,6 +54,7 @@ import com.matedroid.R
 import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.ui.screens.settings.ServerTestResult
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
+import com.matedroid.ui.screens.settings.SettingsLinkRow
 import com.matedroid.ui.screens.settings.SettingsPresetPicker
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
@@ -82,6 +84,7 @@ fun ConnectionSettingsScreen(
     isOnboarding: Boolean,
     onNavigateBack: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onRestoreBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,6 +111,7 @@ fun ConnectionSettingsScreen(
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack.takeIf { !isOnboarding },
         onTryDemo = { viewModel.enterDemoMode(onNavigateToDashboard) },
+        onRestoreBackup = onRestoreBackup,
         onExitDemo = { viewModel.exitDemoMode(onNavigateBack) },
         onServerUrlChange = viewModel::updateServerUrl,
         onSecondaryServerUrlChange = viewModel::updateSecondaryServerUrl,
@@ -136,6 +140,7 @@ private fun ConnectionSettingsContent(
     snackbarHostState: SnackbarHostState,
     onNavigateBack: (() -> Unit)?,
     onTryDemo: () -> Unit,
+    onRestoreBackup: () -> Unit,
     onExitDemo: () -> Unit,
     onServerUrlChange: (String) -> Unit,
     onSecondaryServerUrlChange: (String) -> Unit,
@@ -183,8 +188,28 @@ private fun ConnectionSettingsContent(
         )
 
         if (isOnboarding) {
-            SettingsSpacer(20)
-            DemoOfferCard(enabled = fieldsEnabled, onTryDemo = onTryDemo)
+            SettingsSpacer(12)
+            // Coming from another phone, the backup holds the server URL, so restoring it
+            // first fills most of this form in. It has to be reachable from here: with no
+            // server saved yet, the settings hub this would otherwise live in is skipped.
+            SettingsLinkRow(
+                title = stringResource(R.string.backup_restore_entry_title),
+                hint = stringResource(R.string.backup_restore_entry_hint),
+                icon = Icons.Filled.Restore,
+                onClick = onRestoreBackup
+            )
+            // The demo is for someone with nothing to connect to yet. Once there is a server
+            // in the form — typed in, or just restored from a backup — offering sample data
+            // only muddies the question of which data the app is showing.
+            if (uiState.serverUrl.isBlank()) {
+                SettingsLinkRow(
+                    title = stringResource(R.string.settings_demo_title),
+                    hint = stringResource(R.string.settings_demo_description),
+                    icon = Icons.Filled.Science,
+                    onClick = onTryDemo.takeIf { fieldsEnabled } ?: {},
+                    modifier = Modifier.testTag("tryDemoButton")
+                )
+            }
         }
 
         SettingsSpacer(24)
@@ -396,49 +421,6 @@ private fun ConnectionSettingsContent(
  * the bottom are off-screen on a small phone, and anyone who has nothing to enter has no
  * reason to scroll down to find them.
  */
-@Composable
-private fun DemoOfferCard(enabled: Boolean, onTryDemo: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Science,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.settings_demo_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            }
-            SettingsSpacer(8)
-            Text(
-                text = stringResource(R.string.settings_demo_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            SettingsSpacer(12)
-            Button(
-                onClick = onTryDemo,
-                enabled = enabled,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .testTag("tryDemoButton")
-            ) {
-                Text(stringResource(R.string.settings_demo_action))
-            }
-        }
-    }
-}
-
 /** Replaces the connection form while the sample dataset is in use. */
 @Composable
 private fun DemoModeActiveCard() {
@@ -676,6 +658,7 @@ private fun ConnectionSettingsPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -700,6 +683,7 @@ private fun ConnectionSettingsOnboardingPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = null,
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -724,6 +708,7 @@ private fun ConnectionSettingsDemoModePreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -757,6 +742,7 @@ private fun ConnectionSettingsWithResultPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},

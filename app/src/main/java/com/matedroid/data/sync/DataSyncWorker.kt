@@ -19,8 +19,13 @@ import java.util.concurrent.TimeUnit
 import com.matedroid.R
 import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.TeslamateRepository
+import com.matedroid.domain.model.SyncPhase
+import com.matedroid.domain.model.SyncProgress
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.launch
 
 /**
  * Background worker for syncing stats data from TeslamateApi.
@@ -43,6 +48,9 @@ class DataSyncWorker @AssistedInject constructor(
         const val TAG = "DataSyncWorker"
         const val WORK_NAME = "data_sync_work"
         const val NOTIFICATION_ID = 1001
+
+        /** How often the ongoing notification is allowed to redraw while a sync runs. */
+        private const val NOTIFICATION_INTERVAL_MS = 1_000L
         const val CHANNEL_ID = "sync_channel"
 
         /**
@@ -97,7 +105,9 @@ class DataSyncWorker @AssistedInject constructor(
         // Run as foreground service to prevent being killed when screen is off
         // This shows a persistent notification during sync
         // On Android 14+, this may fail if started from background
-        foregroundAvailable = trySetForeground("Starting sync...")
+        foregroundAvailable = trySetForeground(
+            applicationContext.getString(R.string.sync_notification_starting)
+        )
 
         try {
             // Get list of cars
@@ -134,9 +144,19 @@ class DataSyncWorker @AssistedInject constructor(
             for ((index, car) in cars.withIndex()) {
                 try {
                     // Update notification with current car (only if foreground available)
-                    trySetForeground("Syncing car ${index + 1}/${cars.size}...")
+                    trySetForeground(carHeadline(index, cars.size))
 
-                    val success = syncRepository.syncCar(car.carId)
+                    // Follow this car's progress for as long as it is syncing, so the
+                    // notification carries real numbers instead of sitting on one line for
+                    // the hours a first deep sync takes.
+                    val success = coroutineScope {
+                        val progressJob = launch { followProgress(car.carId) }
+                        try {
+                            syncRepository.syncCar(car.carId)
+                        } finally {
+                            progressJob.cancel()
+                        }
+                    }
                     if (!success) {
                         log("Sync incomplete for car ${car.carId}, will retry")
                         hasNetworkError = true
@@ -216,6 +236,57 @@ class DataSyncWorker @AssistedInject constructor(
      * Try to set foreground service. Returns true if successful, false otherwise.
      * On Android 14+, this may fail if the app is in the background.
      */
+    private fun carHeadline(index: Int, total: Int): String =
+        if (total > 1) {
+            applicationContext.getString(R.string.sync_notification_car, index + 1, total)
+        } else {
+            applicationContext.getString(R.string.sync_notification_starting)
+        }
+
+    /**
+     * Mirror one car's sync progress into the ongoing notification.
+     *
+     * Updates are coalesced to one a second. The deep sync reports after every drive, and
+     * redrawing the notification thousands of times costs more than it tells anyone — but a
+     * change of phase always goes through, since that is the part worth noticing.
+     */
+    private suspend fun followProgress(carId: Int) {
+        var lastShownAt = 0L
+        var lastPhase: SyncPhase? = null
+        syncManager.carProgress
+            .mapNotNull { it[carId] }
+            .collect { progress ->
+                val now = System.currentTimeMillis()
+                val phaseChanged = progress.phase != lastPhase
+                if (!phaseChanged && now - lastShownAt < NOTIFICATION_INTERVAL_MS) return@collect
+                lastShownAt = now
+                lastPhase = progress.phase
+                // A notification that will not post is no reason to fail a sync.
+                runCatching {
+                    foregroundNotifier.update(
+                        progressText(progress),
+                        progress.currentItem,
+                        progress.totalItems
+                    )
+                }
+            }
+    }
+
+    private fun progressText(progress: SyncProgress): String = when (progress.phase) {
+        SyncPhase.SYNCING_SUMMARIES ->
+            applicationContext.getString(R.string.sync_notification_summaries)
+
+        SyncPhase.SYNCING_DRIVE_DETAILS -> applicationContext.getString(
+            R.string.sync_notification_drives, progress.currentItem, progress.totalItems
+        )
+
+        SyncPhase.SYNCING_CHARGE_DETAILS -> applicationContext.getString(
+            R.string.sync_notification_charges, progress.currentItem, progress.totalItems
+        )
+
+        else -> applicationContext.getString(R.string.sync_notification_starting)
+    }
+
     private suspend fun trySetForeground(progress: String): Boolean {
         if (!foregroundAvailable) return false
         return try {
