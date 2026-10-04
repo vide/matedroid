@@ -51,7 +51,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.matedroid.BuildConfig
 import androidx.compose.ui.Alignment
@@ -93,8 +92,6 @@ fun StatsScreen(
     val palette = CarColorPalettes.forExteriorColor(exteriorColor, isDarkTheme)
     var showSyncLogsDialog by remember { mutableStateOf(false) }
 
-    // Selected records category (a RecordCategory name) - remembered across filter changes
-    var recordsSelectedCategory by rememberSaveable { mutableStateOf(RecordCategory.DRIVES.name) }
 
     // State for range record dialog
     var rangeRecordToShow by remember { mutableStateOf<MaxDistanceBetweenChargesRecord?>(null) }
@@ -225,8 +222,6 @@ fun StatsScreen(
                     palette = palette,
                     currencySymbol = uiState.currencySymbol,
                     units = uiState.units,
-                    recordsSelectedCategory = recordsSelectedCategory,
-                    onRecordsCategoryChanged = { recordsSelectedCategory = it },
                     onYearFilterSelected = { viewModel.setYearFilter(it) },
                     onNavigateToDriveDetail = onNavigateToDriveDetail,
                     onNavigateToChargeDetail = onNavigateToChargeDetail,
@@ -334,8 +329,6 @@ private fun StatsContent(
     palette: CarColorPalette,
     currencySymbol: String,
     units: Units?,
-    recordsSelectedCategory: String,
-    onRecordsCategoryChanged: (String) -> Unit,
     onYearFilterSelected: (YearFilter) -> Unit,
     onNavigateToDriveDetail: (Int) -> Unit,
     onNavigateToChargeDetail: (Int) -> Unit,
@@ -361,13 +354,7 @@ private fun StatsContent(
         onRangeRecordClick = onRangeRecordClick,
         onGapRecordClick = onGapRecordClick
     )
-    val recordCategories = remember(recordRows) { recordRows.categories() }
-    // The saved category may have no records under the current year filter: fall back to the
-    // first category that has some.
-    val savedCategory = RecordCategory.entries.firstOrNull { it.name == recordsSelectedCategory }
-    val selectedCategory = savedCategory?.takeIf { it in recordCategories }
-        ?: recordCategories.firstOrNull()
-        ?: RecordCategory.DRIVES
+    val shelves = remember(recordRows) { recordRows.shelves() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Year filter chips — pinned above the scrollable content
@@ -417,31 +404,25 @@ private fun StatsContent(
                 }
             }
 
-            item(key = "driving-summary") {
-                DrivingSummaryCard(
+            // The three headline records, side by side
+            if (recordRows.any { it.headline != null }) {
+                item(key = "headline-trophies") {
+                    HeadlineTrophies(rows = recordRows, palette = palette)
+                }
+            }
+
+            item(key = "plaque") {
+                StatsPlaque(
                     quickStats = stats.quickStats,
+                    deepStats = stats.deepStats,
                     palette = palette,
                     currencySymbol = currencySymbol,
                     units = units
                 )
             }
 
-            item(key = "charging-summary") {
-                ChargingSummaryCard(
-                    quickStats = stats.quickStats,
-                    deepStats = stats.deepStats,
-                    palette = palette,
-                    currencySymbol = currencySymbol
-                )
-            }
-
-            recordsSection(
-                rows = recordRows,
-                categories = recordCategories,
-                selectedCategory = selectedCategory,
-                palette = palette,
-                onCategorySelected = { onRecordsCategoryChanged(it.name) }
-            )
+            // Every other record, on its category shelf
+            trophyShelves(shelves = shelves, palette = palette)
         }
         // Progress indicator overlay at the top of the scrollable area
         if (isUpdating) {

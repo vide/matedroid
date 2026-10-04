@@ -1,23 +1,27 @@
 package com.matedroid.ui.screens.stats
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Thermostat
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,11 +29,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.data.local.entity.DriveSummary
@@ -39,37 +46,39 @@ import com.matedroid.domain.model.MaxDistanceBetweenChargesRecord
 import com.matedroid.domain.model.QuickStats
 import com.matedroid.domain.model.UnitFormatter
 import com.matedroid.domain.model.YearFilter
-import com.matedroid.ui.components.EditorialListItem
-import com.matedroid.ui.components.EditorialPill
-import com.matedroid.ui.icons.CustomIcons
 import com.matedroid.ui.screens.trips.extractCity
 import com.matedroid.ui.theme.CarColorPalette
-import com.matedroid.util.formatDurationCompact
 import com.matedroid.util.formatMedium
 import com.matedroid.util.formatMediumNoYear
 import com.matedroid.util.parseIsoDate
 import java.time.LocalDate
 import java.util.Locale
 
-/** The record categories, in the order their chips appear. */
+/** The record categories, in the order their shelves appear. */
 internal enum class RecordCategory { DRIVES, BATTERY, WEATHER, MISC }
 
-/** A supporting pill under a record's title; [highlighted] draws it accent-tinted. */
-internal data class RecordPill(val text: String, val highlighted: Boolean = false)
+/**
+ * The three records promoted to the big trophy cards at the top of the screen, in the order
+ * the cards appear. They are left off their category shelf.
+ */
+internal enum class HeadlineTrophy { TOP_SPEED, MOST_DISTANCE_DAY, BIGGEST_CHARGE }
 
-/** One record, fully resolved to display strings, rendered as an [EditorialListItem]. */
+/** One record, fully resolved to display strings. */
 internal data class RecordRow(
     val category: RecordCategory,
     val dateline: String,
     val title: String,
     val heroValue: String,
     val heroUnit: String,
-    val pills: List<RecordPill>,
-    val onClick: (() -> Unit)?
+    /** Optional context after the dateline: the route, the place, the battery from→to. */
+    val detail: String?,
+    val onClick: (() -> Unit)?,
+    val headline: HeadlineTrophy? = null
 )
 
 /**
- * Build every record row for the current stats. All string resources are resolved up front
+ * Build every record row for the current stats — the single place records are built, for
+ * both the headline cards and the shelves. All string resources are resolved up front
  * because the row list itself is a pure derivation computed inside [remember].
  */
 @Composable
@@ -142,12 +151,11 @@ internal fun rememberRecordRows(
             return "$startText – ${end.formatMedium(locale)}".uppercase(locale)
         }
         fun split(formatted: String) = UnitFormatter.splitValueUnit(formatted)
-        fun route(drive: DriveSummary): RecordPill? {
+        fun route(drive: DriveSummary): String? {
             if (drive.startAddress.isBlank() && drive.endAddress.isBlank()) return null
-            return RecordPill("${extractCity(drive.startAddress)} → ${extractCity(drive.endAddress)}")
+            return "${extractCity(drive.startAddress)} → ${extractCity(drive.endAddress)}"
         }
-        fun place(address: String): RecordPill? =
-            address.takeIf { it.isNotBlank() }?.let { RecordPill(extractCity(it)) }
+        fun place(address: String): String? = address.takeIf { it.isNotBlank() }?.let { extractCity(it) }
 
         val rows = mutableListOf<RecordRow>()
         fun add(
@@ -155,10 +163,14 @@ internal fun rememberRecordRows(
             dateline: String,
             title: String,
             hero: Pair<String, String>,
-            pills: List<RecordPill?> = emptyList(),
+            detail: String? = null,
+            headline: HeadlineTrophy? = null,
             onClick: (() -> Unit)?
         ) {
-            rows += RecordRow(category, dateline, title, hero.first, hero.second, pills.filterNotNull(), onClick)
+            rows += RecordRow(
+                category, dateline, title, hero.first, hero.second,
+                detail?.uppercase(locale), onClick, headline
+            )
         }
 
         // ===== Drives =====
@@ -167,33 +179,21 @@ internal fun rememberRecordRows(
             add(
                 drives, dateline(drive.startDate), labelLongestDrive,
                 split(UnitFormatter.formatDistance(drive.distance, units)),
-                listOf(
-                    route(drive),
-                    RecordPill(formatDurationCompact(drive.durationMin)),
-                    drive.efficiency?.let { RecordPill(UnitFormatter.formatEfficiency(it, units, 0)) }
-                )
+                route(drive)
             ) { onDriveClick(drive.driveId) }
         }
         quickStats.fastestDrive?.let { drive ->
             add(
                 drives, dateline(drive.startDate), labelTopSpeed,
                 split(UnitFormatter.formatSpeed(drive.speedMax.toDouble(), units)),
-                listOf(
-                    route(drive),
-                    RecordPill(formatDurationCompact(drive.durationMin)),
-                    RecordPill(UnitFormatter.formatDistance(drive.distance, units))
-                )
+                route(drive), HeadlineTrophy.TOP_SPEED
             ) { onDriveClick(drive.driveId) }
         }
         quickStats.mostEfficientDrive?.let { drive ->
             add(
                 drives, dateline(drive.startDate), labelMostEfficient,
                 split(UnitFormatter.formatEfficiency(drive.efficiency ?: 0.0, units, 0)),
-                listOf(
-                    route(drive),
-                    RecordPill(formatDurationCompact(drive.durationMin)),
-                    RecordPill(UnitFormatter.formatDistance(drive.distance, units))
-                )
+                route(drive)
             ) { onDriveClick(drive.driveId) }
         }
         quickStats.longestDrivingStreak?.let { streak ->
@@ -222,21 +222,21 @@ internal fun rememberRecordRows(
             add(
                 battery, dateline(record.date), labelBiggestGain,
                 "+${record.percentChange}" to "%",
-                listOf(RecordPill("${record.startLevel}→${record.endLevel}%", highlighted = true))
+                "${record.startLevel}→${record.endLevel}%"
             ) { onChargeClick(record.recordId) }
         }
         quickStats.biggestBatteryDrainDrive?.let { record ->
             add(
                 battery, dateline(record.date), labelBiggestDrain,
                 "-${record.percentChange}" to "%",
-                listOf(RecordPill("${record.startLevel}→${record.endLevel}%", highlighted = true))
+                "${record.startLevel}→${record.endLevel}%"
             ) { onDriveClick(record.recordId) }
         }
         quickStats.biggestCharge?.let { charge ->
             add(
                 battery, dateline(charge.startDate), labelBiggestCharge,
                 "%.1f".format(charge.energyAdded) to "kWh",
-                listOf(place(charge.address), RecordPill(formatDurationCompact(charge.durationMin)))
+                place(charge.address), HeadlineTrophy.BIGGEST_CHARGE
             ) { onChargeClick(charge.chargeId) }
         }
         deepStats?.chargeWithMaxPower?.let { record ->
@@ -250,7 +250,7 @@ internal fun rememberRecordRows(
                 add(
                     battery, dateline(charge.startDate), labelMostExpensive,
                     split(UnitFormatter.formatCost(cost, currencySymbol)),
-                    listOf(place(charge.address), RecordPill("+%.1f kWh".format(charge.energyAdded)))
+                    place(charge.address)
                 ) { onChargeClick(charge.chargeId) }
             }
         }
@@ -262,7 +262,7 @@ internal fun rememberRecordRows(
                     add(
                         battery, dateline(charge.startDate), labelPriciestKwh,
                         price.first to "${price.second}/kWh",
-                        listOf(place(charge.address))
+                        place(charge.address)
                     ) { onChargeClick(charge.chargeId) }
                 }
             }
@@ -344,7 +344,9 @@ internal fun rememberRecordRows(
         quickStats.mostDistanceDay?.let { day ->
             add(
                 misc, dateline(day.day), labelMostDistanceDay,
-                split(UnitFormatter.formatDistance(day.totalDistance, units))
+                // Whole units: the headline card has no room for a decimal
+                split(UnitFormatter.formatDistance(day.totalDistance, units, 0)),
+                headline = HeadlineTrophy.MOST_DISTANCE_DAY
             ) { onDayClick(day.day) }
         }
 
@@ -362,112 +364,152 @@ private fun toLocalDate(value: String?): LocalDate? {
         ?: runCatching { LocalDate.parse(value.take(10)) }.getOrNull()
 }
 
-/** The categories that have at least one record, in [RecordCategory] order. */
-internal fun List<RecordRow>.categories(): List<RecordCategory> {
-    val present = mapTo(HashSet()) { it.category }
-    return RecordCategory.entries.filter { it in present }
+/** The shelf records (headline records excluded), grouped by category in enum order. */
+internal fun List<RecordRow>.shelves(): List<Pair<RecordCategory, List<RecordRow>>> {
+    val shelfRows = filter { it.headline == null }
+    return RecordCategory.entries.mapNotNull { category ->
+        shelfRows.filter { it.category == category }.takeIf { it.isNotEmpty() }?.let { category to it }
+    }
 }
 
 /**
- * Emit the Records section into the stats list: the section header, the category chips and
- * one editorial row per record of [selectedCategory]. Nothing is emitted without records.
+ * Emit the trophy shelves into the stats list: per category with records, a header with
+ * the trophy count, then the trophies two per row, each row resting on a thin accent line.
  */
-internal fun LazyListScope.recordsSection(
-    rows: List<RecordRow>,
-    categories: List<RecordCategory>,
-    selectedCategory: RecordCategory,
-    palette: CarColorPalette,
-    onCategorySelected: (RecordCategory) -> Unit
+internal fun LazyListScope.trophyShelves(
+    shelves: List<Pair<RecordCategory, List<RecordRow>>>,
+    palette: CarColorPalette
 ) {
-    if (rows.isEmpty()) return
-
-    item(key = "records-header") {
-        Column {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = CustomIcons.Trophy,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = palette.accent
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.stats_records),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+    shelves.forEach { (category, rows) ->
+        item(key = "shelf-${category.name}") {
+            ShelfHeader(category = category, count = rows.size, palette = palette)
+        }
+        rows.chunked(2).forEachIndexed { index, pair ->
+            item(key = "shelf-${category.name}-$index") {
+                ShelfRow(rows = pair, palette = palette)
             }
         }
     }
+}
 
-    item(key = "records-chips") {
-        RecordCategoryChips(
-            categories = categories,
-            selected = selectedCategory,
-            palette = palette,
-            onSelected = onCategorySelected
+@Composable
+private fun ShelfHeader(category: RecordCategory, count: Int, palette: CarColorPalette) {
+    val locale = Locale.getDefault()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = category.icon(),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = palette.accent
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(category.labelRes()),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = pluralStringResource(R.plurals.stats_trophies_count, count, count).uppercase(locale),
+            style = capsStyle(10.sp, FontWeight.Bold, 1.2.sp),
+            color = palette.onSurfaceVariant
         )
     }
+}
 
-    items(rows.filter { it.category == selectedCategory }) { row ->
-        RecordItem(row = row, palette = palette)
+@Composable
+private fun ShelfRow(rows: List<RecordRow>, palette: CarColorPalette) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            rows.forEach { row ->
+                TrophyTile(row = row, palette = palette, modifier = Modifier.weight(1f).fillMaxHeight())
+            }
+            // An odd last trophy keeps half the width
+            if (rows.size == 1) Spacer(modifier = Modifier.weight(1f))
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        // The shelf the row of trophies rests on
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(palette.accent.copy(alpha = 0.20f))
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecordCategoryChips(
-    categories: List<RecordCategory>,
-    selected: RecordCategory,
-    palette: CarColorPalette,
-    onSelected: (RecordCategory) -> Unit
-) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(categories) { category ->
-            FilterChip(
-                selected = category == selected,
-                onClick = { onSelected(category) },
-                label = { Text(stringResource(category.labelRes())) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = category.icon(),
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = palette.surface,
-                    selectedLabelColor = palette.onSurface,
-                    selectedLeadingIconColor = palette.accent
+private fun TrophyTile(row: RecordRow, palette: CarColorPalette, modifier: Modifier = Modifier) {
+    val tappable = row.onClick != null
+    val locale = Locale.getDefault()
+    val background = if (tappable) {
+        palette.accent.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(background)
+            .then(if (row.onClick != null) Modifier.clickable(onClick = row.onClick) else Modifier)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = row.title.uppercase(locale),
+                style = capsStyle(10.sp, FontWeight.ExtraBold, 1.2.sp),
+                color = palette.accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = if (tappable) 16.dp else 0.dp)
+            )
+            Row {
+                Text(
+                    text = row.heroValue,
+                    style = capsStyle(20.sp, FontWeight.ExtraBold, (-0.6).sp),
+                    color = if (tappable) palette.accent else palette.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.alignByBaseline()
                 )
+                if (row.heroUnit.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = row.heroUnit.uppercase(locale),
+                        style = capsStyle(10.sp, FontWeight.Bold, 1.2.sp),
+                        color = if (tappable) palette.accent else palette.onSurfaceVariant,
+                        maxLines = 1,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                }
+            }
+            Text(
+                text = listOfNotNull(row.dateline, row.detail).joinToString(" · "),
+                style = capsStyle(9.5.sp, FontWeight.Bold, 1.sp),
+                color = palette.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-@Composable
-private fun RecordItem(row: RecordRow, palette: CarColorPalette) {
-    val accent = palette.accent
-    EditorialListItem(
-        accent = accent,
-        dateline = row.dateline,
-        title = row.title,
-        heroValue = row.heroValue,
-        heroUnit = row.heroUnit,
-        onClick = row.onClick
-    ) {
-        row.pills.forEach { pill ->
-            if (pill.highlighted) {
-                EditorialPill(
-                    text = pill.text,
-                    background = accent.copy(alpha = 0.12f),
-                    color = accent,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                EditorialPill(pill.text)
-            }
+        if (tappable) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(Alignment.TopEnd),
+                tint = palette.onSurfaceVariant
+            )
         }
     }
 }
