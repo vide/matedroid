@@ -86,7 +86,7 @@ fun EditorialListItem(
     title: String,
     heroValue: String,
     heroUnit: String,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     datelineTrailing: (@Composable RowScope.() -> Unit)? = null,
     pills: @Composable FlowRowScope.() -> Unit,
@@ -94,7 +94,7 @@ fun EditorialListItem(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
