@@ -156,4 +156,24 @@ object UnitFormatter {
      */
     fun formatCost(value: Double, symbol: String, perKwh: Boolean = false): String =
         if (perKwh) "%,.3f %s".format(value, symbol) else "%,.2f %s".format(value, symbol)
+
+    /**
+     * Split a string produced by one of the `format*` functions above into its number and
+     * its unit, for layouts that show them apart (e.g. a hero value with the unit beneath).
+     * Reusing the formatter output keeps number formatting and unit labels identical to the
+     * rest of the app.
+     *
+     * Examples:
+     *   "1,234 km"  → ("1,234", "km")
+     *   "38.20 €"   → ("38.20", "€")
+     *   "-3.5°C"    → ("-3.5", "°C")   (temperatures carry no space before the unit)
+     *   "42"        → ("42", "")
+     */
+    fun splitValueUnit(formatted: String): Pair<String, String> {
+        val s = formatted.trim()
+        val space = s.lastIndexOf(' ')
+        if (space >= 0) return s.substring(0, space) to s.substring(space + 1)
+        val unitStart = s.indexOfFirst { !(it.isDigit() || it in "+-\u2212.,'\u00A0\u202F") }
+        return if (unitStart <= 0) s to "" else s.substring(0, unitStart) to s.substring(unitStart)
+    }
 }

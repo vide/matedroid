@@ -693,8 +693,8 @@
     <!-- Geocode progress status. %1$d is processed count, %2$d is total count -->
     <string name="geocode_progress_status">%1$d von %2$d Orten</string>
 
-    <!-- Section: Drives Overview - summary statistics about all drives -->
-    <string name="stats_drives_overview">Übersicht Fahrten</string>
+    <!-- Title of the summary card with totals and averages over all drives (the act of driving, not a single drive) -->
+    <string name="stats_driving_summary">Fahren</string>
 
     <!-- Label for total number of drives -->
     <string name="stats_total_drives">Fahrten gesamt</string>
@@ -713,8 +713,8 @@
     <!-- Label for average cost per 100 km. %1$s is the distance unit (km or mi) -->
     <string name="stats_cost_per_distance">Kosten / 100 %1$s</string>
 
-    <!-- Section: Charges Overview - summary statistics about all charges -->
-    <string name="stats_charges_overview">Übersicht Ladevorgänge</string>
+    <!-- Title of the summary card with totals over all charges, including the AC/DC split (the act of charging) -->
+    <string name="stats_charging_summary">Laden</string>
 
     <!-- Label for total number of charge sessions -->
     <string name="stats_total_charges">Ladevorgänge gesamt</string>
@@ -793,6 +793,12 @@
     <!-- Record: charge session with lowest outside temperature -->
     <string name="record_coldest_charge">Kältester Ladevorgang</string>
 
+    <!-- Record: highest cabin (interior) temperature measured while driving -->
+    <string name="record_hottest_cabin">Wärmster Innenraum</string>
+
+    <!-- Record: lowest cabin (interior) temperature measured while driving -->
+    <string name="record_coldest_cabin">Kältester Innenraum</string>
+
     <!-- Record: longest distance traveled between two charges -->
     <string name="record_longest_range">Längste Strecke zwischen Ladungen</string>
 
@@ -808,35 +814,20 @@
     <!-- Format for streak duration. %d is number of days -->
     <string name="format_days">%.1f Tage</string>
 
-    <!-- Format for number of drives. %d is the count -->
-    <string name="format_drives_count">%d Fahrten</string>
+    <!-- Unit shown under a record's big number of days (e.g. "12" over "days"). Lowercase, no number -->
+    <string name="record_unit_days">Tage</string>
 
-    <!-- Section: Temperature extremes recorded while driving and charging -->
-    <string name="stats_temperature_extremes">Temperaturextreme</string>
+    <!-- Unit shown under a record's big number of drives (e.g. "9" over "drives"). Lowercase, no number -->
+    <string name="record_unit_drives">Fahrten</string>
 
-    <!-- Sub-section: temperatures recorded while driving -->
-    <string name="stats_while_driving">Während der Fahrt</string>
+    <!-- Unit shown under the big number of countries visited (e.g. "4" over "countries"). No number in the text -->
+    <plurals name="record_unit_countries">
+        <item quantity="one">Land</item>
+        <item quantity="other">Länder</item>
+    </plurals>
 
-    <!-- Label for highest temperature -->
-    <string name="stats_hottest">Wärmste</string>
-
-    <!-- Label for lowest temperature -->
-    <string name="stats_coldest">Kälteste</string>
-
-    <!-- Sub-section: cabin (interior) temperatures -->
-    <string name="stats_cabin_temperature">Innenraumtemperatur</string>
-
-    <!-- Section: ratio between AC and DC charging -->
-    <string name="stats_ac_dc_ratio">Verhältnis AC/DC-Ladung</string>
-
-    <!-- Label for energy charged via AC -->
-    <string name="stats_ac_energy">AC-Energie</string>
-
-    <!-- Label for energy charged via DC -->
-    <string name="stats_dc_energy">DC-Energie</string>
-
-    <!-- Format for number of charge sessions. %d is the count -->
-    <string name="format_charges_count">%d Ladevorgänge</string>
+    <!-- Format for number of charge sessions. %,d is the count with thousands separator -->
+    <string name="format_charges_count">%,d Ladevorgänge</string>
 
     <!-- Debug dialog title for viewing sync logs -->
     <string name="stats_sync_logs_title">Synchronisierungsprotokolle</string>
@@ -868,12 +859,6 @@
     <!-- ==================== Countries Visited Screen ==================== -->
     <!-- Top bar title for countries visited screen -->
     <string name="countries_visited_title">Besuchte Länder</string>
-
-    <!-- Plural for number of countries. %d is the count -->
-    <plurals name="format_countries_count">
-        <item quantity="one">%d Land</item>
-        <item quantity="other">%d Länder</item>
-    </plurals>
 
     <!-- Label for first visit date to a country. %s is the formatted date -->
     <string name="country_first_visit">Erster Besuch: %s</string>
