@@ -825,8 +825,8 @@
         <item quantity="other">paesi</item>
     </plurals>
 
-    <!-- Format for number of charge sessions. %d is the count -->
-    <string name="format_charges_count">%d ricariche</string>
+    <!-- Format for number of charge sessions. %,d is the count with thousands separator -->
+    <string name="format_charges_count">%,d ricariche</string>
 
     <!-- Debug dialog title for viewing sync logs -->
     <string name="stats_sync_logs_title">Log Sincronizzazione</string>

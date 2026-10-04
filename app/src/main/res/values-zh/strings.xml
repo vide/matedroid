@@ -824,8 +824,8 @@
         <item quantity="other">个国家</item>
     </plurals>
 
-    <!-- Format for number of charge sessions. %d is the count -->
-    <string name="format_charges_count">%d 次充电</string>
+    <!-- Format for number of charge sessions. %,d is the count with thousands separator -->
+    <string name="format_charges_count">%,d 次充电</string>
 
     <!-- Debug dialog title for viewing sync logs -->
     <string name="stats_sync_logs_title">同步日志</string>

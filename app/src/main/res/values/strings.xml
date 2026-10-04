@@ -845,8 +845,8 @@
         <item quantity="other">countries</item>
     </plurals>
 
-    <!-- Format for number of charge sessions. %d is the count -->
-    <string name="format_charges_count">%d charges</string>
+    <!-- Format for number of charge sessions. %,d is the count with thousands separator -->
+    <string name="format_charges_count">%,d charges</string>
 
     <!-- Debug dialog title for viewing sync logs -->
     <string name="stats_sync_logs_title">Sync Logs</string>
