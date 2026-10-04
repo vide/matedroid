@@ -1,0 +1,344 @@
+{
+  "header": {
+    "format": 1,
+    "exportedAt": 1791105002700,
+    "appVersionName": "1.11.3",
+    "appVersionCode": 178982387,
+    "databaseVersion": 13,
+    "sections": [
+      "trips",
+      "settings",
+      "sentry",
+      "places",
+      "tripMaps",
+      "stats"
+    ],
+    "cars": [
+      {
+        "carId": 1,
+        "vin": "VIN-CURRENT-A",
+        "name": "Current Alpha"
+      },
+      {
+        "carId": 2,
+        "vin": "VIN-CURRENT-B",
+        "name": "Current Beta"
+      }
+    ]
+  },
+  "settings": {
+    "serverUrl": "https://teslamate.current.example",
+    "secondaryServerUrl": "",
+    "teslamateBaseUrl": "",
+    "acceptInvalidCerts": false,
+    "connectTimeoutSeconds": 0,
+    "currencyCode": "GBP",
+    "costPerKwhBasis": "added",
+    "isImperial": false,
+    "showShortDrivesCharges": false,
+    "shortDriveMinDurationMin": 1,
+    "shortDriveMinDistance": 1.0,
+    "shortChargeMinEnergyKwh": 0.1,
+    "highSocWarningThreshold": 90,
+    "lowSocWarningThreshold": 20,
+    "carImageOverrides": {}
+  },
+  "trips": [
+    {
+      "carId": 1,
+      "name": "Current fixture trip",
+      "source": "USER_MERGED",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000100000,
+      "legs": [
+        {
+          "type": "DRIVE",
+          "id": 10,
+          "position": 0,
+          "startDate": "2026-04-01T08:00:00Z"
+        },
+        {
+          "type": "CHARGE",
+          "id": 30,
+          "position": 1,
+          "startDate": "2026-04-01T12:00:00Z"
+        },
+        {
+          "type": "DRIVE",
+          "id": 11,
+          "position": 2,
+          "startDate": "2026-04-02T08:00:00Z"
+        }
+      ],
+      "consumedFingerprints": [
+        "current-fingerprint"
+      ]
+    }
+  ],
+  "sentryEvents": [
+    {
+      "carId": 1,
+      "detectedAt": 1700100000000,
+      "sessionStartedAt": 1
+    },
+    {
+      "carId": 1,
+      "detectedAt": 1700100600000,
+      "sessionStartedAt": 1
+    },
+    {
+      "carId": 2,
+      "detectedAt": 1700101200000,
+      "sessionStartedAt": 1
+    }
+  ],
+  "places": [
+    {
+      "gridLat": 4190,
+      "gridLon": 310,
+      "countryCode": "ES",
+      "countryName": "Spain",
+      "regionName": "Catalonia",
+      "city": "Pals",
+      "cachedAt": 1
+    },
+    {
+      "gridLat": 4885,
+      "gridLon": 235,
+      "countryCode": "FR",
+      "countryName": "France",
+      "regionName": "Ile-de-France",
+      "city": "Paris",
+      "cachedAt": 1
+    }
+  ],
+  "tripRoutes": [
+    {
+      "tripKey": "current-trip-key",
+      "segmentIndex": 0,
+      "points": "AAAAAAAAAAAAAAAAAAAAAA==",
+      "createdAt": 1
+    }
+  ],
+  "tripCountries": [
+    {
+      "tripKey": "current-trip-key",
+      "countries": "ES,FR",
+      "createdAt": 1
+    }
+  ],
+  "stats": {
+    "syncStates": [
+      {
+        "carId": 1,
+        "lastDriveSyncAt": 0,
+        "lastChargeSyncAt": 0,
+        "lastFullSummarySyncAt": 0,
+        "lastDriveDetailId": 0,
+        "lastChargeDetailId": 0,
+        "detailSchemaVersion": 6,
+        "totalDrivesToProcess": 0,
+        "totalChargesToProcess": 0,
+        "drivesProcessed": 0,
+        "chargesProcessed": 0,
+        "summariesSynced": true,
+        "detailsSynced": false
+      },
+      {
+        "carId": 2,
+        "lastDriveSyncAt": 0,
+        "lastChargeSyncAt": 0,
+        "lastFullSummarySyncAt": 0,
+        "lastDriveDetailId": 0,
+        "lastChargeDetailId": 0,
+        "detailSchemaVersion": 6,
+        "totalDrivesToProcess": 0,
+        "totalChargesToProcess": 0,
+        "drivesProcessed": 0,
+        "chargesProcessed": 0,
+        "summariesSynced": true,
+        "detailsSynced": false
+      }
+    ],
+    "drives": [
+      {
+        "driveId": 10,
+        "carId": 1,
+        "startDate": "2026-04-01T08:00:00Z",
+        "endDate": "2026-04-01T08:00:00Z",
+        "durationMin": 45,
+        "startAddress": "Start 10",
+        "endAddress": "End 10",
+        "distance": 60.0,
+        "speedMax": 110,
+        "speedAvg": 70,
+        "powerMax": 120,
+        "powerMin": -30,
+        "startBatteryLevel": 85,
+        "endBatteryLevel": 65,
+        "outsideTempAvg": 17.0,
+        "insideTempAvg": 21.0,
+        "energyConsumed": 11.0,
+        "efficiency": 183.0
+      },
+      {
+        "driveId": 11,
+        "carId": 1,
+        "startDate": "2026-04-02T08:00:00Z",
+        "endDate": "2026-04-02T08:00:00Z",
+        "durationMin": 45,
+        "startAddress": "Start 11",
+        "endAddress": "End 11",
+        "distance": 60.0,
+        "speedMax": 110,
+        "speedAvg": 70,
+        "powerMax": 120,
+        "powerMin": -30,
+        "startBatteryLevel": 85,
+        "endBatteryLevel": 65,
+        "outsideTempAvg": 17.0,
+        "insideTempAvg": 21.0,
+        "energyConsumed": 11.0,
+        "efficiency": 183.0
+      },
+      {
+        "driveId": 20,
+        "carId": 2,
+        "startDate": "2026-04-03T08:00:00Z",
+        "endDate": "2026-04-03T08:00:00Z",
+        "durationMin": 45,
+        "startAddress": "Start 20",
+        "endAddress": "End 20",
+        "distance": 60.0,
+        "speedMax": 110,
+        "speedAvg": 70,
+        "powerMax": 120,
+        "powerMin": -30,
+        "startBatteryLevel": 85,
+        "endBatteryLevel": 65,
+        "outsideTempAvg": 17.0,
+        "insideTempAvg": 21.0,
+        "energyConsumed": 11.0,
+        "efficiency": 183.0
+      }
+    ],
+    "charges": [
+      {
+        "chargeId": 30,
+        "carId": 1,
+        "startDate": "2026-04-01T12:00:00Z",
+        "endDate": "2026-04-01T12:00:00Z",
+        "durationMin": 40,
+        "address": "Charger 30",
+        "latitude": 41.5,
+        "longitude": 2.5,
+        "energyAdded": 30.0,
+        "energyUsed": 32.0,
+        "cost": 9.5,
+        "startBatteryLevel": 25,
+        "endBatteryLevel": 80,
+        "outsideTempAvg": 16.0,
+        "odometer": 54321.0
+      },
+      {
+        "chargeId": 31,
+        "carId": 2,
+        "startDate": "2026-04-03T12:00:00Z",
+        "endDate": "2026-04-03T12:00:00Z",
+        "durationMin": 40,
+        "address": "Charger 31",
+        "latitude": 41.5,
+        "longitude": 2.5,
+        "energyAdded": 30.0,
+        "energyUsed": 32.0,
+        "cost": 9.5,
+        "startBatteryLevel": 25,
+        "endBatteryLevel": 80,
+        "outsideTempAvg": 16.0,
+        "odometer": 54321.0
+      }
+    ],
+    "driveAggregates": [
+      {
+        "driveId": 10,
+        "carId": 1,
+        "schemaVersion": 1,
+        "computedAt": 1700000000000,
+        "maxElevation": 400,
+        "minElevation": 10,
+        "startElevation": 20,
+        "endElevation": 390,
+        "elevationGain": 380,
+        "elevationLoss": 10,
+        "hasElevationData": true,
+        "maxInsideTemp": 22.0,
+        "minInsideTemp": 19.0,
+        "maxOutsideTemp": 18.0,
+        "minOutsideTemp": 12.0,
+        "maxPower": 120,
+        "minPower": -30,
+        "climateOnPositions": 100,
+        "positionCount": 250
+      },
+      {
+        "driveId": 11,
+        "carId": 1,
+        "schemaVersion": 1,
+        "computedAt": 1700000000000,
+        "maxElevation": 400,
+        "minElevation": 10,
+        "startElevation": 20,
+        "endElevation": 390,
+        "elevationGain": 380,
+        "elevationLoss": 10,
+        "hasElevationData": true,
+        "maxInsideTemp": 22.0,
+        "minInsideTemp": 19.0,
+        "maxOutsideTemp": 18.0,
+        "minOutsideTemp": 12.0,
+        "maxPower": 120,
+        "minPower": -30,
+        "climateOnPositions": 100,
+        "positionCount": 250
+      },
+      {
+        "driveId": 20,
+        "carId": 2,
+        "schemaVersion": 1,
+        "computedAt": 1700000000000,
+        "maxElevation": 400,
+        "minElevation": 10,
+        "startElevation": 20,
+        "endElevation": 390,
+        "elevationGain": 380,
+        "elevationLoss": 10,
+        "hasElevationData": true,
+        "maxInsideTemp": 22.0,
+        "minInsideTemp": 19.0,
+        "maxOutsideTemp": 18.0,
+        "minOutsideTemp": 12.0,
+        "maxPower": 120,
+        "minPower": -30,
+        "climateOnPositions": 100,
+        "positionCount": 250
+      }
+    ],
+    "chargeAggregates": [
+      {
+        "chargeId": 30,
+        "carId": 1,
+        "schemaVersion": 1,
+        "computedAt": 1700000000000,
+        "isFastCharger": true,
+        "fastChargerBrand": "Tesla",
+        "connectorType": "CCS",
+        "maxChargerPower": 150,
+        "maxChargerVoltage": 400,
+        "maxChargerCurrent": 375,
+        "maxOutsideTemp": 18.0,
+        "minOutsideTemp": 14.0,
+        "chargePointCount": 60
+      }
+    ]
+  }
+}
