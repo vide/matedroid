@@ -1676,4 +1676,10 @@
     <!-- Fallback name for a car the app has never seen on the server; %1$d is its id -->
     <string name="backup_car_unnamed">Car %1$d</string>
     <string name="backup_car_no_vin">No VIN recorded</string>
+
+    <!-- Restore entry point on the first-run setup screen -->
+    <string name="backup_restore_entry_title">Restore a backup</string>
+    <string name="backup_restore_entry_hint">Coming from another phone? Bring back your trips, sentry alerts and settings.</string>
+    <!-- Intro on the backup screen during first-run setup, where there is nothing to save yet -->
+    <string name="backup_onboarding_intro">Pick the backup file from your other phone. It brings back your saved trips, your sentry alerts and the way you had the app set up — everything except the API token, which a backup never holds.</string>
 </resources>

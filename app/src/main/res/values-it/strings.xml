@@ -1503,4 +1503,8 @@
     <string name="backup_cars_hint">I viaggi, gli avvisi Sentinella e i tragitti vengono salvati per le auto che selezioni.</string>
     <string name="backup_car_unnamed">Auto %1$d</string>
     <string name="backup_car_no_vin">Nessun VIN registrato</string>
+
+    <string name="backup_restore_entry_title">Ripristina un backup</string>
+    <string name="backup_restore_entry_hint">Vieni da un altro telefono? Recupera viaggi, avvisi Sentinella e impostazioni.</string>
+    <string name="backup_onboarding_intro">Scegli il file di backup dell\'altro telefono. Riporta i viaggi salvati, gli avvisi Sentinella e il modo in cui avevi configurato l\'app: tutto tranne il token API, che in un backup non c\'è mai.</string>
 </resources>

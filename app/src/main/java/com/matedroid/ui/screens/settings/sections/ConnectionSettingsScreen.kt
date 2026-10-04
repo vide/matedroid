@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -53,6 +54,7 @@ import com.matedroid.R
 import com.matedroid.domain.ConnectionTimeout
 import com.matedroid.ui.screens.settings.ServerTestResult
 import com.matedroid.ui.screens.settings.SettingsGroupHeader
+import com.matedroid.ui.screens.settings.SettingsLinkRow
 import com.matedroid.ui.screens.settings.SettingsPresetPicker
 import com.matedroid.ui.screens.settings.SettingsSectionScaffold
 import com.matedroid.ui.screens.settings.SettingsSpacer
@@ -82,6 +84,7 @@ fun ConnectionSettingsScreen(
     isOnboarding: Boolean,
     onNavigateBack: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    onRestoreBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,6 +111,7 @@ fun ConnectionSettingsScreen(
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack.takeIf { !isOnboarding },
         onTryDemo = { viewModel.enterDemoMode(onNavigateToDashboard) },
+        onRestoreBackup = onRestoreBackup,
         onExitDemo = { viewModel.exitDemoMode(onNavigateBack) },
         onServerUrlChange = viewModel::updateServerUrl,
         onSecondaryServerUrlChange = viewModel::updateSecondaryServerUrl,
@@ -136,6 +140,7 @@ private fun ConnectionSettingsContent(
     snackbarHostState: SnackbarHostState,
     onNavigateBack: (() -> Unit)?,
     onTryDemo: () -> Unit,
+    onRestoreBackup: () -> Unit,
     onExitDemo: () -> Unit,
     onServerUrlChange: (String) -> Unit,
     onSecondaryServerUrlChange: (String) -> Unit,
@@ -185,6 +190,16 @@ private fun ConnectionSettingsContent(
         if (isOnboarding) {
             SettingsSpacer(20)
             DemoOfferCard(enabled = fieldsEnabled, onTryDemo = onTryDemo)
+            // Coming from another phone, the backup holds the server URL, so restoring it
+            // first fills most of this form in. It has to be reachable from here: with no
+            // server saved yet, the settings hub this would otherwise live in is skipped.
+            SettingsSpacer(4)
+            SettingsLinkRow(
+                title = stringResource(R.string.backup_restore_entry_title),
+                hint = stringResource(R.string.backup_restore_entry_hint),
+                icon = Icons.Filled.Restore,
+                onClick = onRestoreBackup
+            )
         }
 
         SettingsSpacer(24)
@@ -676,6 +691,7 @@ private fun ConnectionSettingsPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -700,6 +716,7 @@ private fun ConnectionSettingsOnboardingPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = null,
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -724,6 +741,7 @@ private fun ConnectionSettingsDemoModePreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},
@@ -757,6 +775,7 @@ private fun ConnectionSettingsWithResultPreview() {
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onTryDemo = {},
+            onRestoreBackup = {},
             onExitDemo = {},
             onServerUrlChange = {},
             onSecondaryServerUrlChange = {},

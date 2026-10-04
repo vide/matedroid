@@ -75,6 +75,8 @@ import java.time.format.FormatStyle
 @Composable
 fun BackupSettingsScreen(
     onNavigateBack: () -> Unit,
+    isOnboarding: Boolean = false,
+    onRestoreFinished: () -> Unit = {},
     viewModel: BackupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -104,6 +106,7 @@ fun BackupSettingsScreen(
 
     BackupSettingsContent(
         state = uiState,
+        isOnboarding = isOnboarding,
         snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         onToggleExportSection = viewModel::toggleExportSection,
@@ -115,13 +118,19 @@ fun BackupSettingsScreen(
         onImportModeChange = viewModel::setImportMode,
         onRestore = viewModel::restore,
         onDismissPreview = viewModel::dismissPreview,
-        onDismissReport = viewModel::dismissReport
+        onDismissReport = {
+            viewModel.dismissReport()
+            // During setup the form that sent us here is holding a copy of the settings
+            // from before the restore, so it has to be rebuilt rather than returned to.
+            if (isOnboarding) onRestoreFinished()
+        }
     )
 }
 
 @Composable
 private fun BackupSettingsContent(
     state: BackupUiState,
+    isOnboarding: Boolean,
     snackbarHostState: SnackbarHostState,
     onNavigateBack: () -> Unit,
     onToggleExportSection: (BackupSection) -> Unit,
@@ -141,88 +150,27 @@ private fun BackupSettingsContent(
         snackbarHostState = snackbarHostState
     ) {
         Text(
-            text = stringResource(R.string.backup_intro),
+            text = stringResource(
+                if (isOnboarding) R.string.backup_onboarding_intro else R.string.backup_intro
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // A phone being set up has nothing of its own to save yet, so the whole export half
+        // is left out rather than offered empty.
+        if (!isOnboarding) {
+            ExportBlock(
+                state = state,
+                onToggleExportSection = onToggleExportSection,
+                onToggleExportCar = onToggleExportCar,
+                onExport = onExport
+            )
+            SettingsSpacer(32)
+            HorizontalDivider()
+        }
+
         SettingsSpacer(24)
-        SettingsGroupHeader(stringResource(R.string.backup_export_header))
-        Text(
-            text = stringResource(R.string.backup_export_always),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        if (state.cars.isNotEmpty()) {
-            SettingsSpacer(20)
-            SettingsGroupHeader(stringResource(R.string.backup_cars_header))
-            Text(
-                text = stringResource(R.string.backup_cars_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            SettingsSpacer(8)
-            state.cars.forEach { car ->
-                SettingsSwitchRow(
-                    title = car.displayName(),
-                    hint = car.vinLine(),
-                    checked = car.carId in state.exportCarIds,
-                    onCheckedChange = { onToggleExportCar(car.carId) }
-                )
-            }
-        }
-
-        SettingsSpacer(20)
-        BackupSection.optional.forEach { section ->
-            SettingsSwitchRow(
-                title = stringResource(section.titleRes()),
-                hint = stringResource(section.hintRes()),
-                checked = section in state.exportSelection,
-                onCheckedChange = { onToggleExportSection(section) },
-                trailingTitleContent = { CountBadge(state.counts.of(section)) }
-            )
-        }
-
-        SettingsSpacer(8)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.Lock,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.backup_export_no_secrets),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        SettingsSpacer(16)
-        Button(
-            onClick = onExport,
-            enabled = !state.isExporting,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (state.isExporting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(stringResource(R.string.backup_export_preparing))
-            } else {
-                Text(stringResource(R.string.backup_export_button))
-            }
-        }
-
-        SettingsSpacer(32)
-        HorizontalDivider()
-        SettingsSpacer(24)
-
         SettingsGroupHeader(stringResource(R.string.backup_import_header))
         Text(
             text = stringResource(R.string.backup_import_hint),
@@ -264,6 +212,90 @@ private fun BackupSettingsContent(
     state.report?.let { report ->
         ImportReportDialog(report = report, onDismiss = onDismissReport)
     }
+}
+
+/** Everything that goes into writing a file: which cars, which sections, and the button. */
+@Composable
+private fun ColumnScope.ExportBlock(
+    state: BackupUiState,
+    onToggleExportSection: (BackupSection) -> Unit,
+    onToggleExportCar: (Int) -> Unit,
+    onExport: () -> Unit
+) {
+    SettingsSpacer(24)
+    SettingsGroupHeader(stringResource(R.string.backup_export_header))
+    Text(
+        text = stringResource(R.string.backup_export_always),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    if (state.cars.isNotEmpty()) {
+        SettingsSpacer(20)
+        SettingsGroupHeader(stringResource(R.string.backup_cars_header))
+        Text(
+            text = stringResource(R.string.backup_cars_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        SettingsSpacer(8)
+        state.cars.forEach { car ->
+            SettingsSwitchRow(
+                title = car.displayName(),
+                hint = car.vinLine(),
+                checked = car.carId in state.exportCarIds,
+                onCheckedChange = { onToggleExportCar(car.carId) }
+            )
+        }
+    }
+
+    SettingsSpacer(20)
+    BackupSection.optional.forEach { section ->
+        SettingsSwitchRow(
+            title = stringResource(section.titleRes()),
+            hint = stringResource(section.hintRes()),
+            checked = section in state.exportSelection,
+            onCheckedChange = { onToggleExportSection(section) },
+            trailingTitleContent = { CountBadge(state.counts.of(section)) }
+        )
+    }
+
+    SettingsSpacer(8)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Filled.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.backup_export_no_secrets),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
+    SettingsSpacer(16)
+    Button(
+        onClick = onExport,
+        enabled = !state.isExporting,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (state.isExporting) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(stringResource(R.string.backup_export_preparing))
+        } else {
+            Text(stringResource(R.string.backup_export_button))
+        }
+    }
+
+    SettingsSpacer(32)
 }
 
 /** How much of a section there is, tucked next to its name. Hidden when there is none. */
@@ -605,6 +637,7 @@ private fun BackupSettingsPreview() {
                     drivesAndCharges = 12340
                 )
             ),
+            isOnboarding = false,
             snackbarHostState = remember { SnackbarHostState() },
             onNavigateBack = {},
             onToggleExportSection = {},

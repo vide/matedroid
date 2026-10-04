@@ -1503,4 +1503,8 @@
     <string name="backup_cars_hint">Los viajes, los avisos de Centinela y los trayectos se guardan para los coches que marques.</string>
     <string name="backup_car_unnamed">Coche %1$d</string>
     <string name="backup_car_no_vin">Sin VIN registrado</string>
+
+    <string name="backup_restore_entry_title">Restaurar una copia de seguridad</string>
+    <string name="backup_restore_entry_hint">¿Vienes de otro teléfono? Recupera tus viajes, los avisos de Centinela y los ajustes.</string>
+    <string name="backup_onboarding_intro">Elige el archivo de copia de seguridad del otro teléfono. Devuelve tus viajes guardados, los avisos de Centinela y cómo tenías configurada la app: todo menos el token API, que nunca va en una copia.</string>
 </resources>

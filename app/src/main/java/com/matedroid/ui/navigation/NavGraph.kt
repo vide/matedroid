@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -236,6 +237,14 @@ fun NavGraph(
                         navController.navigate(Screen.Dashboard) {
                             popUpTo<Screen.SettingsSection> { inclusive = true }
                         }
+                    },
+                    onRestoreBackup = {
+                        navController.navigate(
+                            Screen.SettingsSection(
+                                sectionId = SettingsSection.BACKUP.id,
+                                onboarding = route.onboarding
+                            )
+                        )
                     }
                 )
 
@@ -245,7 +254,28 @@ fun NavGraph(
 
                 SettingsSection.DATA -> DataSyncSettingsScreen(onNavigateBack = onBack)
 
-                SettingsSection.BACKUP -> BackupSettingsScreen(onNavigateBack = onBack)
+                SettingsSection.BACKUP -> BackupSettingsScreen(
+                    onNavigateBack = onBack,
+                    isOnboarding = route.onboarding,
+                    onRestoreFinished = {
+                        // Start setup over on a brand new entry: the connection form reads
+                        // the stored settings once, when its view model is created, so the
+                        // server URL a restore just wrote only shows up on a fresh one.
+                        // Clearing the whole graph is deliberate — both this page and the
+                        // form it came from are the same destination, and popping up to it
+                        // would only reach the nearest of the two.
+                        navController.navigate(
+                            Screen.SettingsSection(
+                                sectionId = SettingsSection.CONNECTION.id,
+                                onboarding = true
+                            )
+                        ) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
 
                 SettingsSection.ABOUT -> AboutSettingsScreen(onNavigateBack = onBack)
 

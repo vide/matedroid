@@ -1503,4 +1503,8 @@
     <string name="backup_cars_hint">Els viatges, els avisos de Sentinella i els trajectes es desen per als cotxes que marquis.</string>
     <string name="backup_car_unnamed">Cotxe %1$d</string>
     <string name="backup_car_no_vin">Sense VIN registrat</string>
+
+    <string name="backup_restore_entry_title">Restaura una còpia de seguretat</string>
+    <string name="backup_restore_entry_hint">Véns d\'un altre telèfon? Recupera els viatges, els avisos de Sentinella i la configuració.</string>
+    <string name="backup_onboarding_intro">Tria el fitxer de còpia de seguretat de l\'altre telèfon. Et torna els viatges desats, els avisos de Sentinella i com tenies configurada l\'aplicació: tot menys el token API, que mai no va en una còpia.</string>
 </resources>

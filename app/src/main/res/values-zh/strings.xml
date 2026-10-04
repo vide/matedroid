@@ -1522,4 +1522,8 @@
     <string name="backup_cars_hint">旅程、哨兵警报和行程会为你勾选的车辆保存。</string>
     <string name="backup_car_unnamed">车辆 %1$d</string>
     <string name="backup_car_no_vin">未记录 VIN</string>
+
+    <string name="backup_restore_entry_title">恢复备份</string>
+    <string name="backup_restore_entry_hint">换了手机？把旅程、哨兵警报和设置都带回来。</string>
+    <string name="backup_onboarding_intro">选择另一部手机上的备份文件。它会带回你保存的旅程、哨兵警报和应用设置——除了 API 令牌，备份里从不包含它。</string>
 </resources>

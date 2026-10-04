@@ -1618,4 +1618,8 @@
     <string name="backup_cars_hint">Trips, Sentry-Warnungen und Fahrten werden für die angehakten Autos gesichert.</string>
     <string name="backup_car_unnamed">Auto %1$d</string>
     <string name="backup_car_no_vin">Keine VIN hinterlegt</string>
+
+    <string name="backup_restore_entry_title">Backup zurückholen</string>
+    <string name="backup_restore_entry_hint">Kommst du von einem anderen Telefon? Hol dir Trips, Sentry-Warnungen und Einstellungen zurück.</string>
+    <string name="backup_onboarding_intro">Wähle die Backup-Datei deines anderen Telefons. Sie holt die gespeicherten Trips, die Sentry-Warnungen und deine Einstellungen zurück — alles außer dem API-Token, das nie in einem Backup steckt.</string>
 </resources>
