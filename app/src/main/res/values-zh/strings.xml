@@ -628,8 +628,7 @@
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">当前状态</string>
 
-    <!-- Battery health info dialog -->
-    <string name="estimated_degradation_title">预估衰减</string>
+    <!-- Battery health info dialog (its title is battery_health_estimated) -->
     <string name="estimated_degradation_message">电池健康度由 Teslamate 根据你的充电数据估算。\n\n• 健康度：当前可用容量除以新车时的可用容量\n• 损失：两者之差，以 kWh 和额定续航表示\n• 额定能耗：Tesla 用于将 kWh 换算为额定续航的能耗\n\n注意：Tesla 未公布官方衰减数据，因此这只是估算值。</string>
 
     <!-- %d is the percentage of usable battery -->

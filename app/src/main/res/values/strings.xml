@@ -650,8 +650,7 @@
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Right now</string>
 
-    <!-- Battery health info dialog -->
-    <string name="estimated_degradation_title">Estimated Degradation</string>
+    <!-- Battery health info dialog (its title is battery_health_estimated) -->
     <string name="estimated_degradation_message">Battery health is estimated by Teslamate from your charging data.\n\n• Health: usable capacity now divided by the usable capacity when the car was new\n• Lost: the difference between the two, in kWh and in rated range\n• Rated efficiency: the consumption Tesla uses to turn kWh into rated range\n\nNote: Tesla publishes no official degradation figure, so this is an estimate.</string>
 
     <!-- %d is the percentage of usable battery -->

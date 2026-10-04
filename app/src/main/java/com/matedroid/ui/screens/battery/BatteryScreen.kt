@@ -177,7 +177,7 @@ private fun BatteryHeroSection(
     var showInfo by remember { mutableStateOf(false) }
     if (showInfo) {
         InfoDialog(
-            title = stringResource(R.string.estimated_degradation_title),
+            title = stringResource(R.string.battery_health_estimated),
             message = stringResource(R.string.estimated_degradation_message),
             onDismiss = { showInfo = false }
         )

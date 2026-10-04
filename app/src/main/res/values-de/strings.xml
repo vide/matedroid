@@ -629,8 +629,7 @@
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Aktuell</string>
 
-    <!-- Battery health info dialog -->
-    <string name="estimated_degradation_title">Geschätzte Degradation</string>
+    <!-- Battery health info dialog (its title is battery_health_estimated) -->
     <string name="estimated_degradation_message">Der Batteriezustand wird von Teslamate anhand deiner Ladedaten geschätzt.\n\n• Zustand: aktuelle nutzbare Kapazität geteilt durch die nutzbare Kapazität im Neuzustand\n• Verlust: die Differenz zwischen beiden, in kWh und in nominaler Reichweite\n• Nennverbrauch: der Verbrauch, mit dem Tesla kWh in nominale Reichweite umrechnet\n\nHinweis: Tesla veröffentlicht keinen offiziellen Degradationswert, daher ist dies eine Schätzung.</string>
 
     <!-- %d is the percentage of usable battery -->

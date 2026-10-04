@@ -628,8 +628,7 @@
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Ahora mismo</string>
 
-    <!-- Battery health info dialog -->
-    <string name="estimated_degradation_title">Degradación Estimada</string>
+    <!-- Battery health info dialog (its title is battery_health_estimated) -->
     <string name="estimated_degradation_message">Teslamate estima la salud de la batería a partir de los datos de carga.\n\n• Salud: capacidad utilizable actual dividida por la capacidad utilizable original\n• Perdido: la diferencia entre ambas, en kWh y en autonomía nominal\n• Eficiencia nominal: el consumo que Tesla usa para convertir los kWh en autonomía nominal\n\nNota: Tesla no publica ningún dato oficial de degradación, así que esto es una estimación.</string>
 
     <!-- %d is the percentage of usable battery -->
