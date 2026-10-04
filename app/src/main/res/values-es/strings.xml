@@ -299,7 +299,7 @@
     <string name="settings_connect_description">Introduce la URL de tu servidor TeslamateApi para conectar.</string>
 
     <string name="settings_demo_title">¿No tienes un servidor?</string>
-    <string name="settings_demo_description">Explora MateDroid con un año de datos de ejemplo de un coche de demostración. Podrás conectar tu propio TeslaMate más adelante.</string>
+    <string name="settings_demo_description">Un año de datos de ejemplo de un coche de demostración.</string>
     <string name="settings_demo_action">Probar la demo</string>
 
     <string name="settings_demo_active_title">Modo demo</string>
@@ -1457,54 +1457,63 @@
     <!-- Placeholder when a stat has no value -->
     <string name="value_not_available">N/D</string>
 
-    <string name="backup_intro">Algunas cosas solo existen en este teléfono: los viajes que has montado tú, los avisos de Centinela que MateDroid ha visto y cómo tienes configurada la app. Una copia de seguridad los pone a salvo. MateDroid no guarda el archivo en ningún sitio: te lo entrega y tú decides dónde acaba.</string>
+    <string name="backup_intro">Tus viajes guardados, los avisos de Centinela y los ajustes solo existen en este teléfono. MateDroid te entrega el archivo: dónde acaba lo decides tú.</string>
     <string name="backup_export_header">Guardar una copia</string>
-    <string name="backup_export_always">Tus viajes guardados y tus ajustes van siempre incluidos.</string>
-    <string name="backup_export_no_secrets">Tu token API y la contraseña del servidor nunca se meten en el archivo.</string>
+    <string name="backup_export_always">Los viajes y los ajustes van siempre.</string>
+    <string name="backup_export_no_secrets">Tu token API y la contraseña nunca se incluyen.</string>
     <string name="backup_export_button">Guardar y compartir</string>
-    <string name="backup_export_preparing">Preparando el archivo…</string>
+    <string name="backup_export_preparing">Preparando…</string>
     <string name="backup_section_trips">Viajes guardados</string>
     <string name="backup_section_settings">Ajustes</string>
     <string name="backup_section_sentry">Avisos de Centinela</string>
-    <string name="backup_section_sentry_hint">Teslamate no guarda ningún registro de esto. Si los pierdes, los pierdes para siempre.</string>
+    <string name="backup_section_sentry_hint">Teslamate no guarda ningún registro de esto.</string>
     <string name="backup_section_places">Nombres de lugares</string>
-    <string name="backup_section_places_hint">Los nombres de los sitios donde has estado. Volver a buscarlos todos tarda horas.</string>
+    <string name="backup_section_places_hint">Volver a buscarlos todos tarda horas.</string>
     <string name="backup_section_trip_maps">Mapas de los viajes</string>
-    <string name="backup_section_trip_maps_hint">Las líneas en el mapa de tus viajes. Se pueden volver a descargar y hacen el archivo mucho más grande.</string>
+    <string name="backup_section_trip_maps_hint">Se pueden volver a descargar. El archivo se hace mucho más grande.</string>
     <string name="backup_section_stats">Trayectos y cargas</string>
-    <string name="backup_section_stats_hint">Todo lo que ya se ha descargado de Teslamate. Evita una descarga larga más adelante, pero hace el archivo mucho más grande.</string>
+    <string name="backup_section_stats_hint">Evita una descarga larga. El archivo se hace mucho más grande.</string>
     <string name="backup_import_header">Restaurar una copia</string>
-    <string name="backup_import_hint">Elige un archivo de copia de seguridad. Verás lo que contiene antes de que cambie nada.</string>
+    <string name="backup_import_hint">Verás lo que contiene antes de que cambie nada.</string>
     <string name="backup_import_button">Elegir un archivo</string>
-    <string name="backup_import_reading">Leyendo el archivo…</string>
-    <string name="backup_preview_title">Qué hay en este archivo</string>
+    <string name="backup_import_reading">Leyendo…</string>
+    <string name="backup_preview_title">Qué contiene</string>
     <string name="backup_preview_saved_on">Guardada el %1$s</string>
     <string name="backup_preview_saved_on_version">Guardada el %1$s por MateDroid %2$s</string>
-    <string name="backup_preview_stats_unusable">Los trayectos y las cargas de este archivo los guardó otra versión de MateDroid, así que se dejan fuera. La app volverá a descargarlos.</string>
-    <string name="backup_preview_mode">¿Y lo que ya hay en este teléfono?</string>
+    <string name="backup_preview_stats_unusable">Guardados por otra versión de MateDroid: la app los descargará de nuevo.</string>
+    <string name="backup_preview_mode">¿Y lo que ya hay en el teléfono?</string>
     <string name="backup_preview_mode_merge">Consérvalo y añade lo que falte</string>
-    <string name="backup_preview_mode_replace">Sustitúyelo por lo que hay en el archivo</string>
+    <string name="backup_preview_mode_replace">Sustitúyelo por el archivo</string>
     <string name="backup_preview_restore">Restaurar</string>
-    <string name="backup_preview_restoring">Restaurando todo…</string>
+    <string name="backup_preview_restoring">Restaurando…</string>
     <string name="backup_result_title">Restaurado</string>
     <string name="backup_result_already_here">Ya estaban aquí</string>
     <string name="backup_result_trips_incomplete">Viajes a los que les falta un trayecto</string>
     <string name="backup_result_trips_unmatched">Viajes que no se han podido emparejar</string>
     <string name="backup_result_restored">Restaurados</string>
-    <string name="backup_result_nothing">No había nada nuevo que restaurar.</string>
-    <string name="backup_result_note_unmatched">Esos viajes apuntan a trayectos que este teléfono no tiene. Puede que aparezcan tras la próxima sincronización.</string>
-    <string name="backup_result_note_token">Una copia de seguridad nunca contiene tu token API. Si la conexión deja de funcionar, vuelve a escribirlo en Conexión.</string>
+    <string name="backup_result_nothing">Nada nuevo que restaurar.</string>
+    <string name="backup_result_note_unmatched">Esos trayectos aún no están en este teléfono; la próxima sincronización puede traerlos.</string>
+    <string name="backup_result_note_token">Vuelve a escribir tu token API en Conexión: una copia nunca lo contiene.</string>
     <string name="backup_error_export">No se ha podido crear la copia de seguridad.</string>
     <string name="backup_error_not_a_backup">Ese archivo no es una copia de seguridad de MateDroid.</string>
-    <string name="backup_error_too_new">Esa copia de seguridad la hizo una versión más reciente de MateDroid. Actualiza la app e inténtalo de nuevo.</string>
-    <string name="backup_error_restore">Algo ha salido mal al restaurar. Puede que parte del archivo ya se haya restaurado.</string>
+    <string name="backup_error_too_new">Esa copia necesita un MateDroid más reciente. Actualiza la app e inténtalo de nuevo.</string>
+    <string name="backup_error_restore">Algo ha salido mal. Puede que una parte ya se haya restaurado.</string>
 
     <string name="backup_cars_header">Coches</string>
-    <string name="backup_cars_hint">Los viajes, los avisos de Centinela y los trayectos se guardan para los coches que marques.</string>
+    <string name="backup_cars_hint">Solo entran los coches que marques.</string>
     <string name="backup_car_unnamed">Coche %1$d</string>
     <string name="backup_car_no_vin">Sin VIN registrado</string>
 
     <string name="backup_restore_entry_title">Restaurar una copia de seguridad</string>
-    <string name="backup_restore_entry_hint">¿Vienes de otro teléfono? Recupera tus viajes, los avisos de Centinela y los ajustes.</string>
-    <string name="backup_onboarding_intro">Elige el archivo de copia de seguridad del otro teléfono. Devuelve tus viajes guardados, los avisos de Centinela y cómo tenías configurada la app: todo menos el token API, que nunca va en una copia.</string>
+    <string name="backup_restore_entry_hint">Viajes, avisos de Centinela y ajustes de otro teléfono.</string>
+    <string name="backup_onboarding_intro">Elige el archivo del teléfono anterior. Devuelve todo menos el token API.</string>
+
+    <string name="sync_notification_starting">Iniciando…</string>
+    <string name="sync_notification_car">Coche %1$d de %2$d</string>
+    <string name="sync_notification_summaries">Obteniendo la lista de trayectos y cargas</string>
+    <string name="sync_notification_drives">Trayectos: %1$d de %2$d</string>
+    <string name="sync_notification_charges">Cargas: %1$d de %2$d</string>
+
+    <string name="trips_awaiting_title">Esperando tus trayectos</string>
+    <string name="trips_awaiting_body">Tus viajes están aquí, pero los trayectos que los componen aún se están descargando. Irán apareciendo según avance la sincronización.</string>
 </resources>

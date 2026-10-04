@@ -111,6 +111,15 @@ class TripRepository @Inject constructor(
     fun computeFingerprint(trip: Trip): String =
         computeFingerprint(trip.drives.map { it.driveId })
 
+    /**
+     * How many trips are saved for this car, built or not.
+     *
+     * A trip is drawn from the drives it points at, so one restored onto a phone that has
+     * not synced them yet renders as nothing at all. The trips list compares this against
+     * what it managed to build, to tell "you have no trips" apart from "they are waiting".
+     */
+    suspend fun savedTripCount(carId: Int): Int = savedTripDao.countForCars(listOf(carId))
+
     /** Delete a saved trip. Cascade removes its legs and consumed fingerprints, letting the detector re-emit the originals. */
     suspend fun deleteTrip(tripId: Long) {
         savedTripDao.deleteTrip(tripId)
