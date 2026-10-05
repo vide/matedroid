@@ -149,12 +149,16 @@ class DataSyncWorker @AssistedInject constructor(
                     // Follow this car's progress for as long as it is syncing, so the
                     // notification carries real numbers instead of sitting on one line for
                     // the hours a first deep sync takes.
+                    // Only while the worker holds the foreground service: WorkManager clears
+                    // that notification when the work ends, but anything posted without it
+                    // is ours to clean up and would otherwise linger as an ongoing one.
                     val success = coroutineScope {
-                        val progressJob = launch { followProgress(car.carId) }
+                        val progressJob =
+                            if (foregroundAvailable) launch { followProgress(car.carId) } else null
                         try {
                             syncRepository.syncCar(car.carId)
                         } finally {
-                            progressJob.cancel()
+                            progressJob?.cancel()
                         }
                     }
                     if (!success) {
@@ -189,6 +193,11 @@ class DataSyncWorker @AssistedInject constructor(
             } else {
                 Result.failure()
             }
+        } finally {
+            // Without the foreground service nothing removes this notification for us. 1.12.0-beta1
+            // posted progress here regardless, leaving a stuck "Charges: 0 of 1" behind; clearing
+            // it on every such run also sweeps those away.
+            if (!foregroundAvailable) foregroundNotifier.cancel()
         }
     }
 
@@ -232,10 +241,6 @@ class DataSyncWorker @AssistedInject constructor(
                isNetworkError(e.message)
     }
 
-    /**
-     * Try to set foreground service. Returns true if successful, false otherwise.
-     * On Android 14+, this may fail if the app is in the background.
-     */
     private fun carHeadline(index: Int, total: Int): String =
         if (total > 1) {
             applicationContext.getString(R.string.sync_notification_car, index + 1, total)
@@ -287,6 +292,10 @@ class DataSyncWorker @AssistedInject constructor(
         else -> applicationContext.getString(R.string.sync_notification_starting)
     }
 
+    /**
+     * Try to set foreground service. Returns true if successful, false otherwise.
+     * On Android 14+, this may fail if the app is in the background.
+     */
     private suspend fun trySetForeground(progress: String): Boolean {
         if (!foregroundAvailable) return false
         return try {
