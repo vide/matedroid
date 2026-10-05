@@ -314,7 +314,7 @@ private fun RightNowCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 HeroStat(
-                    label = stringResource(R.string.estimated_range),
+                    label = stringResource(R.string.battery_range_estimated_short),
                     value = UnitFormatter.formatDistance(stats.estimatedRange, units, 0),
                     modifier = Modifier.weight(1f)
                 )
@@ -323,7 +323,7 @@ private fun RightNowCard(
                     modifier = Modifier.fillMaxHeight()
                 )
                 HeroStat(
-                    label = stringResource(R.string.rated_range),
+                    label = stringResource(R.string.battery_range_rated_short),
                     value = UnitFormatter.formatDistance(stats.ratedRange, units, 0),
                     modifier = Modifier.weight(1f)
                 )
@@ -332,7 +332,7 @@ private fun RightNowCard(
                     modifier = Modifier.fillMaxHeight()
                 )
                 HeroStat(
-                    label = stringResource(R.string.ideal_range),
+                    label = stringResource(R.string.battery_range_ideal_short),
                     value = UnitFormatter.formatDistance(stats.idealRange, units, 0),
                     modifier = Modifier.weight(1f)
                 )

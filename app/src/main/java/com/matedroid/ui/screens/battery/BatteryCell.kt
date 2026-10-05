@@ -74,7 +74,7 @@ internal fun BatteryCellFigure(
     val measurer = rememberTextMeasurer()
 
     val heroNumber = "%.1f".format(stats.healthPercent)
-    val captionText = stringResource(R.string.battery_health_estimated).uppercase(Locale.getDefault())
+    val captionText = stringResource(R.string.battery_cell_health_caption).uppercase(Locale.getDefault())
     val todayText = stringResource(R.string.battery_today_label, stats.usableBatteryLevel)
         .uppercase(Locale.getDefault())
 

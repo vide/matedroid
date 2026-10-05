@@ -615,6 +615,9 @@
 
     <!-- Hero caption above the estimated health percentage -->
     <string name="battery_health_estimated">估算电池健康度</string>
+    <!-- Caption under the health percentage printed inside the battery pictogram's fill. Shown
+         uppercased in a narrow area: keep it short (the dialog title uses battery_health_estimated). -->
+    <string name="battery_cell_health_caption">估算健康度</string>
     <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
          (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
          "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
@@ -643,10 +646,11 @@
     <!-- Current charge screen title -->
     <string name="current_charge_title">当前电量</string>
 
-    <!-- Range rows in the "Right now" card -->
-    <string name="estimated_range">估算续航</string>
-    <string name="rated_range">额定续航</string>
-    <string name="ideal_range">理想续航</string>
+    <!-- Short uppercase labels over the three range figures in the "Right now" card (a third of
+         the card width each; the km/mi unit and the card make "range" implicit) -->
+    <string name="battery_range_estimated_short">预估</string>
+    <string name="battery_range_rated_short">额定</string>
+    <string name="battery_range_ideal_short">理想</string>
 
     <!-- Range information info dialog -->
     <string name="range_information_title">续航信息</string>

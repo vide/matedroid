@@ -637,6 +637,9 @@
 
     <!-- Hero caption above the estimated health percentage -->
     <string name="battery_health_estimated">Estimated battery health</string>
+    <!-- Caption under the health percentage printed inside the battery pictogram's fill. Shown
+         uppercased in a narrow area: keep it short (the dialog title uses battery_health_estimated). -->
+    <string name="battery_cell_health_caption">Estimated health</string>
     <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
          (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
          "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
@@ -654,7 +657,7 @@
     <string name="battery_today_label">%d %% today</string>
     <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
          range at a 100 % charge. Shown uppercased, up to two lines. -->
-    <string name="battery_key_range_at_100">Range at 100 %</string>
+    <string name="battery_key_range_at_100">Range at 100 %</string>
     <!-- Short key at the foot of the energy column (right of the pictogram): the figures there are
          usable capacity in kWh. Shown uppercased, up to two lines. -->
     <string name="battery_key_capacity_usable">Capacity usable</string>
@@ -665,10 +668,11 @@
     <!-- Current charge screen title -->
     <string name="current_charge_title">Current Charge</string>
 
-    <!-- Range rows in the "Right now" card -->
-    <string name="estimated_range">Estimated Range</string>
-    <string name="rated_range">Rated Range</string>
-    <string name="ideal_range">Ideal Range</string>
+    <!-- Short uppercase labels over the three range figures in the "Right now" card (a third of
+         the card width each; the km/mi unit and the card make "range" implicit) -->
+    <string name="battery_range_estimated_short">Estimated</string>
+    <string name="battery_range_rated_short">Rated</string>
+    <string name="battery_range_ideal_short">Ideal</string>
 
     <!-- Range information info dialog -->
     <string name="range_information_title">Range Information</string>
