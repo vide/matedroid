@@ -1,0 +1,14 @@
+La història del teu cotxe, amb més caràcter.
+
+Afegit:
+- Backup i restauració de viatges, alertes Sentinella i ajustos
+- Una notificació segueix el trajecte a destinació, amb ETA i bateria en arribar
+- El mapa del tauler mostra cap on va el cotxe
+
+Canviat:
+- Estat de la Bateria dibuixat com una cel·la; eficiència nominal corregida
+- Estadístiques Avançades és una sala de trofeus
+- La notificació de sync mostra el progrés real
+
+Corregit:
+- La llista de viatges avisa quan espera els trajectes

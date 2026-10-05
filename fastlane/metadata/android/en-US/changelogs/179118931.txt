@@ -1,0 +1,14 @@
+Your car's story, drawn with more character.
+
+Added:
+- Backup and restore of trips, sentry alerts and settings
+- A notification follows the drive to a destination, with ETA and arrival battery
+- The dashboard map shows where the car is heading
+
+Changed:
+- Battery Health drawn as a battery cell; rated efficiency now correct
+- Stats for Nerds is now a trophy room
+- The sync notification shows real progress
+
+Fixed:
+- The trips list says when it is waiting for drives

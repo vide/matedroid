@@ -1,0 +1,14 @@
+Die Geschichte deines Autos, mit mehr Charakter.
+
+Neu:
+- Backup und Wiederherstellung von Trips, Sentry-Ereignissen und Einstellungen
+- Eine Benachrichtigung begleitet die Fahrt zum Ziel, mit Ankunftszeit und Akkustand
+- Die Dashboard-Karte zeigt, wohin das Auto fährt
+
+Geändert:
+- Batteriezustand als Batteriezelle gezeichnet; Nennverbrauch korrekt
+- Statistiken für Nerds ist ein Trophäenraum
+- Die Sync-Meldung zeigt echten Fortschritt
+
+Behoben:
+- Die Trip-Liste sagt, wenn sie Fahrten erwartet

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0-beta1] - 2026-10-05
+
 ### Added
 - **Backup and restore** — the trips you merged yourself, the sentry alerts and your settings exist nowhere but your phone; Teslamate keeps no record of them. **Settings → Backup** writes them to a file and hands it to the share sheet, so it goes wherever you send it — Drive, a chat, a cable — and MateDroid never keeps a copy. Tick which cars and which parts go in: sentry alerts and saved place names are included by default, trip maps and the full drive history are not. Your API token and server password never go into the file. Restoring shows you what is inside — which cars, by name and VIN, and how much of it belongs to each — before anything changes, and you choose whether to add it to what is already there or replace it. There is a **Restore a backup** button on the first setup screen too, for a phone fresh out of the box.
 - **A notification follows the drive to a destination** — set a destination in the car and a notification appears with the name of the place, how long is left, the time you are due to arrive and the distance and battery level you will arrive with. Expand it for a map showing the car, the destination and the line between them. It updates itself as the car drives and clears when the route ends. It lives on its own **Navigation** notification channel, so it can be silenced from Android's settings without touching the charging, sentry or tyre-pressure notifications.
@@ -824,7 +826,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.11.3...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.12.0-beta1...HEAD
+[1.12.0-beta1]: https://github.com/vide/matedroid/compare/v1.11.3...v1.12.0-beta1
 [1.11.3]: https://github.com/vide/matedroid/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/vide/matedroid/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/vide/matedroid/compare/v1.11.0...v1.11.1

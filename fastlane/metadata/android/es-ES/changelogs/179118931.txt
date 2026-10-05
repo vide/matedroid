@@ -1,0 +1,14 @@
+La historia de tu coche, con más carácter.
+
+Añadido:
+- Backup y restauración de viajes, eventos de Centinela y ajustes
+- Una notificación sigue el trayecto al destino, con ETA y batería al llegar
+- El mapa del panel muestra adónde va el coche
+
+Cambiado:
+- Estado de Batería dibujado como una celda; eficiencia nominal corregida
+- Estadísticas Avanzadas es una sala de trofeos
+- La notificación de sync muestra el progreso real
+
+Corregido:
+- La lista de viajes avisa cuando espera los trayectos

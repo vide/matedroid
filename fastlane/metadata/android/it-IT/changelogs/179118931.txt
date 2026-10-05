@@ -1,0 +1,14 @@
+La storia della tua auto, con più carattere.
+
+Aggiunto:
+- Backup e ripristino di viaggi, eventi Sentinella e impostazioni
+- Una notifica segue il tragitto a destinazione, con ETA e batteria all'arrivo
+- La mappa della dashboard mostra dove va l'auto
+
+Modificato:
+- Stato Batteria disegnato come una cella; efficienza nominale corretta
+- Statistiche Avanzate è una sala dei trofei
+- La notifica di sync mostra il progresso reale
+
+Corretto:
+- La lista viaggi avvisa quando aspetta i tragitti
