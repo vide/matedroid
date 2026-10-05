@@ -9,31 +9,29 @@ import org.junit.Test
 
 class BatteryCellLayoutTest {
 
-    // Roughly what the hero (44sp figure + caps caption) and the today caption measure at 1x.
+    // Roughly what the hero (44sp figure + caps caption) and the lost-share pill measure at 1x.
     private val hero = 60f
-    private val today = 12f
+    private val pill = 20f
 
     @Test
     fun mockupValues_matchTheMockupGeometry() {
-        val c = layoutCell(88.0, 43, hero, today)
+        val c = layoutCell(88.0, hero, pill)
         // Inner area 15..313 (298): 88 % puts the fill top at 50.76
         assertEquals(50.76f, c.fillTop, 0.01f)
-        // 43 % of the usable fill, not of the outline
-        assertEquals(313f - (313f - 50.76f) * 0.43f, c.todayY, 0.01f)
         assertEquals(10f, c.anchors[0], 0.001f)
         assertEquals((15f + 50.76f) / 2f, c.anchors[1], 0.01f)
         assertEquals(50.76f, c.anchors[2], 0.01f)
         assertTrue(c.heroInFill)
-        // The figure sits low in the fill, below the today line and clear of it
-        assertTrue(c.heroTop > c.todayY)
-        assertNotNull(c.todayLabelTop)
-        assertTrue(c.todayLabelTop!! + today <= c.todayY)
+        // The pill is centred in the sliver and fits inside it
+        assertEquals(c.anchors[1] - pill / 2f, c.lossPillTop!!, 0.01f)
+        assertTrue(c.lossPillTop!! >= CellSpec.INNER_TOP)
+        assertTrue(c.lossPillTop!! + pill <= c.fillTop)
         assertTrue(c.showKeys)
     }
 
     @Test
     fun labels_fanOut_soTheyNeverOverlap() {
-        val c = layoutCell(99.0, 50, hero, today)
+        val c = layoutCell(99.0, hero, pill)
         for (i in 1 until c.labelTops.size) {
             assertTrue(c.labelTops[i] - c.labelTops[i - 1] >= CellSpec.LABEL_PITCH - 0.001f)
         }
@@ -41,33 +39,31 @@ class BatteryCellLayoutTest {
     }
 
     @Test
-    fun lowCharge_movesTheFigureAboveTheTodayLine() {
-        val c = layoutCell(88.0, 5, hero, today)
-        assertTrue(c.heroInFill)
-        assertTrue(c.heroTop + hero <= minOf(c.todayLabelTop ?: c.todayY, c.todayY))
-        assertTrue(c.heroTop >= c.fillTop)
+    fun thinSliver_clampsThePillUnderTheInnerTop() {
+        val c = layoutCell(96.5, hero, pill)
+        assertEquals(CellSpec.INNER_TOP + 2f, c.lossPillTop!!, 0.001f)
+        // It straddles the edge between lost and usable
+        assertTrue(c.lossPillTop!! + pill > c.fillTop)
     }
 
     @Test
-    fun fullCharge_putsTheTodayCaptionBelowTheLine() {
-        val c = layoutCell(88.0, 100, hero, today)
-        assertEquals(c.fillTop, c.todayY, 0.001f)
-        assertNotNull(c.todayLabelTop)
-        assertTrue(c.todayLabelTop!! > c.todayY)
+    fun noLoss_hasNoPill() {
+        assertNull(layoutCell(100.0, hero, pill).lossPillTop)
     }
 
     @Test
-    fun lowHealth_putsTheFigureAboveTheFill() {
-        val c = layoutCell(20.0, 50, hero, today)
+    fun lowHealth_putsTheFigureAboveTheFill_andThePillAboveTheFigure() {
+        val c = layoutCell(20.0, hero, pill)
         assertFalse(c.heroInFill)
         assertTrue(c.heroTop + hero <= c.fillTop)
         assertTrue(c.heroTop >= CellSpec.INNER_TOP)
+        assertNotNull(c.lossPillTop)
+        assertTrue(c.lossPillTop!! + pill <= c.heroTop)
     }
 
     @Test
-    fun emptyFill_dropsTheTodayCaption() {
-        val c = layoutCell(0.0, 50, hero, today)
-        assertNull(c.todayLabelTop)
+    fun emptyFill_dropsTheKeys() {
+        val c = layoutCell(0.0, hero, pill)
         assertFalse(c.heroInFill)
         // Labels pushed to the bottom collide with the column keys, so the keys go
         assertFalse(c.showKeys)
@@ -75,8 +71,8 @@ class BatteryCellLayoutTest {
 
     @Test
     fun outOfRangeInputs_areClamped() {
-        val c = layoutCell(120.0, 150, hero, today)
+        val c = layoutCell(120.0, hero, pill)
         assertEquals(CellSpec.INNER_TOP, c.fillTop, 0.001f)
-        assertEquals(CellSpec.INNER_TOP, c.todayY, 0.001f)
+        assertNull(c.lossPillTop)
     }
 }

@@ -98,7 +98,7 @@
     <string name="view_stats">Statistiken anzeigen</string>
 
     <!-- Content description for battery icon, indicates it's tappable -->
-    <string name="tap_for_battery_health">Tippen für Batteriezustand</string>
+    <string name="tap_for_battery_health">Tippen für Batteriegesundheit</string>
 
     <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
     <string name="charge_limit_format">Limit: %d%%</string>
@@ -609,16 +609,16 @@
 
     <!-- ==================== Battery Screen ==================== -->
     <!-- Top bar title -->
-    <string name="battery_health_title">Batteriezustand</string>
+    <string name="battery_health_title">Batteriegesundheit</string>
 
     <!-- Empty state -->
     <string name="no_battery_data">Keine Batteriedaten verfügbar</string>
 
     <!-- Hero caption above the estimated health percentage -->
-    <string name="battery_health_estimated">Geschätzter Batteriezustand</string>
+    <string name="battery_health_estimated">Geschätzte Batteriegesundheit</string>
     <!-- Caption under the health percentage printed inside the battery pictogram's fill. Shown
          uppercased in a narrow area: keep it short (the dialog title uses battery_health_estimated). -->
-    <string name="battery_cell_health_caption">Geschätzter Zustand</string>
+    <string name="battery_cell_health_caption">Geschätzte Gesundheit</string>
     <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
          (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
          "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
@@ -631,9 +631,6 @@
     <string name="battery_range_now">Reichweite jetzt</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Aktuell</string>
-    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
-         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
-    <string name="battery_today_label">%d %% heute</string>
     <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
          range at a 100 % charge. Shown uppercased, up to two lines. -->
     <string name="battery_key_range_at_100">Reichweite bei 100 %</string>
@@ -642,7 +639,7 @@
     <string name="battery_key_capacity_usable">Nutzbare Kapazität</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">Der Batteriezustand wird von Teslamate anhand deiner Ladedaten geschätzt.\n\n• Zustand: aktuelle nutzbare Kapazität geteilt durch die nutzbare Kapazität im Neuzustand\n• Verlust: die Differenz zwischen beiden, in kWh und in nominaler Reichweite\n• Nennverbrauch: der Verbrauch, mit dem Tesla kWh in nominale Reichweite umrechnet\n• Linie in der Füllung: der heutige Ladestand, als Anteil der nutzbaren Kapazität (nicht der im Neuzustand)\n\nHinweis: Tesla veröffentlicht keinen offiziellen Degradationswert, daher ist dies eine Schätzung.</string>
+    <string name="estimated_degradation_message">Die Batteriegesundheit wird von Teslamate anhand deiner Ladedaten geschätzt.\n\n• Gesundheit: aktuelle nutzbare Kapazität geteilt durch die nutzbare Kapazität im Neuzustand\n• Verlust: die Differenz zwischen beiden, in kWh, in nominaler Reichweite und als Anteil der Kapazität im Neuzustand\n• Nennverbrauch: der Verbrauch, mit dem Tesla kWh in nominale Reichweite umrechnet\n\nHinweis: Tesla veröffentlicht keinen offiziellen Degradationswert, daher ist dies eine Schätzung.</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">Aktuelle Ladung</string>

@@ -73,7 +73,7 @@ A trophy room for your car. Three headline cards up top — top speed, most dist
 
 #### Battery Health
 
-How your battery is holding up, drawn as a battery cell: the outline is the pack when new, the fill is what is usable now with the estimated health printed into it, the hatched sliver above is what was lost, and a thin line inside the fill marks today's charge. The figures hang off the drawing on leader lines — capacity in kWh on one side, range at 100% on the other — with the rated efficiency below. A second card shows the readings right now: charge level and limit, whether the car is plugged in or charging, and the estimated, rated and ideal range.
+How your battery is holding up, drawn as a battery cell: the outline is the pack when new, the fill is what is usable now with the estimated health printed into it, and the hatched sliver above is what was lost, with the lost percentage printed on it. The figures hang off the drawing on leader lines — capacity in kWh on one side, range at 100% on the other — with the rated efficiency below. A second card shows the readings right now: charge level and limit, whether the car is plugged in or charging, and the estimated, rated and ideal range.
 
 #### Software Updates
 
