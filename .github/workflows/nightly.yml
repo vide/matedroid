@@ -2,7 +2,7 @@ name: Nightly Alpha Build
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '37 4 * * *'  # off the top of the hour; GitHub delays crons most at :00
   workflow_dispatch:  # allow manual trigger for testing
 
 jobs:
