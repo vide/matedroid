@@ -98,7 +98,7 @@
     <string name="view_stats">查看统计</string>
 
     <!-- Content description for battery icon, indicates it's tappable -->
-    <string name="tap_for_battery_health">点击查看电池健康状态</string>
+    <string name="tap_for_battery_health">点击查看电池健康</string>
 
     <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
     <string name="charge_limit_format">上限: %d%%</string>
@@ -630,9 +630,6 @@
     <string name="battery_range_now">当前续航</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">当前状态</string>
-    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
-         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
-    <string name="battery_today_label">今天 %d %%</string>
     <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
          range at a 100 % charge. Shown uppercased, up to two lines. -->
     <string name="battery_key_range_at_100">满电续航</string>
@@ -641,7 +638,7 @@
     <string name="battery_key_capacity_usable">可用容量</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">电池健康度由 Teslamate 根据你的充电数据估算。\n\n• 健康度：当前可用容量除以新车时的可用容量\n• 损失：两者之差，以 kWh 和额定续航表示\n• 额定能耗：Tesla 用于将 kWh 换算为额定续航的能耗\n• 填充内的线：今天的电量，按可用容量计算（而非新车时的容量）\n\n注意：Tesla 未公布官方衰减数据，因此这只是估算值。</string>
+    <string name="estimated_degradation_message">电池健康度由 Teslamate 根据你的充电数据估算。\n\n• 健康度：当前可用容量除以新车时的可用容量\n• 损失：两者之差，以 kWh、额定续航及占新车容量的比例表示\n• 额定能耗：Tesla 用于将 kWh 换算为额定续航的能耗\n\n注意：Tesla 未公布官方衰减数据，因此这只是估算值。</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">当前电量</string>

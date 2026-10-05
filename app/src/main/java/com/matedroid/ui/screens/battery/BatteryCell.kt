@@ -1,6 +1,7 @@
 package com.matedroid.ui.screens.battery
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,8 +55,8 @@ private const val MINUS = "−"
 
 /**
  * The Battery Health pictogram: a battery cell whose outline is the pack when new, whose accent
- * fill is the usable capacity now, with the lost share hatched above the fill and today's charge
- * as a knocked-out line inside it. Energy figures hang off leader lines on the right, range
+ * fill is the usable capacity now, with the lost share hatched above the fill and its percentage
+ * printed on it as a pill. Energy figures hang off leader lines on the right, range
  * figures on the left (only when the API reports a range).
  *
  * Everything textual is a real [Text] (font scaling, TalkBack); the [Canvas] draws only shapes.
@@ -75,8 +77,7 @@ internal fun BatteryCellFigure(
 
     val heroNumber = "%.1f".format(stats.healthPercent)
     val captionText = stringResource(R.string.battery_cell_health_caption).uppercase(Locale.getDefault())
-    val todayText = stringResource(R.string.battery_today_label, stats.usableBatteryLevel)
-        .uppercase(Locale.getDefault())
+    val lossText = MINUS + "%.1f".format((100.0 - stats.healthPercent).coerceAtLeast(0.0)) + " %"
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         // Scale the whole figure (shapes and type) down on narrow cards; never up.
@@ -103,7 +104,15 @@ internal fun BatteryCellFigure(
                 textAlign = TextAlign.Center
             )
         )
-        val todayStyle = capsStyle.merge(TextStyle(fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.End))
+        val pillStyle = baseStyle.merge(
+            TextStyle(
+                fontSize = s(12.5f),
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = s(-0.2f),
+                lineHeight = s(14f),
+                textAlign = TextAlign.Center
+            )
+        )
         val heroAnnotated = buildAnnotatedString {
             append(heroNumber)
             withStyle(heroUnitSpan) { append(" %") }
@@ -119,12 +128,12 @@ internal fun BatteryCellFigure(
                 measurer.measure(captionText, capsStyle, constraints = c).size.height
             h / pxPerUnit
         }
-        val todayHeight = remember(todayText, todayStyle, innerWidthPx) {
-            measurer.measure(todayText, todayStyle, maxLines = 1, constraints = Constraints(maxWidth = innerWidthPx))
-                .size.height / pxPerUnit
+        val pillHeight = remember(lossText, pillStyle, innerWidthPx) {
+            measurer.measure(lossText, pillStyle, maxLines = 1, constraints = Constraints(maxWidth = innerWidthPx))
+                .size.height / pxPerUnit + 2 * CellSpec.PILL_PAD_V
         }
-        val cell = remember(stats.healthPercent, stats.usableBatteryLevel, heroHeight, todayHeight) {
-            layoutCell(stats.healthPercent, stats.usableBatteryLevel, heroHeight, todayHeight)
+        val cell = remember(stats.healthPercent, heroHeight, pillHeight) {
+            layoutCell(stats.healthPercent, heroHeight, pillHeight)
         }
 
         Box(modifier = Modifier.size(u(CellSpec.FIG_W), u(CellSpec.FIG_H))) {
@@ -140,17 +149,24 @@ internal fun BatteryCellFigure(
                 )
             }
 
-            // Today caption inside the fill, right-aligned
-            cell.todayLabelTop?.let { top ->
-                Text(
-                    text = todayText,
-                    style = todayStyle,
-                    color = palette.surface,
-                    maxLines = 1,
+            // Lost share: a surface pill on the hatched sliver, legible over hatch and fill alike
+            cell.lossPillTop?.let { top ->
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .offset(x = u(CELL_X + CellSpec.INNER_LEFT + 6f), y = u(top))
-                        .width(u(CellSpec.INNER_W - 12f))
-                )
+                        .offset(x = u(CELL_X + CellSpec.INNER_LEFT), y = u(top))
+                        .width(u(CellSpec.INNER_W))
+                ) {
+                    Text(
+                        text = lossText,
+                        style = pillStyle,
+                        color = palette.accent,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .background(palette.surface, RoundedCornerShape(percent = 50))
+                            .padding(horizontal = u(CellSpec.PILL_PAD_H), vertical = u(CellSpec.PILL_PAD_V))
+                    )
+                }
             }
 
             // Hero: knocked out of the fill, or in on-surface above it when the fill is too short
@@ -314,7 +330,7 @@ private fun LeaderLabel(
     }
 }
 
-/** Outline, cap, fill, hatched sliver and today line. [unit] is px per figure unit. */
+/** Outline, cap, fill and hatched sliver. [unit] is px per figure unit. */
 private fun DrawScope.drawCell(cell: CellLayout, palette: CarColorPalette, unit: Float) {
     fun x(v: Float) = (CELL_X + v) * unit
     fun y(v: Float) = v * unit
@@ -387,17 +403,6 @@ private fun DrawScope.drawCell(cell: CellLayout, palette: CarColorPalette, unit:
             end = Offset(innerRight, fillTop - 0.5f * unit),
             strokeWidth = 1f * unit,
             pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f * unit, 3f * unit))
-        )
-    }
-
-    // Today: a knocked-out line across the fill
-    if (innerBottom - fillTop > 2f * unit) {
-        val ty = y(cell.todayY)
-        drawLine(
-            color = palette.surface,
-            start = Offset(innerLeft, ty),
-            end = Offset(innerRight, ty),
-            strokeWidth = 1.5f * unit
         )
     }
 }

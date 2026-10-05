@@ -11,7 +11,7 @@ import kotlin.math.min
  * Figure: 348 x 322. Label column (86) · gap · cell (140 wide, at x = 104) · gap · label column.
  * Inside the cell (cell coordinates): outline y 10..318 = the pack when new; inner area y 15..313;
  * the accent fill rises from the bottom to healthPercent of the inner height (usable now); the
- * hatched sliver above it is what was lost.
+ * hatched sliver above it is what was lost, with the lost share printed on it as a pill.
  */
 internal object CellSpec {
     const val FIG_W = 348f
@@ -56,20 +56,22 @@ internal object CellSpec {
     const val KEY_HEIGHT = 28f
 
     const val HERO_BOTTOM_MARGIN = 11f
+
+    // Lost-share pill padding around its text
+    const val PILL_PAD_H = 9f
+    const val PILL_PAD_V = 3f
     const val TEXT_GAP = 3f
 }
 
 internal data class CellLayout(
     /** Top of the usable-now fill (cell y). */
     val fillTop: Float,
-    /** The today line (cell y): state of charge as a share of the usable fill. */
-    val todayY: Float,
     /** Leader anchors (figure y): outline top, middle of the lost sliver, fill top. */
     val anchors: List<Float>,
     /** Tops of the three label rows (figure y), fanned out so they never overlap. */
     val labelTops: List<Float>,
-    /** Top of the "43 % TODAY" caption (cell y), or null when there is no room for it. */
-    val todayLabelTop: Float?,
+    /** Top of the "−12,0 %" lost-share pill (cell y), or null when nothing was lost. */
+    val lossPillTop: Float?,
     /** Top of the hero figure block (cell y). */
     val heroTop: Float,
     /** True when the hero sits inside the fill (knockout); false when it sits above the fill. */
@@ -85,79 +87,52 @@ internal data class CellLayout(
  * Places everything in the pictogram.
  *
  * @param heroHeight measured height of the health figure + caption block, in figure units
- * @param todayLabelHeight measured height of the today caption, in figure units
+ * @param lossPillHeight measured height of the lost-share pill, in figure units
  * @param labelPitch minimum vertical distance between label rows, in figure units
  */
 internal fun layoutCell(
     healthPercent: Double,
-    usableSocPercent: Int,
     heroHeight: Float,
-    todayLabelHeight: Float,
+    lossPillHeight: Float,
     labelPitch: Float = CellSpec.LABEL_PITCH
 ): CellLayout {
     val health = (healthPercent.coerceIn(0.0, 100.0) / 100.0).toFloat()
-    val soc = usableSocPercent.coerceIn(0, 100) / 100f
 
     val fillTop = CellSpec.INNER_BOTTOM - CellSpec.INNER_H * health
-    val fillH = CellSpec.INNER_BOTTOM - fillTop
-    // State of charge is a share of the usable pack, so it is measured against the fill, not the
-    // outline: drawing it against the outline would overstate today's energy by the lost share.
-    val todayY = CellSpec.INNER_BOTTOM - fillH * soc
+    val sliverMid = (CellSpec.INNER_TOP + fillTop) / 2f
 
-    val anchors = listOf(
-        CellSpec.OUTLINE_TOP,
-        (CellSpec.INNER_TOP + fillTop) / 2f,
-        fillTop
-    )
+    val anchors = listOf(CellSpec.OUTLINE_TOP, sliverMid, fillTop)
     val labelTops = mutableListOf<Float>()
     anchors.forEachIndexed { i, a ->
         val wanted = a - CellSpec.VALUE_HALF
         labelTops += if (i == 0) wanted else max(wanted, labelTops[i - 1] + labelPitch)
     }
 
-    // Today caption: just above the line, or just below it when the line is near the fill top.
-    val todayLabelTop: Float? = when {
-        fillH < todayLabelHeight * 2 + 6f -> null
-        todayY - CellSpec.TEXT_GAP - todayLabelHeight >= fillTop + 2f ->
-            todayY - CellSpec.TEXT_GAP - todayLabelHeight
-        todayY + CellSpec.TEXT_GAP + todayLabelHeight <= CellSpec.INNER_BOTTOM - 2f ->
-            todayY + CellSpec.TEXT_GAP
-        else -> null
-    }
-
-    // Band the hero must stay clear of: the today line and its caption.
-    val blockedStart = min(todayLabelTop ?: todayY, todayY) - 3f
-    val blockedEnd = max((todayLabelTop ?: todayY) + if (todayLabelTop != null) todayLabelHeight else 0f, todayY) + 3f
-
-    fun fitsInFill(top: Float): Boolean {
-        val bottom = top + heroHeight
-        val clearOfToday = bottom <= blockedStart || top >= blockedEnd
-        return top >= fillTop + 4f && bottom <= CellSpec.INNER_BOTTOM - 4f && clearOfToday
-    }
-
-    val candidates = listOf(
-        CellSpec.INNER_BOTTOM - CellSpec.HERO_BOTTOM_MARGIN - heroHeight, // low in the fill
-        blockedStart - heroHeight,                                         // above the today line
-        blockedEnd                                                         // below the today line
-    )
-    val inFill = candidates.firstOrNull { fitsInFill(it) }
+    // Hero: low in the fill, or above it when the fill is too short to hold it.
+    val lowInFill = CellSpec.INNER_BOTTOM - CellSpec.HERO_BOTTOM_MARGIN - heroHeight
     val aboveFillTop = fillTop - 6f - heroHeight
+    val (heroTop, heroInFill) = when {
+        lowInFill >= fillTop + 4f -> lowInFill to true
+        aboveFillTop >= CellSpec.INNER_TOP + 2f -> aboveFillTop to false
+        else -> lowInFill to true
+    }
 
-    val (heroTop, heroInFill, todayTop) = when {
-        inFill != null -> Triple(inFill, true, todayLabelTop)
-        aboveFillTop >= CellSpec.INNER_TOP + 2f -> Triple(aboveFillTop, false, todayLabelTop)
-        // No clean spot: keep the figure low in the fill and drop the today caption.
-        else -> Triple(candidates[0], true, null)
+    // Lost-share pill: centred in the sliver; on a young pack the sliver is thinner than the
+    // pill, so it is held just under the inner top and straddles the edge with the fill. Its own
+    // background keeps it legible on either. Above the hero when the hero sits in the sliver.
+    val lossPillTop: Float? = if (healthPercent >= 99.95) null else {
+        var top = max(sliverMid - lossPillHeight / 2f, CellSpec.INNER_TOP + 2f)
+        if (!heroInFill) top = min(top, heroTop - CellSpec.TEXT_GAP - lossPillHeight)
+        top.takeIf { it >= CellSpec.INNER_TOP }
     }
 
     val showKeys = labelTops.last() + CellSpec.LABEL_HEIGHT <= CellSpec.FIG_H - CellSpec.KEY_HEIGHT
 
     return CellLayout(
         fillTop = fillTop,
-        todayY = todayY,
         anchors = anchors,
         labelTops = labelTops,
-        todayLabelTop = todayTop,
+        lossPillTop = lossPillTop,
         heroTop = heroTop,
         heroInFill = heroInFill,
         showKeys = showKeys

@@ -652,9 +652,6 @@
     <string name="battery_range_now">Range now</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Right now</string>
-    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
-         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
-    <string name="battery_today_label">%d %% today</string>
     <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
          range at a 100 % charge. Shown uppercased, up to two lines. -->
     <string name="battery_key_range_at_100">Range at 100 %</string>
@@ -663,7 +660,7 @@
     <string name="battery_key_capacity_usable">Capacity usable</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">Battery health is estimated by Teslamate from your charging data.\n\n• Health: usable capacity now divided by the usable capacity when the car was new\n• Lost: the difference between the two, in kWh and in rated range\n• Rated efficiency: the consumption Tesla uses to turn kWh into rated range\n• Line in the fill: today\'s charge, as a share of the usable capacity (not of the pack when new)\n\nNote: Tesla publishes no official degradation figure, so this is an estimate.</string>
+    <string name="estimated_degradation_message">Battery health is estimated by Teslamate from your charging data.\n\n• Health: usable capacity now divided by the usable capacity when the car was new\n• Lost: the difference between the two, in kWh, in rated range and as a share of the capacity when new\n• Rated efficiency: the consumption Tesla uses to turn kWh into rated range\n\nNote: Tesla publishes no official degradation figure, so this is an estimate.</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">Current Charge</string>

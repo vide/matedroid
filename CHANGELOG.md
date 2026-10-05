@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The Battery Health cell shows the share that was lost** — the hatched sliver on top now carries its percentage ("−12,0 %"), so the health figure and the loss read as one sum. Today's charge is no longer drawn inside the cell; it is in the Right now card below. "Health" is now translated as health in every language: Salute, Salud, Salut, Batteriegesundheit, where some screens said "status" before.
+
 ## [1.12.0-beta2] - 2026-10-05
 
 ### Fixed

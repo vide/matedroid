@@ -98,7 +98,7 @@
     <string name="view_stats">Vedi statistiche</string>
 
     <!-- Content description for battery icon, indicates it's tappable -->
-    <string name="tap_for_battery_health">Tocca per stato batteria</string>
+    <string name="tap_for_battery_health">Tocca per salute batteria</string>
 
     <!-- Battery charge limit label. %d is the percentage (e.g., "Limit: 80%") -->
     <string name="charge_limit_format">Limite: %d%%</string>
@@ -608,7 +608,7 @@
 
     <!-- ==================== Battery Screen ==================== -->
     <!-- Top bar title -->
-    <string name="battery_health_title">Stato Batteria</string>
+    <string name="battery_health_title">Salute Batteria</string>
 
     <!-- Empty state -->
     <string name="no_battery_data">Nessun dato batteria disponibile</string>
@@ -630,9 +630,6 @@
     <string name="battery_range_now">Autonomia ora</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Adesso</string>
-    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
-         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
-    <string name="battery_today_label">%d %% oggi</string>
     <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
          range at a 100 % charge. Shown uppercased, up to two lines. -->
     <string name="battery_key_range_at_100">Autonomia al 100 %</string>
@@ -641,7 +638,7 @@
     <string name="battery_key_capacity_usable">Capacità utilizzabile</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">La salute della batteria è stimata da Teslamate a partire dai dati di ricarica.\n\n• Salute: capacità utilizzabile attuale divisa per la capacità utilizzabile da nuova\n• Perso: la differenza tra le due, in kWh e in autonomia nominale\n• Efficienza nominale: il consumo che Tesla usa per convertire i kWh in autonomia nominale\n• Linea nel riempimento: la carica di oggi, come quota della capacità utilizzabile (non di quella da nuova)\n\nNota: Tesla non pubblica alcun dato ufficiale sul degrado, quindi questa è una stima.</string>
+    <string name="estimated_degradation_message">La salute della batteria è stimata da Teslamate a partire dai dati di ricarica.\n\n• Salute: capacità utilizzabile attuale divisa per la capacità utilizzabile da nuova\n• Perso: la differenza tra le due, in kWh, in autonomia nominale e come quota della capacità da nuova\n• Efficienza nominale: il consumo che Tesla usa per convertire i kWh in autonomia nominale\n\nNota: Tesla non pubblica alcun dato ufficiale sul degrado, quindi questa è una stima.</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">Carica Attuale</string>
