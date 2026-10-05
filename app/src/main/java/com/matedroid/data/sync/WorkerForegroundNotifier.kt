@@ -70,6 +70,11 @@ class WorkerForegroundNotifier(
             .notify(notificationId, buildNotification(progress, current, total))
     }
 
+    /** Remove the notification, for a run that posted it without holding the foreground service. */
+    fun cancel() {
+        NotificationManagerCompat.from(context).cancel(notificationId)
+    }
+
     /** A total of zero means "no idea how much is left", which draws as indeterminate. */
     private fun buildNotification(progress: String, current: Int, total: Int): Notification =
         NotificationCompat.Builder(context, channelId)

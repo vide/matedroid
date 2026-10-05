@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The sync notification no longer gets stuck.** A sync that Android ran in the background without a foreground service still posted its progress, and nothing ever took it down again, so a "MateDroid Sync — Charges: 0 of 1" notification sat in the shade for good. It now only appears while a sync is really running, and the leftover one clears itself at the next sync.
+
 ## [1.12.0-beta1] - 2026-10-05
 
 ### Added
