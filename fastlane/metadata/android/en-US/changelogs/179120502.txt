@@ -1,0 +1,6 @@
+Battery Health gets clearer: the drawing now shows how much your battery has lost, right where it went.
+
+Changed:
+- The hatched part at the top of the battery cell now shows the lost share as a percentage (e.g. "−12,0 %").
+- Today's charge is no longer drawn inside the cell; it stays in the Right now card below.
+- "Health" is now translated as health in every language.

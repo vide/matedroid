@@ -1,0 +1,6 @@
+Batteriegesundheit auf einen Blick: Die Grafik zeigt jetzt, wie viel deine Batterie verloren hat – genau dort, wo es fehlt.
+
+Geändert:
+- Der schraffierte Teil oben in der Batterie zeigt jetzt den Verlust in Prozent (z. B. „−12,0 %").
+- Der heutige Ladestand wird nicht mehr in der Batterie gezeichnet; er steht weiter in der Karte „Aktuell" darunter.
+- „Health" heißt jetzt überall Gesundheit.

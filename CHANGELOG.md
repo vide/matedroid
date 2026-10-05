@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0-beta3] - 2026-10-05
+
 ### Changed
 - **The Battery Health cell shows the share that was lost** — the hatched sliver on top now carries its percentage ("−12,0 %"), so the health figure and the loss read as one sum. Today's charge is no longer drawn inside the cell; it is in the Right now card below. "Health" is now translated as health in every language: Salute, Salud, Salut, Batteriegesundheit, where some screens said "status" before.
 
@@ -834,7 +836,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.12.0-beta2...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.12.0-beta3...HEAD
+[1.12.0-beta3]: https://github.com/vide/matedroid/compare/v1.12.0-beta2...v1.12.0-beta3
 [1.12.0-beta2]: https://github.com/vide/matedroid/compare/v1.12.0-beta1...v1.12.0-beta2
 [1.12.0-beta1]: https://github.com/vide/matedroid/compare/v1.11.3...v1.12.0-beta1
 [1.11.3]: https://github.com/vide/matedroid/compare/v1.11.2...v1.11.3

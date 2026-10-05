@@ -1,0 +1,6 @@
+Salut de la Bateria més clara: el dibuix ara mostra quant ha perdut la teva bateria, just on ho ha perdut.
+
+Canviat:
+- La part ratllada de dalt de la bateria ara mostra la part perduda en percentatge (p. ex. "−12,0 %").
+- La càrrega d'avui ja no es dibuixa dins la bateria; continua a la targeta Ara mateix de sota.
+- "Health" ara es tradueix com a salut en tots els idiomes.

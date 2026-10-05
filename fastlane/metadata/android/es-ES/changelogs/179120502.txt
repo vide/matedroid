@@ -1,0 +1,6 @@
+Salud de la Batería más clara: el dibujo ahora muestra cuánto ha perdido tu batería, justo donde lo perdió.
+
+Cambiado:
+- La parte rayada de arriba de la batería ahora muestra la parte perdida en porcentaje (p. ej. "−12,0 %").
+- La carga de hoy ya no se dibuja dentro de la batería; sigue en la tarjeta Ahora mismo de abajo.
+- "Health" ahora se traduce como salud en todos los idiomas.
