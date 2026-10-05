@@ -615,6 +615,9 @@
 
     <!-- Hero caption above the estimated health percentage -->
     <string name="battery_health_estimated">Salut estimada de la bateria</string>
+    <!-- Caption under the health percentage printed inside the battery pictogram's fill. Shown
+         uppercased in a narrow area: keep it short (the dialog title uses battery_health_estimated). -->
+    <string name="battery_cell_health_caption">Salut estimada</string>
     <!-- Short uppercase labels under the health figure and on the range tiles: usable capacity
          (kWh) now, the same figure when the car was new, and what was lost since. "When new" and
          "Lost" are reused for both kWh and range; the unit next to the value disambiguates. -->
@@ -627,23 +630,27 @@
     <string name="battery_range_now">Autonomia ara</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Ara mateix</string>
+    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
+         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
+    <string name="battery_today_label">%d %% avui</string>
+    <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
+         range at a 100 % charge. Shown uppercased, up to two lines. -->
+    <string name="battery_key_range_at_100">Autonomia al 100 %</string>
+    <!-- Short key at the foot of the energy column (right of the pictogram): the figures there are
+         usable capacity in kWh. Shown uppercased, up to two lines. -->
+    <string name="battery_key_capacity_usable">Capacitat utilitzable</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">Teslamate estima la salut de la bateria a partir de les dades de càrrega.\n\n• Salut: capacitat utilitzable actual dividida per la capacitat utilitzable original\n• Perdut: la diferència entre totes dues, en kWh i en autonomia nominal\n• Eficiència nominal: el consum que Tesla fa servir per convertir els kWh en autonomia nominal\n\nNota: Tesla no publica cap dada oficial de degradació, així que això és una estimació.</string>
-
-    <!-- %d is the percentage of usable battery -->
-    <string name="usable_percent">Utilitzable: %d%%</string>
+    <string name="estimated_degradation_message">Teslamate estima la salut de la bateria a partir de les dades de càrrega.\n\n• Salut: capacitat utilitzable actual dividida per la capacitat utilitzable original\n• Perdut: la diferència entre totes dues, en kWh i en autonomia nominal\n• Eficiència nominal: el consum que Tesla fa servir per convertir els kWh en autonomia nominal\n• Línia dins l\'emplenament: la càrrega d\'avui, com a part de la capacitat utilitzable (no de l\'original)\n\nNota: Tesla no publica cap dada oficial de degradació, així que això és una estimació.</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">Càrrega Actual</string>
 
-    <!-- Range rows in the "Right now" card -->
-    <string name="estimated_range">Autonomia Estimada</string>
-    <string name="estimated_range_subtitle">Basada en les condicions de conducció actuals</string>
-    <string name="rated_range">Autonomia Nominal</string>
-    <string name="rated_range_subtitle">Autonomia oficial EPA/WLTP</string>
-    <string name="ideal_range">Autonomia Ideal</string>
-    <string name="ideal_range_subtitle">Condicions de conducció ideals</string>
+    <!-- Short uppercase labels over the three range figures in the "Right now" card (a third of
+         the card width each; the km/mi unit and the card make "range" implicit) -->
+    <string name="battery_range_estimated_short">Estimada</string>
+    <string name="battery_range_rated_short">Nominal</string>
+    <string name="battery_range_ideal_short">Ideal</string>
 
     <!-- Range information info dialog -->
     <string name="range_information_title">Informació d\'Autonomia</string>

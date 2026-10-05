@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
@@ -39,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,18 +52,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.matedroid.R
 import com.matedroid.data.api.models.Units
 import com.matedroid.domain.model.UnitFormatter
-import com.matedroid.ui.components.AccentStatTile
 import com.matedroid.ui.components.HeroStat
 import com.matedroid.ui.components.MateDroidLoadingPlaceholder
 import com.matedroid.ui.theme.CarColorPalette
 import com.matedroid.ui.theme.CarColorPalettes
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,22 +160,14 @@ private fun BatteryHealthContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        BatteryHeroSection(stats = stats, units = units, palette = palette)
-
-        if (stats.maxRangeNew > 0) {
-            RangeTiles(stats = stats, units = units, palette = palette)
-        }
-
+        CellCard(stats = stats, units = units, palette = palette)
         RightNowCard(stats = stats, units = units, palette = palette)
     }
 }
 
-/**
- * Hero in the detail-screen style: the estimated health as the dominant figure with a slim bar,
- * usable capacity now vs. when new and what was lost, and the rated efficiency in the footer.
- */
+/** The battery-cell pictogram with its leader-line figures, and the rated efficiency below. */
 @Composable
-private fun BatteryHeroSection(
+private fun CellCard(
     stats: BatteryStats,
     units: Units?,
     palette: CarColorPalette
@@ -183,147 +181,62 @@ private fun BatteryHeroSection(
         )
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // Caption
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.BatteryChargingFull,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-                tint = palette.accent
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.battery_health_estimated),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            InfoIcon(onClick = { showInfo = true })
-        }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = palette.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            BatteryCellFigure(stats = stats, units = units, palette = palette)
 
-        // Dominant figure: estimated health
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = "%.1f".format(stats.healthPercent),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = palette.accent
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)
             )
-            Text(
-                text = " %",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 2.dp, bottom = 3.dp)
-            )
-        }
 
-        HealthBar(
-            fraction = (stats.healthPercent / 100f).toFloat().coerceIn(0f, 1f),
-            palette = palette
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            HeroStat(
-                label = stringResource(R.string.battery_usable_now),
-                value = "%.1f kWh".format(stats.currentCapacity),
-                modifier = Modifier.weight(1f)
-            )
-            HeroStat(
-                label = stringResource(R.string.battery_when_new),
-                value = "%.1f kWh".format(stats.originalCapacity),
-                modifier = Modifier.weight(1f)
-            )
-            HeroStat(
-                label = stringResource(R.string.battery_lost),
-                value = "%.1f kWh".format(stats.lossKwh),
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-        // Footer: rated efficiency
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Footer: rated efficiency
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Speed,
                     contentDescription = null,
                     modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = palette.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = stringResource(R.string.battery_rated_efficiency),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = palette.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
                 )
+                Text(
+                    text = buildAnnotatedString {
+                        append("%.0f".format(stats.ratedEfficiencyWhPerUnit))
+                        withStyle(
+                            SpanStyle(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color = palette.accent
+                            )
+                        ) { append(" " + UnitFormatter.getEfficiencyUnit(units)) }
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.onSurface,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                InfoIcon(onClick = { showInfo = true })
             }
-            Text(
-                text = UnitFormatter.formatEfficiency(stats.ratedEfficiencyWhPerUnit, units, 0),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
     }
 }
 
-/** Slim 8dp bar: accent fill over the palette's progress track. */
-@Composable
-private fun HealthBar(fraction: Float, palette: CarColorPalette) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(8.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(palette.progressTrack)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(fraction)
-                .clip(RoundedCornerShape(4.dp))
-                .background(palette.accent)
-        )
-    }
-}
-
-/** Range at 100% now vs. when new, and the difference, as accent tiles. */
-@Composable
-private fun RangeTiles(
-    stats: BatteryStats,
-    units: Units?,
-    palette: CarColorPalette
-) {
-    val tiles = listOf(
-        stringResource(R.string.battery_range_now) to UnitFormatter.formatDistance(stats.maxRangeNow, units, 0),
-        stringResource(R.string.battery_when_new) to UnitFormatter.formatDistance(stats.maxRangeNew, units, 0),
-        stringResource(R.string.battery_lost) to UnitFormatter.formatDistance(stats.rangeLoss, units, 0)
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        tiles.forEach { (label, value) ->
-            AccentStatTile(
-                label = label,
-                value = value,
-                accent = palette.accent,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-/** Current charge level and the three range estimates the car reports right now. */
+/** Today's charge level, limit, plug state and the three range estimates the car reports. */
 @Composable
 private fun RightNowCard(
     stats: BatteryStats,
@@ -339,95 +252,119 @@ private fun RightNowCard(
         )
     }
 
+    val rightNow = stringResource(R.string.battery_right_now).uppercase(Locale.getDefault())
+    val limit = stats.chargeLimitSoc?.let {
+        stringResource(R.string.charge_limit_format, it).uppercase(Locale.getDefault())
+    }
+    val status = when {
+        stats.isCharging -> stringResource(R.string.charging)
+        stats.isPluggedIn -> stringResource(R.string.plugged_in)
+        else -> null
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = palette.surface)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.battery_right_now),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onSurface
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                InfoIcon(onClick = { showInfo = true })
-                Spacer(modifier = Modifier.weight(1f))
-                Column(horizontalAlignment = Alignment.End) {
+                // Kicker with the info icon right after it; the pill keeps the far right
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "${stats.batteryLevel}%",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = palette.onSurface
+                        text = buildAnnotatedString {
+                            append(rightNow)
+                            append(" · ")
+                            withStyle(SpanStyle(color = palette.onSurface)) {
+                                append("${stats.batteryLevel}%")
+                            }
+                            if (limit != null) {
+                                append(" · ")
+                                append(limit)
+                            }
+                        },
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.2.sp,
+                        color = palette.onSurfaceVariant,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
-                    if (stats.usableBatteryLevel != stats.batteryLevel) {
-                        Text(
-                            text = stringResource(R.string.usable_percent, stats.usableBatteryLevel),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = palette.onSurfaceVariant
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    InfoIcon(onClick = { showInfo = true })
+                }
+                if (status != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    StatusPill(text = status, palette = palette)
                 }
             }
 
-            RangeRow(
-                label = stringResource(R.string.estimated_range),
-                subtitle = stringResource(R.string.estimated_range_subtitle),
-                value = UnitFormatter.formatDistance(stats.estimatedRange, units, 0),
-                palette = palette
-            )
-            RangeRow(
-                label = stringResource(R.string.rated_range),
-                subtitle = stringResource(R.string.rated_range_subtitle),
-                value = UnitFormatter.formatDistance(stats.ratedRange, units, 0),
-                palette = palette
-            )
-            RangeRow(
-                label = stringResource(R.string.ideal_range),
-                subtitle = stringResource(R.string.ideal_range_subtitle),
-                value = UnitFormatter.formatDistance(stats.idealRange, units, 0),
-                palette = palette
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HeroStat(
+                    label = stringResource(R.string.battery_range_estimated_short),
+                    value = UnitFormatter.formatDistance(stats.estimatedRange, units, 0),
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier.fillMaxHeight()
+                )
+                HeroStat(
+                    label = stringResource(R.string.battery_range_rated_short),
+                    value = UnitFormatter.formatDistance(stats.ratedRange, units, 0),
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    modifier = Modifier.fillMaxHeight()
+                )
+                HeroStat(
+                    label = stringResource(R.string.battery_range_ideal_short),
+                    value = UnitFormatter.formatDistance(stats.idealRange, units, 0),
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
 
+/** Plug/charging status: a pill, not a button. */
 @Composable
-private fun RangeRow(
-    label: String,
-    subtitle: String,
-    value: String,
-    palette: CarColorPalette
-) {
+private fun StatusPill(text: String, palette: CarColorPalette) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(palette.accent.copy(alpha = 0.12f))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = palette.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = palette.onSurfaceVariant
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
+        Icon(
+            imageVector = Icons.Filled.Bolt,
+            contentDescription = null,
+            modifier = Modifier.size(12.dp),
+            tint = palette.accent
+        )
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = palette.onSurface
+            text = text,
+            fontSize = 11.sp,
+            lineHeight = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = palette.accent,
+            maxLines = 1
         )
     }
 }
