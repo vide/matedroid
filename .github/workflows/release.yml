@@ -10,20 +10,20 @@ permissions:
 
 jobs:
   build-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Setup keystore
         env:
@@ -65,26 +65,26 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab staging/app-release.aab
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-outputs
           path: staging/
 
   build-debug:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
@@ -96,7 +96,7 @@ jobs:
           echo "APK_NAME_DEBUG=matedroid-${VERSION}-debug.apk" >> $GITHUB_ENV
 
       - name: Upload debug artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: debug-outputs
           path: app/build/outputs/apk/debug/${{ env.APK_NAME_DEBUG }}
@@ -104,23 +104,23 @@ jobs:
   publish-github:
     needs: [build-release, build-debug]
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-outputs
           path: release
 
       - name: Download debug artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: debug-outputs
           path: debug
 
       - name: Upload APKs to GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             release/*.apk
@@ -129,14 +129,14 @@ jobs:
   publish-play:
     needs: [build-release]
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-outputs
           path: release
@@ -169,7 +169,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.matedroid
           releaseFiles: release/app-release.aab
-          track: ${{ steps.play-track.outputs.track }}
+          tracks: ${{ steps.play-track.outputs.track }}
           status: completed
           whatsNewDirectory: fastlane/metadata/android
           # The happy path: commit the edit *and* send it for review, so cutting a tag is
@@ -192,7 +192,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.matedroid
           releaseFiles: release/app-release.aab
-          track: ${{ steps.play-track.outputs.track }}
+          tracks: ${{ steps.play-track.outputs.track }}
           status: completed
           whatsNewDirectory: fastlane/metadata/android
           changesNotSentForReview: true
