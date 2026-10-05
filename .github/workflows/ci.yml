@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# The default token is read-only; action-junit-report needs checks: write to publish the
+# "Unit Test Results" check run on the commit. Pull requests from forks still get a
+# read-only token, so for those the results only appear in the job summary.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   build:
     name: Lint, Build & Test
