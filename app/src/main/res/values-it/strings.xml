@@ -695,9 +695,6 @@
     <!-- Title of the summary card with totals and averages over all drives (the act of driving, not a single drive) -->
     <string name="stats_driving_summary">Guida</string>
 
-    <!-- Label for total number of drives -->
-    <string name="stats_total_drives">Tragitti Totali</string>
-
     <!-- Label for number of days with at least one drive -->
     <string name="stats_driving_days">Giorni di Guida</string>
 
@@ -715,15 +712,15 @@
     <!-- Title of the summary card with totals over all charges, including the AC/DC split (the act of charging) -->
     <string name="stats_charging_summary">Ricarica</string>
 
-    <!-- Label for total number of charge sessions -->
-    <string name="stats_total_charges">Ricariche Totali</string>
-
     <!-- Label for average cost per kWh of energy -->
     <string name="stats_avg_cost_kwh_added">Costo Medio/kWh aggiunto</string>
     <string name="stats_avg_cost_kwh_used">Costo Medio/kWh usato</string>
 
-    <!-- Section: Records - personal bests and extremes -->
-    <string name="stats_records">Record</string>
+    <!-- Count of records (trophies) on one category shelf of Stats for Nerds, shown in caps next to the shelf title. %d is the count -->
+    <plurals name="stats_trophies_count">
+        <item quantity="one">%d trofeo</item>
+        <item quantity="other">%d trofei</item>
+    </plurals>
 
     <!-- Record category: driving-related records -->
     <string name="stats_category_drives">Tragitti</string>
