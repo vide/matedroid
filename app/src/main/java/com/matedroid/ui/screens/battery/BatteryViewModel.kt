@@ -45,7 +45,10 @@ data class BatteryStats(
     val usableBatteryLevel: Int,
     val estimatedRange: Double,
     val ratedRange: Double,
-    val idealRange: Double
+    val idealRange: Double,
+    val chargeLimitSoc: Int?,
+    val isPluggedIn: Boolean,
+    val isCharging: Boolean
 )
 
 /** Rated consumption in Wh per distance unit used when neither source provides one. */
@@ -101,7 +104,10 @@ internal fun computeBatteryStats(
         usableBatteryLevel = usableBatteryLevel,
         estimatedRange = status?.estBatteryRangeKm ?: 0.0,
         ratedRange = status?.ratedBatteryRangeKm ?: 0.0,
-        idealRange = status?.idealBatteryRangeKm ?: 0.0
+        idealRange = status?.idealBatteryRangeKm ?: 0.0,
+        chargeLimitSoc = status?.chargeLimitSoc,
+        isPluggedIn = status?.pluggedIn == true,
+        isCharging = status?.isCharging == true
     )
 }
 

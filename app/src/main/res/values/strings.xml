@@ -649,23 +649,26 @@
     <string name="battery_range_now">Range now</string>
     <!-- Card title for the current charge level and range estimates -->
     <string name="battery_right_now">Right now</string>
+    <!-- Caption over the line inside the battery pictogram: today's state of charge as a share of
+         the usable capacity. %d is the percentage. Shown uppercased; keep it short. -->
+    <string name="battery_today_label">%d %% today</string>
+    <!-- Short key at the foot of the range column (left of the pictogram): the figures there are
+         range at a 100 % charge. Shown uppercased, up to two lines. -->
+    <string name="battery_key_range_at_100">Range at 100 %</string>
+    <!-- Short key at the foot of the energy column (right of the pictogram): the figures there are
+         usable capacity in kWh. Shown uppercased, up to two lines. -->
+    <string name="battery_key_capacity_usable">Capacity usable</string>
 
     <!-- Battery health info dialog (its title is battery_health_estimated) -->
-    <string name="estimated_degradation_message">Battery health is estimated by Teslamate from your charging data.\n\n• Health: usable capacity now divided by the usable capacity when the car was new\n• Lost: the difference between the two, in kWh and in rated range\n• Rated efficiency: the consumption Tesla uses to turn kWh into rated range\n\nNote: Tesla publishes no official degradation figure, so this is an estimate.</string>
-
-    <!-- %d is the percentage of usable battery -->
-    <string name="usable_percent">Usable: %d%%</string>
+    <string name="estimated_degradation_message">Battery health is estimated by Teslamate from your charging data.\n\n• Health: usable capacity now divided by the usable capacity when the car was new\n• Lost: the difference between the two, in kWh and in rated range\n• Rated efficiency: the consumption Tesla uses to turn kWh into rated range\n• Line in the fill: today\'s charge, as a share of the usable capacity (not of the pack when new)\n\nNote: Tesla publishes no official degradation figure, so this is an estimate.</string>
 
     <!-- Current charge screen title -->
     <string name="current_charge_title">Current Charge</string>
 
     <!-- Range rows in the "Right now" card -->
     <string name="estimated_range">Estimated Range</string>
-    <string name="estimated_range_subtitle">Based on current driving conditions</string>
     <string name="rated_range">Rated Range</string>
-    <string name="rated_range_subtitle">Official EPA/WLTP range</string>
     <string name="ideal_range">Ideal Range</string>
-    <string name="ideal_range_subtitle">Ideal driving conditions</string>
 
     <!-- Range information info dialog -->
     <string name="range_information_title">Range Information</string>

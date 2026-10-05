@@ -3,9 +3,12 @@ package com.matedroid.ui.screens.battery
 import com.matedroid.data.api.models.BatteryDetails
 import com.matedroid.data.api.models.BatteryHealth
 import com.matedroid.data.api.models.CarStatus
+import com.matedroid.data.api.models.ChargingDetails
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BatteryStatsTest {
@@ -83,6 +86,39 @@ class BatteryStatsTest {
         assertEquals(350.0, s.estimatedRange, 0.001)
         assertEquals(405.6, s.ratedRange, 0.001)
         assertEquals(410.0, s.idealRange, 0.001)
+    }
+
+    @Test
+    fun missingCarStatus_hasNoChargingState() {
+        val s = stats(status = null)!!
+        assertNull(s.chargeLimitSoc)
+        assertFalse(s.isPluggedIn)
+        assertFalse(s.isCharging)
+    }
+
+    @Test
+    fun chargingCar_reportsPlugLimitAndCharging() {
+        val status = CarStatus(
+            chargingDetails = ChargingDetails(
+                pluggedIn = true,
+                chargingState = "Charging",
+                chargeLimitSoc = 90
+            )
+        )
+        val s = stats(status = status)!!
+        assertEquals(90, s.chargeLimitSoc)
+        assertTrue(s.isPluggedIn)
+        assertTrue(s.isCharging)
+    }
+
+    @Test
+    fun pluggedInNotCharging_isPluggedInOnly() {
+        val status = CarStatus(
+            chargingDetails = ChargingDetails(pluggedIn = true, chargingState = "Stopped")
+        )
+        val s = stats(status = status)!!
+        assertTrue(s.isPluggedIn)
+        assertFalse(s.isCharging)
     }
 
     @Test

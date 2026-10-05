@@ -78,7 +78,7 @@ object ScreenshotSpecs {
                 group = 1,
                 route = "battery",
                 exteriorColor = CAR_COLOR,
-                ready = listOf(text(R.string.battery_health_estimated)),
+                ready = listOf(text(R.string.battery_rated_efficiency)),
             ),
             ScreenshotSpec(
                 id = "mileage",
