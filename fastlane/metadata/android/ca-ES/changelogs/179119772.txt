@@ -1,0 +1,4 @@
+Una correcció ràpida per a la nova notificació de progrés de la sincronització.
+
+Corregit:
+- La notificació "MateDroid Sync" ja no es queda encallada després d'una sincronització en segon pla (p. ex. "Càrregues: 0 de 1"). Només apareix mentre una sincronització està realment en curs, i la que hagi quedat s'esborra sola a la sincronització següent.

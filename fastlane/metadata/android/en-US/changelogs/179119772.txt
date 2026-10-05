@@ -1,0 +1,4 @@
+A quick fix for the new sync progress notification.
+
+Fixed:
+- The "MateDroid Sync" notification no longer gets stuck in the shade after a background sync (e.g. "Charges: 0 of 1"). It only shows while a sync is really running, and a leftover one clears itself at the next sync.

@@ -1,0 +1,4 @@
+Una correzione rapida per la nuova notifica di avanzamento della sincronizzazione.
+
+Corretto:
+- La notifica "MateDroid Sync" non resta più bloccata tra le notifiche dopo una sincronizzazione in background (es. "Ricariche: 0 di 1"). Compare solo mentre una sincronizzazione è davvero in corso, e quella rimasta si cancella da sola alla sincronizzazione successiva.

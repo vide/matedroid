@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0-beta2] - 2026-10-05
+
 ### Fixed
 - **The sync notification no longer gets stuck.** A sync that Android ran in the background without a foreground service still posted its progress, and nothing ever took it down again, so a "MateDroid Sync — Charges: 0 of 1" notification sat in the shade for good. It now only appears while a sync is really running, and the leftover one clears itself at the next sync.
 
@@ -829,7 +831,8 @@ This release is a top-to-bottom rebuild of the **Trips experience**, plus a hand
 - Dashboard with basic vehicle status
 - Charges screen with history list
 
-[Unreleased]: https://github.com/vide/matedroid/compare/v1.12.0-beta1...HEAD
+[Unreleased]: https://github.com/vide/matedroid/compare/v1.12.0-beta2...HEAD
+[1.12.0-beta2]: https://github.com/vide/matedroid/compare/v1.12.0-beta1...v1.12.0-beta2
 [1.12.0-beta1]: https://github.com/vide/matedroid/compare/v1.11.3...v1.12.0-beta1
 [1.11.3]: https://github.com/vide/matedroid/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/vide/matedroid/compare/v1.11.1...v1.11.2

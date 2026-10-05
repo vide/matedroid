@@ -1,0 +1,4 @@
+Una corrección rápida para la nueva notificación de progreso de la sincronización.
+
+Corregido:
+- La notificación "MateDroid Sync" ya no se queda atascada tras una sincronización en segundo plano (p. ej. "Cargas: 0 de 1"). Solo aparece mientras una sincronización está realmente en curso, y la que haya quedado se borra sola en la siguiente sincronización.

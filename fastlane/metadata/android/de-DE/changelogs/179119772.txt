@@ -1,0 +1,4 @@
+Eine schnelle Korrektur für die neue Fortschrittsbenachrichtigung der Synchronisierung.
+
+Behoben:
+- Die Benachrichtigung „MateDroid Sync" bleibt nach einer Hintergrundsynchronisierung nicht mehr hängen (z. B. „Ladevorgänge: 0 von 1"). Sie erscheint nur, solange wirklich synchronisiert wird, und eine übrig gebliebene verschwindet bei der nächsten Synchronisierung von selbst.
