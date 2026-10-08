@@ -1,0 +1,14 @@
+Desa el que només sap el teu mòbil i segueix cada trajecte fins a la destinació.
+
+Afegit:
+- Còpia i restauració de viatges, alertes sentinella i ajustos
+- Notificació de navegació amb arribada i bateria en arribar
+- Destinació, arribada i trànsit al mapa del tauler
+
+Canviat:
+- Salut de la bateria dibuixada com una cel·la
+- Estadístiques per a nerds és ara una vitrina de rècords
+- La notificació de sync mostra el progrés real
+
+Corregit:
+- Eficiència nominal 10 vegades massa petita

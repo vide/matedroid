@@ -1,0 +1,14 @@
+Sichere, was nur dein Handy weiß, und verfolge jede Fahrt bis zum Ziel.
+
+Neu:
+- Sicherung und Wiederherstellung von Reisen, Wächter-Warnungen und Einstellungen
+- Navigationshinweis mit Ankunft und Akku bei Ankunft
+- Ziel, Ankunft und Stau auf der Dashboard-Karte
+
+Geändert:
+- Batteriegesundheit als Batteriezelle
+- Statistiken für Nerds ist jetzt ein Trophäenraum
+- Sync-Hinweis zeigt echten Fortschritt
+
+Behoben:
+- Nenneffizienz 10-mal zu klein angezeigt

@@ -1,0 +1,14 @@
+Guarda lo que solo sabe tu móvil y sigue cada trayecto hasta su destino.
+
+Añadido:
+- Copia y restauración de viajes, alertas centinela y ajustes
+- Notificación de navegación con llegada y batería al llegar
+- Destino, llegada y tráfico en el mapa del panel
+
+Cambiado:
+- Salud de la batería dibujada como una celda
+- Estadísticas para nerds es ahora una vitrina de récords
+- La notificación de sync muestra el progreso real
+
+Corregido:
+- Eficiencia nominal 10 veces demasiado pequeña

@@ -1,0 +1,14 @@
+Salva ciò che solo il tuo telefono sa e segui ogni viaggio fino alla meta.
+
+Aggiunto:
+- Backup e ripristino di viaggi, avvisi sentinella e impostazioni
+- Notifica di navigazione con arrivo e batteria all'arrivo
+- Destinazione, arrivo e traffico sulla mappa della dashboard
+
+Modificato:
+- Salute batteria disegnata come una cella
+- Statistiche per nerd ora è una bacheca di record
+- La notifica di sync mostra il progresso reale
+
+Corretto:
+- Efficienza nominale 10 volte troppo piccola

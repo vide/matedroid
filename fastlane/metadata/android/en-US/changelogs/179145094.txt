@@ -1,0 +1,14 @@
+Back up what only your phone knows, and follow every drive to its destination.
+
+Added:
+- Backup and restore of trips, sentry alerts and settings
+- Navigation notification with ETA and arrival battery
+- Destination, ETA and traffic delay on the dashboard map
+
+Changed:
+- Battery Health redrawn as a battery cell
+- Stats for Nerds is now a trophy room of your records
+- Sync notification shows real progress
+
+Fixed:
+- Rated efficiency shown 10x too small
