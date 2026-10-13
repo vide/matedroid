@@ -4,6 +4,7 @@ import com.matedroid.data.api.TeslamateApi
 import com.matedroid.data.api.models.ChargeDetail
 import com.matedroid.data.api.models.ChargeDetailData
 import com.matedroid.data.api.models.ChargeDetailResponse
+import com.matedroid.data.api.models.DriveDetailResponse
 import com.matedroid.data.local.AppSettings
 import com.matedroid.data.local.SettingsDataStore
 import com.matedroid.di.TeslamateApiFactory
@@ -156,5 +157,24 @@ class TeslamateRepositoryTest {
         assertFalse(repository.isCurrentChargeAvailable(1))
 
         coVerify(exactly = 1) { api.getCurrentCharge(1) }
+    }
+
+    @Test
+    fun `a 200 without data is reported as noData`() = runTest {
+        // TeslamateApi's answer for a drive with no positions: HTTP 200 {"error":"No rows were returned!"}
+        coEvery { api.getDriveDetail(1, 5) } returns Response.success(DriveDetailResponse())
+
+        val result = repository.getDriveDetail(1, 5)
+
+        assertTrue(result is ApiResult.Error && result.noData)
+    }
+
+    @Test
+    fun `an HTTP error is not reported as noData`() = runTest {
+        coEvery { api.getDriveDetail(1, 5) } returns Response.error(500, "".toResponseBody(null))
+
+        val result = repository.getDriveDetail(1, 5)
+
+        assertTrue(result is ApiResult.Error && !result.noData)
     }
 }

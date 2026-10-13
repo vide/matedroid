@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Charge details stopped syncing when a drive had no data** — a drive Teslamate keeps without any recorded positions failed to sync every time, and since charges only synced after every drive had, no charge detail came in after that. Charges added since then were shown as AC in trips, and road trips through DC chargers weren't detected. Such drives are now recorded as empty and the charge sync runs regardless, so the backlog catches up on the next sync. Until a charge is synced, the trip screens now guess AC or DC from its average power, the way the charges list already does.
+
 ## [1.12.0] - 2026-10-08
 
 Back up what only your phone knows and restore it anywhere, follow a drive to its destination from the notification shade and the dashboard map, and two screens rebuilt around one idea each: Battery Health as a battery cell and Stats for Nerds as a trophy room.

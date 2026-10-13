@@ -22,6 +22,7 @@ import com.matedroid.data.repository.ApiResult
 import com.matedroid.data.repository.GeocodingRepository
 import com.matedroid.data.repository.TeslamateRepository
 import com.matedroid.domain.ElevationStats
+import com.matedroid.ui.screens.charges.ChargeStatsCalculator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -135,17 +136,20 @@ class SyncRepository @Inject constructor(
         // Phase 2: Sync drive details. Failed items keep no aggregate row, so a retry
         // reprocesses only them — don't mark the phase complete while failures remain.
         val driveFailures = syncDriveDetails(carId)
-        if (driveFailures > 0) {
-            syncManager.markSyncError(carId, "$driveFailures drive details failed — will retry")
-            return false
+        if (driveFailures == 0) {
+            syncManager.markDriveDetailsComplete(carId)
         }
 
-        syncManager.markDriveDetailsComplete(carId)
-
-        // Phase 3: Sync charge details
+        // Phase 3: Sync charge details. Runs even when some drives failed: the two phases
+        // are independent, and a drive that keeps failing must not starve charge details
+        // (DC/AC type, trip detection) indefinitely.
         val chargeFailures = syncChargeDetails(carId)
-        if (chargeFailures > 0) {
-            syncManager.markSyncError(carId, "$chargeFailures charge details failed — will retry")
+        if (driveFailures > 0 || chargeFailures > 0) {
+            val failed = listOfNotNull(
+                "$driveFailures drive".takeIf { driveFailures > 0 },
+                "$chargeFailures charge".takeIf { chargeFailures > 0 }
+            ).joinToString(" and ")
+            syncManager.markSyncError(carId, "$failed details failed — will retry")
             return false
         }
 
@@ -239,6 +243,12 @@ class SyncRepository @Inject constructor(
                         }
                         aggregate
                     }
+                    is ApiResult.Error if result.noData -> {
+                        // No positions on the server: store an empty aggregate so it isn't
+                        // refetched (and counted as a failure) on every sync.
+                        log("Drive $driveId has no detail data, storing empty aggregate")
+                        emptyDriveAggregate(carId, driveId)
+                    }
                     is ApiResult.Error -> {
                         logError("Drive $driveId failed: ${result.message}")
                         failures++
@@ -327,6 +337,10 @@ class SyncRepository @Inject constructor(
                         if (summary != null && summary.latitude != 0.0 && summary.longitude != 0.0) {
                             batchLocations.add(summary.latitude to summary.longitude)
                         }
+                    }
+                    is ApiResult.Error if result.noData -> {
+                        log("Charge $chargeId has no detail data, storing empty aggregate")
+                        aggregates.add(emptyChargeAggregate(carId, chargeId, summariesById[chargeId]))
                     }
                     is ApiResult.Error -> {
                         logError("Charge $chargeId failed: ${result.message}")
@@ -537,6 +551,57 @@ class SyncRepository @Inject constructor(
             chargePointCount = points.size
         )
     }
+
+    /** Aggregate for a drive the server has no positions for: every stat unknown. */
+    private fun emptyDriveAggregate(carId: Int, driveId: Int) = DriveDetailAggregate(
+        driveId = driveId,
+        carId = carId,
+        schemaVersion = SchemaVersion.CURRENT,
+        computedAt = System.currentTimeMillis(),
+        maxElevation = null,
+        minElevation = null,
+        startElevation = null,
+        endElevation = null,
+        elevationGain = null,
+        elevationLoss = null,
+        hasElevationData = false,
+        maxInsideTemp = null,
+        minInsideTemp = null,
+        maxOutsideTemp = null,
+        minOutsideTemp = null,
+        maxPower = null,
+        minPower = null,
+        climateOnPositions = 0,
+        positionCount = 0
+    )
+
+    /**
+     * Aggregate for a charge the server has no detail points for. Without charger phases
+     * the DC/AC type falls back to the same average-power heuristic the charges list uses.
+     */
+    private fun emptyChargeAggregate(carId: Int, chargeId: Int, summary: ChargeSummary?) =
+        ChargeDetailAggregate(
+            chargeId = chargeId,
+            carId = carId,
+            schemaVersion = SchemaVersion.CURRENT,
+            computedAt = System.currentTimeMillis(),
+            isFastCharger = ChargeStatsCalculator.isDcCharge(
+                chargeId = chargeId,
+                energyAddedKwh = summary?.energyAdded,
+                durationMin = summary?.durationMin,
+                dcChargeIds = emptySet(),
+                processedChargeIds = emptySet()
+            ),
+            fastChargerBrand = null,
+            connectorType = null,
+            maxChargerPower = null,
+            maxChargerVoltage = null,
+            maxChargerCurrent = null,
+            chargerPhases = null,
+            maxOutsideTemp = null,
+            minOutsideTemp = null,
+            chargePointCount = 0
+        )
 
     /**
      * Re-enqueue locations from existing aggregates that still need geocoding.

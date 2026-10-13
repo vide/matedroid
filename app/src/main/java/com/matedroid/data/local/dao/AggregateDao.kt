@@ -241,6 +241,21 @@ interface AggregateDao {
     @Query("SELECT chargeId FROM charge_detail_aggregates WHERE carId = :carId AND isFastCharger = 1")
     suspend fun getDcChargeIds(carId: Int): List<Int>
 
+    /**
+     * DC charge IDs as [getDcChargeIds], plus charges whose detail isn't synced yet but whose
+     * average power (energy added over duration) exceeds [thresholdKw] — the same fallback
+     * as ChargeStatsCalculator.isDcCharge, so trip screens agree with the charges list.
+     */
+    @Query("""
+        SELECT chargeId FROM charge_detail_aggregates WHERE carId = :carId AND isFastCharger = 1
+        UNION
+        SELECT c.chargeId FROM charges_summary c
+        LEFT JOIN charge_detail_aggregates a ON c.chargeId = a.chargeId
+        WHERE c.carId = :carId AND a.chargeId IS NULL
+        AND c.durationMin > 0 AND c.energyAdded / (c.durationMin / 60.0) > :thresholdKw
+    """)
+    suspend fun getDcChargeIdsWithFallback(carId: Int, thresholdKw: Double): List<Int>
+
     // Sum of energy added for AC charges (join with summary to get energyAdded)
     @Query("""
         SELECT COALESCE(SUM(c.energyAdded), 0.0) FROM charge_detail_aggregates a

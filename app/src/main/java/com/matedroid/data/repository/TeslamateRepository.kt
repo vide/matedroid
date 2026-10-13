@@ -36,7 +36,11 @@ sealed class ApiResult<out T> {
     data class Error(
         val message: String,
         val code: Int? = null,
-        val details: String? = null
+        val details: String? = null,
+        // The server answered successfully but had nothing for this resource (TeslamateApi
+        // replies HTTP 200 {"error":"No rows were returned!"}, e.g. a drive without positions).
+        // Retrying won't change that, unlike a network or HTTP error.
+        val noData: Boolean = false
     ) : ApiResult<Nothing>()
 }
 
@@ -297,7 +301,7 @@ class TeslamateRepository @Inject constructor(
     ): ApiResult<T> =
         if (isSuccessful) {
             extract(body())?.let { ApiResult.Success(it) }
-                ?: ApiResult.Error("No $what returned")
+                ?: ApiResult.Error("No $what returned", noData = true)
         } else {
             ApiResult.Error("Failed to fetch $what: ${code()}", code())
         }

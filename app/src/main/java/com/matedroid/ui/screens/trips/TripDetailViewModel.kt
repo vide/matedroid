@@ -22,6 +22,7 @@ import com.matedroid.domain.LegRef
 import com.matedroid.domain.RouteSimplifier
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
+import com.matedroid.ui.screens.charges.ChargeStatsCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -152,7 +153,9 @@ class TripDetailViewModel @Inject constructor(
             val savedId = tripRepository.findSavedTripId(carId, trip)
             val savedName = savedId?.let { tripRepository.getTripName(it) }
             val dcIds = try {
-                aggregateDao.getDcChargeIds(carId).toSet()
+                aggregateDao.getDcChargeIdsWithFallback(
+                    carId, ChargeStatsCalculator.DC_AVG_POWER_THRESHOLD_KW
+                ).toSet()
             } catch (e: Exception) { emptySet() }
 
             // Placeholder charge markers — only on first load. On revalidation, keep the existing

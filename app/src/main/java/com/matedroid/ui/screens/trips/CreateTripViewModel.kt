@@ -14,6 +14,7 @@ import com.matedroid.domain.LegRef
 import com.matedroid.domain.TripAggregator
 import com.matedroid.domain.TripRepository
 import com.matedroid.domain.model.Trip
+import com.matedroid.ui.screens.charges.ChargeStatsCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +59,11 @@ class CreateTripViewModel @Inject constructor(
         started = true
         this.carId = carId
         viewModelScope.launch {
-            val dcIds = try { aggregateDao.getDcChargeIds(carId).toSet() } catch (_: Exception) { emptySet() }
+            val dcIds = try {
+                aggregateDao.getDcChargeIdsWithFallback(
+                    carId, ChargeStatsCalculator.DC_AVG_POWER_THRESHOLD_KW
+                ).toSet()
+            } catch (_: Exception) { emptySet() }
             _uiState.update { it.copy(dcChargeIds = dcIds) }
         }
         viewModelScope.launch {
