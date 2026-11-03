@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.matedroid.util.parseIsoDate
+import com.matedroid.ui.screens.charges.ChargeStatsCalculator
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -65,7 +66,9 @@ class TripsViewModel @Inject constructor(
     private fun loadDcChargeIds(id: Int) {
         viewModelScope.launch {
             val ids = try {
-                aggregateDao.getDcChargeIds(id).toSet()
+                aggregateDao.getDcChargeIdsWithFallback(
+                    id, ChargeStatsCalculator.DC_AVG_POWER_THRESHOLD_KW
+                ).toSet()
             } catch (e: Exception) { emptySet() }
             _uiState.update { it.copy(dcChargeIds = ids) }
         }
