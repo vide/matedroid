@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Charge details stopped syncing when a drive had no data** — a drive Teslamate keeps without any recorded positions failed to sync every time, and since charges only synced after every drive had, no charge detail came in after that. Charges added since then were shown as AC in trips, and road trips through DC chargers weren't detected. Such drives are now recorded as empty and the charge sync runs regardless, so the backlog catches up on the next sync. Until a charge is synced, the trip screens now guess AC or DC from its average power, the way the charges list already does.
+- **Stats for Nerds could sit on "Syncing…" for minutes** — when the screen opened before any drives were stored, it waited for the whole detail sync to finish before showing anything, and kept waiting forever if that sync ended with an error. Stats now appear as soon as the drive and charge lists arrive, the elevation, temperature and charging records fill in every 30 seconds while details sync, and an error no longer leaves the screen empty. With more than one car, the screen also stopped reloading on every drive another car synced, and it no longer loads twice when opened.
 
 ## [1.12.0] - 2026-10-08
 

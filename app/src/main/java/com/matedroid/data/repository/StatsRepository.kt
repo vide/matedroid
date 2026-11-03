@@ -65,40 +65,78 @@ class StatsRepository @Inject constructor(
     /**
      * Get quick stats (from summary tables, instant).
      */
-    suspend fun getQuickStats(carId: Int, yearFilter: YearFilter): QuickStats {
+    suspend fun getQuickStats(carId: Int, yearFilter: YearFilter): QuickStats = coroutineScope {
         val (startDate, endDate) = yearFilter.toDateBounds()
         val allTime = yearFilter is YearFilter.AllTime
         val useEnergyUsedBasis = CostPerKwhBasis.current == CostPerKwhBasis.ENERGY_USED
 
-        return QuickStats(
-            totalDrives = driveSummaryDao.count(carId, startDate, endDate),
-            totalDistanceKm = driveSummaryDao.sumDistance(carId, startDate, endDate),
-            totalEnergyConsumedKwh = driveSummaryDao.sumEnergyConsumed(carId, startDate, endDate),
-            avgEfficiencyWhKm = driveSummaryDao.avgEfficiency(carId, startDate, endDate),
-            maxSpeedKmh = driveSummaryDao.maxSpeed(carId, startDate, endDate),
-            avgDriveMinutes = if (allTime) driveSummaryDao.avgDuration(carId) else null, // Not critical for year view
-            totalDrivingDays = driveSummaryDao.countDrivingDays(carId, startDate, endDate),
+        // Independent queries: fan them out like getDeepStats instead of ~27 sequential round trips.
+        val totalDrives = async { driveSummaryDao.count(carId, startDate, endDate) }
+        val totalDistance = async { driveSummaryDao.sumDistance(carId, startDate, endDate) }
+        val totalEnergyConsumed = async { driveSummaryDao.sumEnergyConsumed(carId, startDate, endDate) }
+        val avgEfficiency = async { driveSummaryDao.avgEfficiency(carId, startDate, endDate) }
+        val maxSpeed = async { driveSummaryDao.maxSpeed(carId, startDate, endDate) }
+        val avgDriveMinutes = async { if (allTime) driveSummaryDao.avgDuration(carId) else null } // Not critical for year view
+        val totalDrivingDays = async { driveSummaryDao.countDrivingDays(carId, startDate, endDate) }
 
-            totalCharges = chargeSummaryDao.count(carId, startDate, endDate),
-            totalEnergyAddedKwh = chargeSummaryDao.sumEnergyAdded(carId, startDate, endDate),
-            totalCost = chargeSummaryDao.sumCost(carId, startDate, endDate).takeIf { it > 0 },
-            avgCostPerKwh = chargeSummaryDao.avgCostPerKwh(carId, startDate, endDate, useEnergyUsedBasis).takeIf { it > 0 },
-            avgChargeMinutes = if (allTime) chargeSummaryDao.avgDuration(carId) else null, // Not critical for year view
+        val totalCharges = async { chargeSummaryDao.count(carId, startDate, endDate) }
+        val totalEnergyAdded = async { chargeSummaryDao.sumEnergyAdded(carId, startDate, endDate) }
+        val totalCost = async { chargeSummaryDao.sumCost(carId, startDate, endDate) }
+        val avgCostPerKwh = async { chargeSummaryDao.avgCostPerKwh(carId, startDate, endDate, useEnergyUsedBasis) }
+        val avgChargeMinutes = async { if (allTime) chargeSummaryDao.avgDuration(carId) else null } // Not critical for year view
 
-            longestDrive = driveSummaryDao.longestDrive(carId, startDate, endDate),
-            fastestDrive = driveSummaryDao.fastestDrive(carId, startDate, endDate),
-            mostEfficientDrive = driveSummaryDao.mostEfficientDrive(carId, startDate, endDate),
-            leastEfficientDrive = driveSummaryDao.leastEfficientDrive(carId, startDate, endDate),
-            biggestCharge = chargeSummaryDao.biggestCharge(carId, startDate, endDate),
-            mostExpensiveCharge = chargeSummaryDao.mostExpensiveCharge(carId, startDate, endDate),
-            mostExpensivePerKwhCharge = chargeSummaryDao.mostExpensivePerKwhCharge(carId, startDate, endDate, useEnergyUsedBasis),
+        val longestDrive = async { driveSummaryDao.longestDrive(carId, startDate, endDate) }
+        val fastestDrive = async { driveSummaryDao.fastestDrive(carId, startDate, endDate) }
+        val mostEfficientDrive = async { driveSummaryDao.mostEfficientDrive(carId, startDate, endDate) }
+        val leastEfficientDrive = async { driveSummaryDao.leastEfficientDrive(carId, startDate, endDate) }
+        val biggestCharge = async { chargeSummaryDao.biggestCharge(carId, startDate, endDate) }
+        val mostExpensiveCharge = async { chargeSummaryDao.mostExpensiveCharge(carId, startDate, endDate) }
+        val mostExpensivePerKwhCharge = async {
+            chargeSummaryDao.mostExpensivePerKwhCharge(carId, startDate, endDate, useEnergyUsedBasis)
+        }
 
-            firstDriveDate = driveSummaryDao.firstDriveDate(carId), // Always show first ever
-            firstChargeDate = chargeSummaryDao.firstChargeDate(carId), // Always show first ever
-            busiestDay = driveSummaryDao.busiestDay(carId, startDate, endDate),
-            mostDistanceDay = driveSummaryDao.mostDistanceDay(carId, startDate, endDate),
+        val firstDriveDate = async { driveSummaryDao.firstDriveDate(carId) } // Always show first ever
+        val firstChargeDate = async { chargeSummaryDao.firstChargeDate(carId) } // Always show first ever
+        val busiestDay = async { driveSummaryDao.busiestDay(carId, startDate, endDate) }
+        val mostDistanceDay = async { driveSummaryDao.mostDistanceDay(carId, startDate, endDate) }
 
-            maxDistanceBetweenCharges = chargeSummaryDao.maxDistanceBetweenCharges(carId, startDate, endDate)?.let {
+        val maxDistanceBetweenCharges = async { chargeSummaryDao.maxDistanceBetweenCharges(carId, startDate, endDate) }
+        val longestGapWithoutCharging = async { chargeSummaryDao.longestGapBetweenCharges(carId, startDate, endDate) }
+        val longestGapWithoutDriving = async { driveSummaryDao.longestGapBetweenDrives(carId, startDate, endDate) }
+        val drivingDays = async { driveSummaryDao.getDistinctDrivingDays(carId, startDate, endDate) }
+
+        val biggestBatteryGainCharge = async { chargeSummaryDao.biggestBatteryGainCharge(carId, startDate, endDate) }
+        val biggestBatteryDrainDrive = async { driveSummaryDao.biggestBatteryDrainDrive(carId, startDate, endDate) }
+
+        QuickStats(
+            totalDrives = totalDrives.await(),
+            totalDistanceKm = totalDistance.await(),
+            totalEnergyConsumedKwh = totalEnergyConsumed.await(),
+            avgEfficiencyWhKm = avgEfficiency.await(),
+            maxSpeedKmh = maxSpeed.await(),
+            avgDriveMinutes = avgDriveMinutes.await(),
+            totalDrivingDays = totalDrivingDays.await(),
+
+            totalCharges = totalCharges.await(),
+            totalEnergyAddedKwh = totalEnergyAdded.await(),
+            totalCost = totalCost.await().takeIf { it > 0 },
+            avgCostPerKwh = avgCostPerKwh.await().takeIf { it > 0 },
+            avgChargeMinutes = avgChargeMinutes.await(),
+
+            longestDrive = longestDrive.await(),
+            fastestDrive = fastestDrive.await(),
+            mostEfficientDrive = mostEfficientDrive.await(),
+            leastEfficientDrive = leastEfficientDrive.await(),
+            biggestCharge = biggestCharge.await(),
+            mostExpensiveCharge = mostExpensiveCharge.await(),
+            mostExpensivePerKwhCharge = mostExpensivePerKwhCharge.await(),
+
+            firstDriveDate = firstDriveDate.await(),
+            firstChargeDate = firstChargeDate.await(),
+            busiestDay = busiestDay.await(),
+            mostDistanceDay = mostDistanceDay.await(),
+
+            maxDistanceBetweenCharges = maxDistanceBetweenCharges.await()?.let {
                 MaxDistanceBetweenChargesRecord(
                     distance = it.distance,
                     fromChargeId = it.fromChargeId,
@@ -108,18 +146,16 @@ class StatsRepository @Inject constructor(
                 )
             },
 
-            longestGapWithoutCharging = chargeSummaryDao.longestGapBetweenCharges(carId, startDate, endDate)?.let {
+            longestGapWithoutCharging = longestGapWithoutCharging.await()?.let {
                 GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
             },
-            longestGapWithoutDriving = driveSummaryDao.longestGapBetweenDrives(carId, startDate, endDate)?.let {
+            longestGapWithoutDriving = longestGapWithoutDriving.await()?.let {
                 GapRecord(gapDays = it.gapDays, fromDate = it.fromDate, toDate = it.toDate)
             },
 
-            longestDrivingStreak = computeLongestStreak(
-                driveSummaryDao.getDistinctDrivingDays(carId, startDate, endDate)
-            ),
+            longestDrivingStreak = computeLongestStreak(drivingDays.await()),
 
-            biggestBatteryGainCharge = chargeSummaryDao.biggestBatteryGainCharge(carId, startDate, endDate)?.let {
+            biggestBatteryGainCharge = biggestBatteryGainCharge.await()?.let {
                 BatteryChangeRecord(
                     percentChange = it.endBatteryLevel - it.startBatteryLevel,
                     startLevel = it.startBatteryLevel,
@@ -129,7 +165,7 @@ class StatsRepository @Inject constructor(
                     isCharge = true
                 )
             },
-            biggestBatteryDrainDrive = driveSummaryDao.biggestBatteryDrainDrive(carId, startDate, endDate)?.let {
+            biggestBatteryDrainDrive = biggestBatteryDrainDrive.await()?.let {
                 BatteryChangeRecord(
                     percentChange = it.startBatteryLevel - it.endBatteryLevel,
                     startLevel = it.startBatteryLevel,

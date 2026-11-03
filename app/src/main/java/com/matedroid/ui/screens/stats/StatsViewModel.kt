@@ -27,11 +27,15 @@ import com.matedroid.domain.model.SyncProgress
 import com.matedroid.domain.model.YearFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -74,8 +78,11 @@ class StatsViewModel @Inject constructor(
 
     private var carId: Int? = null
     private var syncObserverJob: Job? = null
+    private var phaseObserverJob: Job? = null
     private var progressObserverJob: Job? = null
     private var geocodeProgressJob: Job? = null
+    private var loadJob: Job? = null
+    private var detailSyncTickerJob: Job? = null
 
     init {
         loadSettings()
@@ -156,29 +163,66 @@ class StatsViewModel @Inject constructor(
                     carProgress.phase != SyncPhase.IDLE
 
                 _uiState.update { it.copy(isSyncing = isSyncing, syncProgress = carProgress) }
+            }
+        }
+        // Reloads follow this car's phase changes only: the status also changes on every
+        // detail item of any car, and reloading on each of those kept the queries busy.
+        phaseObserverJob?.cancel()
+        phaseObserverJob = viewModelScope.launch {
+            var previous: SyncPhase? = null
+            var first = true
+            syncManager.syncStatus
+                .map { status -> carId?.let { status.carProgresses[it]?.phase } }
+                .distinctUntilChanged()
+                .collect { phase ->
+                    // The phase found at subscription is already covered by loadStats()
+                    if (!first) reloadOnPhaseChange(previous, phase)
+                    updateDetailSyncTicker(phase)
+                    previous = phase
+                    first = false
+                }
+        }
+    }
 
-                // Reload full stats when sync completes (not during sync - too expensive)
-                if (carProgress?.phase == SyncPhase.COMPLETE) {
-                    loadStatsInternal()
+    /**
+     * Summaries land seconds into a sync, but details can take hours. Waiting for COMPLETE
+     * (or never, when a sync ends in ERROR) left a first sync on the empty state the whole time.
+     */
+    private fun reloadOnPhaseChange(previous: SyncPhase?, phase: SyncPhase?) {
+        when {
+            phase == SyncPhase.COMPLETE || phase == SyncPhase.ERROR -> reloadStats("sync ${phase?.name?.lowercase()}")
+            previous == SyncPhase.SYNCING_SUMMARIES -> reloadStats("summaries synced")
+        }
+    }
+
+    /** While details sync, reload now and then so deep stats fill in instead of all at once at the end. */
+    private fun updateDetailSyncTicker(phase: SyncPhase?) {
+        val inDetailSync = phase == SyncPhase.SYNCING_DRIVE_DETAILS || phase == SyncPhase.SYNCING_CHARGE_DETAILS
+        if (inDetailSync && detailSyncTickerJob?.isActive != true) {
+            detailSyncTickerJob = viewModelScope.launch {
+                while (true) {
+                    delay(DETAIL_SYNC_RELOAD_INTERVAL_MS)
+                    reloadStats("detail sync")
                 }
             }
+        } else if (!inDetailSync) {
+            detailSyncTickerJob?.cancel()
+            detailSyncTickerJob = null
         }
     }
 
     fun setYearFilter(yearFilter: YearFilter) {
         _uiState.update { it.copy(selectedYearFilter = yearFilter, isUpdating = true) }
-        viewModelScope.launch {
-            loadStatsInternal()
-            _uiState.update { it.copy(isUpdating = false) }
-        }
+        reloadStats("year filter")
     }
 
     fun refresh() {
+        _uiState.update { it.copy(isRefreshing = true) }
+        // Trigger sync to fetch new data from server
+        triggerSync()
+        val job = reloadStats("refresh")
         viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true) }
-            // Trigger sync to fetch new data from server
-            triggerSync()
-            loadStatsInternal()
+            job.join()
             _uiState.update { it.copy(isRefreshing = false) }
         }
     }
@@ -215,14 +259,21 @@ class StatsViewModel @Inject constructor(
     }
 
     private fun loadStats() {
-        viewModelScope.launch {
-            // Only show initial loading state if the screen is empty
-            if (_uiState.value.carStats == null) {
-                _uiState.update { it.copy(isLoading = true) }
-            }
-            loadStatsInternal()
-            _uiState.update { it.copy(isLoading = false) }
+        // Only show initial loading state if the screen is empty
+        if (_uiState.value.carStats == null) {
+            _uiState.update { it.copy(isLoading = true) }
         }
+        reloadStats("open")
+    }
+
+    /**
+     * Start a stats load, cancelling the one in flight: it would only be overwritten, and the
+     * newest load always reads the current year filter. Every load ends with isLoading and
+     * isUpdating cleared, so a cancelled one never leaves a spinner behind.
+     */
+    private fun reloadStats(reason: String): Job {
+        loadJob?.cancel()
+        return viewModelScope.launch { loadStatsInternal(reason) }.also { loadJob = it }
     }
 
     /**
@@ -233,8 +284,9 @@ class StatsViewModel @Inject constructor(
         return statsRepository.getDrivesBetweenDates(id, fromDate, toDate)
     }
 
-    private suspend fun loadStatsInternal() {
+    private suspend fun loadStatsInternal(reason: String) {
         val id = carId ?: return
+        val startedAt = System.currentTimeMillis()
 
         try {
             // Check if we have any data
@@ -247,11 +299,14 @@ class StatsViewModel @Inject constructor(
                 // No data yet - show sync progress if available
                 _uiState.update {
                     it.copy(
+                        isLoading = false,
+                        isUpdating = false,
                         carStats = null,
                         deepSyncProgress = deepProgress,
                         error = null // Don't show error, show empty state with progress
                     )
                 }
+                syncLogCollector.log(TAG, "Stats ($reason): no data yet, ${System.currentTimeMillis() - startedAt} ms")
                 return
             }
 
@@ -264,6 +319,8 @@ class StatsViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
+                    isLoading = false,
+                    isUpdating = false,
                     carStats = stats,
                     availableYears = years,
                     deepSyncProgress = deepProgress,
@@ -271,12 +328,22 @@ class StatsViewModel @Inject constructor(
                     error = null
                 )
             }
+            syncLogCollector.log(TAG, "Stats ($reason) loaded in ${System.currentTimeMillis() - startedAt} ms")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             _uiState.update {
                 it.copy(
+                    isLoading = false,
+                    isUpdating = false,
                     error = e.message ?: context.getString(R.string.stats_error_load_failed)
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "StatsViewModel"
+        private const val DETAIL_SYNC_RELOAD_INTERVAL_MS = 30_000L
     }
 }
